@@ -45,8 +45,6 @@ sequenceDiagram
     participant Folder as Year/Case Folder (STAC files)
     actor SRO as SRO (Final Approver)
 
-    Note over Commissioner,SRO: Aqua Book roles: Commissioner - sets scope/QA, commissions; Analyst: performs analysis in Debrief; SRO: final sign‑off outside the tool
-
 %% Commissioning & Setup
 Commissioner->>Folder: Create commissioning.docx / .eml / .pdf (outside Debrief)
 Commissioner-->>Folder: Store under /YEAR/CASE-ID/
