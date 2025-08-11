@@ -26,7 +26,7 @@ ItemJSON -->|rel:'commission' link| CommissionDoc
 Dashboard -->|Shows link to doc| PlotView
 PlotView -->|Open externally| CommissionDoc
 SRO -->|Reviews & approves| CommissionDoc
-SRO -->|Status update (signed off)| Dashboard
+SRO -->|Status update: signed off| Dashboard
 
 %% Styling
 style CommissionDoc fill:#fff2cc,stroke:#d6b656,stroke-width:2px
