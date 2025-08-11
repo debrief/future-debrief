@@ -1,4 +1,4 @@
-<div class="mermaid">
+```mermaid
 flowchart TD
 subgraph Folder["Folder Hierarchy (Year-based)"]
     direction TB
@@ -35,4 +35,4 @@ style Dashboard fill:#f8cecc,stroke:#b85450,stroke-width:2px
 style PlotView fill:#f8cecc,stroke:#b85450,stroke-width:2px
 style Commissioner fill:#d5e8d4,stroke:#82b366,stroke-width:2px
 style SRO fill:#d5e8d4,stroke:#82b366,stroke-width:2px
-</div>
+```
