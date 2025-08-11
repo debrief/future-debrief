@@ -1,151 +1,117 @@
-# STAC Server Requirements v1.0
+# STAC Server Requirements – Debrief Replacement
 
-## 1. Purpose
-This document defines the functional and technical requirements for the open source STAC Server to be used in the Debrief Replacement project.  
-It integrates the agreed versioning model (**Stable Item ID + Versioned Asset Names**), with **Last N versions listed** in `assets` and **symlinks** for `@latest` aliases.
+This document describes **all known requirements** for the STAC Server component within the Debrief Replacement architecture, incorporating earlier design decisions and new requirements identified in the August 2025 interview process.
 
 ---
 
-## 2. Core STAC Compliance
-- Must comply with the [STAC 1.0.0 specification](https://stacspec.org/).
-- Must support **Collections**, **Items**, and **Assets**.
-- Must allow additional fields (`sys:*`, `prov:*`) within `properties`.
+## 1. Purpose and Scope
+The STAC (SpatioTemporal Asset Catalog) Server will act as the metadata and discovery layer for geospatial datasets (primarily track data), enabling analysts and automated processes to search, preview, and retrieve relevant datasets. It will not itself perform analysis but will be a key integration point between data producers, analysts, and visualisation tools.
+
+It must support both **standalone offline deployments** and **networked multi-user deployments**.
 
 ---
 
-## 3. Collections
-- **tracks.json** collection to store all maritime track data.
-- Collection metadata to include:
-  - Description
-  - License
-  - Keywords
-  - Extents (spatial & temporal)
-  - Links to `catalog.json`.
+## 2. Deployment Model
+- Support two distinct deployment modes:
+  1. **Static file-based** – No API, portable, OS-level access control, suitable for air-gapped transfer or secure standalone operation.
+  2. **REST API server** – For large shared repositories, centralised query, and integration with other services.
+- These are **separate deployment modes**, not a single dual-mode build.
 
 ---
 
-## 4. Items
-### 4.1 Identity
-- Each **Item `id`** is **stable** for a given track/serial.
-- Example: `Bluefin-12`.
-
-### 4.2 Versioning
-- Assets named using a timestamp suffix:
-  - `track@<ISO8601-compact>.geojson`  
-    e.g., `track@2025-08-11T1112Z.geojson`
-- All timestamps are in UTC.
-- Additional assets (e.g., `thumbnail`, `summary`, `presentation`) use the **same timestamp**.
-- `@latest` aliases point to the newest version.
-
-### 4.3 History in `assets`
-- List the **latest N** versions (config: `STAC_ASSET_HISTORY_MAX`).
-- Each asset entry includes:
-  - `type`
-  - `roles`
-  - `version` (timestamp string)
-  - `latest` (boolean; true only for the newest version)
-
-Example:
-```json
-"assets": {
-  "track@2025-08-11T1112Z.geojson": {
-    "type": "application/geo+json",
-    "roles": ["data","track"],
-    "version": "2025-08-11T11:12Z",
-    "latest": true
-  },
-  "track@2025-08-10T0955Z.geojson": {
-    "type": "application/geo+json",
-    "roles": ["data","track"],
-    "version": "2025-08-10T09:55Z"
-  }
-}
-```
+## 3. Authentication
+- Pluggable authentication backend, allowing organisation-level choice:
+  - No authentication (network/perimeter secured)
+  - Simple API token / username-password
+  - MOD identity system integration (e.g., SSO, MODNET)
 
 ---
 
-## 5. Assets & File Layout
-### 5.1 Filesystem Layout
-```
-/stac/
-  catalog.json
-  collections/
-    tracks.json
-  items/tracks/Bluefin-12/
-    item.json
-    track@2025-08-11T1112Z.geojson
-    track@2025-08-10T0955Z.geojson
-    track@latest.geojson -> track@2025-08-11T1112Z.geojson   (symlink)
-    thumbnail@latest.png -> thumbnail@2025-08-11T1112Z.png  (symlink)
-    summary@2025-08-11T1112Z.csv
-```
-
-### 5.2 Symlinks
-- Latest aliases implemented as **filesystem symlinks**.
-- Config:
-  - `STAC_USE_SYMLINKS=true`
-  - `STAC_SYMLINK_FALLBACK="copy"` (for Windows or restricted environments).
+## 4. Data Storage and Structure
+- **STAC-compliant** JSON metadata.
+- Local static mode:
+  - Organised hierarchy: `Year` > `Exercise` > `Serial`.
+  - One GeoJSON FeatureCollection per serial.
+  - Corresponding `item.json` contains a single `asset` referencing that GeoJSON file.
+  - Optionally store preview thumbnails and exported presentations as additional assets.
+- REST API mode:
+  - Same logical data structure, but assets stored in a central database or object store.
+- Allow hosting of both local and externally linked datasets.
 
 ---
 
-## 6. Publish/Update Process
-1. **Write new versioned assets**.
-2. **Rotate @latest symlinks** to point to the new files.
-3. **Update `item.json`**:
-   - Insert newest into `assets`, keep at most N.
-   - Mark newest as `"latest": true`.
-   - Update mirrored `sys:*` and `prov:bundle`.
-4. **Do not delete** older versioned assets; unlisted assets remain in storage.
+## 5. Metadata and Asset Requirements
+- All items must include:
+  - STAC core fields (id, type, geometry, bbox, properties, assets, links).
+  - Temporal extent and spatial extent.
+  - Links to source files and/or derived assets.
+  - **Georeferenced thumbnails** for quick preview in map-based interfaces.
+- Support inclusion of **system tags** (representing state in business workflows, controlled via events not direct edits) and **user tags** (personal, team, or organisation level).
 
 ---
 
-## 7. System Fields
-- **Mirrored in `properties`:**
-  - `sys:state`
-  - `sys:quality:completeness`
-  - `sys:security:classification`
-  - `prov:bundle`
-- Updated automatically after successful publish.
+## 6. Search Features
+- Standard STAC search parameters:
+  - Bounding box (spatial filter).
+  - Datetime range (temporal filter).
+- Tag-based filtering:
+  - Filter by **system tags** (business process state).
+  - Filter by **user tags** (collaboration, categorisation, custom workflows).
 
 ---
 
-## 8. Provenance
-- In Item:  
-  `properties["prov:bundle"] = "prov://<item-id>@<timestamp>"`
-- In each asset's FeatureCollection:  
-  `audit.prov` block contains provenance details for that version.
+## 7. Spatial Services Integration
+- The STAC server will remain a **metadata/discovery-only service**.
+- No built-in WMS/WFS/tile services.
+- For rich spatial rendering, external servers such as GeoServer or pygeoapi will be linked.
+- **Georeferenced thumbnails** will be used for quick preview without requiring full dataset rendering.
 
 ---
 
-## 9. Retention & Archival
-- **Local retention**: configurable max local copies (default: keep all).
-- **Archival**: move older versions to cold storage if needed.
-- **Immutability**: once published, assets are never overwritten.
+## 8. External Dataset Linking
+- Ability to reference external datasets (remote STAC items or other file-based locations).
+- No caching or mirroring required by default.
+- Local storage of **preview thumbnails** is allowed for quick lookups.
 
 ---
 
-## 10. Search & UI
-- Item search returns one result per ID.
-- Clients default to loading `@latest` assets.
-- UI offers a history panel listing N recent versions from `assets`.
-- Version comparison loads specific versioned assets side-by-side.
+## 9. Interoperability and Standards
+- Must conform to:
+  - STAC core specification.
+  - STAC API specification (for REST mode).
+  - STAC extensions where appropriate (e.g., `proj`, `eo`, `datetime`).
+- Support open geospatial standards to ease integration with UK MOD, NATO, and industry tools.
 
 ---
 
-## 11. Error Handling
-- **Idempotent publish**: same content hash → no new version.
-- **Server timestamp** for version IDs (ignore client clock).
-- **Rollback**: retry `item.json` update if asset write succeeds but item update fails.
+## 10. Security and Access Control
+- In static mode, rely on OS-level access controls.
+- In REST mode:
+  - Enforce authentication and role-based access control.
+  - Support read-only and read/write permissions at dataset or collection level.
 
 ---
 
-## 12. Minimal Tests
-1. Publish twice → two distinct versioned assets; latest rotates correctly.
-2. Search returns one item; `@latest` resolves to newest file.
-3. PROV bundle in item matches asset provenance.
-4. Attempt to overwrite a versioned asset → blocked.
-5. History listing obeys `STAC_ASSET_HISTORY_MAX`.
-6. Symlink fallback works correctly on unsupported platforms.
+## 11. Performance
+- Static mode: Instant metadata retrieval from local disk.
+- REST mode: Indexed search for bounding box, datetime, and tag queries.
+- Capable of handling **large repositories** (100k+ items).
 
 ---
-**End of Document**
+
+## 12. Resilience and Portability
+- Static deployments must be easily copied between systems or networks.
+- REST deployments must support backup/restore.
+
+---
+
+## 13. Administration
+- CLI or admin API for:
+  - Adding/removing datasets.
+  - Regenerating thumbnails.
+  - Managing tags and metadata updates.
+- Automated STAC indexer service (optional) to generate metadata from incoming datasets.
+
+---
+
+**Document Status:** v1.1 – Includes August 2025 interview requirements.
