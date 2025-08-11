@@ -63,7 +63,7 @@ Analyst->>Debrief: Update Item properties.status=in_progress
 %% Oversight & Dialogue (outside Debrief for the doc)
 Commissioner-->>Folder: Update commissioning doc if scope/QA/dates change
 Analyst->>Debrief: Optional note in Item: "Commission updated on YYYY‑MM‑DD"
-Note over Commissioner,Debrief: Dialogue remains via email/Word comments;<br/>Debrief provides discoverability via the commission link.
+Note over Commissioner,Debrief: Dialogue remains via email comments, Debrief provides discoverability via the commission link.
 
 %% Delivery & Sign-off
 Analyst->>Debrief: Mark Item status=awaiting_signoff; attach delivery artefacts
