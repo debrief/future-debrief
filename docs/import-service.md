@@ -60,7 +60,7 @@ sequenceDiagram
 
     %% Review actions
     W->>W: Run pipeline (validate, suggest fixes)
-    U->>W: Accept/reject fixes; optional Python rule
+    U->>W: Accept/reject fixes, optional Python rule
     W->>W: Build correction ledger + validation report (draft)
 
     alt Publish
