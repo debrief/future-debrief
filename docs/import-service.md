@@ -151,3 +151,24 @@ flowchart LR
     AP --> STAC
     AP --> OUT
 ```
+
+### Clerical-to-Analyst ingest flow
+
+```mermaid
+flowchart TD
+    A[Clerical Staff\nStart Ingest] --> B[Select Files or Register\nPhysical Media]
+    B --> C[Batch Assign Metadata:\nExercise, Classification, Media Type]
+    C --> D[Enter Per-Item Metadata:\nReference Numbers, Dates, Notes]
+    D --> E[Save & Submit]
+    E --> F[Central Ingest Queue\nAwaiting Wrangling]
+
+    F --> G[Analyst Reviews Queue]
+    G --> H[Re-order Files\n(Drag & Drop)]
+    G --> I[Set Priority Flags]
+
+    H --> J[Metadata Enrichment]
+    I --> J
+    J --> K[Assign to Wrangler]
+    K --> L[Wrangling In Progress]
+    L --> M[Complete Ingest\nSTAC Item Created]
+```
