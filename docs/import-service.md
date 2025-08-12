@@ -116,8 +116,9 @@ stateDiagram-v2
     in_review --> published : publish()
     in_review --> parked : park()
     in_review --> error : fail()
-    [*] <-- published
-    [*] <-- error
+    parked --> in_review : resume()
+    published --> [*]
+    error --> [*]
 ```
 
 Legend (concise):
