@@ -122,7 +122,7 @@ stateDiagram-v2
 ```
 
 Legend (concise):
-	•	clean = validation passes within thresholds → straight‑through.
-	•	warns>threshold / errors = gated to Needs Review.
-	•	park() = defer without publishing; resume() returns to review.
-	•	Locks/timeouts handled outside the diagram (as per the sequence flow you approved).
+*	clean = validation passes within thresholds → straight‑through
+* warns>threshold / errors = gated to Needs Review.
+* park() = defer without publishing; resume() returns to review.
+* Locks/timeouts handled outside the diagram (as per the sequence flow you approved).
