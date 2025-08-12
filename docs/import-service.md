@@ -155,7 +155,7 @@ flowchart LR
 ### Clerical-to-Analyst ingest flow (LR)
 
 ```mermaid
-flowchart TD
+flowchart LR
   %% Lanes
   subgraph A[Clerical]
     A1[Start ingest]
@@ -192,4 +192,36 @@ flowchart TD
 ### Clerical-to-Analyst ingest flow (TD)
 
 ```mermaid
+flowchart TD
+  %% Lanes
+  subgraph A[Clerical]
+    A1[Start ingest]
+    A2[Select files\nor register media]
+    A3[Batch metadata\nExercise Classification Type]
+    A4[Per item fields\nRef numbers Dates Notes]
+    A5[Submit]
+  end
+
+  subgraph B[System queue]
+    B1[Ingest queue\nAwaiting wrangling]
+  end
+
+  subgraph C[Analyst Wrangler]
+    C1[Review queue]
+    C2[Reorder files\nDrag and drop]
+    C3[Set priority]
+    C4[Enrich metadata]
+    C5[Assign wrangler]
+    C6[Wrangling in progress]
+    C7[Complete ingest\nCreate STAC item]
+  end
+
+  %% Flow
+  A1 --> A2 --> A3 --> A4 --> A5 --> B1
+  B1 --> C1
+  C1 --> C2
+  C1 --> C3
+  C2 --> C4
+  C3 --> C4
+  C4 --> C5 --> C6 --> C7
 ```
