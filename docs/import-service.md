@@ -131,22 +131,22 @@ Legend (concise):
 ```mermaid
 flowchart LR
     subgraph Import["Import Stage"]
-        I[Import Service\n(capture raw file + metadata)]
-        IP[Ingest Pipeline\n(parse, normalise, validate, enrich, split)]
+        I[Import Service\ncapture raw file and metadata]
+        IP[Ingest Pipeline\nparse, normalise, validate, enrich, split]
     end
 
     subgraph Storage["Data Store"]
-        STAC[STAC Store\n(wrangled FeatureCollections + metadata)]
+        STAC[STAC Store\nwrangled FeatureCollections and metadata]
     end
 
     subgraph Analysis["Analysis Stage"]
-        AP[Analysis Pipeline\n(derive, calculate, model, visualise)]
-        OUT[Outputs\n(reports, dashboards, derived datasets)]
+        AP[Analysis Pipeline\nderive, calculate, model, visualise]
+        OUT[Outputs\nreports, dashboards, derived datasets]
     end
 
     I --> IP
     IP -- Clean --> STAC
-    IP -- Errors/Warnings -->|Needs Review| IP
+    IP -- Errors or Warnings -->|Needs Review| IP
     STAC --> AP
     AP --> STAC
     AP --> OUT
