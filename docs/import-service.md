@@ -152,10 +152,10 @@ flowchart LR
     AP --> OUT
 ```
 
-### Clerical-to-Analyst ingest flow
+### Clerical-to-Analyst ingest flow (LR)
 
 ```mermaid
-flowchart LR
+flowchart TD
   %% Lanes
   subgraph A[Clerical]
     A1[Start ingest]
@@ -187,4 +187,9 @@ flowchart LR
   C2 --> C4
   C3 --> C4
   C4 --> C5 --> C6 --> C7
+```
+
+### Clerical-to-Analyst ingest flow (TD)
+
+```mermaid
 ```
