@@ -34,6 +34,8 @@ sequenceDiagram
     G->>W: Launch Wrangler scoped to platform+time
 ```
 
+
+## High-touch review loop (for ingests that require human input)
 ```mermaid
 sequenceDiagram
     autonumber
@@ -83,3 +85,43 @@ sequenceDiagram
     %% Lock expiry safety
     Note over DB: If now() > lock_expires_at<br/>auto-clear lock and revert to needs_review
 ```
+
+## Import pipeline states
+
+### Ingest item (parent)
+```mermaid
+stateDiagram-v2
+    [*] --> captured : import()
+    captured --> auto_wrangling : route(low_touch)
+    captured --> needs_review : route(high_touch)
+    auto_wrangling --> published : clean
+    auto_wrangling --> needs_review : warns>threshold or errors
+    needs_review --> in_review : claim/lock
+    in_review --> published : publish()
+    in_review --> needs_review : cancel/close
+    in_review --> parked : park()
+    in_review --> error : fail()
+    parked --> needs_review : resume()
+    [*] <-- published
+    [*] <-- error
+```
+
+### Wrangler output (child per platform/day)
+```mermaid
+stateDiagram-v2
+    [*] --> queued : discovered(entity_key,day)
+    queued --> wrangling : start()
+    wrangling --> published : clean
+    wrangling --> in_review : warns>threshold or errors
+    in_review --> published : publish()
+    in_review --> parked : park()
+    in_review --> error : fail()
+    [*] <-- published
+    [*] <-- error
+```
+
+Legend (concise):
+	•	clean = validation passes within thresholds → straight‑through.
+	•	warns>threshold / errors = gated to Needs Review.
+	•	park() = defer without publishing; resume() returns to review.
+	•	Locks/timeouts handled outside the diagram (as per the sequence flow you approved).
