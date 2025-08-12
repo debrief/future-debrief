@@ -155,20 +155,36 @@ flowchart LR
 ### Clerical-to-Analyst ingest flow
 
 ```mermaid
-flowchart TD
-    A[Clerical Staff\nStart Ingest] --> B[Select Files or Register\nPhysical Media]
-    B --> C[Batch Assign Metadata:\nExercise, Classification, Media Type]
-    C --> D[Enter Per-Item Metadata:\nReference Numbers, Dates, Notes]
-    D --> E[Save & Submit]
-    E --> F[Central Ingest Queue\nAwaiting Wrangling]
+flowchart LR
+  %% Lanes
+  subgraph A[Clerical]
+    A1[Start ingest]
+    A2[Select files\nor register media]
+    A3[Batch metadata\nExercise Classification Type]
+    A4[Per item fields\nRef numbers Dates Notes]
+    A5[Submit]
+  end
 
-    F --> G[Analyst Reviews Queue]
-    G --> H[Re-order Files\n(Drag & Drop)]
-    G --> I[Set Priority Flags]
+  subgraph B[System queue]
+    B1[Ingest queue\nAwaiting wrangling]
+  end
 
-    H --> J[Metadata Enrichment]
-    I --> J
-    J --> K[Assign to Wrangler]
-    K --> L[Wrangling In Progress]
-    L --> M[Complete Ingest\nSTAC Item Created]
+  subgraph C[Analyst Wrangler]
+    C1[Review queue]
+    C2[Reorder files\nDrag and drop]
+    C3[Set priority]
+    C4[Enrich metadata]
+    C5[Assign wrangler]
+    C6[Wrangling in progress]
+    C7[Complete ingest\nCreate STAC item]
+  end
+
+  %% Flow
+  A1 --> A2 --> A3 --> A4 --> A5 --> B1
+  B1 --> C1
+  C1 --> C2
+  C1 --> C3
+  C2 --> C4
+  C3 --> C4
+  C4 --> C5 --> C6 --> C7
 ```
