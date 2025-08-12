@@ -151,35 +151,3 @@ flowchart LR
     AP --> STAC
     AP --> OUT
 ```
-
-## Great Expectations data quality
-```mermaid
-flowchart LR
-    SRC[Raw data\nfile or feed]
-    IMP[Import Service\nstore raw + metadata]
-    PIPE[Ingest pipeline\nparse normalise enrich]
-    GE[Great Expectations\nrun expectation suite]
-    GJ[GE JSON summary\nfor UI panels]
-    GH[GE HTML Data Docs\nfor stakeholders]
-    GATE{Gate\nclean or review}
-    STAC[Publish to STAC\nwrangled assets]
-    REV[Needs review\nopen in Wrangler]
-    DB[Import DB\nstate + links]
-
-    SRC --> IMP
-    IMP --> PIPE
-    PIPE --> GE
-    GE --> GJ
-    GE --> GH
-    GE --> GATE
-
-    GATE -->|clean| STAC
-    GATE -->|warns or errors| REV
-
-    STAC --> DB
-    REV --> DB
-
-    %% UI linkbacks
-    GJ -.->|summary in UI| REV
-    GH -.->|open report| REV
-```
