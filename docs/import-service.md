@@ -102,8 +102,8 @@ stateDiagram-v2
     in_review --> parked : park()
     in_review --> error : fail()
     parked --> needs_review : resume()
-    [*] <-- published
-    [*] <-- error
+    published --> [*]
+    error --> [*]
 ```
 
 ### Wrangler output (child per platform/day)
