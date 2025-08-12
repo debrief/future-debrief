@@ -145,8 +145,8 @@ flowchart LR
     end
 
     I --> IP
-    IP -- Clean --> STAC
-    IP -- Errors or Warnings -->|Needs Review| IP
+    IP -->|Clean| STAC
+    IP -->|Errors or warnings (over threshold)| IP
     STAC --> AP
     AP --> STAC
     AP --> OUT
