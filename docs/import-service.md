@@ -126,3 +126,28 @@ Legend (concise):
 * warns>threshold / errors = gated to Needs Review.
 * park() = defer without publishing; resume() returns to review.
 * Locks/timeouts handled outside the diagram (as per the sequence flow you approved).
+
+### Twin pipelines
+```mermaid
+flowchart LR
+    subgraph Import["Import Stage"]
+        I[Import Service<br/>(capture raw file + metadata)]
+        IP[Ingest Pipeline<br/>(parse, normalise, validate, enrich, split)]
+    end
+
+    subgraph Storage["Data Store"]
+        STAC[STAC Store<br/>(wrangled FeatureCollections + metadata)]
+    end
+
+    subgraph Analysis["Analysis Stage"]
+        AP[Analysis Pipeline<br/>(derive, calculate, model, visualise)]
+        OUT[Outputs<br/>(reports, dashboards, derived datasets)]
+    end
+
+    I --> IP
+    IP -- Clean --> STAC
+    IP -- Errors/Warnings -->|Needs Review| IP
+    STAC --> AP
+    AP --> STAC
+    AP --> OUT
+```
