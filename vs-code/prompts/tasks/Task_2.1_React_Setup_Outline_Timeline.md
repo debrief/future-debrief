@@ -47,7 +47,7 @@ This task builds upon that foundation to add React-based WebView content for the
 * **Specify Deliverables:**
   * Vite configuration files for building WebView content
   * React applications for both Outline and Timeline views
-  * Built JavaScript files in `media/outline.js` and `media/timeline.js`
+  * Built JavaScript files in `dist/extension.js`
   * CSS styling that integrates with VS Code themes
   * Message event listener scaffolding for future postMessage integration
   * Updated provider classes to serve the React-built WebView content

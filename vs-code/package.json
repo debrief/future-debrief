@@ -60,7 +60,16 @@
           "group": "navigation"
         }
       ]
-    }
+    },
+    "customEditors": [
+      {
+        "viewType": "debrief.plotEditor",
+        "displayName": "Debrief Plot Editor",
+        "selector": [
+          { "filenamePattern": "*.plot.json" }
+        ]
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "yarn run package",

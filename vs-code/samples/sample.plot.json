@@ -1,0 +1,46 @@
+{
+  "name": "Sample Plot Data",
+  "version": "1.0.0",
+  "metadata": {
+    "created": "2024-01-15T10:30:00Z",
+    "author": "Test User",
+    "description": "A sample plot file for testing the custom editor"
+  },
+  "data": {
+    "tracks": [
+      {
+        "id": "track1",
+        "name": "Aircraft Track",
+        "type": "aircraft",
+        "coordinates": [
+          { "time": "2024-01-15T10:00:00Z", "lat": 51.5074, "lon": -0.1278, "alt": 10000 },
+          { "time": "2024-01-15T10:05:00Z", "lat": 51.5200, "lon": -0.1500, "alt": 12000 },
+          { "time": "2024-01-15T10:10:00Z", "lat": 51.5300, "lon": -0.1700, "alt": 15000 }
+        ]
+      }
+    ],
+    "events": [
+      {
+        "time": "2024-01-15T10:02:00Z",
+        "type": "communication",
+        "description": "Radio contact established"
+      },
+      {
+        "time": "2024-01-15T10:07:00Z",
+        "type": "alert",
+        "description": "Altitude warning triggered"
+      }
+    ]
+  },
+  "settings": {
+    "timeRange": {
+      "start": "2024-01-15T10:00:00Z",
+      "end": "2024-01-15T10:15:00Z"
+    },
+    "displayOptions": {
+      "showGrid": true,
+      "showLabels": true,
+      "theme": "dark"
+    }
+  }
+}

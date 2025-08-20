@@ -8,7 +8,10 @@
       "Bash(mkdir:*)",
       "Bash(yarn compile)",
       "Bash(yarn lint)",
-      "Bash(code --version)"
+      "Bash(code --version)",
+      "Bash(yarn run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(mv:*)"
     ]
   },
   "outputStyle": "default"
