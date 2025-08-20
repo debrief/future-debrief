@@ -183,3 +183,132 @@ Initial TypeScript configuration issues with JSX support and Vite config file co
 
 **Next Steps:**
 Ready for Phase 3: postMessage Pipeline (Extension → WebView). The React components are built with message event listeners and theme integration. Both sidebar views display placeholder content and are ready for data communication from the extension.
+
+---
+**Agent:** Implementation Agent (Task 3.1)
+**Task Reference:** Phase 3: postMessage Pipeline (Extension → WebView)
+
+**Summary:**
+Successfully implemented comprehensive bidirectional postMessage communication pipeline between VS Code extension and React webview components, enabling real-time editor state tracking and robust message handling with error recovery.
+
+**Details:**
+- Created structured SidebarMessage interface with typed command system supporting editor-state-update, file-change, selection-change, theme-changed, and error message types
+- Enhanced OutlineViewProvider and TimelineViewProvider with comprehensive event listeners for editor changes, file modifications, selection updates, and theme changes
+- Implemented robust message validation using MessageUtils class with type guards and error handling
+- Added real-time editor state tracking including active file, cursor position, selection ranges, and visible ranges
+- Built file change monitoring for created, modified, and deleted files with timestamped change logs
+- Enhanced React components with rich UI displays showing editor state, file timeline, and error reporting
+- Implemented proper resource disposal patterns with disposable event listeners to prevent memory leaks
+- Added backward compatibility support for existing WebviewMessage format during transition
+
+**Output/Result:**
+```typescript
+// Enhanced SidebarMessage Interface
+export interface SidebarMessage {
+  command: 'theme-changed' | 'editor-state-update' | 'file-change' | 'selection-change' | 'update-data' | 'webview-ready' | 'error';
+  value?: any;
+  timestamp?: number;
+  source?: 'extension' | 'outline' | 'timeline';
+}
+
+// Editor State Tracking
+export interface EditorState {
+  activeFile?: string;
+  selection?: {
+    start: { line: number; character: number };
+    end: { line: number; character: number };
+  };
+  visibleRanges?: Array<{
+    start: { line: number; character: number };
+    end: { line: number; character: number };
+  }>;
+  cursorPosition?: { line: number; character: number };
+}
+
+// Provider Implementation Sample
+private _sendEditorStateUpdate() {
+    const activeEditor = vscode.window.activeTextEditor;
+    const editorState: EditorState = {};
+    
+    if (activeEditor) {
+        editorState.activeFile = activeEditor.document.uri.toString();
+        editorState.selection = {
+            start: {
+                line: activeEditor.selection.start.line,
+                character: activeEditor.selection.start.character
+            },
+            end: {
+                line: activeEditor.selection.end.line,
+                character: activeEditor.selection.end.character
+            }
+        };
+        // Additional state tracking...
+    }
+    
+    this._sendMessage({
+        command: 'editor-state-update',
+        value: { editorState }
+    });
+}
+```
+
+**Architecture Implementation:**
+- Extension-side postMessage functionality in both OutlineViewProvider:220 and TimelineViewProvider:220
+- Enhanced React components with real-time state display and error reporting UI
+- Message validation and utility functions in shared types:72-96
+- Comprehensive event listener setup with proper disposal management
+- Bidirectional communication foundation supporting future WebView-to-extension messaging
+
+**Modified Files:**
+- `/src/webview/shared/types.ts` - Added SidebarMessage interface and utility functions
+- `/src/OutlineViewProvider.ts` - Enhanced with comprehensive postMessage implementation
+- `/src/TimelineViewProvider.ts` - Enhanced with comprehensive postMessage implementation  
+- `/src/webview/outline/OutlineApp.tsx` - Updated with robust message handling and rich UI
+- `/src/webview/timeline/TimelineApp.tsx` - Updated with robust message handling and rich UI
+- `/src/extension.ts` - Added proper provider disposal registration
+
+**Build Results:**
+- Extension compiles successfully (yarn compile) - no TypeScript errors
+- All linting passes (yarn lint) - no ESLint issues
+- React webviews build successfully with enhanced message handling
+- Backward compatibility maintained with existing WebviewMessage format
+
+**Status:** Completed
+
+**Issues/Blockers:**
+Initial TypeScript compilation errors due to union type handling in React components were resolved by using proper type casting for SidebarMessage vs WebviewMessage compatibility.
+
+**Post-Implementation Debugging:**
+During testing, discovered critical issue where React components weren't loading in VS Code webview environment. Root cause analysis revealed:
+
+1. **Module Loading Issue:** Vite was building ES modules that couldn't be loaded by VS Code webviews using regular `<script>` tags
+2. **Console Errors:** JavaScript syntax errors: "Cannot use import statement outside a module" and "Unexpected token 'export'"
+3. **Network Debugging:** Files were being served correctly but couldn't execute due to module format mismatch
+
+**Resolution:**
+- **HTML Fix:** Updated webview providers to use `<script type="module">` tags instead of regular `<script>` tags
+- **File Loading Order:** Ensured React runtime bundle loads before component-specific scripts
+- **Debugging Tools:** Added comprehensive console logging for URI generation and file loading verification
+
+**Technical Solution Applied:**
+```typescript
+// Fixed HTML generation in providers
+<script type="module" src="${reactRuntimeUri}"></script>
+<script type="module" src="${scriptUri}"></script>
+```
+
+**Files Modified for Fix:**
+- `/src/OutlineViewProvider.ts` - Added module script type and debugging logs
+- `/src/TimelineViewProvider.ts` - Added module script type and debugging logs
+- `/vite.config.js` - Reverted to default ES module build (working with type="module")
+
+**Final Status:** ✅ **FULLY OPERATIONAL**
+- React webview components load successfully in VS Code Extension Development Host
+- Real-time postMessage communication confirmed working
+- Enhanced UI displays editor state, file changes, selection updates, and theme changes
+- Both Outline and Timeline panels show live data feeds from extension
+
+**Next Steps:**
+Ready for Phase 4: Editor State Tracking. The postMessage pipeline is fully functional with comprehensive editor state communication, file change monitoring, and error handling. Both webview panels now display real-time editor information and maintain communication logs.
+
+**Key Learning:** VS Code webviews require explicit `type="module"` script tags to load ES modules generated by modern build tools like Vite. Regular script tags will cause import/export syntax errors.
