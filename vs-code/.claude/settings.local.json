@@ -14,7 +14,8 @@
       "Bash(mv:*)",
       "Bash(yarn add react react-dom)",
       "Bash(yarn add:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(yarn list:*)"
     ]
   },
   "outputStyle": "default"
