@@ -35,6 +35,42 @@
 
 ---
 
+## 📝 Phase 1.5: Skeleton Debrief Editor
+
+### ✅ Goals
+- Create basic custom editor for `.plot.json` files
+- Provide read-only view of file content
+- Register editor as default handler for `.plot.json` files
+
+### Tasks
+1. Create `src/DebriefEditorProvider.ts` implementing `vscode.CustomTextEditorProvider`
+2. In `package.json`, register custom editor:
+   ```json
+   "customEditors": [
+     {
+       "viewType": "debrief.plotEditor",
+       "displayName": "Debrief Plot Editor",
+       "selector": [
+         { "filenamePattern": "*.plot.json" }
+       ]
+     }
+   ]
+   ```
+3. Create webview HTML with basic styling to display JSON content
+4. Implement `resolveCustomTextEditor` method to:
+   - Load document content
+   - Display formatted JSON in read-only editor
+   - Handle theme changes for consistent VS Code styling
+5. Register provider in `extension.ts`:
+   ```typescript
+   vscode.window.registerCustomEditorProvider(
+     'debrief.plotEditor', 
+     new DebriefEditorProvider()
+   );
+   ```
+
+---
+
 ## 🧭 Phase 2: React Setup for Outline & Timeline Views
 
 ### ✅ Goals
