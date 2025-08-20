@@ -8,11 +8,12 @@ export function activate(context: vscode.ExtensionContext) {
 	console.log('Debrief VS Code extension is now active!');
 
 	const debriefSidebar = new DebriefSidebar(context);
-	const outlineProvider = new OutlineViewProvider();
-	const timelineProvider = new TimelineViewProvider();
+	const outlineProvider = new OutlineViewProvider(context.extensionUri);
+	const timelineProvider = new TimelineViewProvider(context.extensionUri);
 
-	vscode.window.registerTreeDataProvider('debriefOutline', outlineProvider);
-	vscode.window.registerTreeDataProvider('debriefTimeline', timelineProvider);
+	// Register webview view providers
+	vscode.window.registerWebviewViewProvider('debriefOutline', outlineProvider);
+	vscode.window.registerWebviewViewProvider('debriefTimeline', timelineProvider);
 
 	// Register the custom editor provider
 	const editorProvider = DebriefEditorProvider.register(context);
