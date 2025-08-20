@@ -1,0 +1,19 @@
+{
+  "name": "Invalid JSON Example",
+  "metadata": {
+    "created": "2024-01-15T14:30:00Z",
+    "author": "Demo User"
+  },
+  "data": {
+    "tracks": [
+      {
+        "id": "invalid",
+        "coordinates": [
+          { "time": "2024-01-15T14:00:00Z", "lat": 51.5074, "lon": -0.1278 },
+          // This comment makes the JSON invalid
+          { "time": "2024-01-15T14:15:00Z", "lat": 51.5500, "lon": -0.2000 }
+        ]
+      }
+    ]
+  }
+  // Missing closing brace to demonstrate error handling
