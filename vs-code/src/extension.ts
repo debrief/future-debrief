@@ -1,26 +1,22 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import { DebriefSidebar } from './DebriefSidebar';
+import { OutlineViewProvider } from './OutlineViewProvider';
+import { TimelineViewProvider } from './TimelineViewProvider';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+	console.log('Debrief VS Code extension is now active!');
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "debrief-vscode" is now active!');
+	const debriefSidebar = new DebriefSidebar(context);
+	const outlineProvider = new OutlineViewProvider();
+	const timelineProvider = new TimelineViewProvider();
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('debrief-vscode.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from debrief-vscode!');
-	});
+	vscode.window.registerTreeDataProvider('debriefOutline', outlineProvider);
+	vscode.window.registerTreeDataProvider('debriefTimeline', timelineProvider);
 
-	context.subscriptions.push(disposable);
+	context.subscriptions.push(
+		vscode.commands.registerCommand('debriefOutline.refresh', () => outlineProvider.refresh()),
+		vscode.commands.registerCommand('debriefTimeline.refresh', () => timelineProvider.refresh())
+	);
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {}

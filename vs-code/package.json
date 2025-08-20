@@ -14,10 +14,53 @@
   "contributes": {
     "commands": [
       {
-        "command": "debrief-vscode.helloWorld",
-        "title": "Hello World"
+        "command": "debriefOutline.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "debriefTimeline.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
       }
-    ]
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "debrief",
+          "title": "Debrief",
+          "icon": "media/debrief-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "debrief": [
+        {
+          "id": "debriefOutline",
+          "name": "Outline",
+          "when": "true"
+        },
+        {
+          "id": "debriefTimeline",
+          "name": "Timeline",
+          "when": "true"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "debriefOutline.refresh",
+          "when": "view == debriefOutline",
+          "group": "navigation"
+        },
+        {
+          "command": "debriefTimeline.refresh",
+          "when": "view == debriefTimeline",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "vscode:prepublish": "yarn run package",
