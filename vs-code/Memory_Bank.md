@@ -120,3 +120,66 @@ Initial TypeScript compilation error due to uninitialized variable was resolved 
 
 **Next Steps:**
 Ready for Phase 2: React Setup for Outline & Timeline Views. The custom editor is fully functional and `.plot.json` files will now open in the Debrief Plot Editor by default.
+
+---
+**Agent:** Implementation Agent (Task 2.1)
+**Task Reference:** Phase 2: React Setup for Outline & Timeline Views
+
+**Summary:**
+Successfully implemented React-based webview components for Outline and Timeline sidebar views with Vite build system, theme integration, and postMessage scaffolding for future communication.
+
+**Details:**
+- Set up Vite + React workspace with optimized build configuration for VS Code webview environment
+- Created React applications for both Outline and Timeline views with TypeScript support
+- Implemented VS Code theme integration using CSS variables that respond to theme changes dynamically
+- Built comprehensive postMessage event handling system for future extension-to-webview communication
+- Updated webview providers from TreeDataProvider to WebviewViewProvider pattern for React integration
+- Configured build pipeline with webpack integration and proper asset management
+- Added JSX support and DOM types to TypeScript configuration for React development
+- Created shared types and styling system for consistent webview appearance across views
+
+**Output/Result:**
+```typescript
+// React Component Structure
+src/webview/
+├── shared/
+│   ├── types.ts        // Shared WebviewMessage and WebviewState interfaces
+│   └── styles.css      // VS Code theme-aware CSS variables
+├── outline/
+│   ├── OutlineApp.tsx  // React component with postMessage handling
+│   ├── index.tsx       // React app entry point
+│   └── index.html      // HTML template
+└── timeline/
+    ├── TimelineApp.tsx // React component with postMessage handling
+    ├── index.tsx       // React app entry point
+    └── index.html      // HTML template
+
+// Updated WebviewViewProvider
+export class OutlineViewProvider implements vscode.WebviewViewProvider {
+    public resolveWebviewView(webviewView: vscode.WebviewView) {
+        webviewView.webview.options = {
+            enableScripts: true,
+            localResourceRoots: [vscode.Uri.joinPath(this._extensionUri, 'media')]
+        };
+        // Theme change handling and postMessage setup
+    }
+}
+```
+
+Build configuration generates:
+- `media/outline.js` - React app for Outline view (1.15 kB)
+- `media/timeline.js` - React app for Timeline view (1.16 kB)  
+- `media/styles-DsXVXsRt.css` - Shared theme-aware styles (0.86 kB)
+- `media/styles-Boiq29qA.js` - React runtime bundle (187 kB)
+
+**Status:** Completed
+
+**Issues/Blockers:**
+Initial TypeScript configuration issues with JSX support and Vite config file conflicts were resolved by:
+- Adding JSX, DOM, and DOM.Iterable libraries to tsconfig.json
+- Excluding Vite config files from TypeScript compilation
+- Using simplified Vite configuration with multi-entry build setup
+- Fixing webview options API (enableScripts vs allowScripts)
+
+**Next Steps:**
+Ready for Phase 3: postMessage Pipeline (Extension → WebView). The React components are built with message event listeners and theme integration. Both sidebar views display placeholder content and are ready for data communication from the extension.

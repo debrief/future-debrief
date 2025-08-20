@@ -1,37 +1,80 @@
 import * as vscode from 'vscode';
 
-export class OutlineViewProvider implements vscode.TreeDataProvider<OutlineItem> {
-    private _onDidChangeTreeData: vscode.EventEmitter<OutlineItem | undefined | null | void> = new vscode.EventEmitter<OutlineItem | undefined | null | void>();
-    readonly onDidChangeTreeData: vscode.Event<OutlineItem | undefined | null | void> = this._onDidChangeTreeData.event;
+export class OutlineViewProvider implements vscode.WebviewViewProvider {
+    public static readonly viewType = 'debriefOutline';
+    private _view?: vscode.WebviewView;
 
-    constructor() {}
+    constructor(private readonly _extensionUri: vscode.Uri) {}
 
-    refresh(): void {
-        this._onDidChangeTreeData.fire();
+    public resolveWebviewView(
+        webviewView: vscode.WebviewView,
+        context: vscode.WebviewViewResolveContext,
+        _token: vscode.CancellationToken
+    ) {
+        this._view = webviewView;
+
+        webviewView.webview.options = {
+            enableScripts: true,
+            localResourceRoots: [
+                vscode.Uri.joinPath(this._extensionUri, 'media')
+            ]
+        };
+
+        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+
+        // Listen for messages from the webview
+        webviewView.webview.onDidReceiveMessage(message => {
+            switch (message.type) {
+                case 'webview-ready':
+                    console.log('Outline webview ready');
+                    // Send initial theme info
+                    this._sendThemeInfo();
+                    break;
+            }
+        });
+
+        // Listen for theme changes
+        vscode.window.onDidChangeActiveColorTheme(() => {
+            this._sendThemeInfo();
+        });
     }
 
-    getTreeItem(element: OutlineItem): vscode.TreeItem {
-        return element;
-    }
-
-    getChildren(element?: OutlineItem): Thenable<OutlineItem[]> {
-        if (!element) {
-            return Promise.resolve([
-                new OutlineItem('Document Structure', vscode.TreeItemCollapsibleState.Collapsed),
-                new OutlineItem('Analysis Points', vscode.TreeItemCollapsibleState.Collapsed)
-            ]);
-        } else {
-            return Promise.resolve([]);
+    private _sendThemeInfo() {
+        if (this._view) {
+            const theme = vscode.window.activeColorTheme;
+            this._view.webview.postMessage({
+                type: 'theme-changed',
+                payload: {
+                    kind: theme.kind
+                }
+            });
         }
     }
-}
 
-class OutlineItem extends vscode.TreeItem {
-    constructor(
-        public readonly label: string,
-        public readonly collapsibleState: vscode.TreeItemCollapsibleState
-    ) {
-        super(label, collapsibleState);
-        this.tooltip = `${this.label}`;
+    public refresh(): void {
+        if (this._view) {
+            this._view.webview.html = this._getHtmlForWebview(this._view.webview);
+        }
+    }
+
+    private _getHtmlForWebview(webview: vscode.Webview) {
+        // Get paths to the built React files
+        const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'outline.js'));
+        const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'styles-DsXVXsRt.css'));
+
+        return `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src ${webview.cspSource};">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link href="${styleUri}" rel="stylesheet">
+            <title>Debrief Outline</title>
+        </head>
+        <body>
+            <div id="root"></div>
+            <script src="${scriptUri}"></script>
+        </body>
+        </html>`;
     }
 }

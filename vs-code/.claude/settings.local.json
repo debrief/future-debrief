@@ -11,7 +11,10 @@
       "Bash(code --version)",
       "Bash(yarn run:*)",
       "Bash(npx tsc:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(yarn add react react-dom)",
+      "Bash(yarn add:*)",
+      "Bash(rm:*)"
     ]
   },
   "outputStyle": "default"
