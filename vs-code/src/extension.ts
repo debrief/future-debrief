@@ -17,6 +17,12 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.registerCommand('debriefOutline.refresh', () => outlineProvider.refresh()),
 		vscode.commands.registerCommand('debriefTimeline.refresh', () => timelineProvider.refresh())
 	);
+
+	// Auto-refresh views on activation (helpful during development)
+	setTimeout(() => {
+		outlineProvider.refresh();
+		timelineProvider.refresh();
+	}, 100);
 }
 
 export function deactivate() {}
