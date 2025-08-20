@@ -1,71 +1,85 @@
-# debrief-vscode README
+# Debrief VS Code Extension
 
-This is the README for your extension "debrief-vscode". After writing up a brief description, we recommend including the following sections.
+A Visual Studio Code extension for the Debrief Analysis Tool, providing integrated analysis capabilities directly within your IDE.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+- **Outline View**: Navigate document structure and analysis points
+- **Timeline View**: Track recent events and analysis history
+- **Integrated Sidebar**: Dedicated Debrief panel in the VS Code activity bar
 
-For example if there is an image subfolder under your extension project workspace:
+## Development
 
-\!\[feature X\]\(images/feature-x.png\)
+### Prerequisites
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+- Node.js and npm/yarn
+- VS Code
 
-## Requirements
+### Setup
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   yarn install
+   ```
+
+### Running the Extension
+
+To run the extension in development mode with hot-reloading:
+
+1. **Start the watch process**:
+   ```bash
+   yarn watch
+   ```
+   This starts webpack in watch mode and will automatically recompile when you make changes.
+
+2. **Launch the Extension Development Host**:
+   - Press `F5` in VS Code, or
+   - Go to Run and Debug panel and click "Run Extension"
+   
+   This opens a new VS Code window with your extension loaded.
+
+3. **View the extension**:
+   - Look for the Debrief icon in the activity bar (left sidebar)
+   - Click it to see the Outline and Timeline views
+
+### Hot Reloading During Development
+
+The extension is configured for efficient development workflow:
+
+1. **Make code changes** in the `src/` directory
+2. **Watch for compilation** - the `yarn watch` process will automatically recompile
+3. **Reload the extension** - Press `Cmd+R` (macOS) or `Ctrl+R` (Windows/Linux) in the Extension Development Host window to reload with your changes
+
+The extension will automatically refresh its views when reloaded.
+
+### Project Structure
+
+```
+src/
+├── extension.ts           # Main extension entry point
+├── DebriefSidebar.ts     # Sidebar panel implementation
+├── OutlineViewProvider.ts # Outline tree view provider
+└── TimelineViewProvider.ts # Timeline tree view provider
+```
+
+### Build Commands
+
+- `yarn compile` - One-time compilation
+- `yarn watch` - Watch mode for development
+- `yarn package` - Production build
+- `yarn lint` - Run ESLint
+- `yarn test` - Run tests
 
 ## Extension Settings
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+This extension contributes the following commands:
 
-For example:
-
-This extension contributes the following settings:
-
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
-
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
+- `debriefOutline.refresh` - Refresh the outline view
+- `debriefTimeline.refresh` - Refresh the timeline view
 
 ## Release Notes
 
-Users appreciate release notes as you update your extension.
+### 0.0.1
 
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
----
-
-## Following extension guidelines
-
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
-
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
-
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+Initial development version with basic sidebar views.
