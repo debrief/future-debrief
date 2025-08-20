@@ -26,8 +26,8 @@ npm run build
 This should output:
 
 ```
-media/outline.js
-media/timeline.js
+dist/extension.js
+dist/extension.js.map
 ```
 
 Make sure these are loaded into your webview HTML.

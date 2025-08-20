@@ -1,3 +1,15 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(git checkout:*)",
+      "Bash(npm init:*)",
+      "Bash(npx yo:*)",
+      "Bash(npm install:*)",
+      "Bash(mkdir:*)",
+      "Bash(yarn compile)",
+      "Bash(yarn lint)",
+      "Bash(code --version)"
+    ]
+  },
   "outputStyle": "default"
 }
