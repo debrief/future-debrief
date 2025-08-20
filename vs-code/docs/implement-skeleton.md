@@ -45,7 +45,7 @@
 ### Tasks
 1. Set up Vite workspace for `Outline` and `Timeline`
 2. Use `esbuild-style` or `vite-plugin-monaco-editor` for optimized build
-3. Output builds to `media/outline.js`, `media/timeline.js`
+3. Output builds to `dist/extension.js`
 4. Inside `src/webview/outline/index.tsx`, render:
    ```tsx
    <div className="panel-content">Outline view not yet implemented.</div>
