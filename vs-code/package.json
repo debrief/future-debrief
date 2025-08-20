@@ -36,13 +36,13 @@
     "views": {
       "debrief": [
         {
-          "id": "debriefOutline",
-          "name": "Outline",
+          "id": "debriefTimeline",
+          "name": "Timeline",
           "when": "true"
         },
         {
-          "id": "debriefTimeline",
-          "name": "Timeline",
+          "id": "debriefOutline",
+          "name": "Outline",
           "when": "true"
         }
       ]
