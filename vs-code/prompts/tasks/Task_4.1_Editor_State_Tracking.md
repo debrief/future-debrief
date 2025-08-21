@@ -20,19 +20,16 @@ This task builds upon that foundation to implement active monitoring of VS Code 
      * Listen to `vscode.window.onDidChangeActiveTextEditor` events
      * Set up event handlers to respond to editor focus changes
      * Ensure tracking works correctly when switching between multiple editor tabs
-  2. Add Debrief file type detection:
-     * Verify that the active file type is a Debrief file (`.plot.json`, `.rep`, `.dpf`)
-     * Implement file extension checking and validation
+  2. Add Debrief editor detection in Debrief sidebars:
+     * Verify that the active editor is the Debrief editor (using Editor Context / View Type Detection)
      * Handle cases where non-Debrief files are active (should not trigger sidebar updates)
-  3. Implement metadata extraction:
-     * Extract current time information from Debrief files
-     * Identify selected track information
-     * Parse other relevant editor state information specific to Debrief files
+     * Debrief Sidebar components should be disabled if non-Debrief editor is active
+  3. Implement metadata extraction in SideBars:
+     * Modify editor to allow it to return current document as a GeoJSON FC
+     * Extract feature list from Debrief files
+     * TimeLine panel should show time extent of features in current FC
+     * Outline should show a tree of Features, grouped by Geometry-Type
      * Handle parsing errors gracefully and provide fallback states
-  4. Integrate with postMessage pipeline:
-     * Push extracted metadata to both Outline and Timeline views using the established message interface
-     * Ensure messages include all relevant state information for sidebar updates
-     * Implement efficient update mechanisms to avoid excessive messaging
   5. Plan for future extensibility:
      * Consider exposing editor-specific API methods for more granular state access
      * Design the architecture to support additional file types or metadata in the future
