@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { FeatureCollection } from 'geojson';
 import { 
     SidebarMessage, 
     EditorState, 
@@ -142,15 +143,15 @@ export class OutlineViewProvider implements vscode.WebviewViewProvider {
         console.error('Outline Provider Error:', message);
     }
 
-    public onDebriefEditorActiveChanged(document: vscode.TextDocument | null) {
-        console.log('OutlineViewProvider: Received Debrief editor active change:', document?.uri.toString() || 'null');
-        // For now, just send a simple message to test the communication
+    public onDebriefEditorActiveChanged(featureCollection: FeatureCollection | null) {
+        console.log('OutlineViewProvider: Received Debrief editor active change:', featureCollection ? `FC with ${featureCollection.features?.length || 0} features` : 'null');
+        // Send the FeatureCollection to the React component
         this._sendMessage({
             command: 'update-data',
             value: { 
-                debriefEditor: document ? {
+                debriefEditor: featureCollection ? {
                     isActive: true,
-                    fileName: document.uri.toString(),
+                    featureCollection: featureCollection,
                     timestamp: Date.now()
                 } : {
                     isActive: false,
@@ -178,10 +179,10 @@ export class OutlineViewProvider implements vscode.WebviewViewProvider {
         const reactRuntimeUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'styles-Boiq29qA.js'));
         const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'styles-DsXVXsRt.css'));
 
-        console.log('Outline: Extension URI:', this._extensionUri.toString());
-        console.log('Outline: Script URI:', scriptUri.toString());
-        console.log('Outline: React Runtime URI:', reactRuntimeUri.toString());
-        console.log('Outline: Style URI:', styleUri.toString());
+        // console.log('Outline: Extension URI 12:', this._extensionUri.toString());
+        // console.log('Outline: Script URI:', scriptUri.toString());
+        // console.log('Outline: React Runtime URI:', reactRuntimeUri.toString());
+        // console.log('Outline: Style URI:', styleUri.toString());
 
         return `<!DOCTYPE html>
         <html lang="en">

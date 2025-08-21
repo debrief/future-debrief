@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { FeatureCollection } from 'geojson';
 
 export class DebriefEditorProvider implements vscode.CustomTextEditorProvider {
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
@@ -66,8 +67,9 @@ export class DebriefEditorProvider implements vscode.CustomTextEditorProvider {
         // Track when this editor becomes active/inactive
         webviewPanel.onDidChangeViewState(() => {
             if (webviewPanel.active) {
-                console.log('DebriefEditorProvider: Editor became active, sending command 22', document, webviewPanel);
-                vscode.commands.executeCommand('debrief.editorBecameActive', document);
+                const fc = this.extractFeatureCollection(document);
+                console.log('DebriefEditorProvider: Editor became active, extracting FC', fc);
+                vscode.commands.executeCommand('debrief.editorBecameActive', fc);
             } else {
                 console.log('DebriefEditorProvider: Editor became inactive, sending null');
                 vscode.commands.executeCommand('debrief.editorBecameActive', null);
@@ -76,13 +78,14 @@ export class DebriefEditorProvider implements vscode.CustomTextEditorProvider {
 
         // Send initial message if this editor is already active
         if (webviewPanel.active) {
-            console.log('DebriefEditorProvider: Editor created and is active, sending command');
-            vscode.commands.executeCommand('debrief.editorBecameActive', document);
+            const fc = this.extractFeatureCollection(document);
+            console.log('DebriefEditorProvider: Editor created and is active, extracting FC', fc);
+            vscode.commands.executeCommand('debrief.editorBecameActive', fc);
         }
 
         // Make sure we dispose of the subscriptions when the editor is closed
         webviewPanel.onDidDispose(() => {
-            console.log('DebriefEditorProvider: Editor disposed, sending null');
+            console.log('DebriefEditorProvider: Editor disposed, sending null 44');
             vscode.commands.executeCommand('debrief.editorBecameActive', null);
             changeDocumentSubscription.dispose();
             changeThemeSubscription.dispose();
@@ -90,6 +93,25 @@ export class DebriefEditorProvider implements vscode.CustomTextEditorProvider {
 
         // Send initial content to webview
         updateWebview();
+    }
+
+    private extractFeatureCollection(document: vscode.TextDocument): FeatureCollection | null {
+        try {
+            const content = document.getText();
+            const parsed = JSON.parse(content);
+            console.log('DebriefEditorProvider: Parsed document as JSON:', parsed);
+            
+            if (parsed.type === 'FeatureCollection' && Array.isArray(parsed.features)) {
+                console.log('DebriefEditorProvider: Extracted FC with', parsed.features.length, 'features');
+                return parsed as FeatureCollection;
+            } else {
+                console.log('DebriefEditorProvider: Document is not a valid FeatureCollection');
+                return null;
+            }
+        } catch (error) {
+            console.log('DebriefEditorProvider: Failed to parse document as JSON:', error);
+            return null;
+        }
     }
 
     private getHtmlForWebview(webview: vscode.Webview): string {

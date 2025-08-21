@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { FeatureCollection } from 'geojson';
 import { DebriefSidebar } from './DebriefSidebar';
 import { OutlineViewProvider } from './OutlineViewProvider';
 import { TimelineViewProvider } from './TimelineViewProvider';
@@ -22,11 +23,11 @@ export function activate(context: vscode.ExtensionContext) {
 		const editorProvider = DebriefEditorProvider.register(context);
 
 		// Register command to handle Debrief editor active/inactive events
-		const debriefEditorActiveCommand = vscode.commands.registerCommand('debrief.editorBecameActive', (document: vscode.TextDocument | null) => {
-			console.log('Extension: Received debrief.editorBecameActive command with document:', document?.uri.toString() || 'null');
+		const debriefEditorActiveCommand = vscode.commands.registerCommand('debrief.editorBecameActive', (featureCollection: FeatureCollection | null) => {
+			console.log('Extension: Received debrief.editorBecameActive command with FC:', featureCollection ? `FC with ${featureCollection.features?.length || 0} features` : 'null');
 			// Forward to both sidebar providers
-			outlineProvider.onDebriefEditorActiveChanged(document);
-			timelineProvider.onDebriefEditorActiveChanged(document);
+			outlineProvider.onDebriefEditorActiveChanged(featureCollection);
+			timelineProvider.onDebriefEditorActiveChanged(featureCollection);
 		});
 
 		context.subscriptions.push(

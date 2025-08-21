@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   WebviewMessage, 
   WebviewState, 
@@ -10,6 +10,7 @@ import {
   SelectionChangePayload, 
   ErrorPayload 
 } from '../shared/types';
+import { Feature } from 'geojson';
 
 interface OutlineState extends WebviewState {
   errors?: ErrorPayload[];
@@ -58,8 +59,6 @@ const OutlineApp: React.FC = () => {
             }));
             console.error('Outline: Error received', errorPayload);
             break;
-
-          // Backward compatibility
           case 'update-data':
             setState(prev => ({
               ...prev,
@@ -112,17 +111,20 @@ const OutlineApp: React.FC = () => {
     };
   }, []);
 
+  console.log('OutlineApp, data:', state.data?.debriefEditor?.featureCollection);
+
+  const featureList = useMemo(() => {
+    const features =  state.data?.debriefEditor?.featureCollection?.features as Feature[] || [];
+    return <ul>
+      {features.map((feature: any) => (
+        <li key={feature.id}>{feature.properties?.name}</li>
+      ))}
+    </ul>
+  }, [state.data]);
+
   return (
     <div className="panel-content">
       <div>
-        <div className="panel-title">Debrief Outline</div>
-        <div className="panel-description">
-          Enhanced postMessage pipeline active - UPDATED
-          <br />
-          <small>Phase 3: Bidirectional communication implemented</small>
-        </div>
-
-
         {/* Error Display */}
         {state.errors && state.errors.length > 0 && (
           <div style={{ marginTop: '16px', padding: '8px', background: 'var(--vscode-errorBackground)', borderRadius: '4px' }}>
@@ -192,11 +194,7 @@ const OutlineApp: React.FC = () => {
         </div>
 
         {/* Legacy data display for backward compatibility */}
-        {state.data && (
-          <div style={{ marginTop: '16px', fontSize: '0.8em', opacity: 0.6 }}>
-            Legacy data: {JSON.stringify(state.data).substring(0, 50)}...
-          </div>
-        )}
+        {state.data && featureList }
       </div>
     </div>
   );

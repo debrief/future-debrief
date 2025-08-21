@@ -1,4 +1,6 @@
 // Shared message types for webview communication
+import type { FeatureCollection, Feature } from 'geojson';
+
 export interface WebviewMessage {
   type: string;
   payload?: any;

@@ -115,14 +115,6 @@ const TimelineApp: React.FC = () => {
   return (
     <div className="panel-content">
       <div>
-        <div className="panel-title">Debrief Timeline</div>
-        <div className="panel-description">
-          Enhanced postMessage pipeline active
-          <br />
-          <small>Phase 3: Bidirectional communication implemented</small>
-        </div>
-
-
         {/* Error Display */}
         {state.errors && state.errors.length > 0 && (
           <div style={{ marginTop: '16px', padding: '8px', background: 'var(--vscode-errorBackground)', borderRadius: '4px' }}>
