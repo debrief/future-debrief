@@ -43,7 +43,7 @@
         },
         {
           "id": "debriefOutline",
-          "name": "Outline", 
+          "name": "Outline",
           "type": "webview",
           "when": "true"
         }
@@ -89,6 +89,7 @@
     "test": "vscode-test"
   },
   "devDependencies": {
+    "@types/geojson": "^7946.0.16",
     "@types/mocha": "^10.0.10",
     "@types/node": "22.x",
     "@types/react": "^19.1.10",
