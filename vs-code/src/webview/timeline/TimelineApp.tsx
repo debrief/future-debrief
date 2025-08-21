@@ -12,8 +12,6 @@ import {
 } from '../shared/types';
 
 interface TimelineState extends WebviewState {
-  editorState?: EditorState;
-  fileChanges?: Array<{ uri: string; type: string; timestamp: number }>;
   errors?: ErrorPayload[];
   lastUpdate?: number;
 }
@@ -21,7 +19,6 @@ interface TimelineState extends WebviewState {
 const TimelineApp: React.FC = () => {
   const [state, setState] = useState<TimelineState>({
     theme: { kind: 1 }, // Default to light theme
-    fileChanges: [],
     errors: []
   });
 
@@ -46,48 +43,8 @@ const TimelineApp: React.FC = () => {
               theme: themePayload.theme,
               lastUpdate: Date.now()
             }));
-            console.log('Timeline: Theme updated', themePayload);
             break;
 
-          case 'editor-state-update':
-            const editorPayload = payload as EditorStateUpdatePayload;
-            setState(prev => ({
-              ...prev,
-              editorState: editorPayload.editorState,
-              lastUpdate: Date.now()
-            }));
-            console.log('Timeline: Editor state updated', editorPayload);
-            break;
-
-          case 'selection-change':
-            const selectionPayload = payload as SelectionChangePayload;
-            setState(prev => ({
-              ...prev,
-              editorState: {
-                ...prev.editorState,
-                selection: selectionPayload.selection,
-                activeFile: selectionPayload.activeFile || prev.editorState?.activeFile
-              },
-              lastUpdate: Date.now()
-            }));
-            console.log('Timeline: Selection changed', selectionPayload);
-            break;
-
-          case 'file-change':
-            const filePayload = payload as FileChangePayload;
-            setState(prev => ({
-              ...prev,
-              fileChanges: [
-                ...(prev.fileChanges || []).slice(-9), // Keep last 10 changes
-                ...filePayload.changes.map(change => ({
-                  ...change,
-                  timestamp: Date.now()
-                }))
-              ],
-              lastUpdate: Date.now()
-            }));
-            console.log('Timeline: File changes', filePayload);
-            break;
 
           case 'error':
             const errorPayload = payload as ErrorPayload;
@@ -165,51 +122,6 @@ const TimelineApp: React.FC = () => {
           <small>Phase 3: Bidirectional communication implemented</small>
         </div>
 
-        {/* Editor State Display */}
-        {state.editorState && (
-          <div style={{ marginTop: '16px', padding: '8px', background: 'var(--vscode-editor-background)', borderRadius: '4px' }}>
-            <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: '8px' }}>Editor State:</div>
-            {state.editorState.activeFile && (
-              <div style={{ fontSize: '0.8em', marginBottom: '4px' }}>
-                📄 {state.editorState.activeFile.split('/').pop()}
-              </div>
-            )}
-            {state.editorState.selection && (
-              <div style={{ fontSize: '0.8em', marginBottom: '4px' }}>
-                📍 Selection: L{state.editorState.selection.start.line + 1}:C{state.editorState.selection.start.character + 1} 
-                {state.editorState.selection.start.line !== state.editorState.selection.end.line && 
-                  ` → L${state.editorState.selection.end.line + 1}:C${state.editorState.selection.end.character + 1}`}
-              </div>
-            )}
-            {state.editorState.cursorPosition && (
-              <div style={{ fontSize: '0.8em', marginBottom: '4px' }}>
-                🔸 Cursor: L{state.editorState.cursorPosition.line + 1}:C{state.editorState.cursorPosition.character + 1}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* File Changes Timeline */}
-        {state.fileChanges && state.fileChanges.length > 0 && (
-          <div style={{ marginTop: '16px', padding: '8px', background: 'var(--vscode-editor-background)', borderRadius: '4px' }}>
-            <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: '8px' }}>File Timeline:</div>
-            {state.fileChanges.slice(-5).map((change, index) => (
-              <div key={`${change.uri}-${change.timestamp}`} style={{ fontSize: '0.8em', marginBottom: '4px', display: 'flex', alignItems: 'center' }}>
-                <div style={{ marginRight: '8px', minWidth: '16px' }}>
-                  {change.type === 'created' && '✅'}
-                  {change.type === 'changed' && '📝'}
-                  {change.type === 'deleted' && '❌'}
-                </div>
-                <div style={{ flex: 1 }}>
-                  {change.uri.split('/').pop()}
-                </div>
-                <div style={{ fontSize: '0.7em', opacity: 0.6, marginLeft: '8px' }}>
-                  {new Date(change.timestamp).toLocaleTimeString()}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* Error Display */}
         {state.errors && state.errors.length > 0 && (

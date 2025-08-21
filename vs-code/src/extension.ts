@@ -21,6 +21,14 @@ export function activate(context: vscode.ExtensionContext) {
 		// Register the custom editor provider
 		const editorProvider = DebriefEditorProvider.register(context);
 
+		// Register command to handle Debrief editor active/inactive events
+		const debriefEditorActiveCommand = vscode.commands.registerCommand('debrief.editorBecameActive', (document: vscode.TextDocument | null) => {
+			console.log('Extension: Received debrief.editorBecameActive command with document:', document?.uri.toString() || 'null');
+			// Forward to both sidebar providers
+			outlineProvider.onDebriefEditorActiveChanged(document);
+			timelineProvider.onDebriefEditorActiveChanged(document);
+		});
+
 		context.subscriptions.push(
 			outlineRegistration,
 			timelineRegistration,
@@ -28,6 +36,7 @@ export function activate(context: vscode.ExtensionContext) {
 			timelineProvider,
 			vscode.commands.registerCommand('debriefOutline.refresh', () => outlineProvider.refresh()),
 			vscode.commands.registerCommand('debriefTimeline.refresh', () => timelineProvider.refresh()),
+			debriefEditorActiveCommand,
 			editorProvider
 		);
 

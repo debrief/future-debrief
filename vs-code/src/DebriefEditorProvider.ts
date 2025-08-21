@@ -63,8 +63,27 @@ export class DebriefEditorProvider implements vscode.CustomTextEditorProvider {
             updateWebview();
         });
 
+        // Track when this editor becomes active/inactive
+        webviewPanel.onDidChangeViewState(() => {
+            if (webviewPanel.active) {
+                console.log('DebriefEditorProvider: Editor became active, sending command 22', document, webviewPanel);
+                vscode.commands.executeCommand('debrief.editorBecameActive', document);
+            } else {
+                console.log('DebriefEditorProvider: Editor became inactive, sending null');
+                vscode.commands.executeCommand('debrief.editorBecameActive', null);
+            }
+        });
+
+        // Send initial message if this editor is already active
+        if (webviewPanel.active) {
+            console.log('DebriefEditorProvider: Editor created and is active, sending command');
+            vscode.commands.executeCommand('debrief.editorBecameActive', document);
+        }
+
         // Make sure we dispose of the subscriptions when the editor is closed
         webviewPanel.onDidDispose(() => {
+            console.log('DebriefEditorProvider: Editor disposed, sending null');
+            vscode.commands.executeCommand('debrief.editorBecameActive', null);
             changeDocumentSubscription.dispose();
             changeThemeSubscription.dispose();
         });
