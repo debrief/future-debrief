@@ -37,7 +37,7 @@ export interface FileChange {
 
 // Structured message interface for sidebar communication
 export interface SidebarMessage {
-  command: 'theme-changed' | 'editor-state-update' | 'file-change' | 'selection-change' | 'update-data' | 'webview-ready' | 'error';
+  command: 'theme-changed' | 'editor-state-update' | 'file-change' | 'selection-change' | 'update-data' | 'webview-ready' | 'error' | 'refresh-request' | 'ping' | 'show-info';
   value?: any;
   timestamp?: number;
   source?: 'extension' | 'outline' | 'timeline';
@@ -74,7 +74,7 @@ export class MessageUtils {
     return message && 
            typeof message === 'object' && 
            typeof message.command === 'string' &&
-           ['theme-changed', 'editor-state-update', 'file-change', 'selection-change', 'update-data', 'webview-ready', 'error'].includes(message.command);
+           ['theme-changed', 'editor-state-update', 'file-change', 'selection-change', 'update-data', 'webview-ready', 'error', 'refresh-request', 'ping', 'show-info'].includes(message.command);
   }
 
   static createSidebarMessage(command: SidebarMessage['command'], value?: any, source?: SidebarMessage['source']): SidebarMessage {

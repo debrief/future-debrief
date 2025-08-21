@@ -36,6 +36,7 @@ export class OutlineViewProvider implements vscode.WebviewViewProvider {
 
         // Listen for messages from the webview
         webviewView.webview.onDidReceiveMessage(message => {
+            console.log('Outline Provider: onDidReceiveMessage triggered with:', message);
             this._handleWebviewMessage(message);
         });
 
@@ -45,18 +46,44 @@ export class OutlineViewProvider implements vscode.WebviewViewProvider {
 
     private _handleWebviewMessage(message: any) {
         try {
+            console.log('Outline Provider: Received message from webview:', message);
+            
             // Validate message format
-            if (!MessageUtils.validateSidebarMessage(message) && !message.type) {
+            const isValidSidebarMessage = MessageUtils.validateSidebarMessage(message);
+            const hasLegacyType = message.type;
+            
+            if (!isValidSidebarMessage && !hasLegacyType) {
+                console.log('Outline Provider: Invalid message format:', message);
                 this._sendErrorMessage('Invalid message format received from webview', 'validation');
                 return;
             }
 
             const command = message.command || message.type;
+            console.log('Outline Provider: Processing command:', command);
             
             switch (command) {
                 case 'webview-ready':
                     console.log('Outline webview ready');
                     this._sendInitialState();
+                    break;
+                case 'refresh-request':
+                    console.log('Outline: Received refresh request from webview');
+                    this._sendInitialState();
+                    vscode.window.showInformationMessage('Outline panel refreshed at webview request');
+                    break;
+                case 'ping':
+                    console.log('Outline: Received ping from webview:', message.value);
+                    vscode.window.showInformationMessage(`Ping received from Outline: ${message.value?.message || 'Hello!'}`);
+                    // Send a response back to the webview
+                    this._sendMessage({
+                        command: 'update-data',
+                        value: { response: 'Pong! Extension received your message.', timestamp: Date.now() }
+                    });
+                    break;
+                case 'show-info':
+                    console.log('Outline: Received show-info request from webview:', message.value);
+                    const infoMessage = message.value?.info || 'Info message from webview';
+                    vscode.window.showInformationMessage(`📋 ${infoMessage}`);
                     break;
                 default:
                     console.log('Outline: Unhandled message from webview:', message);
@@ -253,6 +280,10 @@ export class OutlineViewProvider implements vscode.WebviewViewProvider {
         </head>
         <body>
             <div id="root"></div>
+            <script>
+                // Make VS Code API available for React components
+                window.acquireVsCodeApi = acquireVsCodeApi;
+            </script>
             <script type="module" src="${reactRuntimeUri}"></script>
             <script type="module" src="${scriptUri}"></script>
         </body>
