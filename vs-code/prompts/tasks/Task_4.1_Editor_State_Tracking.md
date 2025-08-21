@@ -21,7 +21,7 @@ This task builds upon that foundation to implement active monitoring of VS Code 
      * Set up event handlers to respond to editor focus changes
      * Ensure tracking works correctly when switching between multiple editor tabs
   2. Add Debrief editor detection in Debrief sidebars:
-     * Verify that the active editor is the Debrief editor (using Editor Context / View Type Detection)
+     * Verify that the active editor is the Debrief editor (using Editor Context / View Type Detection). Output message to console indicating if the new active editor is the Debrief editor.
      * Handle cases where non-Debrief files are active (should not trigger sidebar updates)
      * Debrief Sidebar components should be disabled if non-Debrief editor is active
   3. Implement metadata extraction in SideBars:
