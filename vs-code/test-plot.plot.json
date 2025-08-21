@@ -1,0 +1,26 @@
+{
+  "name": "Test Plot",
+  "description": "A simple test plot for sidebar-to-editor communication",
+  "events": [
+    {
+      "timestamp": "2025-01-01T10:00:00Z",
+      "type": "action",
+      "description": "Character enters scene"
+    },
+    {
+      "timestamp": "2025-01-01T10:30:00Z", 
+      "type": "dialogue",
+      "description": "Important conversation begins"
+    }
+  ],
+  "characters": [
+    {
+      "name": "Alice",
+      "role": "protagonist"
+    },
+    {
+      "name": "Bob", 
+      "role": "antagonist"
+    }
+  ]
+}

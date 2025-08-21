@@ -26,6 +26,9 @@ const OutlineApp: React.FC = () => {
   });
 
   useEffect(() => {
+    // Acquire VS Code API once at startup
+    const vscode = (window as any).acquireVsCodeApi ? (window as any).acquireVsCodeApi() : null;
+    
     // Enhanced message handling for new SidebarMessage structure
     const handleMessage = (event: MessageEvent<SidebarMessage | WebviewMessage>) => {
       const message = event.data;
@@ -118,12 +121,27 @@ const OutlineApp: React.FC = () => {
 
     window.addEventListener('message', handleMessage);
 
-    // Send enhanced ready message
+    // Send message to VS Code extension using acquired API
     const sendMessage = (msg: SidebarMessage) => {
-      if (window.parent) {
+      if (vscode) {
+        console.log('Outline: Sending via VS Code API:', msg);
+        vscode.postMessage(msg);
+      } else if (window.parent) {
+        console.log('Outline: Fallback to window.parent.postMessage:', msg);
         window.parent.postMessage(msg, '*');
+      } else {
+        console.error('Outline: No way to send message - no VS Code API or parent window');
       }
     };
+
+    // Function to send messages to extension (accessible to components)
+    const sendMessageToExtension = (msg: SidebarMessage) => {
+      console.log('Outline: Sending message to extension:', msg);
+      sendMessage(msg);
+    };
+
+    // Make sendMessageToExtension available globally for button clicks
+    (window as any).sendMessageToExtension = sendMessageToExtension;
 
     // Notify extension that webview is ready
     sendMessage({
@@ -197,6 +215,55 @@ const OutlineApp: React.FC = () => {
             ))}
           </div>
         )}
+
+        {/* Interactive Controls */}
+        <div style={{ marginTop: '16px', padding: '8px', background: 'var(--vscode-button-secondaryBackground)', borderRadius: '4px' }}>
+          <div style={{ fontSize: '0.9em', fontWeight: 'bold', marginBottom: '8px' }}>Send Messages to Extension:</div>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => (window as any).sendMessageToExtension({ command: 'refresh-request', source: 'outline', timestamp: Date.now() })}
+              style={{ 
+                padding: '4px 8px', 
+                fontSize: '0.8em', 
+                background: 'var(--vscode-button-background)', 
+                color: 'var(--vscode-button-foreground)', 
+                border: 'none', 
+                borderRadius: '2px',
+                cursor: 'pointer'
+              }}
+            >
+              🔄 Request Refresh
+            </button>
+            <button
+              onClick={() => (window as any).sendMessageToExtension({ command: 'ping', value: { message: 'Hello from Outline!' }, source: 'outline', timestamp: Date.now() })}
+              style={{ 
+                padding: '4px 8px', 
+                fontSize: '0.8em', 
+                background: 'var(--vscode-button-background)', 
+                color: 'var(--vscode-button-foreground)', 
+                border: 'none', 
+                borderRadius: '2px',
+                cursor: 'pointer'
+              }}
+            >
+              👋 Say Hello
+            </button>
+            <button
+              onClick={() => (window as any).sendMessageToExtension({ command: 'show-info', value: { info: 'Message from Outline panel' }, source: 'outline', timestamp: Date.now() })}
+              style={{ 
+                padding: '4px 8px', 
+                fontSize: '0.8em', 
+                background: 'var(--vscode-button-background)', 
+                color: 'var(--vscode-button-foreground)', 
+                border: 'none', 
+                borderRadius: '2px',
+                cursor: 'pointer'
+              }}
+            >
+              ℹ️ Show Info
+            </button>
+          </div>
+        </div>
 
         {/* Communication Status */}
         <div style={{ marginTop: '16px', fontSize: '0.7em', opacity: 0.6 }}>
