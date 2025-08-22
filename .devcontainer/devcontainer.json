@@ -1,19 +1,4 @@
 {
-  "name": "VS Code Extension Development",
-  "image": "mcr.microsoft.com/devcontainers/universal:2",
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "ms-vscode.vscode-typescript-next",
-        "ms-vscode.extension-test-runner",
-        "dbaeumer.vscode-eslint"
-      ],
-      "settings": {
-        "typescript.preferences.noSemicolons": "off"
-      }
-    }
-  },
   "postCreateCommand": "npm install && npm run compile",
-  "postStartCommand": "code --install-extension . --force",
-  "forwardPorts": [3000]
+  "postStartCommand": "code --install-extension . --force"
 }
