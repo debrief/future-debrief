@@ -44,6 +44,28 @@ jobs:
           const branch = context.payload.pull_request.head.ref;
           const codespaceUrl = `https://codespaces.new/${repoUrl}?quickstart=1&ref=${branch}`;
           
+          // Delete existing extension build comments
+          const comments = await github.rest.issues.listComments({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+          });
+          
+          const botComments = comments.data.filter(comment => 
+            comment.user.login === 'github-actions[bot]' && 
+            comment.body.includes('Extension built successfully!')
+          );
+          
+          for (const comment of botComments) {
+            await github.rest.issues.deleteComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: comment.id
+            });
+            console.log(`Deleted comment ${comment.id}`);
+          }
+          
+          // Post new comment
           const comment = `🚀 **Extension built successfully!**
           
           The VS Code extension has been packaged and is ready for testing.
@@ -53,9 +75,11 @@ jobs:
           
           The extension will be automatically installed when the codespace starts up.`;
           
-          github.rest.issues.createComment({
+          const newComment = await github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
             body: comment
           });
+          
+          console.log(`Posted new comment ${newComment.data.id}`);
