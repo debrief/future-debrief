@@ -1,15 +1,18 @@
 {
   "name": "Debrief Codespace",
-  "image": "mcr.microsoft.com/devcontainers/universal",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:18",
   "postCreateCommand": "cd vs-code && yarn install && yarn compile",
   "workspaceFolder": "/workspaces/future-debrief",
   "customizations": {
     "vscode": {
       "settings": {
         "workbench.startupEditor": "readme",
-        "workbench.sideBar.location": "left"
+        "workbench.sideBar.location": "left",
+        "terminal.integrated.defaultProfile.linux": "bash"
       },
-      "extensions": []
+      "extensions": [
+        "ms-vscode.vscode-typescript-next"
+      ]
     }
   },
   "features": {},
