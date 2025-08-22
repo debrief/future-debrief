@@ -16,7 +16,9 @@ if [ -f "debrief-vscode.vsix" ]; then
     echo "Installing extension..."
     code --install-extension debrief-vscode.vsix --force
     echo "Extension installed successfully! Please reload the window to activate."
+    touch /workspaces/future-debrief/vs-code/workspace/installed
 else
     echo "Error: VSIX file not found after build"
+    touch /workspaces/future-debrief/vs-code/workspace/file-not-found
     exit 1
 fi
