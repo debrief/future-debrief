@@ -1,4 +1,4 @@
 {
   "postCreateCommand": "touch about-to-instll && npm install && npm run compile && touch install-complete",
-  "postStartCommand": "touch about-to-post-start && npx @vscode/vsce package && code --install-extension *.vsix --force && echo 'Extension installation completed' && touch install-complete"
+  "postStartCommand": "touch about-to-post-start && npx @vscode/vsce package && code --install-extension codespace-extension-0.0.1.vsix --force && echo 'Extension installation completed' && touch install-complete"
 }
