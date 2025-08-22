@@ -4,6 +4,10 @@
   "description": "VS Code extension demonstrator for Codespace preview from PRs",
   "version": "0.0.1",
   "publisher": "ian",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/debrief/codespace-extension.git"
+  },
   "engines": {
     "vscode": "^1.74.0"
   },
