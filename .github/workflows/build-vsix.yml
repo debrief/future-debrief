@@ -1,0 +1,39 @@
+name: Build VS Code Extension
+
+on:
+  push:
+    branches: [ main, codespace-review ]
+    paths: [ 'vs-code/**' ]
+  pull_request:
+    branches: [ main ]
+    paths: [ 'vs-code/**' ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'yarn'
+        cache-dependency-path: 'vs-code/yarn.lock'
+    
+    - name: Install dependencies
+      working-directory: vs-code
+      run: yarn install --frozen-lockfile
+    
+    - name: Build extension
+      working-directory: vs-code
+      run: yarn run package:vsix
+    
+    - name: Upload VSIX artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: debrief-vscode-vsix
+        path: vs-code/debrief-vscode.vsix
+        retention-days: 30

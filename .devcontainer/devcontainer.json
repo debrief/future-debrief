@@ -1,7 +1,7 @@
 {
   "name": "Debrief Codespace",
   "image": "mcr.microsoft.com/devcontainers/universal",
-  "postCreateCommand": "cd /workspaces/future-debrief/vs-code && yarn install && yarn run package:vsix && code --install-extension debrief-vscode.vsix",
+  "postCreateCommand": "bash /workspaces/future-debrief/.devcontainer/install-extension.sh",
   "workspaceFolder": "/workspaces/future-debrief/vs-code/workspace",
   "customizations": {
     "vscode": {

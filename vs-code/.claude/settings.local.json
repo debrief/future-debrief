@@ -24,7 +24,8 @@
       "Bash(git push:*)",
       "Bash(code:*)",
       "Bash(gh pr list:*)",
-      "Bash(gh pr view:*)"
+      "Bash(gh pr view:*)",
+      "Bash(chmod:*)"
     ],
     "additionalDirectories": [
       "/Users/ian/git/future-debrief"
