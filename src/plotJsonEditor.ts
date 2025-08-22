@@ -71,6 +71,13 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(
             this.context.extensionUri, 'media', 'plotJsonEditor.css'));
 
+        const markerIconUri = webview.asWebviewUri(vscode.Uri.joinPath(
+            this.context.extensionUri, 'media', 'marker-icon.png'));
+        const markerIcon2xUri = webview.asWebviewUri(vscode.Uri.joinPath(
+            this.context.extensionUri, 'media', 'marker-icon-2x.png'));
+        const markerShadowUri = webview.asWebviewUri(vscode.Uri.joinPath(
+            this.context.extensionUri, 'media', 'marker-shadow.png'));
+
         const nonce = getNonce();
 
         return `<!DOCTYPE html>
@@ -95,6 +102,15 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 				</div>
 				<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
 					integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+				<script nonce="${nonce}">
+					// Configure Leaflet icon paths
+					delete L.Icon.Default.prototype._getIconUrl;
+					L.Icon.Default.mergeOptions({
+						iconUrl: '${markerIconUri}',
+						iconRetinaUrl: '${markerIcon2xUri}',
+						shadowUrl: '${markerShadowUri}',
+					});
+				</script>
 				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>
 			</html>`;
