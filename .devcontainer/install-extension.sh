@@ -14,7 +14,7 @@ yarn run package:vsix
 
 if [ -f "debrief-vscode.vsix" ]; then
     echo "Installing extension..."
-    code --install-extension debrief-vscode.vsix
+    code --install-extension debrief-vscode.vsix --force
     echo "Extension installed successfully! Please reload the window to activate."
 else
     echo "Error: VSIX file not found after build"
