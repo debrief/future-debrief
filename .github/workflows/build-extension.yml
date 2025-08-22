@@ -16,7 +16,7 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
         cache: 'npm'
     
     - name: Install dependencies
@@ -34,3 +34,28 @@ jobs:
         name: extension-vsix
         path: "extension.vsix"
         retention-days: 30
+    
+    - name: Post codespace link comment
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const repoUrl = context.repo.owner + '/' + context.repo.repo;
+          const branch = context.payload.pull_request.head.ref;
+          const codespaceUrl = `https://codespaces.new/${repoUrl}?quickstart=1&ref=${branch}`;
+          
+          const comment = `🚀 **Extension built successfully!**
+          
+          The VS Code extension has been packaged and is ready for testing.
+          
+          **Try it in a codespace:**
+          [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](${codespaceUrl})
+          
+          The extension will be automatically installed when the codespace starts up.`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
