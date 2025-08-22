@@ -1,4 +1,3 @@
 {
-  "postCreateCommand": "touch about-to-install && npm install && npm run compile",
   "postAttachCommand": ".devcontainer/install-extension.sh"
 }

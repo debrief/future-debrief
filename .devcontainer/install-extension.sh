@@ -1,9 +1,56 @@
 #!/bin/bash
-echo "Building and installing extension..."
-npx @vscode/vsce package
-if [ -f "codespace-extension-0.0.1.vsix" ]; then
-    code --install-extension codespace-extension-0.0.1.vsix --force
-    echo "Extension installed successfully"
+echo "Downloading and installing extension from CI artifact..."
+
+# Get the latest workflow run ID for the current branch
+BRANCH=$(git branch --show-current)
+echo "Current branch: $BRANCH"
+
+# Download artifact using GitHub CLI if available, otherwise fallback to local build
+if command -v gh &> /dev/null; then
+    echo "Downloading artifact from GitHub..."
+    
+    # Get the latest successful workflow run for this branch
+    RUN_ID=$(gh run list --workflow=build-extension.yml --branch="$BRANCH" --status=success --limit=1 --json databaseId --jq '.[0].databaseId')
+    
+    if [ -n "$RUN_ID" ] && [ "$RUN_ID" != "null" ]; then
+        echo "Found workflow run: $RUN_ID"
+        
+        # Download the artifact to temp location
+        TEMP_DIR=$(mktemp -d)
+        cd "$TEMP_DIR"
+        
+        if gh run download $RUN_ID --name extension-vsix; then            
+            if [ -f "extension.vsix" ]; then
+                echo "Installing extension: extension.vsix"
+                code --install-extension "extension.vsix" --force
+                echo "Extension installed successfully from CI artifact"
+                
+                # Cleanup
+                cd - > /dev/null
+                rm -rf "$TEMP_DIR"
+                
+                touch install-complete
+                exit 0
+            fi
+        fi
+        
+        # Cleanup on failure
+        cd - > /dev/null
+        rm -rf "$TEMP_DIR"
+    fi
+    
+    echo "No recent CI artifact found, falling back to local build..."
+fi
+
+# Fallback: build locally
+echo "Building extension locally..."
+npm install
+npm run compile
+npx @vscode/vsce package --out extension.vsix
+
+if [ -f "extension.vsix" ]; then
+    code --install-extension extension.vsix --force
+    echo "Extension installed successfully (local build)"
     touch install-complete
 else
     echo "VSIX file not found"
