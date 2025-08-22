@@ -7,7 +7,8 @@
       "request": "launch",
       "args": [
         "--extensionDevelopmentPath=${workspaceFolder}/vs-code",
-        "--disable-extensions"
+        "--disable-extensions",
+        "${workspaceFolder}/vs-code/workspace"
       ],
       "outFiles": [
         "${workspaceFolder}/vs-code/dist/**/*.js"
