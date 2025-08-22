@@ -17,12 +17,12 @@ touch /workspaces/future-debrief/vs-code/workspace/install-complete
 
 echo "Building extension package..."
 yarn run package:vsix
-touch /workspaces/future-debrief/vs-code/workspace/package=built
+touch /workspaces/future-debrief/vs-code/workspace/package-built
 
 if [ -f "debrief-vscode.vsix" ]; then
     echo "Installing extension..."
     touch /workspaces/future-debrief/vs-code/workspace/file-found
-    code --install-extension debrief-vscode.vsix --force
+    code --install-extension /workspaces/future-debrief/vs-code/debrief-vscode.vsix --force
     echo "Extension installed successfully! Please reload the window to activate."
     touch /workspaces/future-debrief/vs-code/workspace/installed
 else
