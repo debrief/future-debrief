@@ -1,0 +1,20 @@
+{
+  "folders": [
+    {
+      "name": "VS Code Extension",
+      "path": "./vs-code"
+    },
+    {
+      "name": "Monorepo Root",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "workbench.startupEditor": "readme"
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-vscode.vscode-typescript-next"
+    ]
+  }
+}
