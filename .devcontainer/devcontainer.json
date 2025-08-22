@@ -3,8 +3,6 @@
   "image": "mcr.microsoft.com/devcontainers/universal",
   "postCreateCommand": "cd vs-code && yarn install && yarn compile",
   "workspaceFolder": "/workspaces/future-debrief",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/future-debrief,type=bind,consistency=cached",
-  "workspaceFile": "debrief-demo.code-workspace",
   "customizations": {
     "vscode": {
       "settings": {

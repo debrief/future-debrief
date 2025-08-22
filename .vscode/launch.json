@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Debrief Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}/vs-code",
+        "--disable-extensions"
+      ],
+      "outFiles": [
+        "${workspaceFolder}/vs-code/dist/**/*.js"
+      ],
+      "preLaunchTask": "compile-extension"
+    }
+  ]
+}

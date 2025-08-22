@@ -17,10 +17,11 @@ The Debrief extension transforms VS Code into a powerful platform for analyzing 
 The Debrief extension runs in development mode in this Codespace. To start it:
 
 1. **Wait** for the Codespace to finish initializing (yarn install and compile will run automatically)
-2. **Press** `F5` or use the Command Palette (`Ctrl/Cmd + Shift + P`) and type "Debug: Start Debugging"
-3. **Select** "Run Extension" when prompted
-4. A new VS Code window will open - this is the **Extension Development Host**
-5. **Look** for the **Debrief** activity bar icon (🔍) on the left sidebar of the new window
+2. **Ensure** you can see both "VS Code Extension" and "Monorepo Root" folders in the workspace explorer
+3. **Press** `F5` or use the Command Palette (`Ctrl/Cmd + Shift + P`) and type "Debug: Start Debugging"
+4. **Select** "Run Extension" when prompted
+5. A new VS Code window will open - this is the **Extension Development Host**
+6. **Look** for the **Debrief** activity bar icon (🔍) on the left sidebar of the new window
 
 ### Step 2: Open Sample Files
 We've provided three demonstration files in this workspace:
