@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { FeatureCollection } from 'geojson';
 import { DebriefSidebar } from './DebriefSidebar';
 import { OutlineViewProvider } from './OutlineViewProvider';
 import { TimelineViewProvider } from './TimelineViewProvider';
@@ -21,6 +22,14 @@ export function activate(context: vscode.ExtensionContext) {
 		// Register the custom editor provider
 		const editorProvider = DebriefEditorProvider.register(context);
 
+		// Register command to handle Debrief editor active/inactive events
+		const debriefEditorActiveCommand = vscode.commands.registerCommand('debrief.editorBecameActive', (featureCollection: FeatureCollection | null) => {
+			console.log('Extension: Received debrief.editorBecameActive command with FC:', featureCollection ? `FC with ${featureCollection.features?.length || 0} features` : 'null');
+			// Forward to both sidebar providers
+			outlineProvider.onDebriefEditorActiveChanged(featureCollection);
+			timelineProvider.onDebriefEditorActiveChanged(featureCollection);
+		});
+
 		context.subscriptions.push(
 			outlineRegistration,
 			timelineRegistration,
@@ -28,6 +37,7 @@ export function activate(context: vscode.ExtensionContext) {
 			timelineProvider,
 			vscode.commands.registerCommand('debriefOutline.refresh', () => outlineProvider.refresh()),
 			vscode.commands.registerCommand('debriefTimeline.refresh', () => timelineProvider.refresh()),
+			debriefEditorActiveCommand,
 			editorProvider
 		);
 

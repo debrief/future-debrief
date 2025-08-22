@@ -21,17 +21,21 @@ This task builds upon that foundation to implement active monitoring of VS Code 
      * Set up event handlers to respond to editor focus changes
      * Ensure tracking works correctly when switching between multiple editor tabs
   2. Add Debrief editor detection in Debrief sidebars:
-     * Verify that the active editor is the Debrief editor (using Editor Context / View Type Detection)
+     * Verify that the active editor (or tab) is the Debrief editor. Use VS Code's tabGroups API to inspect the active tab's viewType property. Output message to console indicating if the new active editor is the Debrief editor.
      * Handle cases where non-Debrief files are active (should not trigger sidebar updates)
      * Debrief Sidebar components should be disabled if non-Debrief editor is active
   3. Implement metadata extraction in SideBars:
      * Modify editor to allow it to return current document as a GeoJSON FC
+     * Do not introduce new data types or storage objects. The FC is the "single version of the truth", and web-view components will generate UI directly from the FC.  If the state required to render an FC is missing, insert a `//TODO:` placeholder, so we can come back to it.
      * Extract feature list from Debrief files
-     * TimeLine panel should show time extent of features in current FC
+     * TimeLine panel should show time extent of features in current FC (using `properties.times`)
      * Outline should show a tree of Features, grouped by Geometry-Type
      * Handle parsing errors gracefully and provide fallback states
   5. Plan for future extensibility:
-     * Consider exposing editor-specific API methods for more granular state access
+     * Consider exposing editor-specific API methods for more granular state access, this could include:
+         * time extent
+         * spatial extent
+         * current selected features
      * Design the architecture to support additional file types or metadata in the future
      * Ensure the system can handle multiple open plots while syncing sidebars to the active one only
 

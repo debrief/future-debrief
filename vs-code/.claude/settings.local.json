@@ -16,7 +16,11 @@
       "Bash(yarn add:*)",
       "Bash(rm:*)",
       "Bash(yarn list:*)",
-      "Bash(gh pr create:*)"
+      "Bash(gh pr create:*)",
+      "Bash(npm run compile:*)",
+      "Bash(npm run build-webviews:*)",
+      "Bash(npm run build:webviews:*)",
+      "Bash(npm run lint)"
     ]
   },
   "outputStyle": "default"

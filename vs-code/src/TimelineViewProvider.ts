@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import type { FeatureCollection } from 'geojson';
 import { 
     SidebarMessage, 
     EditorState, 
@@ -15,6 +16,7 @@ export class TimelineViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'debriefTimeline';
     private _view?: vscode.WebviewView;
     private _disposables: vscode.Disposable[] = [];
+    private _currentFeatureCollection: FeatureCollection | null = null;
 
     constructor(private readonly _extensionUri: vscode.Uri) {}
 
@@ -65,6 +67,11 @@ export class TimelineViewProvider implements vscode.WebviewViewProvider {
                 case 'webview-ready':
                     console.log('Timeline webview ready');
                     this._sendInitialState();
+                    // Send current feature collection if we have one
+                    if (this._currentFeatureCollection !== null) {
+                        console.log('Timeline webview ready: Sending stored FC with', this._currentFeatureCollection?.features?.length || 0, 'features');
+                        this._sendFeatureCollectionUpdate(this._currentFeatureCollection);
+                    }
                     break;
                 case 'ping':
                     console.log('Timeline: Received ping from webview:', message.value);
@@ -96,39 +103,6 @@ export class TimelineViewProvider implements vscode.WebviewViewProvider {
                 this._sendThemeInfo();
             })
         );
-
-        // Listen for editor state changes
-        this._disposables.push(
-            vscode.window.onDidChangeActiveTextEditor(() => {
-                this._sendEditorStateUpdate();
-            })
-        );
-
-        // Listen for selection changes
-        this._disposables.push(
-            vscode.window.onDidChangeTextEditorSelection(() => {
-                this._sendSelectionChange();
-            })
-        );
-
-        // Listen for file changes
-        this._disposables.push(
-            vscode.workspace.onDidChangeTextDocument((event) => {
-                this._sendFileChange(event.document.uri, 'changed');
-            })
-        );
-
-        this._disposables.push(
-            vscode.workspace.onDidCreateFiles((event) => {
-                event.files.forEach(uri => this._sendFileChange(uri, 'created'));
-            })
-        );
-
-        this._disposables.push(
-            vscode.workspace.onDidDeleteFiles((event) => {
-                event.files.forEach(uri => this._sendFileChange(uri, 'deleted'));
-            })
-        );
     }
 
     private _sendMessage(message: SidebarMessage) {
@@ -149,7 +123,6 @@ export class TimelineViewProvider implements vscode.WebviewViewProvider {
 
     private _sendInitialState() {
         this._sendThemeInfo();
-        this._sendEditorStateUpdate();
     }
 
     private _sendThemeInfo() {
@@ -164,82 +137,39 @@ export class TimelineViewProvider implements vscode.WebviewViewProvider {
         });
     }
 
-    private _sendEditorStateUpdate() {
-        const activeEditor = vscode.window.activeTextEditor;
-        const editorState: EditorState = {};
-
-        if (activeEditor) {
-            editorState.activeFile = activeEditor.document.uri.toString();
-            editorState.selection = {
-                start: {
-                    line: activeEditor.selection.start.line,
-                    character: activeEditor.selection.start.character
-                },
-                end: {
-                    line: activeEditor.selection.end.line,
-                    character: activeEditor.selection.end.character
-                }
-            };
-            editorState.cursorPosition = {
-                line: activeEditor.selection.active.line,
-                character: activeEditor.selection.active.character
-            };
-            editorState.visibleRanges = activeEditor.visibleRanges.map(range => ({
-                start: { line: range.start.line, character: range.start.character },
-                end: { line: range.end.line, character: range.end.character }
-            }));
-        }
-
-        const payload: EditorStateUpdatePayload = { editorState };
-        
-        this._sendMessage({
-            command: 'editor-state-update',
-            value: payload
-        });
-    }
-
-    private _sendSelectionChange() {
-        const activeEditor = vscode.window.activeTextEditor;
-        if (activeEditor) {
-            const payload: SelectionChangePayload = {
-                selection: {
-                    start: {
-                        line: activeEditor.selection.start.line,
-                        character: activeEditor.selection.start.character
-                    },
-                    end: {
-                        line: activeEditor.selection.end.line,
-                        character: activeEditor.selection.end.character
-                    }
-                },
-                activeFile: activeEditor.document.uri.toString()
-            };
-            
-            this._sendMessage({
-                command: 'selection-change',
-                value: payload
-            });
-        }
-    }
-
-    private _sendFileChange(uri: vscode.Uri, type: 'created' | 'changed' | 'deleted') {
-        const payload: FileChangePayload = {
-            changes: [{
-                uri: uri.toString(),
-                type
-            }]
-        };
-        
-        this._sendMessage({
-            command: 'file-change',
-            value: payload
-        });
-    }
 
     private _sendErrorMessage(message: string, type: ErrorPayload['type'] = 'communication') {
         const errorMessage = MessageUtils.createErrorMessage(message, type, 'timeline-provider');
         this._sendMessage(errorMessage);
         console.error('Timeline Provider Error:', message);
+    }
+
+    public onDebriefEditorActiveChanged(featureCollection: FeatureCollection | null) {
+        console.log('TimelineViewProvider: Received Debrief editor active change:', featureCollection ? `FC with ${featureCollection.features?.length || 0} features` : 'null');
+        
+        // Store the current feature collection
+        this._currentFeatureCollection = featureCollection;
+        
+        // Send to webview if it's ready
+        this._sendFeatureCollectionUpdate(featureCollection);
+    }
+
+    private _sendFeatureCollectionUpdate(featureCollection: FeatureCollection | null) {
+        // Send the FeatureCollection to the React component
+        this._sendMessage({
+            command: 'update-data',
+            value: { 
+                debriefEditor: featureCollection ? {
+                    isActive: true,
+                    featureCollection: featureCollection,
+                    timestamp: Date.now()
+                } : {
+                    isActive: false,
+                    timestamp: Date.now()
+                }
+            },
+            source: 'extension'
+        });
     }
 
     public dispose() {
@@ -259,10 +189,10 @@ export class TimelineViewProvider implements vscode.WebviewViewProvider {
         const reactRuntimeUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'styles-Boiq29qA.js'));
         const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'styles-DsXVXsRt.css'));
 
-        console.log('Timeline: Extension URI:', this._extensionUri.toString());
-        console.log('Timeline: Script URI:', scriptUri.toString());
-        console.log('Timeline: React Runtime URI:', reactRuntimeUri.toString());
-        console.log('Timeline: Style URI:', styleUri.toString());
+        // console.log('Timeline: Extension URI:', this._extensionUri.toString());
+        // console.log('Timeline: Script URI:', scriptUri.toString());
+        // console.log('Timeline: React Runtime URI:', reactRuntimeUri.toString());
+        // console.log('Timeline: Style URI:', styleUri.toString());
 
         return `<!DOCTYPE html>
         <html lang="en">
