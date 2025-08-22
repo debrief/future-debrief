@@ -2,7 +2,7 @@
   "name": "Debrief Codespace",
   "image": "mcr.microsoft.com/devcontainers/universal",
   "postCreateCommand": "cd vs-code && yarn install && yarn compile",
-  "workspaceFolder": "/workspaces/future-debrief",
+  "workspaceFolder": "/workspaces/future-debrief/vs-code/workspace",
   "customizations": {
     "vscode": {
       "settings": {
@@ -12,6 +12,9 @@
       },
       "extensions": [
         "ms-vscode.vscode-typescript-next"
+      ],
+      "extensionPaths": [
+        "/workspaces/future-debrief/vs-code"
       ]
     }
   },
