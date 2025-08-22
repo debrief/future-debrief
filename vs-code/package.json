@@ -3,6 +3,11 @@
   "displayName": "debrief-vscode",
   "description": "Vs Code extension for Debrie Analysis Tool",
   "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/debrief/future-debrief.git"
+  },
+  "license": "EPL-2.0",
   "engines": {
     "vscode": "^1.103.0"
   },
