@@ -1,6 +1,7 @@
 {
   "name": "Debrief Codespace",
   "image": "mcr.microsoft.com/devcontainers/universal",
+  "icon": "vs-code/debrief-icon.svg",
   "postCreateCommand": "cd vs-code && yarn install && yarn compile && code --install-extension .",
   "workspaceFolder": "/workspaces/future-debrief",
   "customizations": {
