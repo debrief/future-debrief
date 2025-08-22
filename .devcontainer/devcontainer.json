@@ -1,0 +1,22 @@
+{
+  "name": "Debrief Codespace",
+  "image": "mcr.microsoft.com/devcontainers/universal",
+  "postCreateCommand": "bash /workspaces/future-debrief/.devcontainer/install-extension.sh",
+  "workspaceFolder": "/workspaces/future-debrief/vs-code/workspace",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "workbench.startupEditor": "readme",
+        "workbench.sideBar.location": "left",
+        "terminal.integrated.defaultProfile.linux": "bash"
+      },
+      "extensions": [
+        "ms-vscode.vscode-typescript-next"
+      ]
+    }
+  },
+  "features": {},
+  "remoteUser": "codespace",
+  "forwardPorts": [],
+  "portsAttributes": {}
+}
