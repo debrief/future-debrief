@@ -1,6 +1,6 @@
 {
   "name": "VS Code Extension Development",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
@@ -16,6 +16,7 @@
       }
     }
   },
-  "postCreateCommand": "npm install && npm run compile && code --install-extension . --force",
+  "postCreateCommand": "npm install && npm run compile",
+  "postStartCommand": "code --install-extension . --force",
   "forwardPorts": [3000]
 }
