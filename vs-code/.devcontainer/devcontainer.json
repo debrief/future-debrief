@@ -1,0 +1,19 @@
+{
+  "name": "Debrief Codespace",
+  "image": "mcr.microsoft.com/devcontainers/universal",
+  "postCreateCommand": "cd /workspaces/vs-code && yarn install && yarn compile",
+  "workspaceFolder": "/workspaces/vs-code",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "workbench.startupEditor": "readme",
+        "workbench.sideBar.location": "left"
+      },
+      "extensions": []
+    }
+  },
+  "features": {},
+  "remoteUser": "codespace",
+  "forwardPorts": [],
+  "portsAttributes": {}
+}

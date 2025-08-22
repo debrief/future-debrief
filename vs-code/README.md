@@ -2,6 +2,24 @@
 
 A Visual Studio Code extension for the Debrief Analysis Tool, providing integrated analysis capabilities directly within your IDE.
 
+## 🚀 Try the Demo
+
+Experience the extension instantly in your browser with GitHub Codespaces:
+
+[**🚀 Open in GitHub Codespaces**](https://codespaces.new/future-debrief/vs-code)
+
+The Codespace includes:
+- Pre-configured development environment
+- Sample maritime track data (.plot.json and .rep files)
+- Interactive guided walkthrough
+- Zero installation required
+
+**Quick Demo Steps:**
+1. Click the Codespace badge above
+2. Wait for initialization (2-3 minutes)
+3. Press `F5` to launch the Extension Development Host
+4. Follow the `workspace/README.md` for guided exploration
+
 ## Features
 
 - **Outline View**: Navigate document structure and analysis points

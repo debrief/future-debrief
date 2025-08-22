@@ -21,7 +21,8 @@
       "Bash(npm run build-webviews:*)",
       "Bash(npm run build:webviews:*)",
       "Bash(npm run lint)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(code:*)"
     ]
   },
   "outputStyle": "default"
