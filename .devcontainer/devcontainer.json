@@ -16,6 +16,6 @@
       }
     }
   },
-  "postCreateCommand": "npm install",
+  "postCreateCommand": "npm install && npm run compile && code --install-extension . --force",
   "forwardPorts": [3000]
 }
