@@ -22,8 +22,12 @@
       "Bash(npm run build:webviews:*)",
       "Bash(npm run lint)",
       "Bash(git push:*)",
-      "Bash(code:*)"
-      "Bash(git push:*)"
+      "Bash(code:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr view:*)"
+    ],
+    "additionalDirectories": [
+      "/Users/ian/git/future-debrief"
     ]
   },
   "outputStyle": "default"

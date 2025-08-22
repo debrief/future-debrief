@@ -1,8 +1,8 @@
 {
   "name": "Debrief Codespace",
   "image": "mcr.microsoft.com/devcontainers/universal",
-  "postCreateCommand": "cd /workspaces/vs-code && yarn install && yarn compile",
-  "workspaceFolder": "/workspaces/vs-code",
+  "postCreateCommand": "cd vs-code && yarn install && yarn compile",
+  "workspaceFolder": "/workspaces/future-debrief",
   "customizations": {
     "vscode": {
       "settings": {
