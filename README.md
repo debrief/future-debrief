@@ -150,3 +150,4 @@ After understanding this workflow, consider:
 - Implementing more complex extension features
 - Setting up automated publishing to VS Code Marketplace
 - Adding integration with other GitHub features
+
