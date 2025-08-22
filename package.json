@@ -1,0 +1,44 @@
+{
+  "name": "codespace-extension",
+  "displayName": "Codespace Extension",
+  "description": "VS Code extension demonstrator for Codespace preview from PRs",
+  "version": "0.0.1",
+  "publisher": "ian",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codespace-extension.helloWorld",
+        "title": "Hello World"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "codespace-extension.helloView",
+          "name": "Hello World",
+          "when": "true"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.74.0",
+    "@types/node": "16.x",
+    "typescript": "^4.9.4"
+  }
+}

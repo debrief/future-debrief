@@ -1,9 +1,31 @@
 {
   "permissions": {
     "allow": [
-      "Bash(mkdir:*)"
-    ],
-    "deny": [],
-    "ask": []
-  }
+      "Bash(git checkout:*)",
+      "Bash(npm init:*)",
+      "Bash(npx yo:*)",
+      "Bash(npm install:*)",
+      "Bash(mkdir:*)",
+      "Bash(yarn compile)",
+      "Bash(yarn lint)",
+      "Bash(code --version)",
+      "Bash(yarn run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(mv:*)",
+      "Bash(yarn add react react-dom)",
+      "Bash(yarn add:*)",
+      "Bash(rm:*)",
+      "Bash(yarn list:*)",
+      "Bash(gh pr create:*)",
+      "Bash(npm run compile:*)",
+      "Bash(npm run build-webviews:*)",
+      "Bash(npm run build:webviews:*)",
+      "Bash(npm run lint)",
+      "Bash(git push:*)",
+      "Bash(code:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh pr view:*)"
+    ]
+  },
+  "outputStyle": "default"
 }

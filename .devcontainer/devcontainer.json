@@ -1,0 +1,21 @@
+{
+  "name": "VS Code Extension Development",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.vscode-typescript-next",
+        "ms-vscode.extension-test-runner",
+        "dbaeumer.vscode-eslint"
+      ],
+      "settings": {
+        "typescript.preferences.noSemicolons": "off"
+      }
+    }
+  },
+  "postCreateCommand": "npm install",
+  "forwardPorts": [3000]
+}
