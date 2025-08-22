@@ -1,3 +1,13 @@
 {
-  "postAttachCommand": ".devcontainer/install-extension.sh"
+  "postAttachCommand": ".devcontainer/install-extension.sh",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "explorer.openEditors.visible": 0,
+        "workbench.startupEditor": "none"
+      },
+      "extensions": []
+    }
+  },
+  "workspaceFolder": "/workspaces/codespace-extension/workspace"
 }
