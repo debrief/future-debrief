@@ -8,6 +8,9 @@ echo "Installing Debrief VS Code Extension..."
 # Build locally for reliable PR review
 echo "Building extension locally..."
 cd /workspaces/future-debrief/vs-code
+
+touch /workspaces/future-debrief/vs-code/workspace/about-to-install
+
 echo "Installing dependencies..."
 yarn install
 touch /workspaces/future-debrief/vs-code/workspace/install-complete
