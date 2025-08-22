@@ -41,22 +41,14 @@
                 if (data.features.length > 0) {
                     map.fitBounds(geoJsonLayer.getBounds());
                 }
-                
-                // Update JSON display
-                document.getElementById('json-content').textContent = JSON.stringify(data, null, 2);
-            } else {
-                // Not a valid FeatureCollection, show as text
-                document.getElementById('json-content').textContent = jsonText;
-                
+               
+            } else {                
                 // Clear map
                 if (geoJsonLayer) {
                     map.removeLayer(geoJsonLayer);
                 }
             }
-        } catch (error) {
-            // Invalid JSON, show as text
-            document.getElementById('json-content').textContent = jsonText;
-            
+        } catch (error) {            
             // Clear map
             if (geoJsonLayer) {
                 map.removeLayer(geoJsonLayer);

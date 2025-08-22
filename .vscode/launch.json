@@ -6,12 +6,13 @@
             "type": "extensionHost",
             "request": "launch",
             "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}"
+                "--extensionDevelopmentPath=${workspaceFolder}",
+                "--folder-uri=${workspaceFolder}"
             ],
             "outFiles": [
                 "${workspaceFolder}/out/**/*.js"
             ],
-            "preLaunchTask": "${workspaceFolder}/npm: compile"
+            "preLaunchTask": "npm: compile"
         },
         {
             "name": "Extension Tests",
@@ -24,7 +25,7 @@
             "outFiles": [
                 "${workspaceFolder}/out/test/**/*.js"
             ],
-            "preLaunchTask": "${workspaceFolder}/npm: compile"
+            "preLaunchTask": "npm: compile"
         }
     ]
 }

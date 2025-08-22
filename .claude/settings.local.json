@@ -30,7 +30,8 @@
       "Bash(npm view:*)",
       "Bash(nvm install:*)",
       "Bash(nvm use:*)",
-      "Bash(nvm:*)"
+      "Bash(nvm:*)",
+      "Bash(node:*)"
     ]
   },
   "outputStyle": "default"

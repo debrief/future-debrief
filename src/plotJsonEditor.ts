@@ -77,7 +77,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 			<html lang="en">
 			<head>
 				<meta charset="UTF-8">
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}' https://unpkg.com;">
+				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} https://unpkg.com; script-src 'nonce-${nonce}' https://unpkg.com; img-src ${webview.cspSource} https://*.tile.openstreetmap.org data:; connect-src https://*.tile.openstreetmap.org;">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 				<link href="${styleResetUri}" rel="stylesheet">
 				<link href="${styleVSCodeUri}" rel="stylesheet">
@@ -92,10 +92,6 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 						<button class="add-button">Add Point</button>
 					</div>
 					<div id="map"></div>
-					<div class="json-view">
-						<h3>JSON Content</h3>
-						<pre id="json-content"></pre>
-					</div>
 				</div>
 				<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
 					integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
