@@ -16,6 +16,7 @@ export class OutlineViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'debriefOutline';
     private _view?: vscode.WebviewView;
     private _disposables: vscode.Disposable[] = [];
+    private _currentFeatureCollection: FeatureCollection | null = null;
 
     constructor(private readonly _extensionUri: vscode.Uri) {}
 
@@ -66,6 +67,11 @@ export class OutlineViewProvider implements vscode.WebviewViewProvider {
                 case 'webview-ready':
                     console.log('Outline webview ready');
                     this._sendInitialState();
+                    // Send current feature collection if we have one
+                    if (this._currentFeatureCollection !== null) {
+                        console.log('Outline webview ready: Sending stored FC with', this._currentFeatureCollection?.features?.length || 0, 'features');
+                        this._sendFeatureCollectionUpdate(this._currentFeatureCollection);
+                    }
                     break;
                 case 'refresh-request':
                     console.log('Outline: Received refresh request from webview');
@@ -145,6 +151,15 @@ export class OutlineViewProvider implements vscode.WebviewViewProvider {
 
     public onDebriefEditorActiveChanged(featureCollection: FeatureCollection | null) {
         console.log('OutlineViewProvider: Received Debrief editor active change:', featureCollection ? `FC with ${featureCollection.features?.length || 0} features` : 'null');
+        
+        // Store the current feature collection
+        this._currentFeatureCollection = featureCollection;
+        
+        // Send to webview if it's ready
+        this._sendFeatureCollectionUpdate(featureCollection);
+    }
+
+    private _sendFeatureCollectionUpdate(featureCollection: FeatureCollection | null) {
         // Send the FeatureCollection to the React component
         this._sendMessage({
             command: 'update-data',
