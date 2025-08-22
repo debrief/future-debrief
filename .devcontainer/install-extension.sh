@@ -1,7 +1,8 @@
 #!/bin/bash
 echo "Downloading and installing extension from CI artifact..."
 
-# Get the latest workflow run ID for the current branch
+# Store current directory and repository info
+ORIGINAL_DIR=$(pwd)
 BRANCH=$(git branch --show-current)
 echo "Current branch: $BRANCH"
 
@@ -19,14 +20,15 @@ if command -v gh &> /dev/null; then
         TEMP_DIR=$(mktemp -d)
         cd "$TEMP_DIR"
         
-        if gh run download $RUN_ID --name extension-vsix; then            
+        # Use the original directory context for gh commands
+        if (cd "$ORIGINAL_DIR" && gh run download $RUN_ID --name extension-vsix --dir "$TEMP_DIR"); then            
             if [ -f "extension.vsix" ]; then
                 echo "Installing extension: extension.vsix"
                 code --install-extension "extension.vsix" --force
                 echo "Extension installed successfully from CI artifact"
                 
                 # Cleanup
-                cd - > /dev/null
+                cd "$ORIGINAL_DIR"
                 rm -rf "$TEMP_DIR"
                 
                 touch install-complete
@@ -35,7 +37,7 @@ if command -v gh &> /dev/null; then
         fi
         
         # Cleanup on failure
-        cd - > /dev/null
+        cd "$ORIGINAL_DIR"
         rm -rf "$TEMP_DIR"
     fi
     
