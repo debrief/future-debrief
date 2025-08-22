@@ -9,7 +9,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         outline: resolve(__dirname, 'src/webview/outline/index.html'),
-        timeline: resolve(__dirname, 'src/webview/timeline/index.html')
+        timeline: resolve(__dirname, 'src/webview/timeline/index.html'),
+        'map-components': resolve(__dirname, 'src/maps/webview/MapApp.ts')
       },
       output: {
         entryFileNames: '[name].js',
