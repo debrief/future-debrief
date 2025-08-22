@@ -1,4 +1,4 @@
 {
   "postCreateCommand": "npm install && npm run compile",
-  "postStartCommand": "code --install-extension . --force"
+  "postStartCommand": "code --install-extension . --force && echo 'Extension installation completed'"
 }
