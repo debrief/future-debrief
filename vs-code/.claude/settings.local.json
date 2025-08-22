@@ -23,6 +23,7 @@
       "Bash(npm run lint)",
       "Bash(git push:*)",
       "Bash(code:*)"
+      "Bash(git push:*)"
     ]
   },
   "outputStyle": "default"
