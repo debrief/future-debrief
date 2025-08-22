@@ -109,6 +109,8 @@
     "webpack-cli": "^6.0.1"
   },
   "dependencies": {
+    "@types/leaflet": "^1.9.20",
+    "leaflet": "^1.9.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   }
