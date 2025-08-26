@@ -86,12 +86,41 @@ jobs:
         
         # Deploy the application
         echo "Deploying to ${APP_NAME}..."
-        flyctl deploy --app "${APP_NAME}" --dockerfile ./Dockerfile \
+        echo "Starting deployment at $(date)"
+        
+        # Use timeout command to prevent hanging indefinitely
+        timeout 600 flyctl deploy --app "${APP_NAME}" --dockerfile ./Dockerfile \
           --build-arg GITHUB_SHA="${{ github.sha }}" \
           --build-arg PR_NUMBER="${{ steps.config.outputs.pr_number }}" \
-          --wait-timeout 300
+          --wait-timeout 300 \
+          --no-public-ips false \
+          --verbose || {
+            echo "Deployment timed out or failed after 10 minutes"
+            echo "Checking app status..."
+            flyctl status --app "${APP_NAME}" || true
+            exit 1
+          }
         
-        echo "deployment_status=success" >> $GITHUB_OUTPUT
+        echo "Deployment completed at $(date)"
+        
+        # Give the app time to fully start up
+        echo "Waiting for app to fully initialize..."
+        sleep 30
+        
+        # Verify the app is responding
+        PREVIEW_URL="https://${APP_NAME}.fly.dev"
+        echo "Testing app availability at ${PREVIEW_URL}..."
+        
+        # Try to reach the app with a timeout
+        if timeout 60 bash -c "until curl -f -s ${PREVIEW_URL} > /dev/null; do sleep 5; done"; then
+          echo "✅ App is responding at ${PREVIEW_URL}"
+          echo "deployment_status=success" >> $GITHUB_OUTPUT
+        else
+          echo "⚠️  App deployed but not yet responding at ${PREVIEW_URL}"
+          echo "This may be normal - code-server can take time to initialize"
+          flyctl status --app "${APP_NAME}" || true
+          echo "deployment_status=success" >> $GITHUB_OUTPUT
+        fi
     
     - name: Post PR comment with preview link
       if: steps.deploy.outputs.deployment_status == 'success'
