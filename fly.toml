@@ -16,14 +16,6 @@ primary_region = "dfw"
   min_machines_running = 0
   processes = ["app"]
 
-  [[http_service.checks]]
-    interval = "15s"
-    timeout = "5s"
-    grace_period = "10s"
-    method = "GET"
-    path = "/"
-    protocol = "http"
-    tls_skip_verify = false
 
 [[vm]]
   # Optimized resource allocation for code-server workloads
