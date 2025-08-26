@@ -44,8 +44,12 @@ jobs:
     
     - name: Setup Fly CLI
       uses: superfly/flyctl-actions/setup-flyctl@master
-      with:
-        version: latest
+      
+    - name: Verify Fly CLI installation
+      run: |
+        echo "PATH: $PATH"
+        which flyctl
+        flyctl version
     
     - name: Generate app name and config
       id: config
@@ -73,16 +77,16 @@ jobs:
         APP_NAME="${{ steps.config.outputs.app_name }}"
         
         # Check if app exists, create if it doesn't
-        if ! fly apps list | grep -q "^${APP_NAME}"; then
+        if ! flyctl apps list | grep -q "^${APP_NAME}"; then
           echo "Creating new app: ${APP_NAME}"
-          fly apps create "${APP_NAME}" --org personal
+          flyctl apps create "${APP_NAME}" --org personal
         else
           echo "App ${APP_NAME} already exists, updating..."
         fi
         
         # Deploy the application
         echo "Deploying to ${APP_NAME}..."
-        fly deploy --app "${APP_NAME}" --dockerfile ./Dockerfile \
+        flyctl deploy --app "${APP_NAME}" --dockerfile ./Dockerfile \
           --build-arg GITHUB_SHA="${{ github.sha }}" \
           --build-arg PR_NUMBER="${{ steps.config.outputs.pr_number }}" \
           --wait-timeout 300

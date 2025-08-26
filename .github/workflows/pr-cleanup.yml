@@ -13,8 +13,6 @@ jobs:
     steps:
     - name: Setup Fly CLI
       uses: superfly/flyctl-actions/setup-flyctl@master
-      with:
-        version: latest
     
     - name: Cleanup Fly.io app
       env:
@@ -26,9 +24,9 @@ jobs:
         echo "Cleaning up preview app: ${APP_NAME}"
         
         # Check if app exists before trying to destroy it
-        if fly apps list | grep -q "^${APP_NAME}"; then
+        if flyctl apps list | grep -q "^${APP_NAME}"; then
           echo "Destroying app: ${APP_NAME}"
-          fly apps destroy "${APP_NAME}" --yes
+          flyctl apps destroy "${APP_NAME}" --yes
           echo "✅ Successfully destroyed preview app: ${APP_NAME}"
         else
           echo "ℹ️  App ${APP_NAME} not found, already cleaned up or never existed"
