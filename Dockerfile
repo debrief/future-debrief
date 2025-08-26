@@ -8,7 +8,7 @@ WORKDIR /home/coder
 USER root
 RUN apt-get update && apt-get install -y \
     curl \
-    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
@@ -26,8 +26,10 @@ COPY --chown=coder:coder . /home/coder/project/
 WORKDIR /home/coder/project
 RUN npm install && npm run compile
 
-# Install vsce for packaging the extension
+# Install vsce for packaging the extension (as root, then switch back)
+USER root
 RUN npm install -g @vscode/vsce
+USER coder
 
 # Package the extension as .vsix
 RUN vsce package --out extension.vsix
@@ -47,9 +49,8 @@ WORKDIR /home/coder/workspace
 # Expose the code-server port
 EXPOSE 8080
 
-# Set environment variables for code-server
-ENV PASSWORD=""
-ENV SUDO_PASSWORD=""
+# Start code-server with no password authentication
+# (PASSWORD and SUDO_PASSWORD are not set to avoid security warnings)
 
 # Start code-server with the workspace
 CMD ["code-server", "--bind-addr", "0.0.0.0:8080", "--auth", "none", "--disable-telemetry", "/home/coder/workspace"]
