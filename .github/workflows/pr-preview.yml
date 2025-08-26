@@ -10,9 +10,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy-preview:
+  build-and-test:
     runs-on: ubuntu-latest
     if: github.event.pull_request.head.repo.full_name == github.repository
+    outputs:
+      extension-artifact: ${{ steps.package.outputs.artifact-id }}
     
     steps:
     - name: Checkout PR branch
@@ -35,50 +37,17 @@ jobs:
     
     - name: Install vsce
       run: |
-        # Try installing vsce with retry logic and fallback methods
-        echo "Attempting to install @vscode/vsce..."
-        
-        # First try: direct install
-        if npm install -g @vscode/vsce; then
-          echo "✅ Successfully installed @vscode/vsce"
-        else
-          echo "❌ Direct install failed, trying with --registry option..."
-          
-          # Second try: use different registry
-          if npm install -g @vscode/vsce --registry https://registry.npmjs.org/; then
-            echo "✅ Successfully installed @vscode/vsce with explicit registry"
-          else
-            echo "❌ Registry install failed, trying local install..."
-            
-            # Third try: install locally and use npx
-            npm install @vscode/vsce
-            echo "✅ Installed @vscode/vsce locally, will use npx"
-          fi
-        fi
-        
-        # Verify installation
-        if which vsce || [ -f node_modules/.bin/vsce ]; then
-          echo "✅ vsce is available"
-        else
-          echo "❌ vsce installation failed completely"
-          exit 1
-        fi
+        # Install vsce with fallback to local installation
+        npm install -g @vscode/vsce || npm install @vscode/vsce
     
     - name: Package extension
+      id: package
       run: |
-        # Package the extension without publishing
-        echo "Packaging extension..."
-        
-        # Try global vsce first, then local via npx
+        # Package the extension
         if which vsce > /dev/null 2>&1; then
-          echo "Using global vsce"
           vsce package --out extension.vsix
-        elif [ -f node_modules/.bin/vsce ]; then
-          echo "Using local vsce via npx"
-          npx vsce package --out extension.vsix
         else
-          echo "❌ No vsce installation found"
-          exit 1
+          npx vsce package --out extension.vsix
         fi
         
         # Verify package was created
@@ -89,6 +58,31 @@ jobs:
           echo "❌ Extension packaging failed"
           exit 1
         fi
+    
+    - name: Upload extension artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: extension-vsix
+        path: extension.vsix
+        retention-days: 1
+  
+  deploy-preview:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    
+    steps:
+    - name: Checkout PR branch
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 1
+    
+    - name: Download extension artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: extension-vsix
+        path: .
     
     - name: Setup Fly CLI
       uses: superfly/flyctl-actions/setup-flyctl@master
@@ -141,7 +135,6 @@ jobs:
           --build-arg GITHUB_SHA="${{ github.sha }}" \
           --build-arg PR_NUMBER="${{ steps.config.outputs.pr_number }}" \
           --wait-timeout 300 \
-          --no-public-ips false \
           --verbose || {
             echo "Deployment timed out or failed after 10 minutes"
             echo "Checking app status..."

@@ -1,10 +1,9 @@
-name: CI - Build & Test
+name: CI - Main Branch Build
 
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
+  # Remove pull_request trigger since pr-preview.yml handles PR builds
 
 jobs:
   build:
