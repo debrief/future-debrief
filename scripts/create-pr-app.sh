@@ -27,9 +27,9 @@ sed "s/PR_APP_NAME_PLACEHOLDER/${APP_NAME}/g; s/PR_NUMBER_PLACEHOLDER/${PR_NUMBE
 echo "Creating app ${APP_NAME}..."
 fly apps create "$APP_NAME" --org personal
 
-# Deploy using the temporary fly.toml
+# Deploy using the temporary fly.toml from the project directory
 echo "Deploying app ${APP_NAME}..."
-fly deploy --config "$TEMP_FLY_TOML" --app "$APP_NAME"
+fly deploy --config "$TEMP_FLY_TOML" --app "$APP_NAME" --dockerfile ./Dockerfile
 
 # Clean up temporary file
 rm "$TEMP_FLY_TOML"

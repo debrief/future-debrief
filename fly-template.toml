@@ -8,7 +8,6 @@ primary_region = "dfw"
 
 [build]
   # Use the existing Dockerfile for code-server with Debrief extension
-  dockerfile = "Dockerfile"
 
 [http_service]
   internal_port = 8080
