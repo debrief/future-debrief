@@ -18,20 +18,28 @@ primary_region = "dfw"
   processes = ["app"]
 
   [[http_service.checks]]
-    interval = "30s"
-    timeout = "10s"
-    grace_period = "60s"
+    interval = "60s"
+    timeout = "15s"
+    grace_period = "120s"
     method = "GET"
     path = "/"
     protocol = "http"
     tls_skip_verify = false
+    
+  # Add a TCP check as fallback since code-server might take time to serve HTTP
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "30s"
+    type = "tcp"
+    port = 8080
 
 [[vm]]
-  # Optimized resource allocation for code-server workloads
-  # Cost-effective while ensuring good performance
-  cpu_kind = "shared"
-  cpus = 1
-  memory_mb = 1024
+  # Increased resources for code-server + extension building
+  # Code-server needs more memory for VS Code functionality
+  cpu_kind = "shared"  
+  cpus = 2
+  memory_mb = 2048
 
 [env]
   # Environment variables for code-server operation
@@ -47,5 +55,5 @@ primary_region = "dfw"
 # No persistent storage - stateless operation as required
 # All data is ephemeral and reset with each deployment
 
-[processes]
-  app = "code-server --bind-addr 0.0.0.0:8080 --auth none --disable-telemetry /home/coder/workspace"
+# Remove processes section - let Dockerfile CMD handle the startup
+# This prevents conflicts and uses the container's defined entry point

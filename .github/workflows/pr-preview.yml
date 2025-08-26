@@ -130,11 +130,12 @@ jobs:
         echo "Deploying to ${APP_NAME}..."
         echo "Starting deployment at $(date)"
         
-        # Use timeout command to prevent hanging indefinitely
+        # Use timeout command to prevent hanging indefinitely  
         timeout 600 flyctl deploy --app "${APP_NAME}" --dockerfile ./Dockerfile \
           --build-arg GITHUB_SHA="${{ github.sha }}" \
           --build-arg PR_NUMBER="${{ steps.config.outputs.pr_number }}" \
           --wait-timeout 300 \
+          --strategy immediate \
           --verbose || {
             echo "Deployment timed out or failed after 10 minutes"
             echo "Checking app status..."
@@ -144,27 +145,36 @@ jobs:
         
         echo "Deployment completed at $(date)"
         
+        # Check immediate deployment status
+        echo "Checking deployment status..."
+        flyctl status --app "${APP_NAME}"
+        
+        # Check machine logs for startup issues
+        echo "Checking recent logs for startup issues..."
+        flyctl logs --app "${APP_NAME}" --limit 50 || true
+        
         # Give the app time to fully start up
         echo "Waiting for app to fully initialize..."
-        sleep 30
+        sleep 45
         
         # Verify the app is responding
         PREVIEW_URL="https://${APP_NAME}.fly.dev"
         echo "Testing app availability at ${PREVIEW_URL}..."
         
-        # Try to reach the app with a timeout
-        if timeout 60 bash -c "until curl -f -s ${PREVIEW_URL} > /dev/null; do sleep 5; done"; then
+        # Try to reach the app with a longer timeout for code-server
+        if timeout 120 bash -c "until curl -f -s -m 30 ${PREVIEW_URL} > /dev/null; do echo 'Waiting for response...'; sleep 10; done"; then
           echo "✅ App is responding at ${PREVIEW_URL}"
           echo "deployment_status=success" >> $GITHUB_OUTPUT
         else
-          echo "⚠️  App deployed but not yet responding at ${PREVIEW_URL}"
-          echo "This may be normal - code-server can take time to initialize"
+          echo "⚠️  App deployed but not responding at ${PREVIEW_URL}"
+          echo "Checking final app status and logs..."
           flyctl status --app "${APP_NAME}" || true
-          echo "deployment_status=success" >> $GITHUB_OUTPUT
+          flyctl logs --app "${APP_NAME}" --limit 20 || true
+          echo "deployment_status=partial" >> $GITHUB_OUTPUT
         fi
     
     - name: Post PR comment with preview link
-      if: steps.deploy.outputs.deployment_status == 'success'
+      if: steps.deploy.outputs.deployment_status == 'success' || steps.deploy.outputs.deployment_status == 'partial'
       uses: actions/github-script@v7
       with:
         script: |
