@@ -31,7 +31,10 @@
       "Bash(nvm install:*)",
       "Bash(nvm use:*)",
       "Bash(nvm:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(docker stop:*)",
+      "Bash(docker rm:*)"
     ]
   },
   "outputStyle": "default"
