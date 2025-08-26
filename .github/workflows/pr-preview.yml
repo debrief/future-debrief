@@ -34,13 +34,61 @@ jobs:
       run: npm run compile
     
     - name: Install vsce
-      run: npm install -g @vscode/vsce
+      run: |
+        # Try installing vsce with retry logic and fallback methods
+        echo "Attempting to install @vscode/vsce..."
+        
+        # First try: direct install
+        if npm install -g @vscode/vsce; then
+          echo "✅ Successfully installed @vscode/vsce"
+        else
+          echo "❌ Direct install failed, trying with --registry option..."
+          
+          # Second try: use different registry
+          if npm install -g @vscode/vsce --registry https://registry.npmjs.org/; then
+            echo "✅ Successfully installed @vscode/vsce with explicit registry"
+          else
+            echo "❌ Registry install failed, trying local install..."
+            
+            # Third try: install locally and use npx
+            npm install @vscode/vsce
+            echo "✅ Installed @vscode/vsce locally, will use npx"
+          fi
+        fi
+        
+        # Verify installation
+        if which vsce || [ -f node_modules/.bin/vsce ]; then
+          echo "✅ vsce is available"
+        else
+          echo "❌ vsce installation failed completely"
+          exit 1
+        fi
     
     - name: Package extension
       run: |
         # Package the extension without publishing
-        vsce package --out extension.vsix
-        ls -la *.vsix
+        echo "Packaging extension..."
+        
+        # Try global vsce first, then local via npx
+        if which vsce > /dev/null 2>&1; then
+          echo "Using global vsce"
+          vsce package --out extension.vsix
+        elif [ -f node_modules/.bin/vsce ]; then
+          echo "Using local vsce via npx"
+          npx vsce package --out extension.vsix
+        else
+          echo "❌ No vsce installation found"
+          exit 1
+        fi
+        
+        # Verify package was created
+        if [ -f extension.vsix ]; then
+          echo "✅ Extension packaged successfully"
+          ls -la *.vsix
+        else
+          echo "❌ Extension packaging failed"
+          exit 1
+        fi
     
     - name: Setup Fly CLI
       uses: superfly/flyctl-actions/setup-flyctl@master

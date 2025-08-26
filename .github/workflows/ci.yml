@@ -27,12 +27,18 @@ jobs:
       run: npm run compile
     
     - name: Install vsce
-      run: npm install -g @vscode/vsce
+      run: |
+        # Install vsce with fallback to local installation
+        npm install -g @vscode/vsce || npm install @vscode/vsce
     
     - name: Package extension (dry run)
       run: |
         # Test packaging without creating actual .vsix file
-        vsce package --out test-extension.vsix
+        if which vsce > /dev/null 2>&1; then
+          vsce package --out test-extension.vsix
+        else
+          npx vsce package --out test-extension.vsix
+        fi
         ls -la *.vsix
         rm -f *.vsix
     
