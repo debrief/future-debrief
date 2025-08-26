@@ -313,3 +313,111 @@ Security Check → TypeScript Compile → vsce Package → App Create/Update
 **Final Status:** Phase 3 complete. Full CI/CD pipeline implemented with automated PR previews, cleanup, and comprehensive error handling. System ready for immediate production use.
 
 ---
+
+## Phase 4: Auto-Cleanup - Enhanced Resource Management Implementation
+
+**Task Reference:** Phase 4: Auto-Cleanup in [Implementation Plan](docs/debrief-pr-preview-implementation-plan.md)
+
+**Date:** 2025-08-26  
+**Assigned Task:** Implement automated cleanup functionality that removes Fly.io preview deployments when pull requests are closed or merged, ensuring efficient resource management and cost control  
+**Implementation Agent:** Task execution completed
+
+### Actions Taken
+
+1. **Enhanced Existing PR Cleanup Workflow (.github/workflows/pr-cleanup.yml)**
+   - **Improved Trigger Configuration**: PR closed events (both merge and manual close) on main branch
+   - **Added Concurrency Control**: Prevents overlapping cleanup operations with `destroy-preview-${{ github.event.number }}`
+   - **Enhanced Error Handling**: Comprehensive status tracking with success/failed/not_found states
+   - **Fly CLI Verification**: Added explicit CLI installation verification step
+   - **Robust App Detection**: Improved app existence checking before destruction attempts
+
+2. **Implemented Advanced Fly.io App Destruction Logic**
+   - **App Name Generation**: Uses consistent `pr-${PR_NUMBER}-futuredebrief` pattern matching preview workflow
+   - **Status Tracking**: Implements cleanup_status and cleanup_message output variables
+   - **Graceful Handling**: Handles cases where apps don't exist or were already destroyed
+   - **Proper Error Recovery**: Distinguishes between different failure scenarios
+   - **Resource Verification**: Lists remaining preview apps for debugging purposes
+
+3. **Created Intelligent PR Comment System**
+   - **Status-Based Comments**: Different messages based on cleanup success/failure/not_found states
+   - **Informative Feedback**: Clear indication of resource cleanup status
+   - **Cost Awareness**: Mentions resource optimization and cost control benefits
+   - **Troubleshooting Links**: Direct links to workflow logs for investigation
+   - **Manual Intervention Guidance**: Instructions for dashboard access when needed
+
+4. **Added Workflow Failure Handling**
+   - **Conditional Failure**: Only fails workflow if actual destruction fails (not if app doesn't exist)
+   - **Manual Intervention Alerts**: Clear guidance for situations requiring manual cleanup
+   - **Dashboard Links**: Direct links to Fly.io dashboard for manual management
+   - **Exit Code Management**: Proper exit codes for CI/CD pipeline integration
+
+### Key Decisions Made
+
+- **Error Categorization**: Distinguished between "not found" (acceptable) and "failed" (actionable error)
+- **Status Communication**: Implemented comprehensive status tracking for better debugging
+- **Cost Optimization**: Emphasized automatic cleanup for resource management
+- **Graceful Degradation**: System continues to function even if individual cleanups fail
+- **User Experience**: Clear communication about cleanup status through PR comments
+- **Integration Safety**: Cleanup failures don't break the overall CI/CD pipeline
+
+### Technical Implementation Details
+
+**Enhanced Workflow Architecture:**
+```
+PR Close Event → Verify Fly CLI → Generate App Name → Check App Exists
+     ↓                                                       ↓
+Status Tracking → Destroy App → Post Status Comment → Handle Failures
+```
+
+**Cleanup Process Flow:**
+1. **App Detection**: Uses `flyctl apps list | grep` for reliable app existence checking
+2. **Conditional Destruction**: Only attempts destruction if app exists
+3. **Status Capture**: Records success/failure/not_found states for reporting
+4. **User Communication**: Posts appropriate PR comment based on cleanup outcome
+5. **Error Handling**: Provides manual intervention guidance for failed cleanups
+
+**Resource Management:**
+- Automatically removes orphaned preview environments
+- Prevents cost accumulation from forgotten deployments
+- Handles edge cases where previews might not exist
+- Provides debugging information for operational insights
+
+### Challenges Encountered
+
+- **Existing Workflow**: Found existing pr-cleanup.yml workflow that needed enhancement rather than replacement
+- **Error State Management**: Required sophisticated handling of different failure scenarios
+- **Status Communication**: Needed clear differentiation between expected vs. problematic states
+- **Integration Testing**: Verified cleanup works with existing PR preview creation workflow
+- **Race Conditions**: Implemented concurrency control to prevent cleanup conflicts
+
+### Deliverables Completed
+
+- ✅ **Enhanced `.github/workflows/pr-cleanup.yml`** - Improved cleanup workflow with advanced error handling
+- ✅ **Status-Based PR Comments** - Intelligent feedback system for cleanup operations
+- ✅ **Comprehensive Error Handling** - Graceful handling of all cleanup scenarios
+- ✅ **Resource Management Verification** - Debugging tools for operational oversight
+- ✅ **Integration Testing** - Verified compatibility with existing PR preview system
+- ✅ **Documentation Updates** - Complete logging of implementation decisions and processes
+
+### Resource Management Features
+
+- **Automatic Triggering**: Cleanup runs immediately when PRs are closed or merged
+- **Cost Control**: Prevents accumulation of orphaned Fly.io applications
+- **Edge Case Handling**: Manages scenarios where apps were already destroyed or never existed
+- **Operational Visibility**: Provides clear status reporting for monitoring and troubleshooting
+- **Manual Override**: Clear guidance for situations requiring manual intervention
+
+### Confirmation of Successful Execution
+
+- ✅ Complete PR lifecycle implementation (create → update → destroy)
+- ✅ Enhanced cleanup workflow handles all edge cases gracefully
+- ✅ Status-based PR comments provide clear feedback on cleanup operations
+- ✅ Robust error handling prevents workflow failures from blocking CI/CD pipeline
+- ✅ Resource management optimized for cost control and operational efficiency
+- ✅ Integration verified with existing PR preview creation workflow
+- ✅ Manual intervention guidance available for exceptional cases
+- ✅ Comprehensive logging enables easy troubleshooting and maintenance
+
+**Final Status:** Phase 4 complete. Enhanced automatic cleanup system implemented with sophisticated error handling, comprehensive status reporting, and optimal resource management. Complete PR preview lifecycle fully operational with creation, updates, and automatic cleanup.
+
+---

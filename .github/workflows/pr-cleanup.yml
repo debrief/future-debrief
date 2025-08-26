@@ -5,6 +5,10 @@ on:
     types: [closed]
     branches: [main]
 
+concurrency:
+  group: destroy-preview-${{ github.event.number }}
+  cancel-in-progress: false
+
 jobs:
   cleanup-preview:
     runs-on: ubuntu-latest
@@ -13,43 +17,103 @@ jobs:
     steps:
     - name: Setup Fly CLI
       uses: superfly/flyctl-actions/setup-flyctl@master
+      
+    - name: Verify Fly CLI installation
+      run: |
+        echo "PATH: $PATH"
+        which flyctl
+        flyctl version
     
-    - name: Cleanup Fly.io app
-      env:
-        FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+    - name: Generate app name
+      id: config
       run: |
         PR_NUMBER="${{ github.event.number }}"
         APP_NAME="pr-${PR_NUMBER}-futuredebrief"
         
-        echo "Cleaning up preview app: ${APP_NAME}"
+        echo "pr_number=${PR_NUMBER}" >> $GITHUB_OUTPUT
+        echo "app_name=${APP_NAME}" >> $GITHUB_OUTPUT
         
-        # Check if app exists before trying to destroy it
-        if flyctl apps list | grep -q "^${APP_NAME}"; then
-          echo "Destroying app: ${APP_NAME}"
-          flyctl apps destroy "${APP_NAME}" --yes
-          echo "✅ Successfully destroyed preview app: ${APP_NAME}"
-        else
-          echo "ℹ️  App ${APP_NAME} not found, already cleaned up or never existed"
-        fi
+        echo "Will attempt to destroy app: ${APP_NAME}"
     
-    - name: Post cleanup confirmation comment
+    - name: Destroy Fly.io app
+      id: destroy
+      env:
+        FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      run: |
+        APP_NAME="${{ steps.config.outputs.app_name }}"
+        
+        echo "Starting cleanup for app: ${APP_NAME}"
+        echo "Cleanup initiated at $(date)"
+        
+        # Check if app exists before attempting to destroy
+        if flyctl apps list | grep -q "^${APP_NAME}"; then
+          echo "✅ App ${APP_NAME} found, proceeding with destruction..."
+          
+          # Attempt to destroy the app with confirmation
+          if flyctl apps destroy "${APP_NAME}" --yes; then
+            echo "✅ Successfully destroyed app: ${APP_NAME}"
+            echo "cleanup_status=success" >> $GITHUB_OUTPUT
+            echo "cleanup_message=App successfully destroyed" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Failed to destroy app: ${APP_NAME}"
+            echo "cleanup_status=failed" >> $GITHUB_OUTPUT
+            echo "cleanup_message=App destruction failed" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "ℹ️  App ${APP_NAME} not found (may have been already destroyed or never created)"
+          echo "cleanup_status=not_found" >> $GITHUB_OUTPUT
+          echo "cleanup_message=App not found (already destroyed or never created)" >> $GITHUB_OUTPUT
+        fi
+        
+        echo "Cleanup completed at $(date)"
+        
+        # List remaining apps to verify cleanup (for debugging)
+        echo "Remaining preview apps:"
+        flyctl apps list | grep "pr-.*-futuredebrief" || echo "No preview apps remaining"
+    
+    - name: Post PR comment about cleanup
       uses: actions/github-script@v7
       with:
         script: |
           const prNumber = ${{ github.event.number }};
-          const appName = `pr-${prNumber}-futuredebrief`;
+          const appName = "${{ steps.config.outputs.app_name }}";
+          const cleanupStatus = "${{ steps.destroy.outputs.cleanup_status }}";
+          const cleanupMessage = "${{ steps.destroy.outputs.cleanup_message }}";
           
-          const commentBody = `## 🧹 PR Preview Cleaned Up
+          let commentBody;
           
-          The preview environment for this PR has been automatically cleaned up.
-          
-          **📋 Details:**
-          - **App Name:** \`${appName}\`
-          - **PR:** #${prNumber}
-          - **Status:** Destroyed
-          
-          ---
-          *Resources have been freed up. Thank you for your contribution!*`;
+          if (cleanupStatus === 'success') {
+            commentBody = `## 🧹 PR Preview Cleaned Up
+            
+            Your PR preview environment has been automatically destroyed.
+            
+            **✅ Cleanup successful!**
+            - **App Name:** \`${appName}\`
+            - **Status:** ${cleanupMessage}
+            - **PR:** #${prNumber}
+            
+            All associated resources have been removed from Fly.io to optimize costs.`;
+          } else if (cleanupStatus === 'not_found') {
+            commentBody = `## 🧹 PR Preview Cleanup
+            
+            **ℹ️  No cleanup needed**
+            - **App Name:** \`${appName}\`
+            - **Status:** ${cleanupMessage}
+            - **PR:** #${prNumber}
+            
+            The preview environment was already removed or never existed.`;
+          } else {
+            commentBody = `## 🧹 PR Preview Cleanup
+            
+            **⚠️  Cleanup encountered an issue**
+            - **App Name:** \`${appName}\`
+            - **Status:** ${cleanupMessage}
+            - **PR:** #${prNumber}
+            
+            Please check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for more details.
+            
+            The preview environment may need manual cleanup to avoid ongoing costs.`;
+          }
           
           await github.rest.issues.createComment({
             owner: context.repo.owner,
@@ -57,32 +121,13 @@ jobs:
             issue_number: prNumber,
             body: commentBody
           });
+          
+          console.log(`Posted cleanup comment for PR #${prNumber} with status: ${cleanupStatus}`);
     
     - name: Handle cleanup failure
-      if: failure()
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const prNumber = ${{ github.event.number }};
-          const appName = `pr-${prNumber}-futuredebrief`;
-          
-          const errorComment = `## ⚠️ PR Preview Cleanup Issue
-          
-          There was an issue cleaning up the preview environment automatically.
-          
-          **📋 Details:**
-          - **App Name:** \`${appName}\`
-          - **PR:** #${prNumber}
-          - **Issue:** Cleanup process encountered an error
-          
-          The preview environment may need manual cleanup. Please check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for more details.
-          
-          ---
-          *This is likely a temporary issue and doesn't affect the main codebase.*`;
-          
-          await github.rest.issues.createComment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            issue_number: prNumber,
-            body: errorComment
-          });
+      if: steps.destroy.outputs.cleanup_status == 'failed'
+      run: |
+        echo "⚠️  Cleanup failed for app: ${{ steps.config.outputs.app_name }}"
+        echo "Manual intervention may be required to remove the Fly.io app"
+        echo "Check Fly.io dashboard: https://fly.io/dashboard/personal/apps"
+        exit 1
