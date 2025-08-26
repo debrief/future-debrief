@@ -37,8 +37,13 @@ tests/
 *.test.js
 *.test.ts
 
-# GitHub workflows
+# GitHub workflows and CI files
 .github/
+*.yml
+*.yaml
+
+# Scripts directory
+scripts/
 
 # Temporary files
 tmp/
