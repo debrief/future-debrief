@@ -1,6 +1,18 @@
 import * as vscode from 'vscode';
 
 export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
+    private static outlineUpdateCallback: ((document: vscode.TextDocument) => void) | undefined;
+    private static activeWebviewPanel: vscode.WebviewPanel | undefined;
+
+    public static setOutlineUpdateCallback(callback: (document: vscode.TextDocument) => void): void {
+        PlotJsonEditorProvider.outlineUpdateCallback = callback;
+    }
+
+    public static sendMessageToActiveWebview(message: any): void {
+        if (PlotJsonEditorProvider.activeWebviewPanel) {
+            PlotJsonEditorProvider.activeWebviewPanel.webview.postMessage(message);
+        }
+    }
 
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
         const provider = new PlotJsonEditorProvider(context);
@@ -17,6 +29,26 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         webviewPanel: vscode.WebviewPanel,
         _token: vscode.CancellationToken
     ): Promise<void> {
+        // Note: Document Activation Trigger removed - it conflicts with custom editor display
+
+        // Track this as the active webview panel
+        PlotJsonEditorProvider.activeWebviewPanel = webviewPanel;
+
+        // Notify outline tree that this document is now active
+        if (PlotJsonEditorProvider.outlineUpdateCallback) {
+            PlotJsonEditorProvider.outlineUpdateCallback(document);
+        }
+
+        // Listen for when this webview panel becomes visible (tab switching)
+        webviewPanel.onDidChangeViewState(() => {
+            if (webviewPanel.visible) {
+                PlotJsonEditorProvider.activeWebviewPanel = webviewPanel;
+                if (PlotJsonEditorProvider.outlineUpdateCallback) {
+                    PlotJsonEditorProvider.outlineUpdateCallback(document);
+                }
+            }
+        });
+
         webviewPanel.webview.options = {
             enableScripts: true,
         };
@@ -37,6 +69,10 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 
         webviewPanel.onDidDispose(() => {
             changeDocumentSubscription.dispose();
+            // Clear active webview reference if this panel is disposed
+            if (PlotJsonEditorProvider.activeWebviewPanel === webviewPanel) {
+                PlotJsonEditorProvider.activeWebviewPanel = undefined;
+            }
         });
 
         webviewPanel.webview.onDidReceiveMessage(e => {
