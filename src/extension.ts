@@ -72,8 +72,21 @@ export function activate(context: vscode.ExtensionContext) {
         'customOutline.selectFeature',
         (featureIndex: number) => {
             console.log('Feature selected from custom outline:', featureIndex);
-            // TODO: Send message to webview to highlight feature
-            // This will be implemented when webview highlighting is added
+            
+            // Find the active custom editor webview and send highlight message
+            vscode.window.tabGroups.all.forEach(tabGroup => {
+                tabGroup.tabs.forEach(tab => {
+                    if (tab.input instanceof vscode.TabInputCustom && 
+                        tab.input.viewType === 'plotJsonEditor' && 
+                        tab.isActive) {
+                        // Send highlight message to the active webview
+                        PlotJsonEditorProvider.sendMessageToActiveWebview({
+                            type: 'highlightFeature',
+                            featureIndex: featureIndex
+                        });
+                    }
+                });
+            });
         }
     );
     context.subscriptions.push(selectFeatureCommand);
