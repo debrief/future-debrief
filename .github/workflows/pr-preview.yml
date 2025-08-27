@@ -10,64 +10,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
+  build-extension:
     if: github.event.pull_request.head.repo.full_name == github.repository
-    outputs:
-      extension-artifact: ${{ steps.package.outputs.artifact-id }}
-    
-    steps:
-    - name: Checkout PR branch
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ github.event.pull_request.head.sha }}
-        fetch-depth: 1
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-    
-    - name: Install dependencies
-      run: npm ci
-    
-    - name: Compile TypeScript
-      run: npm run compile
-    
-    - name: Install vsce
-      run: |
-        # Install vsce with fallback to local installation
-        npm install -g @vscode/vsce || npm install @vscode/vsce
-    
-    - name: Package extension
-      id: package
-      run: |
-        # Package the extension
-        if which vsce > /dev/null 2>&1; then
-          vsce package --out extension.vsix
-        else
-          npx vsce package --out extension.vsix
-        fi
-        
-        # Verify package was created
-        if [ -f extension.vsix ]; then
-          echo "✅ Extension packaged successfully"
-          ls -la *.vsix
-        else
-          echo "❌ Extension packaging failed"
-          exit 1
-        fi
-    
-    - name: Upload extension artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: extension-vsix
-        path: extension.vsix
-        retention-days: 1
+    uses: ./.github/workflows/build-extension.yml
+    with:
+      ref: ${{ github.event.pull_request.head.sha }}
+      artifact_retention_days: 1
   
   deploy-preview:
-    needs: build-and-test
+    needs: build-extension
     runs-on: ubuntu-latest
     if: github.event.pull_request.head.repo.full_name == github.repository
     
@@ -81,7 +32,7 @@ jobs:
     - name: Download extension artifact
       uses: actions/download-artifact@v4
       with:
-        name: extension-vsix
+        name: debrief-vsix
         path: .
     
     - name: Setup Fly CLI
