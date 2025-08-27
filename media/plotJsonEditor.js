@@ -2,6 +2,8 @@
     const vscode = acquireVsCodeApi();
     let map;
     let geoJsonLayer;
+    let currentData;
+    let highlightedLayer;
 
     // Initialize the map
     function initMap() {
@@ -17,6 +19,7 @@
     function updateMap(jsonText) {
         try {
             const data = JSON.parse(jsonText);
+            currentData = data;
             
             // Check if it's a valid GeoJSON FeatureCollection
             if (data.type === 'FeatureCollection' && Array.isArray(data.features)) {
@@ -47,12 +50,63 @@
                 if (geoJsonLayer) {
                     map.removeLayer(geoJsonLayer);
                 }
+                currentData = null;
             }
         } catch (error) {            
             // Clear map
             if (geoJsonLayer) {
                 map.removeLayer(geoJsonLayer);
             }
+            currentData = null;
+        }
+    }
+
+    // Highlight a specific feature by index
+    function highlightFeature(featureIndex) {
+        // Remove previous highlight
+        if (highlightedLayer) {
+            map.removeLayer(highlightedLayer);
+            highlightedLayer = null;
+        }
+
+        if (!currentData || !currentData.features || featureIndex >= currentData.features.length) {
+            return;
+        }
+
+        const feature = currentData.features[featureIndex];
+        if (!feature) {
+            return;
+        }
+
+        console.log('Highlighting feature:', featureIndex, feature.properties?.name);
+
+        // Create a highlighted version of the feature
+        highlightedLayer = L.geoJSON(feature, {
+            pointToLayer: function (feature, latlng) {
+                return L.circleMarker(latlng, {
+                    radius: 15,
+                    fillColor: '#ff7f00',
+                    color: '#ff4500',
+                    weight: 4,
+                    opacity: 0.9,
+                    fillOpacity: 0.6
+                });
+            },
+            style: function(feature) {
+                return {
+                    color: '#ff4500',
+                    weight: 4,
+                    opacity: 0.9,
+                    fillColor: '#ff7f00',
+                    fillOpacity: 0.6
+                };
+            }
+        }).addTo(map);
+
+        // Pan to the highlighted feature
+        if (feature.geometry.type === 'Point') {
+            const coords = feature.geometry.coordinates;
+            map.panTo([coords[1], coords[0]]);
         }
     }
 
@@ -62,6 +116,9 @@
         switch (message.type) {
             case 'update':
                 updateMap(message.text);
+                break;
+            case 'highlightFeature':
+                highlightFeature(message.featureIndex);
                 break;
         }
     });

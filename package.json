@@ -19,10 +19,22 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "languages": [
+      {
+        "id": "plot-json",
+        "aliases": ["Plot JSON", "plot-json"],
+        "extensions": [".plot.json"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
     "commands": [
       {
         "command": "codespace-extension.helloWorld",
         "title": "Hello World"
+      },
+      {
+        "command": "customOutline.selectFeature",
+        "title": "Select Feature"
       }
     ],
     "views": {
@@ -30,6 +42,11 @@
         {
           "id": "codespace-extension.helloView",
           "name": "Hello World",
+          "when": "true"
+        },
+        {
+          "id": "customGeoJsonOutline",
+          "name": "GeoJSON Features",
           "when": "true"
         }
       ]
