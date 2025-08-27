@@ -1,5 +1,5 @@
 {
-  "postAttachCommand": "../.devcontainer/install-extension.sh",
+  "postAttachCommand": ".devcontainer/install-extension.sh",
   "customizations": {
     "vscode": {
       "settings": {

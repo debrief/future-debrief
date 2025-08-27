@@ -1,0 +1,40 @@
+# Fly.io configuration for Debrief Extension PR Previews
+# This template supports dynamic app creation with pattern: pr-<pr_number>-futuredebrief
+# Each deployment will be accessible at: https://pr-<pr_number>-futuredebrief.fly.dev
+
+app = "pr-template-futuredebrief"
+primary_region = "dfw"
+
+[build]
+  # Use the existing Dockerfile for code-server with Debrief extension
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+
+[[vm]]
+  # Optimized resource allocation for code-server workloads
+  # Cost-effective while ensuring good performance
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 1024
+
+[env]
+  # Environment variables for code-server operation
+  PASSWORD = ""
+  SUDO_PASSWORD = ""
+  # Disable telemetry for privacy and performance
+  DISABLE_TELEMETRY = "true"
+  # Set proper timezone
+  TZ = "UTC"
+
+# No persistent storage - stateless operation as required
+# All data is ephemeral and reset with each deployment
+
+[processes]
+  app = "code-server --bind-addr 0.0.0.0:8080 --auth none --disable-telemetry /home/coder/workspace"

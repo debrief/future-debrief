@@ -31,7 +31,13 @@
       "Bash(nvm install:*)",
       "Bash(nvm use:*)",
       "Bash(nvm:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(docker stop:*)",
+      "Bash(docker rm:*)",
+      "Bash(flyctl apps:*)",
+      "Bash(flyctl status:*)",
+      "Bash(flyctl:*)"
     ]
   },
   "outputStyle": "default"

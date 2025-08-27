@@ -1,17 +1,35 @@
-name: Build Extension
+name: Build Extension (Reusable)
 
 on:
-  push:
-    branches: [ main, test-dev ]
-  pull_request:
-    branches: [ main ]
+  workflow_call:
+    inputs:
+      ref:
+        description: 'Git ref to checkout'
+        required: false
+        type: string
+        default: ''
+      artifact_retention_days:
+        description: 'Days to retain the artifact'
+        required: false
+        type: number
+        default: 7
+    outputs:
+      artifact_name:
+        description: 'Name of the uploaded artifact'
+        value: ${{ jobs.build.outputs.artifact_name }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      artifact_name: debrief-vsix
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ inputs.ref }}
+        fetch-depth: 1
     
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -25,63 +43,32 @@ jobs:
     - name: Compile TypeScript
       run: npm run compile
     
+    - name: Install vsce
+      run: |
+        # Install vsce with fallback to local installation
+        npm install -g @vscode/vsce || npm install @vscode/vsce
+    
     - name: Package extension
-      run: npx @vscode/vsce package --out extension.vsix
+      run: |
+        # Package the extension
+        if which vsce > /dev/null 2>&1; then
+          vsce package --out extension.vsix
+        else
+          npx vsce package --out extension.vsix
+        fi
+        
+        # Verify package was created
+        if [ -f extension.vsix ]; then
+          echo "✅ Extension packaged successfully"
+          ls -la *.vsix
+        else
+          echo "❌ Extension packaging failed"
+          exit 1
+        fi
     
     - name: Upload extension artifact
       uses: actions/upload-artifact@v4
       with:
-        name: extension-vsix
-        path: "extension.vsix"
-        retention-days: 30
-    
-    - name: Post codespace link comment
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const repoUrl = context.repo.owner + '/' + context.repo.repo;
-          const branch = context.payload.pull_request.head.ref;
-          const codespaceUrl = `https://codespaces.new/${repoUrl}?quickstart=1&ref=${branch}`;
-          
-          // Delete existing extension build comments
-          const comments = await github.rest.issues.listComments({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-          });
-          
-          const botComments = comments.data.filter(comment => 
-            comment.user.login === 'github-actions[bot]' && 
-            (comment.body.includes('Extension built successfully!') || 
-             comment.body.includes('Open in GitHub Codespaces') ||
-             comment.body.includes('codespace'))
-          );
-          
-          for (const comment of botComments) {
-            await github.rest.issues.deleteComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              comment_id: comment.id
-            });
-            console.log(`Deleted comment ${comment.id}`);
-          }
-          
-          // Post new comment
-          const comment = `🚀 **Extension built successfully!**
-          
-          The VS Code extension has been packaged and is ready for testing.
-          
-          **Try it in a codespace:**
-          [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](${codespaceUrl})
-          
-          The extension will be automatically installed when the codespace starts up.`;
-          
-          const newComment = await github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: comment
-          });
-          
-          console.log(`Posted new comment ${newComment.data.id}`);
+        name: debrief-vsix
+        path: extension.vsix
+        retention-days: ${{ inputs.artifact_retention_days }}

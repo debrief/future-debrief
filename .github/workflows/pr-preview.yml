@@ -1,0 +1,222 @@
+name: PR Preview Deployment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+concurrency:
+  group: pr-preview-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  build-extension:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    uses: ./.github/workflows/build-extension.yml
+    with:
+      ref: ${{ github.event.pull_request.head.sha }}
+      artifact_retention_days: 1
+  
+  deploy-preview:
+    needs: build-extension
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    
+    steps:
+    - name: Checkout PR branch
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 1
+    
+    - name: Download extension artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: debrief-vsix
+        path: .
+    
+    - name: Setup Fly CLI
+      uses: superfly/flyctl-actions/setup-flyctl@master
+      
+    - name: Verify Fly CLI installation
+      run: |
+        echo "PATH: $PATH"
+        which flyctl
+        flyctl version
+    
+    - name: Generate app name and config
+      id: config
+      run: |
+        PR_NUMBER="${{ github.event.number }}"
+        APP_NAME="pr-${PR_NUMBER}-futuredebrief"
+        PREVIEW_URL="https://${APP_NAME}.fly.dev"
+        
+        echo "pr_number=${PR_NUMBER}" >> $GITHUB_OUTPUT
+        echo "app_name=${APP_NAME}" >> $GITHUB_OUTPUT
+        echo "preview_url=${PREVIEW_URL}" >> $GITHUB_OUTPUT
+        
+        # Create fly.toml from template
+        sed "s/PR_APP_NAME_PLACEHOLDER/${APP_NAME}/g; s/PR_NUMBER_PLACEHOLDER/${PR_NUMBER}/g" \
+          fly-template.toml > fly.toml
+        
+        echo "Generated fly.toml for app: ${APP_NAME}"
+        cat fly.toml
+    
+    - name: Deploy to Fly.io
+      id: deploy
+      env:
+        FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      run: |
+        APP_NAME="${{ steps.config.outputs.app_name }}"
+        
+        # Check if app exists, create if it doesn't
+        if ! flyctl apps list | grep -q "^${APP_NAME}"; then
+          echo "Creating new app: ${APP_NAME}"
+          flyctl apps create "${APP_NAME}" --org personal
+        else
+          echo "App ${APP_NAME} already exists, updating..."
+        fi
+        
+        # Deploy the application
+        echo "Deploying to ${APP_NAME}..."
+        echo "Starting deployment at $(date)"
+        
+        # Use timeout command to prevent hanging indefinitely  
+        timeout 600 flyctl deploy --app "${APP_NAME}" --dockerfile ./Dockerfile \
+          --build-arg GITHUB_SHA="${{ github.sha }}" \
+          --build-arg PR_NUMBER="${{ steps.config.outputs.pr_number }}" \
+          --wait-timeout 300 \
+          --strategy immediate \
+          --verbose || {
+            echo "Deployment timed out or failed after 10 minutes"
+            echo "Checking app status..."
+            flyctl status --app "${APP_NAME}" || true
+            exit 1
+          }
+        
+        echo "Deployment completed at $(date)"
+        
+        # Check immediate deployment status
+        echo "Checking deployment status..."
+        flyctl status --app "${APP_NAME}"
+        
+        # Check machine logs for startup issues
+        echo "Checking recent logs for startup issues..."
+        flyctl logs --app "${APP_NAME}" --limit 50 || true
+        
+        # Give the app time to fully start up
+        echo "Waiting for app to fully initialize..."
+        sleep 45
+        
+        # Verify the app is responding
+        PREVIEW_URL="https://${APP_NAME}.fly.dev"
+        echo "Testing app availability at ${PREVIEW_URL}..."
+        
+        # Try to reach the app with a longer timeout for code-server
+        if timeout 120 bash -c "until curl -f -s -m 30 ${PREVIEW_URL} > /dev/null; do echo 'Waiting for response...'; sleep 10; done"; then
+          echo "✅ App is responding at ${PREVIEW_URL}"
+          echo "deployment_status=success" >> $GITHUB_OUTPUT
+        else
+          echo "⚠️  App deployed but not responding at ${PREVIEW_URL}"
+          echo "Checking final app status and logs..."
+          flyctl status --app "${APP_NAME}" || true
+          flyctl logs --app "${APP_NAME}" --limit 20 || true
+          echo "deployment_status=partial" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Post PR comment with preview link
+      if: steps.deploy.outputs.deployment_status == 'success' || steps.deploy.outputs.deployment_status == 'partial'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const prNumber = ${{ github.event.number }};
+          const previewUrl = "${{ steps.config.outputs.preview_url }}";
+          const appName = "${{ steps.config.outputs.app_name }}";
+          
+          const commentBody = `## 🚀 PR Preview Deployed
+          
+          Your PR preview has been successfully deployed to Fly.io!
+          
+          **🌐 Preview URL:** ${previewUrl}
+          
+          **📋 Details:**
+          - **App Name:** \`${appName}\`
+          - **Build:** \`${{ github.sha }}\`
+          - **PR:** #${prNumber}
+          
+          **🔧 What's included:**
+          - VS Code (code-server) environment
+          - Debrief extension pre-installed
+          - Sample workspace with test files
+          
+          **💡 How to use:**
+          1. Click the preview URL above
+          2. Open any \`.plot.json\` file to test the custom editor
+          3. Use Ctrl+Shift+P to access extension commands
+          4. Check the Explorer panel for the "Hello World" view
+          
+          ---
+          *This preview will be automatically updated when you push new commits to this PR.*`;
+          
+          // Find existing preview comments
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: prNumber,
+          });
+          
+          const existingComment = comments.find(comment => 
+            comment.user.login === 'github-actions[bot]' && 
+            comment.body.includes('🚀 PR Preview Deployed')
+          );
+          
+          if (existingComment) {
+            // Update existing comment
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existingComment.id,
+              body: commentBody
+            });
+            console.log('Updated existing preview comment');
+          } else {
+            // Create new comment
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: commentBody
+            });
+            console.log('Created new preview comment');
+          }
+    
+    - name: Handle deployment failure
+      if: failure()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const prNumber = ${{ github.event.number }};
+          
+          const errorComment = `## ❌ PR Preview Deployment Failed
+          
+          The PR preview deployment encountered an error during the build or deployment process.
+          
+          **🔧 Troubleshooting:**
+          - Check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed error information
+          - Ensure the extension builds successfully locally
+          - Verify that all required secrets are configured
+          
+          **📋 Details:**
+          - **PR:** #${prNumber}
+          - **Build:** \`${{ github.sha }}\`
+          - **Run ID:** \`${{ github.run_id }}\`
+          
+          ---
+          *The deployment will retry automatically when you push new commits to this PR.*`;
+          
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: prNumber,
+            body: errorComment
+          });

@@ -11,7 +11,7 @@ class HelloWorldProvider implements vscode.TreeDataProvider<string> {
 
     getChildren(element?: string): Thenable<string[]> {
         if (!element) {
-            return Promise.resolve(['Hello World from Custom View!', 'Extension is working properly']);
+            return Promise.resolve(['Hello World from Debrief\'s Custom View!', 'Extension is working properly']);
         }
         return Promise.resolve([]);
     }
