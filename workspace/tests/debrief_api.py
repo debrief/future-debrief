@@ -90,7 +90,13 @@ class DebriefWebSocketClient:
             
             # Receive response
             response = self.ws.recv()
-            return response
+            # Ensure we return a string
+            if isinstance(response, str):
+                return response
+            elif isinstance(response, bytes):
+                return response.decode('utf-8')
+            else:
+                return str(response)
             
         except Exception as e:
             self.logger.error(f"Error sending message: {e}")
@@ -163,42 +169,97 @@ def notify(message: str) -> None:
     _client.send_json_message(command)
 
 
-# Future API functions (placeholders for now)
+# Complete API functions
 def get_feature_collection(filename: str) -> Dict[str, Any]:
     """Get the feature collection for a plot file."""
-    raise NotImplementedError("get_feature_collection not yet implemented")
+    command = {
+        "command": "get_feature_collection",
+        "params": {
+            "filename": filename
+        }
+    }
+    response = _client.send_json_message(command)
+    return response.get('result', {})
 
 
 def set_feature_collection(filename: str, fc: Dict[str, Any]) -> None:
     """Set the feature collection for a plot file."""
-    raise NotImplementedError("set_feature_collection not yet implemented")
+    command = {
+        "command": "set_feature_collection",
+        "params": {
+            "filename": filename,
+            "data": fc
+        }
+    }
+    _client.send_json_message(command)
 
 
 def get_selected_features(filename: str) -> List[Dict[str, Any]]:
     """Get the currently selected features for a plot file."""
-    raise NotImplementedError("get_selected_features not yet implemented")
+    command = {
+        "command": "get_selected_features",
+        "params": {
+            "filename": filename
+        }
+    }
+    response = _client.send_json_message(command)
+    return response.get('result', [])
 
 
 def set_selected_features(filename: str, ids: List[str]) -> None:
     """Set the selected features for a plot file."""
-    raise NotImplementedError("set_selected_features not yet implemented")
+    command = {
+        "command": "set_selected_features",
+        "params": {
+            "filename": filename,
+            "ids": ids
+        }
+    }
+    _client.send_json_message(command)
 
 
 def update_features(filename: str, features: List[Dict[str, Any]]) -> None:
     """Update features in a plot file."""
-    raise NotImplementedError("update_features not yet implemented")
+    command = {
+        "command": "update_features",
+        "params": {
+            "filename": filename,
+            "features": features
+        }
+    }
+    _client.send_json_message(command)
 
 
 def add_features(filename: str, features: List[Dict[str, Any]]) -> None:
     """Add new features to a plot file."""
-    raise NotImplementedError("add_features not yet implemented")
+    command = {
+        "command": "add_features",
+        "params": {
+            "filename": filename,
+            "features": features
+        }
+    }
+    _client.send_json_message(command)
 
 
 def delete_features(filename: str, ids: List[str]) -> None:
     """Delete features from a plot file."""
-    raise NotImplementedError("delete_features not yet implemented")
+    command = {
+        "command": "delete_features",
+        "params": {
+            "filename": filename,
+            "ids": ids
+        }
+    }
+    _client.send_json_message(command)
 
 
 def zoom_to_selection(filename: str) -> None:
     """Zoom to the selected features in a plot file."""
-    raise NotImplementedError("zoom_to_selection not yet implemented")
+    command = {
+        "command": "zoom_to_selection",
+        "params": {
+            "filename": filename
+        }
+    }
+    _client.send_json_message(command)

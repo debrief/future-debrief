@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import * as WebSocket from 'ws';
 import * as http from 'http';
+import * as fs from 'fs';
+import * as path from 'path';
+import { PlotJsonEditorProvider } from './plotJsonEditor';
 
 interface DebriefMessage {
     command: string;
@@ -163,6 +166,30 @@ export class DebriefWebSocketServer {
             switch (message.command) {
                 case 'notify':
                     return await this.handleNotifyCommand(message.params);
+                
+                case 'get_feature_collection':
+                    return await this.handleGetFeatureCollectionCommand(message.params);
+                
+                case 'set_feature_collection':
+                    return await this.handleSetFeatureCollectionCommand(message.params);
+                
+                case 'get_selected_features':
+                    return await this.handleGetSelectedFeaturesCommand(message.params);
+                
+                case 'set_selected_features':
+                    return await this.handleSetSelectedFeaturesCommand(message.params);
+                
+                case 'update_features':
+                    return await this.handleUpdateFeaturesCommand(message.params);
+                
+                case 'add_features':
+                    return await this.handleAddFeaturesCommand(message.params);
+                
+                case 'delete_features':
+                    return await this.handleDeleteFeaturesCommand(message.params);
+                
+                case 'zoom_to_selection':
+                    return await this.handleZoomToSelectionCommand(message.params);
                     
                 default:
                     return {
@@ -209,5 +236,429 @@ export class DebriefWebSocketServer {
                 }
             };
         }
+    }
+
+    private async handleGetFeatureCollectionCommand(params: any): Promise<DebriefResponse> {
+        if (!params || typeof params.filename !== 'string') {
+            return {
+                error: {
+                    message: 'get_feature_collection command requires a "filename" parameter of type string',
+                    code: 400
+                }
+            };
+        }
+
+        try {
+            const document = await this.findOpenDocument(params.filename);
+            if (!document) {
+                return {
+                    error: {
+                        message: `File not found or not open: ${params.filename}`,
+                        code: 404
+                    }
+                };
+            }
+
+            const featureCollection = this.parseGeoJsonDocument(document);
+            return { result: featureCollection };
+        } catch (error) {
+            console.error('Error getting feature collection:', error);
+            return {
+                error: {
+                    message: error instanceof Error ? error.message : 'Failed to get feature collection',
+                    code: 500
+                }
+            };
+        }
+    }
+
+    private async handleSetFeatureCollectionCommand(params: any): Promise<DebriefResponse> {
+        if (!params || typeof params.filename !== 'string' || typeof params.data !== 'object') {
+            return {
+                error: {
+                    message: 'set_feature_collection command requires "filename" (string) and "data" (object) parameters',
+                    code: 400
+                }
+            };
+        }
+
+        try {
+            // Validate the feature collection structure
+            if (!this.isValidFeatureCollection(params.data)) {
+                return {
+                    error: {
+                        message: 'Invalid FeatureCollection data structure',
+                        code: 400
+                    }
+                };
+            }
+
+            const document = await this.findOpenDocument(params.filename);
+            if (!document) {
+                return {
+                    error: {
+                        message: `File not found or not open: ${params.filename}`,
+                        code: 404
+                    }
+                };
+            }
+
+            await this.updateDocument(document, params.data);
+            return { result: null };
+        } catch (error) {
+            console.error('Error setting feature collection:', error);
+            return {
+                error: {
+                    message: error instanceof Error ? error.message : 'Failed to set feature collection',
+                    code: 500
+                }
+            };
+        }
+    }
+
+    private async handleGetSelectedFeaturesCommand(params: any): Promise<DebriefResponse> {
+        if (!params || typeof params.filename !== 'string') {
+            return {
+                error: {
+                    message: 'get_selected_features command requires a "filename" parameter of type string',
+                    code: 400
+                }
+            };
+        }
+
+        try {
+            const document = await this.findOpenDocument(params.filename);
+            if (!document) {
+                return {
+                    error: {
+                        message: `File not found or not open: ${params.filename}`,
+                        code: 404
+                    }
+                };
+            }
+
+            // For now, return empty array since selection state is managed in webview
+            // TODO: Implement actual selection tracking
+            return { result: [] };
+        } catch (error) {
+            console.error('Error getting selected features:', error);
+            return {
+                error: {
+                    message: error instanceof Error ? error.message : 'Failed to get selected features',
+                    code: 500
+                }
+            };
+        }
+    }
+
+    private async handleSetSelectedFeaturesCommand(params: any): Promise<DebriefResponse> {
+        if (!params || typeof params.filename !== 'string' || !Array.isArray(params.ids)) {
+            return {
+                error: {
+                    message: 'set_selected_features command requires "filename" (string) and "ids" (array) parameters',
+                    code: 400
+                }
+            };
+        }
+
+        try {
+            const document = await this.findOpenDocument(params.filename);
+            if (!document) {
+                return {
+                    error: {
+                        message: `File not found or not open: ${params.filename}`,
+                        code: 404
+                    }
+                };
+            }
+
+            // Send selection message to webview
+            if (params.ids.length > 0) {
+                // For now, highlight the first selected feature
+                // TODO: Implement proper multi-selection
+                const featureCollection = this.parseGeoJsonDocument(document);
+                const featureIndex = this.findFeatureIndexById(featureCollection, params.ids[0]);
+                if (featureIndex >= 0) {
+                    PlotJsonEditorProvider.sendMessageToActiveWebview({
+                        type: 'highlightFeature',
+                        featureIndex: featureIndex
+                    });
+                }
+            }
+
+            return { result: null };
+        } catch (error) {
+            console.error('Error setting selected features:', error);
+            return {
+                error: {
+                    message: error instanceof Error ? error.message : 'Failed to set selected features',
+                    code: 500
+                }
+            };
+        }
+    }
+
+    private async handleUpdateFeaturesCommand(params: any): Promise<DebriefResponse> {
+        if (!params || typeof params.filename !== 'string' || !Array.isArray(params.features)) {
+            return {
+                error: {
+                    message: 'update_features command requires "filename" (string) and "features" (array) parameters',
+                    code: 400
+                }
+            };
+        }
+
+        try {
+            const document = await this.findOpenDocument(params.filename);
+            if (!document) {
+                return {
+                    error: {
+                        message: `File not found or not open: ${params.filename}`,
+                        code: 404
+                    }
+                };
+            }
+
+            const featureCollection = this.parseGeoJsonDocument(document);
+            
+            // Update features by ID
+            for (const updatedFeature of params.features) {
+                if (!updatedFeature.properties || !updatedFeature.properties.id) {
+                    continue; // Skip features without ID
+                }
+                
+                const index = featureCollection.features.findIndex((f: any) => 
+                    f.properties && f.properties.id === updatedFeature.properties.id
+                );
+                
+                if (index >= 0) {
+                    featureCollection.features[index] = updatedFeature;
+                }
+            }
+
+            await this.updateDocument(document, featureCollection);
+            return { result: null };
+        } catch (error) {
+            console.error('Error updating features:', error);
+            return {
+                error: {
+                    message: error instanceof Error ? error.message : 'Failed to update features',
+                    code: 500
+                }
+            };
+        }
+    }
+
+    private async handleAddFeaturesCommand(params: any): Promise<DebriefResponse> {
+        if (!params || typeof params.filename !== 'string' || !Array.isArray(params.features)) {
+            return {
+                error: {
+                    message: 'add_features command requires "filename" (string) and "features" (array) parameters',
+                    code: 400
+                }
+            };
+        }
+
+        try {
+            const document = await this.findOpenDocument(params.filename);
+            if (!document) {
+                return {
+                    error: {
+                        message: `File not found or not open: ${params.filename}`,
+                        code: 404
+                    }
+                };
+            }
+
+            const featureCollection = this.parseGeoJsonDocument(document);
+            
+            // Add features with auto-generated IDs
+            for (const feature of params.features) {
+                if (!feature.properties) {
+                    feature.properties = {};
+                }
+                
+                // Generate ID if not present
+                if (!feature.properties.id) {
+                    feature.properties.id = this.generateFeatureId();
+                }
+                
+                featureCollection.features.push(feature);
+            }
+
+            await this.updateDocument(document, featureCollection);
+            return { result: null };
+        } catch (error) {
+            console.error('Error adding features:', error);
+            return {
+                error: {
+                    message: error instanceof Error ? error.message : 'Failed to add features',
+                    code: 500
+                }
+            };
+        }
+    }
+
+    private async handleDeleteFeaturesCommand(params: any): Promise<DebriefResponse> {
+        if (!params || typeof params.filename !== 'string' || !Array.isArray(params.ids)) {
+            return {
+                error: {
+                    message: 'delete_features command requires "filename" (string) and "ids" (array) parameters',
+                    code: 400
+                }
+            };
+        }
+
+        try {
+            const document = await this.findOpenDocument(params.filename);
+            if (!document) {
+                return {
+                    error: {
+                        message: `File not found or not open: ${params.filename}`,
+                        code: 404
+                    }
+                };
+            }
+
+            const featureCollection = this.parseGeoJsonDocument(document);
+            
+            // Delete features by ID
+            featureCollection.features = featureCollection.features.filter((feature: any) =>
+                !feature.properties || !params.ids.includes(feature.properties.id)
+            );
+
+            await this.updateDocument(document, featureCollection);
+            return { result: null };
+        } catch (error) {
+            console.error('Error deleting features:', error);
+            return {
+                error: {
+                    message: error instanceof Error ? error.message : 'Failed to delete features',
+                    code: 500
+                }
+            };
+        }
+    }
+
+    private async handleZoomToSelectionCommand(params: any): Promise<DebriefResponse> {
+        if (!params || typeof params.filename !== 'string') {
+            return {
+                error: {
+                    message: 'zoom_to_selection command requires a "filename" parameter of type string',
+                    code: 400
+                }
+            };
+        }
+
+        try {
+            const document = await this.findOpenDocument(params.filename);
+            if (!document) {
+                return {
+                    error: {
+                        message: `File not found or not open: ${params.filename}`,
+                        code: 404
+                    }
+                };
+            }
+
+            // Send zoom message to webview
+            PlotJsonEditorProvider.sendMessageToActiveWebview({
+                type: 'zoomToSelection'
+            });
+
+            return { result: null };
+        } catch (error) {
+            console.error('Error zooming to selection:', error);
+            return {
+                error: {
+                    message: error instanceof Error ? error.message : 'Failed to zoom to selection',
+                    code: 500
+                }
+            };
+        }
+    }
+
+    // Helper methods
+
+    private async findOpenDocument(filename: string): Promise<vscode.TextDocument | null> {
+        // First check if it's just a filename and look in workspace
+        if (!path.isAbsolute(filename)) {
+            const workspaceFolders = vscode.workspace.workspaceFolders;
+            if (workspaceFolders && workspaceFolders.length > 0) {
+                const fullPath = path.join(workspaceFolders[0].uri.fsPath, filename);
+                
+                // Check if file exists
+                try {
+                    await fs.promises.access(fullPath);
+                    // Try to open the document
+                    const uri = vscode.Uri.file(fullPath);
+                    return await vscode.workspace.openTextDocument(uri);
+                } catch {
+                    // File doesn't exist or can't be opened
+                }
+            }
+        }
+
+        // Check if already open in editor
+        const openDocs = vscode.workspace.textDocuments;
+        for (const doc of openDocs) {
+            if (doc.fileName.endsWith(filename) || doc.fileName === filename) {
+                return doc;
+            }
+        }
+
+        return null;
+    }
+
+    private parseGeoJsonDocument(document: vscode.TextDocument): any {
+        const text = document.getText();
+        if (text.trim().length === 0) {
+            return {
+                type: "FeatureCollection",
+                features: []
+            };
+        }
+
+        try {
+            const parsed = JSON.parse(text);
+            if (!this.isValidFeatureCollection(parsed)) {
+                throw new Error('Document does not contain a valid GeoJSON FeatureCollection');
+            }
+            return parsed;
+        } catch (error) {
+            throw new Error(`Failed to parse GeoJSON: ${error instanceof Error ? error.message : 'Invalid JSON'}`);
+        }
+    }
+
+    private isValidFeatureCollection(data: any): boolean {
+        return data && 
+               typeof data === 'object' &&
+               data.type === 'FeatureCollection' &&
+               Array.isArray(data.features);
+    }
+
+    private async updateDocument(document: vscode.TextDocument, data: any): Promise<void> {
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(
+            document.uri,
+            new vscode.Range(0, 0, document.lineCount, 0),
+            JSON.stringify(data, null, 2)
+        );
+
+        await vscode.workspace.applyEdit(edit);
+    }
+
+    private findFeatureIndexById(featureCollection: any, id: string): number {
+        if (!featureCollection.features) {
+            return -1;
+        }
+        
+        return featureCollection.features.findIndex((feature: any) =>
+            feature.properties && feature.properties.id === id
+        );
+    }
+
+    private generateFeatureId(): string {
+        return 'feature_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
     }
 }

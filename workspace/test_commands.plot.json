@@ -1,0 +1,33 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "test_feature_1",
+        "name": "Test Point 1"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -74.006,
+          40.7128
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "test_feature_2",
+        "name": "Test Point 2"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -73.935,
+          40.73
+        ]
+      }
+    }
+  ]
+}

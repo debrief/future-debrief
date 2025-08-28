@@ -120,8 +120,22 @@
             case 'highlightFeature':
                 highlightFeature(message.featureIndex);
                 break;
+            case 'zoomToSelection':
+                zoomToSelection();
+                break;
         }
     });
+
+    // Zoom to current selection/highlight
+    function zoomToSelection() {
+        if (highlightedLayer) {
+            // If there's a highlighted feature, zoom to it
+            map.fitBounds(highlightedLayer.getBounds());
+        } else if (geoJsonLayer) {
+            // Otherwise zoom to all features
+            map.fitBounds(geoJsonLayer.getBounds());
+        }
+    }
 
     // Handle add button click
     document.addEventListener('DOMContentLoaded', () => {
