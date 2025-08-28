@@ -4,6 +4,8 @@
     let geoJsonLayer;
     let currentData;
     let highlightedLayer;
+    let selectedFeatures = new Set(); // Track selected feature indices
+    let featureToLayerMap = new Map(); // Map feature indices to their layers
 
     // Initialize the map
     function initMap() {
@@ -23,20 +25,58 @@
             
             // Check if it's a valid GeoJSON FeatureCollection
             if (data.type === 'FeatureCollection' && Array.isArray(data.features)) {
+                // Store current selection IDs before clearing
+                const previousSelectedIds = Array.from(selectedFeatures).map(index => {
+                    if (currentData && currentData.features && currentData.features[index]) {
+                        const feature = currentData.features[index];
+                        return feature.properties && feature.properties.id ? feature.properties.id : null;
+                    }
+                    return null;
+                }).filter(id => id !== null);
+                
+                console.log('🔄 Updating map, preserving selection for IDs:', previousSelectedIds);
+                
+                // Clear all existing selection visuals
+                clearAllSelectionVisuals();
+                
                 // Remove existing layer
                 if (geoJsonLayer) {
                     map.removeLayer(geoJsonLayer);
                 }
                 
+                // Clear selection tracking
+                selectedFeatures.clear();
+                featureToLayerMap.clear();
+                
                 // Add new GeoJSON layer
                 geoJsonLayer = L.geoJSON(data, {
-                    onEachFeature: function (feature, layer) {
+                    onEachFeature: function (feature, layer, featureIndex) {
+                        // Store layer reference for selection management
+                        const index = data.features.indexOf(feature);
+                        featureToLayerMap.set(index, layer);
+                        
+                        // Bind popup with feature info
                         if (feature.properties && feature.properties.name) {
                             layer.bindPopup(feature.properties.name);
                         }
+                        
+                        // Add click handler for selection
+                        layer.on('click', function(e) {
+                            e.originalEvent.preventDefault(); // Prevent map click
+                            toggleFeatureSelection(index);
+                        });
                     },
                     pointToLayer: function (feature, latlng) {
                         return L.marker(latlng);
+                    },
+                    style: function(feature) {
+                        // Default style for non-point features
+                        return {
+                            color: '#3388ff',
+                            weight: 3,
+                            opacity: 0.8,
+                            fillOpacity: 0.2
+                        };
                     }
                 }).addTo(map);
                 
@@ -44,16 +84,24 @@
                 if (data.features.length > 0) {
                     map.fitBounds(geoJsonLayer.getBounds());
                 }
+                
+                // Restore previous selection if any features had IDs that match
+                if (previousSelectedIds.length > 0) {
+                    console.log('🔄 Restoring selection for IDs:', previousSelectedIds);
+                    setSelectionByIds(previousSelectedIds);
+                }
                
             } else {                
-                // Clear map
+                // Clear map and selections
+                clearAllSelectionVisuals();
                 if (geoJsonLayer) {
                     map.removeLayer(geoJsonLayer);
                 }
                 currentData = null;
             }
         } catch (error) {            
-            // Clear map
+            // Clear map and selections
+            clearAllSelectionVisuals();
             if (geoJsonLayer) {
                 map.removeLayer(geoJsonLayer);
             }
@@ -123,6 +171,31 @@
             case 'zoomToSelection':
                 zoomToSelection();
                 break;
+            case 'setSelection':
+                if (message.featureIndices) {
+                    setSelection(message.featureIndices);
+                }
+                break;
+            case 'setSelectionByIds':
+                if (message.featureIds) {
+                    setSelectionByIds(message.featureIds);
+                }
+                break;
+            case 'clearSelection':
+                clearSelection();
+                break;
+            case 'getSelection':
+                // Return current selection
+                vscode.postMessage({
+                    type: 'selectionResponse',
+                    selectedFeatures: getSelectedFeatureData(),
+                    selectedIndices: Array.from(selectedFeatures)
+                });
+                break;
+            case 'refreshSelection':
+                // Refresh selection visual indicators after feature updates
+                refreshSelectionVisuals();
+                break;
         }
     });
 
@@ -131,10 +204,248 @@
         if (highlightedLayer) {
             // If there's a highlighted feature, zoom to it
             map.fitBounds(highlightedLayer.getBounds());
+        } else if (selectedFeatures.size > 0) {
+            // Zoom to selected features
+            zoomToSelectedFeatures();
         } else if (geoJsonLayer) {
             // Otherwise zoom to all features
             map.fitBounds(geoJsonLayer.getBounds());
         }
+    }
+
+    // Toggle selection of a feature
+    function toggleFeatureSelection(featureIndex) {
+        if (!currentData || !currentData.features || featureIndex >= currentData.features.length) {
+            return;
+        }
+
+        const layer = featureToLayerMap.get(featureIndex);
+        if (!layer) {
+            return;
+        }
+
+        if (selectedFeatures.has(featureIndex)) {
+            // Deselect
+            selectedFeatures.delete(featureIndex);
+            updateFeatureStyle(featureIndex, false);
+        } else {
+            // Select
+            selectedFeatures.add(featureIndex);
+            updateFeatureStyle(featureIndex, true);
+        }
+
+        // Notify VS Code of selection change
+        notifySelectionChange();
+        
+        console.log('Selected features:', Array.from(selectedFeatures));
+    }
+
+    // Update feature visual style based on selection state
+    function updateFeatureStyle(featureIndex, isSelected) {
+        const layer = featureToLayerMap.get(featureIndex);
+        const feature = currentData.features[featureIndex];
+        
+        if (!layer || !feature) {
+            return;
+        }
+
+        if (feature.geometry.type === 'Point') {
+            // For points/markers, change the icon or add a selection indicator
+            if (isSelected) {
+                // Create a selection circle around the marker
+                const latlng = layer.getLatLng();
+                const selectionCircle = L.circleMarker(latlng, {
+                    radius: 12,
+                    color: '#ff6b35',
+                    weight: 3,
+                    fillColor: 'transparent',
+                    interactive: false
+                });
+                
+                // Store reference to selection circle
+                layer._selectionCircle = selectionCircle;
+                selectionCircle.addTo(map);
+            } else {
+                // Remove selection circle
+                if (layer._selectionCircle) {
+                    map.removeLayer(layer._selectionCircle);
+                    delete layer._selectionCircle;
+                }
+            }
+        } else {
+            // For other geometry types, change the style
+            const selectedStyle = {
+                color: '#ff6b35',
+                weight: 4,
+                opacity: 1,
+                fillColor: '#ff6b35',
+                fillOpacity: 0.3
+            };
+            
+            const defaultStyle = {
+                color: '#3388ff',
+                weight: 3,
+                opacity: 0.8,
+                fillColor: '#3388ff',
+                fillOpacity: 0.2
+            };
+            
+            layer.setStyle(isSelected ? selectedStyle : defaultStyle);
+        }
+    }
+
+    // Set selection from external source (e.g., Python API)
+    function setSelection(featureIndices) {
+        // Clear current selection
+        clearSelection();
+        
+        // Set new selection
+        featureIndices.forEach(index => {
+            if (index >= 0 && index < currentData.features.length) {
+                selectedFeatures.add(index);
+                updateFeatureStyle(index, true);
+            }
+        });
+        
+        console.log('Selection set to:', featureIndices);
+    }
+
+    // Set selection by feature IDs
+    function setSelectionByIds(featureIds) {
+        if (!currentData || !currentData.features) {
+            return;
+        }
+
+        // Clear current selection
+        clearSelection();
+        
+        // Find indices for the given IDs
+        const indices = [];
+        featureIds.forEach(id => {
+            const index = currentData.features.findIndex(feature => 
+                feature.properties && feature.properties.id === id
+            );
+            if (index >= 0) {
+                indices.push(index);
+            }
+        });
+        
+        // Set selection
+        setSelection(indices);
+        
+        console.log('Selection set by IDs:', featureIds, 'indices:', indices);
+    }
+
+    // Clear all selections
+    function clearSelection() {
+        selectedFeatures.forEach(index => {
+            updateFeatureStyle(index, false);
+        });
+        selectedFeatures.clear();
+    }
+
+    // Clear all selection visuals including orphaned circles
+    function clearAllSelectionVisuals() {
+        console.log('🧹 Clearing all selection visuals...');
+        
+        // Clear tracked selections first
+        selectedFeatures.forEach(index => {
+            updateFeatureStyle(index, false);
+        });
+        selectedFeatures.clear();
+        
+        // Also remove any orphaned selection circles that might be left on the map
+        map.eachLayer(function(layer) {
+            // Remove any circle markers that look like selection indicators
+            if (layer instanceof L.CircleMarker && 
+                layer.options && 
+                layer.options.color === '#ff6b35' && 
+                layer.options.interactive === false) {
+                map.removeLayer(layer);
+                console.log('🗑️ Removed orphaned selection circle');
+            }
+        });
+    }
+
+    // Get currently selected feature data
+    function getSelectedFeatureData() {
+        if (!currentData || !currentData.features) {
+            return [];
+        }
+        
+        return Array.from(selectedFeatures).map(index => currentData.features[index]);
+    }
+
+    // Zoom to selected features
+    function zoomToSelectedFeatures() {
+        if (selectedFeatures.size === 0) {
+            return;
+        }
+
+        const bounds = L.latLngBounds();
+        selectedFeatures.forEach(index => {
+            const layer = featureToLayerMap.get(index);
+            if (layer) {
+                if (layer.getLatLng) {
+                    // Point feature
+                    bounds.extend(layer.getLatLng());
+                } else if (layer.getBounds) {
+                    // Other geometry types
+                    bounds.extend(layer.getBounds());
+                }
+            }
+        });
+
+        if (bounds.isValid()) {
+            map.fitBounds(bounds, { padding: [10, 10] });
+        }
+    }
+
+    // Notify VS Code of selection changes
+    function notifySelectionChange() {
+        const selectedFeatureIds = Array.from(selectedFeatures).map(index => {
+            const feature = currentData.features[index];
+            return feature.properties && feature.properties.id ? feature.properties.id : `index_${index}`;
+        });
+
+        console.log('🔄 Selection changed:');
+        console.log('  Selected indices:', Array.from(selectedFeatures));
+        console.log('  Selected feature IDs:', selectedFeatureIds);
+        console.log('  Features with missing IDs:', Array.from(selectedFeatures).filter(index => {
+            const feature = currentData.features[index];
+            return !feature.properties || !feature.properties.id;
+        }));
+
+        vscode.postMessage({
+            type: 'selectionChanged',
+            selectedFeatureIds: selectedFeatureIds,
+            selectedIndices: Array.from(selectedFeatures)
+        });
+    }
+
+    // Refresh selection visual indicators (removes old selection circles and redraws them)
+    function refreshSelectionVisuals() {
+        console.log('🔄 Refreshing selection visuals...');
+        
+        if (!currentData || selectedFeatures.size === 0) {
+            return;
+        }
+
+        // Store current selection indices
+        const currentSelection = Array.from(selectedFeatures);
+        
+        // Clear all selection visuals
+        clearSelection();
+        
+        // Reapply selection to refresh visual indicators at updated positions
+        currentSelection.forEach(index => {
+            if (index >= 0 && index < currentData.features.length) {
+                selectedFeatures.add(index);
+                updateFeatureStyle(index, true);
+            }
+        });
+        
+        console.log('✅ Selection visuals refreshed for', currentSelection.length, 'features');
     }
 
     // Handle add button click

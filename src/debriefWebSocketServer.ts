@@ -337,9 +337,17 @@ export class DebriefWebSocketServer {
                 };
             }
 
-            // For now, return empty array since selection state is managed in webview
-            // TODO: Implement actual selection tracking
-            return { result: [] };
+            // Get selection from PlotJsonEditorProvider
+            const selectedFeatureIds = PlotJsonEditorProvider.getSelectedFeatures(document.fileName);
+            
+            // Convert IDs to actual feature objects
+            const featureCollection = this.parseGeoJsonDocument(document);
+            const selectedFeatures = featureCollection.features.filter((feature: any) =>
+                feature.properties && feature.properties.id && 
+                selectedFeatureIds.includes(feature.properties.id)
+            );
+
+            return { result: selectedFeatures };
         } catch (error) {
             console.error('Error getting selected features:', error);
             return {
@@ -372,20 +380,9 @@ export class DebriefWebSocketServer {
                 };
             }
 
-            // Send selection message to webview
-            if (params.ids.length > 0) {
-                // For now, highlight the first selected feature
-                // TODO: Implement proper multi-selection
-                const featureCollection = this.parseGeoJsonDocument(document);
-                const featureIndex = this.findFeatureIndexById(featureCollection, params.ids[0]);
-                if (featureIndex >= 0) {
-                    PlotJsonEditorProvider.sendMessageToActiveWebview({
-                        type: 'highlightFeature',
-                        featureIndex: featureIndex
-                    });
-                }
-            }
-
+            // Update selection state in PlotJsonEditorProvider
+            PlotJsonEditorProvider.setSelectedFeatures(document.fileName, params.ids);
+            
             return { result: null };
         } catch (error) {
             console.error('Error setting selected features:', error);
@@ -437,6 +434,10 @@ export class DebriefWebSocketServer {
             }
 
             await this.updateDocument(document, featureCollection);
+            
+            // Refresh webview to update visual selection indicators after feature updates
+            this.refreshWebviewSelection(document.fileName);
+            
             return { result: null };
         } catch (error) {
             console.error('Error updating features:', error);
@@ -487,6 +488,10 @@ export class DebriefWebSocketServer {
             }
 
             await this.updateDocument(document, featureCollection);
+            
+            // Refresh webview to update visual display after adding features
+            this.refreshWebviewSelection(document.fileName);
+            
             return { result: null };
         } catch (error) {
             console.error('Error adding features:', error);
@@ -528,6 +533,10 @@ export class DebriefWebSocketServer {
             );
 
             await this.updateDocument(document, featureCollection);
+            
+            // Refresh webview to update visual display after deleting features
+            this.refreshWebviewSelection(document.fileName);
+            
             return { result: null };
         } catch (error) {
             console.error('Error deleting features:', error);
@@ -660,5 +669,20 @@ export class DebriefWebSocketServer {
 
     private generateFeatureId(): string {
         return 'feature_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
+    }
+
+    private refreshWebviewSelection(filename: string): void {
+        // Get current selection state
+        const selectedFeatureIds = PlotJsonEditorProvider.getSelectedFeatures(filename);
+        
+        if (selectedFeatureIds.length > 0) {
+            // Re-apply selection to refresh visual indicators with updated feature positions
+            PlotJsonEditorProvider.setSelectedFeatures(filename, selectedFeatureIds);
+        }
+        
+        // Also send a general refresh message to update the map display
+        PlotJsonEditorProvider.sendMessageToActiveWebview({
+            type: 'refreshSelection'
+        });
     }
 }
