@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { PlotJsonEditorProvider } from './plotJsonEditor';
 import { CustomOutlineTreeProvider } from './customOutlineTreeProvider';
+import { DebriefWebSocketServer } from './debriefWebSocketServer';
 
 class HelloWorldProvider implements vscode.TreeDataProvider<string> {
     getTreeItem(element: string): vscode.TreeItem {
@@ -18,10 +19,30 @@ class HelloWorldProvider implements vscode.TreeDataProvider<string> {
     }
 }
 
+let webSocketServer: DebriefWebSocketServer | null = null;
+
 export function activate(context: vscode.ExtensionContext) {
     console.log('Codespace Extension is now active!');
     
     vscode.window.showInformationMessage('Codespace Extension has been activated successfully!');
+
+    // Start WebSocket server
+    webSocketServer = new DebriefWebSocketServer();
+    webSocketServer.start().catch(error => {
+        console.error('Failed to start WebSocket server:', error);
+        vscode.window.showErrorMessage('Failed to start Debrief WebSocket Bridge. Some features may not work.');
+    });
+    
+    // Add cleanup to subscriptions
+    context.subscriptions.push({
+        dispose: () => {
+            if (webSocketServer) {
+                webSocketServer.stop().catch(error => {
+                    console.error('Error stopping WebSocket server during cleanup:', error);
+                });
+            }
+        }
+    });
 
     const disposable = vscode.commands.registerCommand('codespace-extension.helloWorld', () => {
         vscode.window.showInformationMessage('Hello World from Codespace Extension!');
@@ -96,4 +117,12 @@ export function activate(context: vscode.ExtensionContext) {
 
 export function deactivate() {
     console.log('Codespace Extension is now deactivated');
+    
+    // Stop WebSocket server
+    if (webSocketServer) {
+        webSocketServer.stop().catch(error => {
+            console.error('Error stopping WebSocket server:', error);
+        });
+        webSocketServer = null;
+    }
 }
