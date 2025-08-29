@@ -38,7 +38,8 @@
       "Bash(flyctl apps:*)",
       "Bash(flyctl status:*)",
       "Bash(flyctl:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(python:*)"
     ]
   },
   "outputStyle": "default"

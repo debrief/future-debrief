@@ -4,7 +4,7 @@ Comprehensive integration test for Debrief WebSocket Bridge
 """
 
 import time
-from debrief_api import connect, send_raw_message, send_json_message, notify, DebriefAPIError
+from debrief_api import debrief, DebriefAPIError
 
 def run_integration_tests():
     """Run comprehensive integration tests."""
@@ -24,7 +24,7 @@ def run_integration_tests():
     # Test 1: Basic Connection
     print("\n1. Testing basic connection...")
     try:
-        connect()
+        debrief.connect()
         print("✓ Connection established successfully")
         test_results["basic_connection"] = True
     except Exception as e:
@@ -33,7 +33,7 @@ def run_integration_tests():
     # Test 2: Raw Messaging (Echo)
     print("\n2. Testing raw message echo...")
     try:
-        response = send_raw_message("Integration test echo")
+        response = debrief.send_raw_message("Integration test echo")
         print(f"✓ Echo response: {response}")
         test_results["raw_messaging"] = True
     except Exception as e:
@@ -44,7 +44,7 @@ def run_integration_tests():
     try:
         # Test a valid notify command to verify JSON protocol works
         test_msg = {"command": "notify", "params": {"message": "JSON protocol test"}}
-        response = send_json_message(test_msg)
+        response = debrief.send_json_message(test_msg)
         print(f"✓ JSON response: {response}")
         test_results["json_protocol"] = True
     except Exception as e:
@@ -53,7 +53,7 @@ def run_integration_tests():
     # Test 4: Notify Command
     print("\n4. Testing notify command...")
     try:
-        notify("Integration Test: WebSocket Bridge is working! 🚀")
+        debrief.notify("Integration Test: WebSocket Bridge is working! 🚀")
         print("✓ Notification sent successfully")
         test_results["notify_command"] = True
     except Exception as e:
@@ -64,18 +64,18 @@ def run_integration_tests():
     try:
         # Test invalid command
         try:
-            send_json_message({"command": "nonexistent"})
+            debrief.send_json_message({"command": "nonexistent"})
         except DebriefAPIError:
             pass  # Expected
         
         # Test malformed notify
         try:
-            send_json_message({"command": "notify", "params": {}})
+            debrief.send_json_message({"command": "notify", "params": {}})
         except DebriefAPIError:
             pass  # Expected
         
         # Test valid notify after errors
-        notify("Error handling test completed successfully")
+        debrief.notify("Error handling test completed successfully")
         print("✓ Error handling working correctly")
         test_results["error_handling"] = True
     except Exception as e:
@@ -85,10 +85,10 @@ def run_integration_tests():
     print("\n6. Testing sequential operations...")
     try:
         operations = [
-            lambda: send_raw_message("Sequential test 1"),
-            lambda: notify("Sequential operation 1"),
-            lambda: notify("Sequential operation 2"),
-            lambda: send_raw_message("Sequential test final")
+            lambda: debrief.send_raw_message("Sequential test 1"),
+            lambda: debrief.notify("Sequential operation 1"),
+            lambda: debrief.notify("Sequential operation 2"),
+            lambda: debrief.send_raw_message("Sequential test final")
         ]
         
         for i, operation in enumerate(operations, 1):
@@ -116,7 +116,7 @@ def run_integration_tests():
     
     if passed_tests == total_tests:
         print("\n🎉 ALL TESTS PASSED! The Debrief WebSocket Bridge is working correctly.")
-        notify("Integration Tests Completed Successfully! ✅")
+        debrief.notify("Integration Tests Completed Successfully! ✅")
     else:
         print(f"\n⚠️  {total_tests - passed_tests} test(s) failed. Please check the implementation.")
     

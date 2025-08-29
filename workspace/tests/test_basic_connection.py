@@ -4,7 +4,7 @@ Basic connection test for Debrief WebSocket Bridge
 """
 
 import time
-from debrief_api import connect, send_raw_message, DebriefAPIError
+from debrief_api import debrief, DebriefAPIError
 
 def test_basic_connection():
     """Test basic connection and echo functionality."""
@@ -13,16 +13,16 @@ def test_basic_connection():
     try:
         # Connect to the server
         print("Connecting to WebSocket server...")
-        connect()
+        debrief.connect()
         print("✓ Connected successfully!")
         
         # Test basic message sending
         print("\nTesting basic message sending...")
-        response = send_raw_message("Hello from Python!")
+        response = debrief.send_raw_message("Hello from Python!")
         print(f"✓ Received response: {response}")
         
         # Test another message
-        response2 = send_raw_message("Test message 2")
+        response2 = debrief.send_raw_message("Test message 2")
         print(f"✓ Received response: {response2}")
         
         print("\n✓ Basic connection test passed!")

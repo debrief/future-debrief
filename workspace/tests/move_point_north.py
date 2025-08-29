@@ -17,10 +17,7 @@ Usage:
 import math
 from typing import List, Dict, Any, Tuple
 
-from debrief_api import (
-    get_selected_features, update_features, set_selected_features,
-    zoom_to_selection, notify, DebriefAPIError
-)
+from debrief_api import debrief, DebriefAPIError
 
 
 def move_point_north(coordinates: List[float], distance_km: float = 100.0) -> List[float]:
@@ -101,11 +98,11 @@ def move_selected_points_north():
     
     try:
         # Get currently selected features
-        notify("Getting selected features...")
-        selected_features = get_selected_features(filename)
+        debrief.notify("Getting selected features...")
+        selected_features = debrief.get_selected_features(filename)
         
         if not selected_features:
-            notify("❌ No features selected. Please select one or more point features in the plot viewer.")
+            debrief.notify("❌ No features selected. Please select one or more point features in the plot viewer.")
             print("No features selected. Please select features in VS Code and try again.")
             return
         
@@ -162,22 +159,22 @@ def move_selected_points_north():
                 print(f"Skipping '{feature_name}' (type: {geometry_type}) - only Point features are supported")
         
         if not points_to_move:
-            notify("❌ No point features found in selection. Please select point features.")
+            debrief.notify("❌ No point features found in selection. Please select point features.")
             print("No point features found in the selection.")
             return
         
         # Update the features in the plot
         print(f"\nUpdating {len(modified_features)} point feature(s) in the plot...")
-        update_features(filename, modified_features)
+        debrief.update_features(filename, modified_features)
         
         # Re-select the moved features to keep them highlighted
         moved_feature_ids = [f.get('properties', {}).get('id') for f in modified_features if f.get('properties', {}).get('id')]
         if moved_feature_ids:
-            set_selected_features(filename, moved_feature_ids)
+            debrief.set_selected_features(filename, moved_feature_ids)
         
         # Success notification
         success_message = f"✅ Moved {len(modified_features)} point feature(s) {distance_km}km North!"
-        notify(success_message)
+        debrief.notify(success_message)
         print(f"\nSuccess! {success_message}")
         
         # Print summary
@@ -193,7 +190,7 @@ def move_selected_points_north():
         if e.code:
             error_msg += f" (Code: {e.code})"
         
-        notify(f"❌ {error_msg}")
+        debrief.notify(f"❌ {error_msg}")
         print(error_msg)
         
         # Provide helpful suggestions based on error code
@@ -204,7 +201,7 @@ def move_selected_points_north():
     
     except Exception as e:
         error_msg = f"Unexpected error: {e}"
-        notify(f"❌ {error_msg}")
+        debrief.notify(f"❌ {error_msg}")
         print(error_msg)
 
 

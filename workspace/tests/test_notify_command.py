@@ -4,7 +4,7 @@ Test the notify command for Debrief WebSocket Bridge
 """
 
 import time
-from debrief_api import notify, DebriefAPIError
+from debrief_api import debrief, DebriefAPIError
 
 def test_notify_command():
     """Test notify functionality."""
@@ -13,19 +13,19 @@ def test_notify_command():
     try:
         # Test basic notification
         print("\nSending notification to VS Code...")
-        notify("Hello from Python! This is a test notification.")
+        debrief.notify("Hello from Python! This is a test notification.")
         print("✓ Notification sent successfully!")
         
         # Test multiple notifications
         print("\nSending multiple notifications...")
         for i in range(3):
-            notify(f"Test notification {i + 1}")
+            debrief.notify(f"Test notification {i + 1}")
             time.sleep(1)  # Small delay between notifications
         print("✓ Multiple notifications sent!")
         
         # Test notification with special characters
         print("\nTesting notification with special characters...")
-        notify("Special chars: àáâãäåæçèéêë 🚀 ✨ 💻")
+        debrief.notify("Special chars: àáâãäåæçèéêë 🚀 ✨ 💻")
         print("✓ Special character notification sent!")
         
         print("\n✓ Notify command test completed!")

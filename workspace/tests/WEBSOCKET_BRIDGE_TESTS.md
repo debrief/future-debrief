@@ -47,17 +47,32 @@ python test_error_handling.py      # Test error scenarios
 - **Error Tests**: Should handle malformed requests gracefully
 - **Integration Test**: Should show a complete test report with all functionality working
 
-## API Usage Example
+## API Usage Examples
 
+### New Object-Based API (Recommended)
 ```python
-from debrief_api import notify, DebriefAPIError
+from debrief_api import debrief, DebriefAPIError
 
 try:
-    notify("Hello from Python!")
+    # Connect and send notification
+    debrief.connect()
+    debrief.notify("Hello from Python!")
+    
+    # Work with plot features
+    features = debrief.get_feature_collection("plot.json")
+    selected = debrief.get_selected_features("plot.json")
+    
+    # Auto-completion shows all available methods!
     print("Notification sent successfully!")
 except DebriefAPIError as e:
     print(f"Error: {e}")
 ```
+
+**Benefits of New API:**
+- **Single import**: `from debrief_api import debrief`
+- **Auto-completion**: Type `debrief.` to see all available methods
+- **Discoverable**: No need to memorize function names
+- **Consistent**: Object-oriented interface
 
 ## Troubleshooting
 

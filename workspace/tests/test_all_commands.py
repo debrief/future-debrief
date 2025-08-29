@@ -5,13 +5,7 @@ Comprehensive test for all Debrief WebSocket Bridge commands
 
 import time
 import os
-from debrief_api import (
-    connect, notify, DebriefAPIError,
-    get_feature_collection, set_feature_collection,
-    get_selected_features, set_selected_features,
-    update_features, add_features, delete_features,
-    zoom_to_selection
-)
+from debrief_api import debrief, DebriefAPIError
 
 def create_test_geojson():
     """Create a test GeoJSON file for testing."""
@@ -76,7 +70,7 @@ def run_all_command_tests():
     # Test 1: Basic Connection
     print("\n1. Testing connection...")
     try:
-        connect()
+        debrief.connect()
         print("✓ Connected to WebSocket bridge")
         test_results["connection"] = True
     except Exception as e:
@@ -86,7 +80,7 @@ def run_all_command_tests():
     # Test 2: Notify Command
     print("\n2. Testing notify command...")
     try:
-        notify("Starting comprehensive command tests...")
+        debrief.notify("Starting comprehensive command tests...")
         print("✓ Notify command working")
         test_results["notify"] = True
     except Exception as e:
@@ -97,7 +91,7 @@ def run_all_command_tests():
     # Test 3: Get Feature Collection
     print("\n3. Testing get_feature_collection...")
     try:
-        fc = get_feature_collection(filename)
+        fc = debrief.get_feature_collection(filename)
         if fc and fc.get('type') == 'FeatureCollection':
             print(f"✓ Retrieved feature collection with {len(fc.get('features', []))} features")
             test_results["get_feature_collection"] = True
@@ -123,10 +117,10 @@ def run_all_command_tests():
             }
         })
         
-        set_feature_collection(filename, modified_data)
+        debrief.set_feature_collection(filename, modified_data)
         
         # Verify the change
-        fc = get_feature_collection(filename)
+        fc = debrief.get_feature_collection(filename)
         if len(fc.get('features', [])) == 3:  # Original 2 + 1 new
             print("✓ set_feature_collection working")
             test_results["set_feature_collection"] = True
@@ -138,7 +132,7 @@ def run_all_command_tests():
     # Test 5: Get Selected Features
     print("\n5. Testing get_selected_features...")
     try:
-        selected = get_selected_features(filename)
+        selected = debrief.get_selected_features(filename)
         print(f"✓ Retrieved {len(selected)} selected features")
         test_results["get_selected_features"] = True
     except Exception as e:
@@ -147,7 +141,7 @@ def run_all_command_tests():
     # Test 6: Set Selected Features
     print("\n6. Testing set_selected_features...")
     try:
-        set_selected_features(filename, ["test_feature_1"])
+        debrief.set_selected_features(filename, ["test_feature_1"])
         print("✓ set_selected_features command sent")
         test_results["set_selected_features"] = True
     except Exception as e:
@@ -169,10 +163,10 @@ def run_all_command_tests():
             }
         ]
         
-        add_features(filename, new_features)
+        debrief.add_features(filename, new_features)
         
         # Verify the addition
-        fc = get_feature_collection(filename)
+        fc = debrief.get_feature_collection(filename)
         if len(fc.get('features', [])) == 4:  # Previous 3 + 1 new
             print("✓ add_features working")
             test_results["add_features"] = True
@@ -185,12 +179,12 @@ def run_all_command_tests():
     print("\n8. Testing update_features...")
     try:
         # Get current features and modify one
-        fc = get_feature_collection(filename)
+        fc = debrief.get_feature_collection(filename)
         if fc.get('features'):
             feature_to_update = fc['features'][0].copy()
             feature_to_update['properties']['name'] = "Updated Feature Name"
             
-            update_features(filename, [feature_to_update])
+            debrief.update_features(filename, [feature_to_update])
             
             # Verify the update
             fc_updated = get_feature_collection(filename)
@@ -209,10 +203,10 @@ def run_all_command_tests():
     print("\n9. Testing delete_features...")
     try:
         # Delete a specific feature by ID
-        delete_features(filename, ["test_feature_2"])
+        debrief.delete_features(filename, ["test_feature_2"])
         
         # Verify the deletion
-        fc = get_feature_collection(filename)
+        fc = debrief.get_feature_collection(filename)
         remaining_ids = [f['properties'].get('id') for f in fc.get('features', []) if f.get('properties', {}).get('id')]
         
         if "test_feature_2" not in remaining_ids:
@@ -226,7 +220,7 @@ def run_all_command_tests():
     # Test 10: Zoom to Selection
     print("\n10. Testing zoom_to_selection...")
     try:
-        zoom_to_selection(filename)
+        debrief.zoom_to_selection(filename)
         print("✓ zoom_to_selection command sent")
         test_results["zoom_to_selection"] = True
     except Exception as e:
@@ -256,7 +250,7 @@ def run_all_command_tests():
     if passed_tests == total_tests:
         print("\n🎉 ALL COMMANDS WORKING! Debrief WebSocket Bridge is fully functional.")
         try:
-            notify("All WebSocket Bridge Commands Tested Successfully! ✅")
+            debrief.notify("All WebSocket Bridge Commands Tested Successfully! ✅")
         except:
             pass
     else:

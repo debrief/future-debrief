@@ -138,128 +138,137 @@ class DebriefWebSocketClient:
         self.connected = False
 
 
-# Global client instance
-_client = DebriefWebSocketClient()
-
-
-# Public API functions
-def connect() -> None:
-    """Connect to the Debrief WebSocket server."""
-    _client.connect()
-
-
-def send_raw_message(message: str) -> str:
-    """Send a raw message to the server."""
-    return _client.send_raw_message(message)
-
-
-def send_json_message(message: Dict[str, Any]) -> Dict[str, Any]:
-    """Send a JSON message to the server."""
-    return _client.send_json_message(message)
-
-
-def notify(message: str) -> None:
-    """Display a notification in VS Code."""
-    command = {
-        "command": "notify",
-        "params": {
-            "message": message
+class DebriefAPI:
+    """
+    Main API class providing discoverable methods for VS Code Debrief extension integration.
+    
+    This class wraps the WebSocket client to provide a clean, discoverable API interface
+    that enables IDE auto-completion and better developer experience.
+    
+    Usage:
+        from debrief_api import debrief
+        
+        # Connect and send notification
+        debrief.connect()
+        debrief.notify("Hello from Python!")
+        
+        # Work with plot features
+        features = debrief.get_feature_collection("my_plot.plot.json")
+        selected = debrief.get_selected_features("my_plot.plot.json")
+    """
+    
+    def __init__(self):
+        self._client = DebriefWebSocketClient()
+    
+    def connect(self) -> None:
+        """Connect to the Debrief WebSocket server."""
+        self._client.connect()
+    
+    def send_raw_message(self, message: str) -> str:
+        """Send a raw message to the server."""
+        return self._client.send_raw_message(message)
+    
+    def send_json_message(self, message: Dict[str, Any]) -> Dict[str, Any]:
+        """Send a JSON message to the server."""
+        return self._client.send_json_message(message)
+    
+    def notify(self, message: str) -> None:
+        """Display a notification in VS Code."""
+        command = {
+            "command": "notify",
+            "params": {
+                "message": message
+            }
         }
-    }
-    _client.send_json_message(command)
-
-
-# Complete API functions
-def get_feature_collection(filename: str) -> Dict[str, Any]:
-    """Get the feature collection for a plot file."""
-    command = {
-        "command": "get_feature_collection",
-        "params": {
-            "filename": filename
+        self._client.send_json_message(command)
+    
+    def get_feature_collection(self, filename: str) -> Dict[str, Any]:
+        """Get the feature collection for a plot file."""
+        command = {
+            "command": "get_feature_collection",
+            "params": {
+                "filename": filename
+            }
         }
-    }
-    response = _client.send_json_message(command)
-    return response.get('result', {})
-
-
-def set_feature_collection(filename: str, fc: Dict[str, Any]) -> None:
-    """Set the feature collection for a plot file."""
-    command = {
-        "command": "set_feature_collection",
-        "params": {
-            "filename": filename,
-            "data": fc
+        response = self._client.send_json_message(command)
+        return response.get('result', {})
+    
+    def set_feature_collection(self, filename: str, fc: Dict[str, Any]) -> None:
+        """Set the feature collection for a plot file."""
+        command = {
+            "command": "set_feature_collection",
+            "params": {
+                "filename": filename,
+                "data": fc
+            }
         }
-    }
-    _client.send_json_message(command)
-
-
-def get_selected_features(filename: str) -> List[Dict[str, Any]]:
-    """Get the currently selected features for a plot file."""
-    command = {
-        "command": "get_selected_features",
-        "params": {
-            "filename": filename
+        self._client.send_json_message(command)
+    
+    def get_selected_features(self, filename: str) -> List[Dict[str, Any]]:
+        """Get the currently selected features for a plot file."""
+        command = {
+            "command": "get_selected_features",
+            "params": {
+                "filename": filename
+            }
         }
-    }
-    response = _client.send_json_message(command)
-    return response.get('result', [])
-
-
-def set_selected_features(filename: str, ids: List[str]) -> None:
-    """Set the selected features for a plot file."""
-    command = {
-        "command": "set_selected_features",
-        "params": {
-            "filename": filename,
-            "ids": ids
+        response = self._client.send_json_message(command)
+        return response.get('result', [])
+    
+    def set_selected_features(self, filename: str, ids: List[str]) -> None:
+        """Set the selected features for a plot file."""
+        command = {
+            "command": "set_selected_features",
+            "params": {
+                "filename": filename,
+                "ids": ids
+            }
         }
-    }
-    _client.send_json_message(command)
-
-
-def update_features(filename: str, features: List[Dict[str, Any]]) -> None:
-    """Update features in a plot file."""
-    command = {
-        "command": "update_features",
-        "params": {
-            "filename": filename,
-            "features": features
+        self._client.send_json_message(command)
+    
+    def update_features(self, filename: str, features: List[Dict[str, Any]]) -> None:
+        """Update features in a plot file."""
+        command = {
+            "command": "update_features",
+            "params": {
+                "filename": filename,
+                "features": features
+            }
         }
-    }
-    _client.send_json_message(command)
-
-
-def add_features(filename: str, features: List[Dict[str, Any]]) -> None:
-    """Add new features to a plot file."""
-    command = {
-        "command": "add_features",
-        "params": {
-            "filename": filename,
-            "features": features
+        self._client.send_json_message(command)
+    
+    def add_features(self, filename: str, features: List[Dict[str, Any]]) -> None:
+        """Add new features to a plot file."""
+        command = {
+            "command": "add_features",
+            "params": {
+                "filename": filename,
+                "features": features
+            }
         }
-    }
-    _client.send_json_message(command)
-
-
-def delete_features(filename: str, ids: List[str]) -> None:
-    """Delete features from a plot file."""
-    command = {
-        "command": "delete_features",
-        "params": {
-            "filename": filename,
-            "ids": ids
+        self._client.send_json_message(command)
+    
+    def delete_features(self, filename: str, ids: List[str]) -> None:
+        """Delete features from a plot file."""
+        command = {
+            "command": "delete_features",
+            "params": {
+                "filename": filename,
+                "ids": ids
+            }
         }
-    }
-    _client.send_json_message(command)
-
-
-def zoom_to_selection(filename: str) -> None:
-    """Zoom to the selected features in a plot file."""
-    command = {
-        "command": "zoom_to_selection",
-        "params": {
-            "filename": filename
+        self._client.send_json_message(command)
+    
+    def zoom_to_selection(self, filename: str) -> None:
+        """Zoom to the selected features in a plot file."""
+        command = {
+            "command": "zoom_to_selection",
+            "params": {
+                "filename": filename
+            }
         }
-    }
-    _client.send_json_message(command)
+        self._client.send_json_message(command)
+
+
+# Global API instance for easy access with auto-completion
+debrief = DebriefAPI()

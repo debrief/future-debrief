@@ -4,7 +4,7 @@ Test error handling and reconnection for Debrief WebSocket Bridge
 """
 
 import time
-from debrief_api import notify, send_json_message, DebriefAPIError
+from debrief_api import debrief, DebriefAPIError
 
 def test_error_handling():
     """Test error handling and reconnection."""
@@ -14,7 +14,7 @@ def test_error_handling():
         # Test malformed notify command
         print("\nTesting malformed notify command...")
         try:
-            response = send_json_message({
+            response = debrief.send_json_message({
                 "command": "notify",
                 "params": {
                     "wrong_param": "This should fail"
@@ -27,7 +27,7 @@ def test_error_handling():
         # Test notify command without message
         print("\nTesting notify command without message parameter...")
         try:
-            response = send_json_message({
+            response = debrief.send_json_message({
                 "command": "notify",
                 "params": {}
             })
@@ -37,13 +37,13 @@ def test_error_handling():
         
         # Test valid notify after errors
         print("\nTesting valid notify after errors...")
-        notify("This notification should work after the previous errors.")
+        debrief.notify("This notification should work after the previous errors.")
         print("✓ Valid notification after errors succeeded!")
         
         # Test multiple sequential calls
         print("\nTesting multiple sequential calls...")
         for i in range(5):
-            notify(f"Sequential notification {i + 1}")
+            debrief.notify(f"Sequential notification {i + 1}")
         print("✓ Multiple sequential calls completed!")
         
         print("\n✓ Error handling test completed!")
