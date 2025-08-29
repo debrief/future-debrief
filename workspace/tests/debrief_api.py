@@ -146,6 +146,10 @@ class DebriefWebSocketClient:
             # Check for errors in response
             if 'error' in response:
                 error_info = response['error']
+                
+                # Don't raise exception for MULTIPLE_PLOTS - let caller handle it
+                if error_info.get('code') == 'MULTIPLE_PLOTS':
+                    return response
                     
                 raise DebriefAPIError(
                     error_info.get('message', 'Unknown error'),
