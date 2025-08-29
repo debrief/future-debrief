@@ -117,7 +117,7 @@ def run_all_command_tests():
             }
         })
         
-        debrief.set_feature_collection(filename, modified_data)
+        debrief.set_feature_collection(modified_data, filename)
         
         # Verify the change
         fc = debrief.get_feature_collection(filename)
@@ -141,7 +141,7 @@ def run_all_command_tests():
     # Test 6: Set Selected Features
     print("\n6. Testing set_selected_features...")
     try:
-        debrief.set_selected_features(filename, ["test_feature_1"])
+        debrief.set_selected_features(["test_feature_1"], filename)
         print("✓ set_selected_features command sent")
         test_results["set_selected_features"] = True
     except Exception as e:
@@ -163,7 +163,7 @@ def run_all_command_tests():
             }
         ]
         
-        debrief.add_features(filename, new_features)
+        debrief.add_features(new_features, filename)
         
         # Verify the addition
         fc = debrief.get_feature_collection(filename)
@@ -184,10 +184,10 @@ def run_all_command_tests():
             feature_to_update = fc['features'][0].copy()
             feature_to_update['properties']['name'] = "Updated Feature Name"
             
-            debrief.update_features(filename, [feature_to_update])
+            debrief.update_features([feature_to_update], filename)
             
             # Verify the update
-            fc_updated = get_feature_collection(filename)
+            fc_updated = debrief.get_feature_collection(filename)
             updated_feature = fc_updated['features'][0]
             if updated_feature['properties']['name'] == "Updated Feature Name":
                 print("✓ update_features working")
@@ -203,7 +203,7 @@ def run_all_command_tests():
     print("\n9. Testing delete_features...")
     try:
         # Delete a specific feature by ID
-        debrief.delete_features(filename, ["test_feature_2"])
+        debrief.delete_features(["test_feature_2"], filename)
         
         # Verify the deletion
         fc = debrief.get_feature_collection(filename)

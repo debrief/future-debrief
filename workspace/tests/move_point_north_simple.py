@@ -14,7 +14,7 @@ for point in points:
 
 # Update plot and show result
 if points:
-    debrief.update_features("sample.plot.json", points)
+    debrief.update_features(points, "sample.plot.json")
     print(f"{len(points)} points moved 100km North")
 else:
     print("No point features selected")

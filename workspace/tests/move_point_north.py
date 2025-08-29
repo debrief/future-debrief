@@ -165,12 +165,12 @@ def move_selected_points_north():
         
         # Update the features in the plot
         print(f"\nUpdating {len(modified_features)} point feature(s) in the plot...")
-        debrief.update_features(filename, modified_features)
+        debrief.update_features(modified_features, filename)
         
         # Re-select the moved features to keep them highlighted
         moved_feature_ids = [f.get('properties', {}).get('id') for f in modified_features if f.get('properties', {}).get('id')]
         if moved_feature_ids:
-            debrief.set_selected_features(filename, moved_feature_ids)
+            debrief.set_selected_features(moved_feature_ids, filename)
         
         # Success notification
         success_message = f"✅ Moved {len(modified_features)} point feature(s) {distance_km}km North!"

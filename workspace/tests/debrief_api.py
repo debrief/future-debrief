@@ -9,7 +9,7 @@ import json
 import logging
 import threading
 import atexit
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Union
 
 try:
     import websocket
@@ -22,9 +22,10 @@ except ImportError:
 class DebriefAPIError(Exception):
     """Exception raised for errors in the Debrief API communication."""
     
-    def __init__(self, message: str, code: Optional[int] = None):
+    def __init__(self, message: str, code: Optional[Union[int, str]] = None):
         super().__init__(message)
         self.code = code
+
 
 
 class DebriefWebSocketClient:
@@ -108,7 +109,34 @@ class DebriefWebSocketClient:
         """Send a JSON message and return the parsed response."""
         if not self.connected:
             self.connect()
-            
+        
+        # Check if this command uses filename parameter for optional filename handling
+        params = message.get('params', {})
+        if 'filename' in params:
+            # filename in params means this command supports filename handling
+            if params['filename'] is None:
+                # filename=None means: use single editor or let user choose
+                # Try the command without filename first
+                response = self._send_json_raw(message)
+                
+                # Check for MULTIPLE_PLOTS error and handle it
+                if ('error' in response and 
+                    response['error'].get('code') == 'MULTIPLE_PLOTS'):
+                    available_plots = response['error'].get('available_plots', [])
+                    selected_filename = self._prompt_plot_selection(available_plots)
+                    
+                    # Retry with selected filename
+                    message['params']['filename'] = selected_filename
+                    return self._send_json_raw(message)
+                    
+                return response
+            # else: filename has a value (use that specific file) - send directly
+        
+        # For commands without filename parameter, send directly
+        return self._send_json_raw(message)
+    
+    def _send_json_raw(self, message: Dict[str, Any]) -> Dict[str, Any]:
+        """Send a JSON message without filename handling logic."""
         json_str = json.dumps(message)
         response_str = self.send_raw_message(json_str)
         
@@ -118,6 +146,7 @@ class DebriefWebSocketClient:
             # Check for errors in response
             if 'error' in response:
                 error_info = response['error']
+                    
                 raise DebriefAPIError(
                     error_info.get('message', 'Unknown error'),
                     error_info.get('code')
@@ -126,6 +155,33 @@ class DebriefWebSocketClient:
             return response
         except json.JSONDecodeError as e:
             raise DebriefAPIError(f"Invalid JSON response: {e}")
+    
+    def _prompt_plot_selection(self, available_plots: List[Dict[str, str]]) -> str:
+        """Prompt user to select from available plots."""
+        if not available_plots:
+            raise DebriefAPIError("No plots available")
+        
+        if len(available_plots) == 1:
+            return available_plots[0]['filename']
+        
+        print("\nMultiple plot files are open. Please select one:")
+        for i, plot in enumerate(available_plots, 1):
+            print(f"{i}. {plot['title']} ({plot['filename']})")
+        
+        while True:
+            try:
+                choice = input("\nEnter your choice (1-{}): ".format(len(available_plots)))
+                choice_num = int(choice) - 1
+                if 0 <= choice_num < len(available_plots):
+                    selected = available_plots[choice_num]
+                    print(f"Selected: {selected['title']}")
+                    return selected['filename']
+                else:
+                    print(f"Please enter a number between 1 and {len(available_plots)}")
+            except (ValueError, KeyboardInterrupt):
+                print("Invalid input. Please enter a number.")
+                if input("Try again? (y/n): ").lower() != 'y':
+                    raise DebriefAPIError("Plot selection cancelled")
     
     def cleanup(self):
         """Clean up resources."""
@@ -182,7 +238,7 @@ class DebriefAPI:
         }
         self._client.send_json_message(command)
     
-    def get_feature_collection(self, filename: str) -> Dict[str, Any]:
+    def get_feature_collection(self, filename: Optional[str] = None) -> Dict[str, Any]:
         """Get the feature collection for a plot file."""
         command = {
             "command": "get_feature_collection",
@@ -190,21 +246,23 @@ class DebriefAPI:
                 "filename": filename
             }
         }
+        
         response = self._client.send_json_message(command)
         return response.get('result', {})
     
-    def set_feature_collection(self, filename: str, fc: Dict[str, Any]) -> None:
+    def set_feature_collection(self, fc: Dict[str, Any], filename: Optional[str] = None) -> None:
         """Set the feature collection for a plot file."""
         command = {
             "command": "set_feature_collection",
             "params": {
-                "filename": filename,
-                "data": fc
+                "data": fc,
+                "filename": filename
             }
         }
+        
         self._client.send_json_message(command)
     
-    def get_selected_features(self, filename: str) -> List[Dict[str, Any]]:
+    def get_selected_features(self, filename: Optional[str] = None) -> List[Dict[str, Any]]:
         """Get the currently selected features for a plot file."""
         command = {
             "command": "get_selected_features",
@@ -212,54 +270,59 @@ class DebriefAPI:
                 "filename": filename
             }
         }
+        
         response = self._client.send_json_message(command)
         return response.get('result', [])
     
-    def set_selected_features(self, filename: str, ids: List[str]) -> None:
+    def set_selected_features(self, ids: List[str], filename: Optional[str] = None) -> None:
         """Set the selected features for a plot file."""
         command = {
             "command": "set_selected_features",
             "params": {
-                "filename": filename,
-                "ids": ids
+                "ids": ids,
+                "filename": filename
             }
         }
+        
         self._client.send_json_message(command)
     
-    def update_features(self, filename: str, features: List[Dict[str, Any]]) -> None:
+    def update_features(self, features: List[Dict[str, Any]], filename: Optional[str] = None) -> None:
         """Update features in a plot file."""
         command = {
             "command": "update_features",
             "params": {
-                "filename": filename,
-                "features": features
+                "features": features,
+                "filename": filename
             }
         }
+        
         self._client.send_json_message(command)
     
-    def add_features(self, filename: str, features: List[Dict[str, Any]]) -> None:
+    def add_features(self, features: List[Dict[str, Any]], filename: Optional[str] = None) -> None:
         """Add new features to a plot file."""
         command = {
             "command": "add_features",
             "params": {
-                "filename": filename,
-                "features": features
+                "features": features,
+                "filename": filename
             }
         }
+        
         self._client.send_json_message(command)
     
-    def delete_features(self, filename: str, ids: List[str]) -> None:
+    def delete_features(self, ids: List[str], filename: Optional[str] = None) -> None:
         """Delete features from a plot file."""
         command = {
             "command": "delete_features",
             "params": {
-                "filename": filename,
-                "ids": ids
+                "ids": ids,
+                "filename": filename
             }
         }
+        
         self._client.send_json_message(command)
     
-    def zoom_to_selection(self, filename: str) -> None:
+    def zoom_to_selection(self, filename: Optional[str] = None) -> None:
         """Zoom to the selected features in a plot file."""
         command = {
             "command": "zoom_to_selection",
@@ -267,7 +330,16 @@ class DebriefAPI:
                 "filename": filename
             }
         }
+        
         self._client.send_json_message(command)
+    
+    def list_open_plots(self) -> List[Dict[str, str]]:
+        """Get a list of currently open plot files."""
+        command = {
+            "command": "list_open_plots"
+        }
+        response = self._client.send_json_message(command)
+        return response.get('result', [])
 
 
 # Global API instance for easy access with auto-completion

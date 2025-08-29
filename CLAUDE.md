@@ -20,6 +20,8 @@ Navigate to `workspace/tests/` and run:
 - `pip install -r requirements.txt` - Install Python test dependencies
 - `python test_integration.py` - Run comprehensive integration tests
 - `python test_notify_command.py` - Test VS Code notifications from Python
+- `python test_optional_filename.py` - Test optional filename functionality
+- `python test_plot_api.py` - Test full plot manipulation API with optional filename support
 
 ## Architecture
 
@@ -33,7 +35,7 @@ Navigate to `workspace/tests/` and run:
 **WebSocket Bridge (`src/debriefWebSocketServer.ts`)**
 - WebSocket server runs inside VS Code extension on localhost:60123
 - Handles JSON command protocol for Python-to-VS Code communication
-- Currently supports `notify` command, designed for future plot manipulation commands
+- Supports plot manipulation commands with **optional filename parameters**
 - Automatically starts on extension activation and stops on deactivation
 
 **Plot JSON Editor (`src/plotJsonEditor.ts`)**
@@ -75,6 +77,19 @@ Messages are JSON-based with this structure:
 }
 ```
 
+**Optional Filename Support**: Most plot commands now support optional filename parameters:
+```json
+{
+  "command": "get_feature_collection",
+  "params": {}
+}
+```
+
+When filename is omitted:
+- **Single plot open**: Command executes automatically
+- **Multiple plots open**: Returns `MULTIPLE_PLOTS` error with available options
+- **No plots open**: Returns clear error message
+
 Responses:
 ```json
 {
@@ -82,12 +97,26 @@ Responses:
 }
 ```
 
-Or error format:
+Error format:
 ```json
 {
   "error": {
     "message": "Error description",
     "code": 400
+  }
+}
+```
+
+Multiple plots error format:
+```json
+{
+  "error": {
+    "message": "Multiple plots open, please specify filename",
+    "code": "MULTIPLE_PLOTS",
+    "available_plots": [
+      {"filename": "mission1.plot.json", "title": "Mission 1"},
+      {"filename": "mission2.plot.json", "title": "Mission 2"}
+    ]
   }
 }
 ```

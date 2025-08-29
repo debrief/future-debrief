@@ -14,7 +14,8 @@ interface DebriefResponse {
     result?: any;
     error?: {
         message: string;
-        code: number;
+        code: number | string;
+        available_plots?: Array<{filename: string, title: string}>;
     };
 }
 
@@ -190,6 +191,9 @@ export class DebriefWebSocketServer {
                 
                 case 'zoom_to_selection':
                     return await this.handleZoomToSelectionCommand(message.params);
+                
+                case 'list_open_plots':
+                    return await this.handleListOpenPlotsCommand();
                     
                 default:
                     return {
@@ -239,21 +243,18 @@ export class DebriefWebSocketServer {
     }
 
     private async handleGetFeatureCollectionCommand(params: any): Promise<DebriefResponse> {
-        if (!params || typeof params.filename !== 'string') {
-            return {
-                error: {
-                    message: 'get_feature_collection command requires a "filename" parameter of type string',
-                    code: 400
-                }
-            };
+        // Resolve filename (optional parameter)
+        const resolution = await this.resolveFilename(params?.filename);
+        if (resolution.error) {
+            return resolution.error;
         }
 
         try {
-            const document = await this.findOpenDocument(params.filename);
+            const document = await this.findOpenDocument(resolution.filename!);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${params.filename}`,
+                        message: `File not found or not open: ${resolution.filename}`,
                         code: 404
                     }
                 };
@@ -273,13 +274,19 @@ export class DebriefWebSocketServer {
     }
 
     private async handleSetFeatureCollectionCommand(params: any): Promise<DebriefResponse> {
-        if (!params || typeof params.filename !== 'string' || typeof params.data !== 'object') {
+        if (!params || typeof params.data !== 'object') {
             return {
                 error: {
-                    message: 'set_feature_collection command requires "filename" (string) and "data" (object) parameters',
+                    message: 'set_feature_collection command requires "data" (object) parameter',
                     code: 400
                 }
             };
+        }
+
+        // Resolve filename (optional parameter)
+        const resolution = await this.resolveFilename(params?.filename);
+        if (resolution.error) {
+            return resolution.error;
         }
 
         try {
@@ -293,11 +300,11 @@ export class DebriefWebSocketServer {
                 };
             }
 
-            const document = await this.findOpenDocument(params.filename);
+            const document = await this.findOpenDocument(resolution.filename!);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${params.filename}`,
+                        message: `File not found or not open: ${resolution.filename}`,
                         code: 404
                     }
                 };
@@ -317,21 +324,18 @@ export class DebriefWebSocketServer {
     }
 
     private async handleGetSelectedFeaturesCommand(params: any): Promise<DebriefResponse> {
-        if (!params || typeof params.filename !== 'string') {
-            return {
-                error: {
-                    message: 'get_selected_features command requires a "filename" parameter of type string',
-                    code: 400
-                }
-            };
+        // Resolve filename (optional parameter)
+        const resolution = await this.resolveFilename(params?.filename);
+        if (resolution.error) {
+            return resolution.error;
         }
 
         try {
-            const document = await this.findOpenDocument(params.filename);
+            const document = await this.findOpenDocument(resolution.filename!);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${params.filename}`,
+                        message: `File not found or not open: ${resolution.filename}`,
                         code: 404
                     }
                 };
@@ -360,21 +364,27 @@ export class DebriefWebSocketServer {
     }
 
     private async handleSetSelectedFeaturesCommand(params: any): Promise<DebriefResponse> {
-        if (!params || typeof params.filename !== 'string' || !Array.isArray(params.ids)) {
+        if (!params || !Array.isArray(params.ids)) {
             return {
                 error: {
-                    message: 'set_selected_features command requires "filename" (string) and "ids" (array) parameters',
+                    message: 'set_selected_features command requires "ids" (array) parameter',
                     code: 400
                 }
             };
         }
 
+        // Resolve filename (optional parameter)
+        const resolution = await this.resolveFilename(params?.filename);
+        if (resolution.error) {
+            return resolution.error;
+        }
+
         try {
-            const document = await this.findOpenDocument(params.filename);
+            const document = await this.findOpenDocument(resolution.filename!);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${params.filename}`,
+                        message: `File not found or not open: ${resolution.filename}`,
                         code: 404
                     }
                 };
@@ -396,21 +406,27 @@ export class DebriefWebSocketServer {
     }
 
     private async handleUpdateFeaturesCommand(params: any): Promise<DebriefResponse> {
-        if (!params || typeof params.filename !== 'string' || !Array.isArray(params.features)) {
+        if (!params || !Array.isArray(params.features)) {
             return {
                 error: {
-                    message: 'update_features command requires "filename" (string) and "features" (array) parameters',
+                    message: 'update_features command requires "features" (array) parameter',
                     code: 400
                 }
             };
         }
 
+        // Resolve filename (optional parameter)
+        const resolution = await this.resolveFilename(params?.filename);
+        if (resolution.error) {
+            return resolution.error;
+        }
+
         try {
-            const document = await this.findOpenDocument(params.filename);
+            const document = await this.findOpenDocument(resolution.filename!);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${params.filename}`,
+                        message: `File not found or not open: ${resolution.filename}`,
                         code: 404
                     }
                 };
@@ -451,21 +467,27 @@ export class DebriefWebSocketServer {
     }
 
     private async handleAddFeaturesCommand(params: any): Promise<DebriefResponse> {
-        if (!params || typeof params.filename !== 'string' || !Array.isArray(params.features)) {
+        if (!params || !Array.isArray(params.features)) {
             return {
                 error: {
-                    message: 'add_features command requires "filename" (string) and "features" (array) parameters',
+                    message: 'add_features command requires "features" (array) parameter',
                     code: 400
                 }
             };
         }
 
+        // Resolve filename (optional parameter)
+        const resolution = await this.resolveFilename(params?.filename);
+        if (resolution.error) {
+            return resolution.error;
+        }
+
         try {
-            const document = await this.findOpenDocument(params.filename);
+            const document = await this.findOpenDocument(resolution.filename!);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${params.filename}`,
+                        message: `File not found or not open: ${resolution.filename}`,
                         code: 404
                     }
                 };
@@ -505,21 +527,27 @@ export class DebriefWebSocketServer {
     }
 
     private async handleDeleteFeaturesCommand(params: any): Promise<DebriefResponse> {
-        if (!params || typeof params.filename !== 'string' || !Array.isArray(params.ids)) {
+        if (!params || !Array.isArray(params.ids)) {
             return {
                 error: {
-                    message: 'delete_features command requires "filename" (string) and "ids" (array) parameters',
+                    message: 'delete_features command requires "ids" (array) parameter',
                     code: 400
                 }
             };
         }
 
+        // Resolve filename (optional parameter)
+        const resolution = await this.resolveFilename(params?.filename);
+        if (resolution.error) {
+            return resolution.error;
+        }
+
         try {
-            const document = await this.findOpenDocument(params.filename);
+            const document = await this.findOpenDocument(resolution.filename!);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${params.filename}`,
+                        message: `File not found or not open: ${resolution.filename}`,
                         code: 404
                     }
                 };
@@ -550,21 +578,18 @@ export class DebriefWebSocketServer {
     }
 
     private async handleZoomToSelectionCommand(params: any): Promise<DebriefResponse> {
-        if (!params || typeof params.filename !== 'string') {
-            return {
-                error: {
-                    message: 'zoom_to_selection command requires a "filename" parameter of type string',
-                    code: 400
-                }
-            };
+        // Resolve filename (optional parameter)
+        const resolution = await this.resolveFilename(params?.filename);
+        if (resolution.error) {
+            return resolution.error;
         }
 
         try {
-            const document = await this.findOpenDocument(params.filename);
+            const document = await this.findOpenDocument(resolution.filename!);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${params.filename}`,
+                        message: `File not found or not open: ${resolution.filename}`,
                         code: 404
                     }
                 };
@@ -684,5 +709,74 @@ export class DebriefWebSocketServer {
         PlotJsonEditorProvider.sendMessageToActiveWebview({
             type: 'refreshSelection'
         });
+    }
+
+    private async handleListOpenPlotsCommand(): Promise<DebriefResponse> {
+        try {
+            const openPlots = this.getOpenPlotFiles();
+            return { result: openPlots };
+        } catch (error) {
+            console.error('Error listing open plots:', error);
+            return {
+                error: {
+                    message: error instanceof Error ? error.message : 'Failed to list open plots',
+                    code: 500
+                }
+            };
+        }
+    }
+
+    private getOpenPlotFiles(): Array<{filename: string, title: string}> {
+        const openDocs = vscode.workspace.textDocuments;
+        const plotFiles: Array<{filename: string, title: string}> = [];
+        
+        for (const doc of openDocs) {
+            if (doc.fileName.endsWith('.plot.json')) {
+                const filename = path.basename(doc.fileName);
+                const title = filename.replace('.plot.json', '');
+                plotFiles.push({ filename, title });
+            }
+        }
+        
+        return plotFiles;
+    }
+
+    private async resolveFilename(providedFilename?: string): Promise<{filename: string | null, error?: DebriefResponse}> {
+        if (providedFilename) {
+            // Filename provided, use it directly
+            return { filename: providedFilename };
+        }
+        
+        // No filename provided, check open plots
+        const openPlots = this.getOpenPlotFiles();
+        
+        if (openPlots.length === 0) {
+            return {
+                filename: null,
+                error: {
+                    error: {
+                        message: 'No plot files are currently open',
+                        code: 404
+                    }
+                }
+            };
+        }
+        
+        if (openPlots.length === 1) {
+            // Exactly one plot open, use it
+            return { filename: openPlots[0].filename };
+        }
+        
+        // Multiple plots open, return special error with available options
+        return {
+            filename: null,
+            error: {
+                error: {
+                    message: 'Multiple plot files are open. Please specify which file to use, or use list_open_plots to see available options.',
+                    code: 'MULTIPLE_PLOTS',
+                    available_plots: openPlots
+                }
+            }
+        };
     }
 }
