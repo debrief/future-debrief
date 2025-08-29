@@ -5,9 +5,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 - `npm install` - Install dependencies
-- `npm run compile` - Compile TypeScript to JavaScript
-- `npm run watch` - Watch mode compilation for development
-- `npm run vscode:prepublish` - Prepare for publishing (runs compile)
+- `npm run compile` - Bundle extension with esbuild (includes sourcemap for development)
+- `npm run watch` - Watch mode bundling with esbuild for development
+- `npm run vscode:prepublish` - Prepare for publishing (minified esbuild bundle)
+- `npm run typecheck` - Type check TypeScript without compilation
+
+### Build System
+
+The extension uses **esbuild** for fast bundling instead of traditional TypeScript compilation:
+- Source files in `src/` are bundled into a single `dist/extension.js` file
+- Bundle includes all dependencies except VS Code API (externalized)
+- Development builds include sourcemaps for debugging
+- Production builds are minified for optimal performance
+- Build time: ~20ms (compared to previous slower TypeScript compilation)
 
 ## Testing
 
