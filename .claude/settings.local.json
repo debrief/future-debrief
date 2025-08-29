@@ -43,7 +43,8 @@
       "Bash(gh issue edit:*)",
       "Bash(gh label:*)",
       "Bash(gh issue:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(git pull:*)"
     ]
   },
   "outputStyle": "default"
