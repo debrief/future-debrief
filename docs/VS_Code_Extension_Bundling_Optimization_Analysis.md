@@ -57,11 +57,12 @@ src/**              ✓ Correct (excludes source)
 ```
 
 **Missing Exclusions** (contributing to file count warning):
-- Workspace test files (`workspace/tests/**`)
-- Docker files (`Dockerfile`)
+- Docker files (`Dockerfile`) 
 - Memory bank and documentation (`Memory_Bank.md`)
 - Python cache files (`**/__pycache__/**`)
 - Various development artifacts
+
+**Important Note**: `workspace/tests/**` files should be **preserved** as they contain essential Python integration examples and API documentation for developers.
 
 ## 2. Bundling Solutions Research
 
@@ -223,13 +224,12 @@ vsc-extension-quickstart.md
 **/.eslintrc.json
 **/*.map
 **/*.ts
-workspace/tests/**
 **/__pycache__/**
 Dockerfile
 Memory_Bank.md
-**/*.py
-**.rep
 prompts/**
+# Preserve workspace/tests/ - essential Python integration examples
+# Preserve sample .rep and .plot.json files for testing
 ```
 
 **3.2 Update Documentation** (30 minutes)
@@ -303,13 +303,14 @@ vsc-extension-quickstart.md
 **/*.ts
 
 # Project-specific exclusions
-workspace/tests/**
 **/__pycache__/**
 Dockerfile
 Memory_Bank.md
-**/*.py
-**.rep
 prompts/**
+
+# Keep workspace/tests/** - Essential for developer Python integration examples
+# Keep **/*.py files in workspace/tests/ - API documentation and examples  
+# Keep **.rep files - Sample data files for testing
 
 # Node.js (automatically excluded but explicit for clarity)
 node_modules/**
@@ -317,8 +318,8 @@ node_modules/**
 
 ### Impact Assessment
 - **Before**: ~123 files in extension package
-- **After**: ~5-10 files in extension package
-- **File Reduction**: ~95% reduction in packaged files
+- **After**: ~15-25 files in extension package (including preserved workspace/tests/)
+- **File Reduction**: ~80-85% reduction in packaged files while preserving essential developer resources
 
 ## 6. Expected Performance Improvements
 
@@ -326,7 +327,7 @@ node_modules/**
 - **Current**: 11 JavaScript files + source maps + development files
 - **Bundled**: 1 JavaScript file (extension.js)
 - **Size Impact**: Minimal change in total bytes (dependencies are external)
-- **File Count**: Reduce from 219 total files to <10 essential files
+- **File Count**: Reduce from 219 total files to ~15-25 essential files (preserving workspace/tests/)
 
 ### Performance Benefits
 - **Extension Loading**: Faster due to single file load vs multiple file resolution
