@@ -9,6 +9,7 @@ import json
 import logging
 import threading
 import atexit
+import sys
 from typing import Optional, Dict, Any, List, Union
 
 try:
@@ -171,21 +172,34 @@ class DebriefWebSocketClient:
         print("\nMultiple plot files are open. Please select one:")
         for i, plot in enumerate(available_plots, 1):
             print(f"{i}. {plot['title']} ({plot['filename']})")
+        print("\nOr enter 'Q' to quit.")
         
         while True:
             try:
-                choice = input("\nEnter your choice (1-{}): ".format(len(available_plots)))
+                choice = input("\nEnter your choice (1-{} or Q): ".format(len(available_plots)))
+                
+                # Check for quit command
+                if choice.lower() in ['q', 'quit', 'exit']:
+                    print("Exiting script.")
+                    sys.exit(0)
+                
                 choice_num = int(choice) - 1
                 if 0 <= choice_num < len(available_plots):
                     selected = available_plots[choice_num]
                     print(f"Selected: {selected['title']}")
                     return selected['filename']
                 else:
-                    print(f"Please enter a number between 1 and {len(available_plots)}")
-            except (ValueError, KeyboardInterrupt):
-                print("Invalid input. Please enter a number.")
-                if input("Try again? (y/n): ").lower() != 'y':
-                    raise DebriefAPIError("Plot selection cancelled")
+                    print(f"Please enter a number between 1 and {len(available_plots)}, or 'Q' to quit.")
+            except KeyboardInterrupt:
+                # Handle Ctrl+C - exit gracefully
+                print("\nExiting script.")
+                sys.exit(0)
+            except ValueError:
+                print("Invalid input. Please enter a number (1-{}) or 'Q' to quit.".format(len(available_plots)))
+            except EOFError:
+                # Handle cases where input stream is closed
+                print("\nInput stream closed. Exiting script.")
+                sys.exit(0)
     
     def cleanup(self):
         """Clean up resources."""
