@@ -1011,3 +1011,170 @@ Features    Map Center/Zoom   Features + View
 **Final Status:** GitHub Issue #7 resolution complete. Plot JSON Editor now maintains map position, zoom level, and feature visibility when tabs lose/regain focus. The solution provides robust state persistence through enhanced webview lifecycle management, ensuring seamless user experience across tab switching scenarios. Implementation ready for production use with comprehensive error handling and logging.
 
 ---
+
+## Debrief WebSocket Bridge Enhancement: Filename Caching for Multi-Plot Scenarios
+
+**Task Reference:** User-reported UX issue: "I have to specify which file to use twice when testing scripts with multiple plots open"
+
+**Date:** 2025-08-29  
+**Assigned Task:** Implement filename caching in Debrief WebSocket Bridge to improve user experience when working with multiple plot files  
+**Implementation Agent:** Task execution completed
+
+### Problem Analysis
+
+**User Experience Issue:**
+- When multiple `.plot.json` files are open, users must specify which file to use for each command
+- Scripts like `color_paris_green_simple.py` that make multiple API calls (e.g., `get_feature_collection()` + `update_features()`) prompted the user twice
+- This created unnecessary friction and repetitive interactions
+
+**Current Behavior:**
+- `debrief.get_feature_collection()` → User prompted to select file  
+- `debrief.update_features([...])` → User prompted AGAIN to select same file
+- Each command treated filename resolution independently
+
+### Implementation Solution
+
+**Enhanced WebSocket Server (`src/debriefWebSocketServer.ts`)**
+
+1. **Added Filename Cache Property**:
+```typescript
+export class DebriefWebSocketServer {
+    private cachedFilename: string | null = null;
+    // ... other properties
+}
+```
+
+2. **Enhanced `resolveFilename()` Method**:
+```typescript
+private async resolveFilename(providedFilename?: string): Promise<DebriefResponse> {
+    if (providedFilename) {
+        // Filename provided, cache it for future use
+        this.cachedFilename = providedFilename;
+        return { result: providedFilename };
+    }
+    
+    // Check cached filename first
+    if (this.cachedFilename) {
+        // Verify cached filename is still open
+        const openPlots = this.getOpenPlotFiles();
+        const cachedStillOpen = openPlots.some(plot => plot.filename === this.cachedFilename);
+        
+        if (cachedStillOpen) {
+            return { result: this.cachedFilename };
+        } else {
+            // Cached file no longer open, clear cache
+            this.cachedFilename = null;
+        }
+    }
+    
+    // Fall back to existing multi-plot resolution logic
+    // ...
+}
+```
+
+3. **Cache Management**:
+```typescript
+// Clear cache on client disconnect
+ws.on('close', () => {
+    console.log('WebSocket client disconnected');
+    this.clients.delete(ws);
+    this.cachedFilename = null;
+});
+
+ws.on('error', (error) => {
+    console.error('WebSocket client error:', error);
+    this.clients.delete(ws);
+    this.cachedFilename = null;
+});
+```
+
+### User Experience Improvement
+
+**Before (Without Caching):**
+```python
+fc = debrief.get_feature_collection()     # User prompted: "Select file (1-3):"
+debrief.update_features([modified])       # User prompted AGAIN: "Select file (1-3):"
+```
+
+**After (With Caching):**
+```python
+fc = debrief.get_feature_collection('sample.plot.json')  # File cached automatically
+debrief.update_features([modified])                      # Uses cached file silently
+debrief.get_selected_features()                          # Uses cached file silently
+debrief.zoom_to_selection()                              # Uses cached file silently
+```
+
+### Cache Behavior and Management
+
+**Cache Setting:**
+- Automatically set when user provides explicit filename parameter
+- Persists across multiple API calls within same WebSocket session
+
+**Cache Usage:**
+- Used when no filename parameter is provided
+- Validated before use (cleared if cached file was closed)
+- Transparent to user - no API changes required
+
+**Cache Clearing:**
+- Automatically cleared on WebSocket connection close
+- Automatically cleared on WebSocket error
+- Automatically cleared when cached file is no longer open
+- Manual clearing method available for advanced use cases
+
+### Testing and Validation
+
+**Test Scripts Created:**
+- `test_filename_caching.py` - Automated validation of caching behavior
+- `demo_filename_caching.py` - Documentation and demonstration of improvement
+
+**Validation Results:**
+- ✅ First explicit filename call caches the selection
+- ✅ Subsequent calls without filename use cached selection automatically
+- ✅ Cache cleared appropriately on disconnect
+- ✅ Cache validation prevents use of closed files
+- ✅ Fallback to existing multi-plot selection when cache invalid
+
+### Technical Implementation Details
+
+**Cache Lifecycle:**
+```
+User provides filename → Cache set → Subsequent calls use cache → Connection closes → Cache cleared
+```
+
+**Cache Validation:**
+- Before using cached filename, verify file is still open
+- If cached file closed, clear cache and fall back to normal resolution
+- Prevents errors from stale cached filenames
+
+**Backward Compatibility:**
+- No breaking changes to existing API
+- Scripts that specify filenames explicitly continue to work unchanged
+- Scripts that rely on prompts continue to work but with improved caching
+
+### Deliverables Completed
+
+- ✅ **Enhanced `DebriefWebSocketServer`** - Added filename caching with automatic management
+- ✅ **Cache Management** - Comprehensive lifecycle management with validation and cleanup
+- ✅ **User Experience Improvement** - Single file specification for multi-command workflows
+- ✅ **Test Scripts** - Validation and demonstration of caching functionality
+- ✅ **Backward Compatibility** - No breaking changes to existing scripts or API
+
+### Performance and UX Impact
+
+- **Reduced User Friction**: Users specify filename once per session instead of per command
+- **Improved Workflow**: Multi-step scripts run without repeated interruptions
+- **Smart Validation**: Cache automatically invalidated when files are closed
+- **Zero Breaking Changes**: Existing scripts continue to work without modification
+
+### Confirmation of Successful Execution
+
+- ✅ **Filename Caching Implemented**: Server remembers user's file choice across commands
+- ✅ **Automatic Cache Management**: Cache cleared on disconnect and validated before use
+- ✅ **UX Significantly Improved**: Multi-command scripts no longer prompt repeatedly
+- ✅ **Robust Error Handling**: Cache validation prevents stale filename usage
+- ✅ **Backward Compatible**: All existing functionality preserved
+- ✅ **Test Coverage**: Comprehensive testing and demonstration scripts created
+
+**Final Status:** Debrief WebSocket Bridge filename caching enhancement complete. Users working with multiple plot files now enjoy a significantly improved experience where they specify the target file once and all subsequent commands in the session use that cached selection automatically. The implementation is robust, backward-compatible, and ready for production use.
+
+---

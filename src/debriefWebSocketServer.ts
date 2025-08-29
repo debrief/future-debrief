@@ -24,6 +24,7 @@ export class DebriefWebSocketServer {
     private httpServer: http.Server | null = null;
     private readonly port = 60123;
     private clients: Set<WebSocket> = new Set();
+    private cachedFilename: string | null = null;
 
     constructor() {}
 
@@ -94,11 +95,15 @@ export class DebriefWebSocketServer {
                 ws.on('close', () => {
                     console.log('WebSocket client disconnected');
                     this.clients.delete(ws);
+                    // Clear cached filename when client disconnects
+                    this.cachedFilename = null;
                 });
 
                 ws.on('error', (error) => {
                     console.error('WebSocket client error:', error);
                     this.clients.delete(ws);
+                    // Clear cached filename when client disconnects with error
+                    this.cachedFilename = null;
                 });
 
                 // Send welcome message
@@ -724,6 +729,10 @@ export class DebriefWebSocketServer {
         }
     }
 
+    private clearFilenameCache(): void {
+        this.cachedFilename = null;
+    }
+
     private getOpenPlotFiles(): Array<{filename: string, title: string}> {
         const openDocs = vscode.workspace.textDocuments;
         const plotFiles: Array<{filename: string, title: string}> = [];
@@ -741,11 +750,26 @@ export class DebriefWebSocketServer {
 
     private async resolveFilename(providedFilename?: string): Promise<DebriefResponse> {
         if (providedFilename) {
-            // Filename provided, use it directly
+            // Filename provided, cache it for future use and use it directly
+            this.cachedFilename = providedFilename;
             return { result: providedFilename };
         }
         
-        // No filename provided, check open plots
+        // No filename provided, check cached filename first
+        if (this.cachedFilename) {
+            // Verify cached filename is still open
+            const openPlots = this.getOpenPlotFiles();
+            const cachedStillOpen = openPlots.some(plot => plot.filename === this.cachedFilename);
+            
+            if (cachedStillOpen) {
+                return { result: this.cachedFilename };
+            } else {
+                // Cached file is no longer open, clear cache
+                this.cachedFilename = null;
+            }
+        }
+        
+        // No cached filename or cache invalid, check open plots
         const openPlots = this.getOpenPlotFiles();
         
         if (openPlots.length === 0) {
