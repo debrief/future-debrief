@@ -4,7 +4,7 @@ FROM codercom/code-server:latest
 # Set the working directory
 WORKDIR /home/coder
 
-# Install Node.js, npm, and Python (required for VS Code extension builds and testing)
+# Install Node.js, yarn, and Python (required for VS Code extension builds and testing)
 USER root
 RUN apt-get update && apt-get install -y \
     curl \
@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     python3-venv \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
+    && npm install -g yarn \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -30,11 +31,11 @@ COPY --chown=coder:coder . /home/coder/project/
 
 # Build the VS Code extension
 WORKDIR /home/coder/project
-RUN npm install && npm run compile
+RUN yarn install && yarn compile
 
 # Install vsce for packaging the extension (as root, then switch back)
 USER root
-RUN npm install -g @vscode/vsce
+RUN yarn global add @vscode/vsce
 USER coder
 
 # Package the extension as .vsix

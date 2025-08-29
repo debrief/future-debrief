@@ -8,6 +8,7 @@ from debrief_api import debrief
 # Get the feature collection and find Paris point
 fc = debrief.get_feature_collection()
 features = fc.get('features', [])
+updates = []
 
 for feature in features:
     if feature.get('id', '').lower().startswith('paris'):
@@ -16,4 +17,7 @@ for feature in features:
             feature['properties']['color'] = '#FF0000'  # Change to red
         else:
             feature['properties']['color'] = '#00FF00'  # Change to green
-        debrief.update_features([feature])
+        updates.append(feature)
+
+if updates:
+    debrief.update_features(updates)

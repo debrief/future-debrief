@@ -35,18 +35,18 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'npm'
+        cache: 'yarn'
     
     - name: Install dependencies
-      run: npm ci
+      run: yarn install --frozen-lockfile
     
     - name: Compile TypeScript
-      run: npm run compile
+      run: yarn compile
     
     - name: Install vsce
       run: |
         # Install vsce with fallback to local installation
-        npm install -g @vscode/vsce || npm install @vscode/vsce
+        yarn global add @vscode/vsce || yarn add @vscode/vsce
     
     - name: Package extension
       run: |
