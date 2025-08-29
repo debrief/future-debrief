@@ -8,6 +8,13 @@
     "type": "git",
     "url": "https://github.com/debrief/codespace-extension.git"
   },
+    "scripts": {
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "compile": "yarn esbuild-base --sourcemap",
+    "watch": "yarn esbuild-base --sourcemap --watch",
+    "vscode:prepublish": "yarn esbuild-base --minify",
+    "typecheck": "tsc --noEmit"
+  },
   "engines": {
     "vscode": "^1.74.0"
   },
@@ -67,13 +74,6 @@
         ]
       }
     ]
-  },
-  "scripts": {
-    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
-    "compile": "yarn esbuild-base --sourcemap",
-    "watch": "yarn esbuild-base --sourcemap --watch",
-    "vscode:prepublish": "yarn esbuild-base --minify",
-    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "16.x",
