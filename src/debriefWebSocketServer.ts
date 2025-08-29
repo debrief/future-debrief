@@ -154,7 +154,7 @@ export class DebriefWebSocketServer {
 
         // Close all client connections
         this.clients.forEach(ws => {
-            if (ws.readyState === WebSocket.OPEN) {
+            if (ws.readyState === 1) { // WebSocket.OPEN
                 ws.close();
             }
         });
