@@ -347,8 +347,7 @@ export class DebriefWebSocketServer {
             // Convert IDs to actual feature objects
             const featureCollection = this.parseGeoJsonDocument(document);
             const selectedFeatures = featureCollection.features.filter((feature: any) =>
-                feature.properties && feature.properties.id && 
-                selectedFeatureIds.includes(feature.properties.id)
+                feature.id && selectedFeatureIds.includes(feature.id)
             );
 
             return { result: selectedFeatures };
@@ -436,16 +435,19 @@ export class DebriefWebSocketServer {
             
             // Update features by ID
             for (const updatedFeature of params.features) {
-                if (!updatedFeature.properties || !updatedFeature.properties.id) {
+                if (!updatedFeature.id) {
+                    console.warn(`Feature is missing ID: ${JSON.stringify(updatedFeature)}`);
                     continue; // Skip features without ID
                 }
                 
                 const index = featureCollection.features.findIndex((f: any) => 
-                    f.properties && f.properties.id === updatedFeature.properties.id
+                    f.id === updatedFeature.id
                 );
                 
                 if (index >= 0) {
                     featureCollection.features[index] = updatedFeature;
+                } else {
+                  console.warn(`Feature with ID ${updatedFeature.id} not found for update`);
                 }
             }
 
@@ -497,13 +499,9 @@ export class DebriefWebSocketServer {
             
             // Add features with auto-generated IDs
             for (const feature of params.features) {
-                if (!feature.properties) {
-                    feature.properties = {};
-                }
-                
                 // Generate ID if not present
-                if (!feature.properties.id) {
-                    feature.properties.id = this.generateFeatureId();
+                if (!feature.id) {
+                    feature.id = this.generateFeatureId();
                 }
                 
                 featureCollection.features.push(feature);
@@ -557,7 +555,7 @@ export class DebriefWebSocketServer {
             
             // Delete features by ID
             featureCollection.features = featureCollection.features.filter((feature: any) =>
-                !feature.properties || !params.ids.includes(feature.properties.id)
+                !feature.id || !params.ids.includes(feature.id)
             );
 
             await this.updateDocument(document, featureCollection);
@@ -688,7 +686,7 @@ export class DebriefWebSocketServer {
         }
         
         return featureCollection.features.findIndex((feature: any) =>
-            feature.properties && feature.properties.id === id
+            feature.id === id
         );
     }
 
