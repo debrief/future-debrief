@@ -6,7 +6,9 @@
         "explorer.openEditors.visible": 0,
         "workbench.startupEditor": "none"
       },
-      "extensions": []
+      "extensions": [
+        "ms-python.python"
+      ]
     }
   },
   "workspaceFolder": "/workspaces/codespace-extension"

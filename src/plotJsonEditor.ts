@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
     private static outlineUpdateCallback: ((document: vscode.TextDocument) => void) | undefined;
     private static activeWebviewPanel: vscode.WebviewPanel | undefined;
+    private static currentSelectionState: { [filename: string]: string[] } = {};
 
     public static setOutlineUpdateCallback(callback: (document: vscode.TextDocument) => void): void {
         PlotJsonEditorProvider.outlineUpdateCallback = callback;
@@ -11,6 +12,22 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
     public static sendMessageToActiveWebview(message: any): void {
         if (PlotJsonEditorProvider.activeWebviewPanel) {
             PlotJsonEditorProvider.activeWebviewPanel.webview.postMessage(message);
+        }
+    }
+
+    public static getSelectedFeatures(filename: string): string[] {
+        return PlotJsonEditorProvider.currentSelectionState[filename] || [];
+    }
+
+    public static setSelectedFeatures(filename: string, featureIds: string[]): void {
+        PlotJsonEditorProvider.currentSelectionState[filename] = [...featureIds];
+        
+        // Convert feature IDs to indices and send to webview
+        if (PlotJsonEditorProvider.activeWebviewPanel) {
+            PlotJsonEditorProvider.activeWebviewPanel.webview.postMessage({
+                type: 'setSelectionByIds',
+                featureIds: featureIds
+            });
         }
     }
 
@@ -88,6 +105,16 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
                 case 'delete':
                     this.deleteScratch(document, e.id);
                     return;
+
+                case 'selectionChanged':
+                    // Update selection state when user clicks features in webview
+                    const filename = document.fileName;
+                    PlotJsonEditorProvider.currentSelectionState[filename] = e.selectedFeatureIds;
+                    console.log(`🔄 Selection updated for ${filename}:`);
+                    console.log('  Selected feature IDs:', e.selectedFeatureIds);
+                    console.log('  Selected indices:', e.selectedIndices);
+                    console.log('  Current selection state:', PlotJsonEditorProvider.currentSelectionState);
+                    return;
             }
         });
 
@@ -131,9 +158,6 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 			</head>
 			<body>
 				<div class="plot-editor">
-					<div class="controls">
-						<button class="add-button">Add Point</button>
-					</div>
 					<div id="map"></div>
 				</div>
 				<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 

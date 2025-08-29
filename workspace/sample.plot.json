@@ -3,32 +3,91 @@
   "features": [
     {
       "type": "Feature",
+      "id": "london_city_001",
       "geometry": {
         "type": "Point",
-        "coordinates": [-0.1278, 51.5074]
+        "coordinates": [
+          -0.1278,
+          51.5074
+        ]
       },
       "properties": {
-        "name": "London"
+        "name": "London",
+        "color": "#FF0000"
       }
     },
     {
       "type": "Feature",
+      "id": "paris_city_002",
       "geometry": {
         "type": "Point",
-        "coordinates": [2.3522, 48.8566]
+        "coordinates": [
+          2.3522,
+          48.8566
+        ]
       },
       "properties": {
-        "name": "Paris"
+        "name": "Paris",
+        "color": "#DD00DD"
       }
     },
     {
       "type": "Feature",
+      "id": "berlin_city_003",
       "geometry": {
         "type": "Point",
-        "coordinates": [13.4050, 52.5200]
+        "coordinates": [
+          13.405,
+          52.52
+        ]
       },
       "properties": {
-        "name": "Berlin"
+        "name": "Berlin",
+        "color": "#0000FF"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "custom_point_004",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -0.10143748433382173,
+          51.514291279238726
+        ]
+      },
+      "properties": {
+        "name": "Point at 51.5143, -0.1014",
+        "color": "#FF00FF"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "custom_point_005",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          3.34673700673362,
+          50.14701075322356
+        ]
+      },
+      "properties": {
+        "name": "Point at 50.1470, 3.3467",
+        "color": "#FFFF00"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "custom_point_006",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          6.673587983997164,
+          47.45597717372741
+        ]
+      },
+      "properties": {
+        "name": "Point at 47.4560, 6.6736"
       }
     }
   ]

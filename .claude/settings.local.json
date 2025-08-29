@@ -37,7 +37,9 @@
       "Bash(docker rm:*)",
       "Bash(flyctl apps:*)",
       "Bash(flyctl status:*)",
-      "Bash(flyctl:*)"
+      "Bash(flyctl:*)",
+      "Bash(npm run:*)",
+      "Bash(python:*)"
     ]
   },
   "outputStyle": "default"
