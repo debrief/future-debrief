@@ -9,7 +9,7 @@ When omitted, the system will:
 - Return an error if no plots are open
 """
 
-from debrief_api import debrief, DebriefAPIError, MultiplePlotsError
+from debrief_api import debrief, DebriefAPIError
 import json
 
 

@@ -29,7 +29,7 @@
                 const previousSelectedIds = Array.from(selectedFeatures).map(index => {
                     if (currentData && currentData.features && currentData.features[index]) {
                         const feature = currentData.features[index];
-                        return feature.properties && feature.properties.id ? feature.properties.id : null;
+                        return feature.id ? feature.id : null;
                     }
                     return null;
                 }).filter(id => id !== null);
@@ -67,7 +67,17 @@
                         });
                     },
                     pointToLayer: function (feature, latlng) {
-                        return L.marker(latlng);
+                        // Get color from feature properties, default to #00F (blue) if not present
+                        const color = (feature.properties && feature.properties.color) ? feature.properties.color : '#00F';
+                        
+                        return L.circleMarker(latlng, {
+                            radius: 8,                    // Size in screen pixels
+                            fillColor: color,             // Fill color from properties.color or default
+                            color: color,                 // Border color matches fill
+                            weight: 2,                    // Border width
+                            opacity: 0.8,               // Border opacity
+                            fillOpacity: 0.7             // Fill opacity
+                        });
                     },
                     style: function(feature) {
                         // Default style for non-point features
@@ -132,12 +142,12 @@
         highlightedLayer = L.geoJSON(feature, {
             pointToLayer: function (feature, latlng) {
                 return L.circleMarker(latlng, {
-                    radius: 15,
-                    fillColor: '#ff7f00',
-                    color: '#ff4500',
-                    weight: 4,
-                    opacity: 0.9,
-                    fillOpacity: 0.6
+                    radius: 12,                  // Larger for highlight
+                    fillColor: '#ff7f00',       // Orange highlight fill
+                    color: '#ff4500',           // Darker orange border
+                    weight: 4,                  // Thick border
+                    opacity: 0.9,              // High opacity border
+                    fillOpacity: 0.6           // Semi-transparent fill
                 });
             },
             style: function(feature) {
@@ -250,27 +260,29 @@
         }
 
         if (feature.geometry.type === 'Point') {
-            // For points/markers, change the icon or add a selection indicator
+            // For circle markers, modify the style directly for selection
+            const baseColor = (feature.properties && feature.properties.color) ? feature.properties.color : '#00F';
+            
             if (isSelected) {
-                // Create a selection circle around the marker
-                const latlng = layer.getLatLng();
-                const selectionCircle = L.circleMarker(latlng, {
-                    radius: 12,
-                    color: '#ff6b35',
-                    weight: 3,
-                    fillColor: 'transparent',
-                    interactive: false
+                // Selected state: larger radius, thicker border, orange selection color
+                layer.setStyle({
+                    radius: 10,                   // Larger when selected
+                    fillColor: baseColor,         // Keep original fill color
+                    color: '#ff6b35',            // Orange selection border
+                    weight: 4,                   // Thicker border when selected
+                    opacity: 1,                  // Full opacity border
+                    fillOpacity: 0.8             // Slightly more opaque fill
                 });
-                
-                // Store reference to selection circle
-                layer._selectionCircle = selectionCircle;
-                selectionCircle.addTo(map);
             } else {
-                // Remove selection circle
-                if (layer._selectionCircle) {
-                    map.removeLayer(layer._selectionCircle);
-                    delete layer._selectionCircle;
-                }
+                // Default state: restore original styling
+                layer.setStyle({
+                    radius: 8,                   // Normal size
+                    fillColor: baseColor,        // Original fill color
+                    color: baseColor,            // Border matches fill
+                    weight: 2,                   // Normal border width
+                    opacity: 0.8,               // Normal border opacity
+                    fillOpacity: 0.7             // Normal fill opacity
+                });
             }
         } else {
             // For other geometry types, change the style
@@ -323,7 +335,7 @@
         const indices = [];
         featureIds.forEach(id => {
             const index = currentData.features.findIndex(feature => 
-                feature.properties && feature.properties.id === id
+                feature.id === id
             );
             if (index >= 0) {
                 indices.push(index);
@@ -344,7 +356,7 @@
         selectedFeatures.clear();
     }
 
-    // Clear all selection visuals including orphaned circles
+    // Clear all selection visuals
     function clearAllSelectionVisuals() {
         console.log('🧹 Clearing all selection visuals...');
         
@@ -353,18 +365,6 @@
             updateFeatureStyle(index, false);
         });
         selectedFeatures.clear();
-        
-        // Also remove any orphaned selection circles that might be left on the map
-        map.eachLayer(function(layer) {
-            // Remove any circle markers that look like selection indicators
-            if (layer instanceof L.CircleMarker && 
-                layer.options && 
-                layer.options.color === '#ff6b35' && 
-                layer.options.interactive === false) {
-                map.removeLayer(layer);
-                console.log('🗑️ Removed orphaned selection circle');
-            }
-        });
     }
 
     // Get currently selected feature data
@@ -405,7 +405,7 @@
     function notifySelectionChange() {
         const selectedFeatureIds = Array.from(selectedFeatures).map(index => {
             const feature = currentData.features[index];
-            return feature.properties && feature.properties.id ? feature.properties.id : `index_${index}`;
+            return feature.id ? feature.id : `index_${index}`;
         });
 
         console.log('🔄 Selection changed:');
@@ -413,7 +413,7 @@
         console.log('  Selected feature IDs:', selectedFeatureIds);
         console.log('  Features with missing IDs:', Array.from(selectedFeatures).filter(index => {
             const feature = currentData.features[index];
-            return !feature.properties || !feature.properties.id;
+            return !feature.id;
         }));
 
         vscode.postMessage({

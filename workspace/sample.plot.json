@@ -3,6 +3,7 @@
   "features": [
     {
       "type": "Feature",
+      "id": "london_city_001",
       "geometry": {
         "type": "Point",
         "coordinates": [
@@ -12,11 +13,12 @@
       },
       "properties": {
         "name": "London",
-        "id": "london_city_001"
+        "color": "#FF0000"
       }
     },
     {
       "type": "Feature",
+      "id": "paris_city_002",
       "geometry": {
         "type": "Point",
         "coordinates": [
@@ -26,11 +28,12 @@
       },
       "properties": {
         "name": "Paris",
-        "id": "paris_city_002"
+        "color": "#00FF00"
       }
     },
     {
       "type": "Feature",
+      "id": "berlin_city_003",
       "geometry": {
         "type": "Point",
         "coordinates": [
@@ -40,11 +43,12 @@
       },
       "properties": {
         "name": "Berlin",
-        "id": "berlin_city_003"
+        "color": "#0000FF"
       }
     },
     {
       "type": "Feature",
+      "id": "custom_point_004",
       "geometry": {
         "type": "Point",
         "coordinates": [
@@ -54,11 +58,12 @@
       },
       "properties": {
         "name": "Point at 51.5143, -0.1014",
-        "id": "custom_point_004"
+        "color": "#FF00FF"
       }
     },
     {
       "type": "Feature",
+      "id": "custom_point_005",
       "geometry": {
         "type": "Point",
         "coordinates": [
@@ -68,11 +73,12 @@
       },
       "properties": {
         "name": "Point at 50.1470, 3.3467",
-        "id": "custom_point_005"
+        "color": "#FFFF00"
       }
     },
     {
       "type": "Feature",
+      "id": "custom_point_006",
       "geometry": {
         "type": "Point",
         "coordinates": [
@@ -81,8 +87,7 @@
         ]
       },
       "properties": {
-        "name": "Point at 47.4560, 6.6736",
-        "id": "custom_point_006"
+        "name": "Point at 47.4560, 6.6736"
       }
     }
   ]

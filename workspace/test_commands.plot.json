@@ -3,8 +3,8 @@
   "features": [
     {
       "type": "Feature",
+      "id": "test_feature_1",
       "properties": {
-        "id": "test_feature_1",
         "name": "Test Point 1"
       },
       "geometry": {
@@ -17,8 +17,8 @@
     },
     {
       "type": "Feature",
+      "id": "test_feature_2",
       "properties": {
-        "id": "test_feature_2",
         "name": "Test Point 2"
       },
       "geometry": {
