@@ -45,7 +45,7 @@ export class DebriefWebSocketServer {
             });
             
             await new Promise<void>((resolve, reject) => {
-                this.httpServer!.listen(this.port, 'localhost', () => {
+                this.httpServer!.listen(this.port, '0.0.0.0', () => {
                     console.log(`HTTP server listening on port ${this.port}`);
                     resolve();
                 });
