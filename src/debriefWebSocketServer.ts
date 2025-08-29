@@ -246,15 +246,15 @@ export class DebriefWebSocketServer {
         // Resolve filename (optional parameter)
         const resolution = await this.resolveFilename(params?.filename);
         if (resolution.error) {
-            return resolution.error;
+            return resolution;
         }
 
         try {
-            const document = await this.findOpenDocument(resolution.filename!);
+            const document = await this.findOpenDocument(resolution.result!);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${resolution.filename}`,
+                        message: `File not found or not open: ${resolution.result}`,
                         code: 404
                     }
                 };
@@ -286,7 +286,7 @@ export class DebriefWebSocketServer {
         // Resolve filename (optional parameter)
         const resolution = await this.resolveFilename(params?.filename);
         if (resolution.error) {
-            return resolution.error;
+            return resolution;
         }
 
         try {
@@ -300,11 +300,11 @@ export class DebriefWebSocketServer {
                 };
             }
 
-            const document = await this.findOpenDocument(resolution.filename!);
+            const document = await this.findOpenDocument(resolution.result!);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${resolution.filename}`,
+                        message: `File not found or not open: ${resolution.result}`,
                         code: 404
                     }
                 };
@@ -327,15 +327,15 @@ export class DebriefWebSocketServer {
         // Resolve filename (optional parameter)
         const resolution = await this.resolveFilename(params?.filename);
         if (resolution.error) {
-            return resolution.error;
+            return resolution;
         }
 
         try {
-            const document = await this.findOpenDocument(resolution.filename!);
+            const document = await this.findOpenDocument(resolution.result!);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${resolution.filename}`,
+                        message: `File not found or not open: ${resolution.result}`,
                         code: 404
                     }
                 };
@@ -375,15 +375,15 @@ export class DebriefWebSocketServer {
         // Resolve filename (optional parameter)
         const resolution = await this.resolveFilename(params?.filename);
         if (resolution.error) {
-            return resolution.error;
+            return resolution;
         }
 
         try {
-            const document = await this.findOpenDocument(resolution.filename!);
+            const document = await this.findOpenDocument(resolution.result!);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${resolution.filename}`,
+                        message: `File not found or not open: ${resolution.result}`,
                         code: 404
                     }
                 };
@@ -417,15 +417,15 @@ export class DebriefWebSocketServer {
         // Resolve filename (optional parameter)
         const resolution = await this.resolveFilename(params?.filename);
         if (resolution.error) {
-            return resolution.error;
+            return resolution;
         }
 
         try {
-            const document = await this.findOpenDocument(resolution.filename!);
+            const document = await this.findOpenDocument(resolution.result!);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${resolution.filename}`,
+                        message: `File not found or not open: ${resolution.result}`,
                         code: 404
                     }
                 };
@@ -481,15 +481,15 @@ export class DebriefWebSocketServer {
         // Resolve filename (optional parameter)
         const resolution = await this.resolveFilename(params?.filename);
         if (resolution.error) {
-            return resolution.error;
+            return resolution;
         }
 
         try {
-            const document = await this.findOpenDocument(resolution.filename!);
+            const document = await this.findOpenDocument(resolution.result!);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${resolution.filename}`,
+                        message: `File not found or not open: ${resolution.result}`,
                         code: 404
                     }
                 };
@@ -537,15 +537,15 @@ export class DebriefWebSocketServer {
         // Resolve filename (optional parameter)
         const resolution = await this.resolveFilename(params?.filename);
         if (resolution.error) {
-            return resolution.error;
+            return resolution;
         }
 
         try {
-            const document = await this.findOpenDocument(resolution.filename!);
+            const document = await this.findOpenDocument(resolution.result!);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${resolution.filename}`,
+                        message: `File not found or not open: ${resolution.result}`,
                         code: 404
                     }
                 };
@@ -579,15 +579,15 @@ export class DebriefWebSocketServer {
         // Resolve filename (optional parameter)
         const resolution = await this.resolveFilename(params?.filename);
         if (resolution.error) {
-            return resolution.error;
+            return resolution;
         }
 
         try {
-            const document = await this.findOpenDocument(resolution.filename!);
+            const document = await this.findOpenDocument(resolution.result!);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${resolution.filename}`,
+                        message: `File not found or not open: ${resolution.result}`,
                         code: 404
                     }
                 };
@@ -739,10 +739,10 @@ export class DebriefWebSocketServer {
         return plotFiles;
     }
 
-    private async resolveFilename(providedFilename?: string): Promise<{filename: string | null, error?: DebriefResponse}> {
+    private async resolveFilename(providedFilename?: string): Promise<DebriefResponse> {
         if (providedFilename) {
             // Filename provided, use it directly
-            return { filename: providedFilename };
+            return { result: providedFilename };
         }
         
         // No filename provided, check open plots
@@ -750,30 +750,24 @@ export class DebriefWebSocketServer {
         
         if (openPlots.length === 0) {
             return {
-                filename: null,
                 error: {
-                    error: {
-                        message: 'No plot files are currently open',
-                        code: 404
-                    }
+                    message: 'No plot files are currently open',
+                    code: 404
                 }
             };
         }
         
         if (openPlots.length === 1) {
             // Exactly one plot open, use it
-            return { filename: openPlots[0].filename };
+            return { result: openPlots[0].filename };
         }
         
         // Multiple plots open, return special error with available options
         return {
-            filename: null,
             error: {
-                error: {
-                    message: 'Multiple plot files are open. Please specify which file to use, or use list_open_plots to see available options.',
-                    code: 'MULTIPLE_PLOTS',
-                    available_plots: openPlots
-                }
+                message: 'Multiple plot files are open. Please specify which file to use, or use list_open_plots to see available options.',
+                code: 'MULTIPLE_PLOTS',
+                available_plots: openPlots
             }
         };
     }
