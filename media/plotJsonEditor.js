@@ -97,23 +97,29 @@
                     }
                 }).addTo(map);
                 
-                // Fit map to show all features (or restore saved state if available)
+                // Fit map to show all features (but check for saved state first)
                 if (data.features.length > 0) {
-                    // Check if we should restore saved state instead of fitting bounds
-                    let shouldRestoreState = false;
+                    // Set a flag to track if we're expecting state restoration
+                    window.expectingStateRestoration = true;
                     
                     // Request saved state from extension
                     vscode.postMessage({
                         type: 'requestSavedState'
                     });
                     
-                    // Default to fitting bounds, but this may be overridden by state restoration
-                    map.fitBounds(geoJsonLayer.getBounds());
-                    
-                    // Save state after fitting bounds (in case no saved state exists)
+                    // Use timeout to allow state restoration message to be processed first
                     setTimeout(() => {
-                        saveCurrentMapState();
-                    }, 100);
+                        if (window.expectingStateRestoration) {
+                            // No state restoration happened, so fit bounds normally
+                            console.log('🗺️ No saved state found, fitting bounds to features');
+                            map.fitBounds(geoJsonLayer.getBounds());
+                            // Save state after fitting bounds
+                            setTimeout(() => {
+                                saveCurrentMapState();
+                            }, 100);
+                        }
+                        window.expectingStateRestoration = false;
+                    }, 50);
                 }
                 
                 // Restore previous selection if any features had IDs that match
@@ -506,18 +512,21 @@
             return;
         }
         
-        console.log('🗺️ Restoring map state:', { center, zoom });
+        console.log('🗺️ Restoring map state immediately:', { center, zoom });
         
-        // Use setTimeout to ensure this happens after fitBounds
+        // Cancel the pending fitBounds operation
+        if (window.expectingStateRestoration) {
+            window.expectingStateRestoration = false;
+            console.log('🗺️ Cancelled fitBounds - using saved state instead');
+        }
+        
+        // Restore map view immediately with animation disabled
+        map.setView(center, zoom, { animate: false });
+        
+        // Force a redraw to ensure the state is applied
         setTimeout(() => {
-            // Restore map view with animation disabled for immediate effect
-            map.setView(center, zoom, { animate: false });
-            
-            // Force a redraw to ensure the state is applied
-            setTimeout(() => {
-                map.invalidateSize();
-            }, 10);
-        }, 150); // Wait a bit longer than the fitBounds setTimeout
+            map.invalidateSize();
+        }, 10);
     }
 
     // Handle add button click
