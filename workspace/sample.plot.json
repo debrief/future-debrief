@@ -28,7 +28,7 @@
       },
       "properties": {
         "name": "Paris",
-        "color": "#DD00DD"
+        "color": "#00FF00"
       }
     },
     {
@@ -48,7 +48,7 @@
     },
     {
       "type": "Feature",
-      "id": "paris_locality_12",
+      "id": "point-feature-17",
       "geometry": {
         "type": "Point",
         "coordinates": [
@@ -63,7 +63,7 @@
     },
     {
       "type": "Feature",
-      "id": "custom_point_005",
+      "id": "paris_locality_12",
       "geometry": {
         "type": "Point",
         "coordinates": [
@@ -73,7 +73,7 @@
       },
       "properties": {
         "name": "Point at 50.1470, 3.3467",
-        "color": "#FFFF00"
+        "color": "#00FF00"
       }
     },
     {
