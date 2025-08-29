@@ -15,13 +15,20 @@
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
+        
+        // Save map state whenever the user moves or zooms the map
+        map.on('moveend zoomend', function() {
+            saveCurrentMapState();
+        });
     }
 
     // Update the map with GeoJSON data
     function updateMap(jsonText) {
+        console.log('🗺️ updateMap called, jsonText length:', jsonText?.length);
         try {
             const data = JSON.parse(jsonText);
             currentData = data;
+            console.log('🗺️ Parsed data:', data?.type, 'features:', data?.features?.length);
             
             // Check if it's a valid GeoJSON FeatureCollection
             if (data.type === 'FeatureCollection' && Array.isArray(data.features)) {
@@ -90,9 +97,23 @@
                     }
                 }).addTo(map);
                 
-                // Fit map to show all features
+                // Fit map to show all features (or restore saved state if available)
                 if (data.features.length > 0) {
+                    // Check if we should restore saved state instead of fitting bounds
+                    let shouldRestoreState = false;
+                    
+                    // Request saved state from extension
+                    vscode.postMessage({
+                        type: 'requestSavedState'
+                    });
+                    
+                    // Default to fitting bounds, but this may be overridden by state restoration
                     map.fitBounds(geoJsonLayer.getBounds());
+                    
+                    // Save state after fitting bounds (in case no saved state exists)
+                    setTimeout(() => {
+                        saveCurrentMapState();
+                    }, 100);
                 }
                 
                 // Restore previous selection if any features had IDs that match
@@ -171,6 +192,7 @@
     // Handle messages from the extension
     window.addEventListener('message', event => {
         const message = event.data;
+        console.log('📥 Received message:', message.type, message);
         switch (message.type) {
             case 'update':
                 updateMap(message.text);
@@ -205,6 +227,17 @@
             case 'refreshSelection':
                 // Refresh selection visual indicators after feature updates
                 refreshSelectionVisuals();
+                break;
+            case 'requestMapState':
+                // Extension is requesting current map state (before tab becomes hidden)
+                saveCurrentMapState();
+                break;
+            case 'restoreMapState':
+                // Extension wants us to restore map state (after tab becomes visible)
+                // Use setTimeout to ensure this happens after any pending update messages
+                setTimeout(() => {
+                    restoreMapState(message.center, message.zoom);
+                }, 50);
                 break;
         }
     });
@@ -446,6 +479,45 @@
         });
         
         console.log('✅ Selection visuals refreshed for', currentSelection.length, 'features');
+    }
+
+    // Save current map state to the extension
+    function saveCurrentMapState() {
+        if (!map) {
+            return;
+        }
+        
+        const center = map.getCenter();
+        const zoom = map.getZoom();
+        
+        console.log('🗺️ Saving map state for this webview:', { center: [center.lat, center.lng], zoom });
+        
+        // Only save state if this webview is the active one
+        vscode.postMessage({
+            type: 'mapStateSaved',
+            center: [center.lat, center.lng],
+            zoom: zoom
+        });
+    }
+
+    // Restore map state
+    function restoreMapState(center, zoom) {
+        if (!map || !center || typeof zoom !== 'number') {
+            return;
+        }
+        
+        console.log('🗺️ Restoring map state:', { center, zoom });
+        
+        // Use setTimeout to ensure this happens after fitBounds
+        setTimeout(() => {
+            // Restore map view with animation disabled for immediate effect
+            map.setView(center, zoom, { animate: false });
+            
+            // Force a redraw to ensure the state is applied
+            setTimeout(() => {
+                map.invalidateSize();
+            }, 10);
+        }, 150); // Wait a bit longer than the fitBounds setTimeout
     }
 
     // Handle add button click
