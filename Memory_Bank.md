@@ -48,6 +48,91 @@ This document tracks all implementation work completed on the project following 
 - **Extension Installation:** Uses vsce to package and install extension during build process
 - **Port Configuration:** Exposes port 8080 as standard for code-server deployments
 
+---
+
+## Issue #9: VS Code Extension Bundling Optimization Investigation
+
+**Task Reference:** GitHub Issue #9 - "Investigate VS Code extension bundling optimization"
+**Date:** 2025-01-29
+**Assigned Task:** Comprehensive bundling optimization analysis for CI performance warning
+**Implementation Agent:** Analysis and research task completed successfully
+
+### Objective Achieved
+Conducted comprehensive investigation into VS Code extension bundling optimization to address CI performance warning: "This extension consists of 219 files, out of which 107 are JavaScript files. For performance reasons, you should bundle your extension."
+
+### Analysis Methodology
+1. **Current State Analysis**: Examined bundle composition, file structure, and build process
+   - Analyzed 15,145 total files with 4,342 JavaScript files including dependencies
+   - Identified 11 compiled output files in /out directory (160K total)
+   - Documented current TypeScript-only build process via tsc compiler
+   - Reviewed existing .vscodeignore patterns and identified missing exclusions
+
+2. **Bundling Solutions Research**: Compared three major bundling approaches
+   - **esbuild**: 10-100x faster builds, minimal configuration, native TypeScript support
+   - **webpack**: Feature-rich but complex configuration, slower build times
+   - **rollup**: Library-focused, less suitable for Node.js extensions
+
+3. **Architecture-Specific Analysis**: Evaluated bundling impact on extension components
+   - WebSocket server (DebriefWebSocketServer) with complex command handling
+   - Custom Plot JSON editor with Leaflet webview integration  
+   - Outline tree provider with bidirectional communication
+   - Extension lifecycle management and VS Code API integration
+
+### Key Findings Summary
+- **Root Cause**: Packaging includes development files, test files, and unbundled dependencies
+- **Performance Impact**: Large file count affects extension loading and marketplace performance
+- **Technical Debt**: Current build process doesn't follow VS Code bundling best practices
+- **Architecture Compatibility**: Extension architecture supports bundling without modifications
+
+### Final Recommendation
+**Implement esbuild bundling** as the optimal solution based on:
+- **Speed**: 10-100x faster build times critical for development workflow
+- **Simplicity**: Minimal configuration via npm scripts, no complex webpack.config.js
+- **Compatibility**: Native Node.js platform support with --external:vscode handling
+- **Maintenance**: Reduced configuration complexity and industry trend adoption
+
+### Implementation Roadmap Created
+**Phase 1**: Setup and Configuration (2-4 hours)
+- Install esbuild, update package.json scripts, change entry point to ./dist/extension.js
+- Comprehensive testing in Extension Development Host
+
+**Phase 2**: Optimization and Testing (3-5 hours)  
+- Advanced configuration, integration testing with WebSocket bridge
+- Performance measurement and platform testing
+
+**Phase 3**: Cleanup and Documentation (1-2 hours)
+- Optimize .vscodeignore, update documentation, remove legacy artifacts
+
+### Expected Performance Improvements
+- **File Count Reduction**: From 219 files to <10 essential files (~95% reduction)
+- **Build Speed**: 10-100x faster development builds with esbuild
+- **Extension Loading**: Single bundled file vs multiple file resolution
+- **Marketplace Performance**: Significantly reduced package download size
+
+### Risk Assessment and Mitigation
+- **High Risk**: WebSocket server functionality → Comprehensive integration testing with Python test suite
+- **Medium Risk**: Webview communication → Test all bidirectional message passing  
+- **Low Risk**: TypeScript compilation → Maintain separate type checking with tsc --noEmit
+
+### Key Decisions and Challenges
+- **Bundler Selection**: Chose esbuild over webpack due to speed and simplicity advantages
+- **Architecture Analysis**: Confirmed WebSocket server, custom editors, and webviews compatible with bundling
+- **Testing Strategy**: Comprehensive test plan including existing Python integration tests
+- **Breaking Changes**: Minimal - only changes output directory and internal build process
+
+### Deliverables Completed
+✅ **Comprehensive Analysis Report**: VS_Code_Extension_Bundling_Optimization_Analysis.md
+✅ **Bundling Solutions Comparison**: Detailed evaluation of esbuild vs webpack vs rollup  
+✅ **Implementation Roadmap**: Step-by-step plan with timeline estimates (6-11 hours total)
+✅ **Risk Assessment**: Identified risks with specific mitigation strategies
+✅ **.vscodeignore Optimization**: Recommendations to reduce packaged files by ~95%
+✅ **Performance Projections**: Quantified expected improvements in build speed and file count
+
+### Successful Completion Confirmation
+Task completed successfully with all deliverables provided as specified in the assignment. The analysis provides clear, actionable guidance for implementing VS Code extension bundling optimization that addresses the CI performance warning while maintaining all current functionality.
+
+**Status**: ✅ **COMPLETED** - Analysis ready for implementation approval and execution
+
 ### Challenges Encountered
 
 - Docker daemon not running in development environment prevented local build testing
