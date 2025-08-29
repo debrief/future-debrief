@@ -39,7 +39,11 @@
       "Bash(flyctl status:*)",
       "Bash(flyctl:*)",
       "Bash(npm run:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(gh issue edit:*)",
+      "Bash(gh label:*)",
+      "Bash(gh issue:*)",
+      "WebSearch"
     ]
   },
   "outputStyle": "default"
