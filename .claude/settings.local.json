@@ -48,7 +48,8 @@
       "Bash(git pull:*)",
       "Bash(pip install:*)",
       "Bash(time npm run compile)",
-      "Bash(time npm run vscode:prepublish)"
+      "Bash(time npm run vscode:prepublish)",
+      "Bash(yarn install)"
     ]
   },
   "outputStyle": "default"

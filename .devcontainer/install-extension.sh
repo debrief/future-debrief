@@ -50,9 +50,9 @@ fi
 
 # Fallback: build locally
 echo "Building extension locally..."
-npm install
-npm run compile
-npx @vscode/vsce package --out extension.vsix
+yarn install
+yarn compile
+yarn dlx @vscode/vsce package --out extension.vsix
 
 if [ -f "extension.vsix" ]; then
     code --install-extension extension.vsix --force

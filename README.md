@@ -22,12 +22,12 @@ This extension demonstrates three core VS Code extension capabilities:
 
 2. Install dependencies:
    ```bash
-   npm install
+   yarn install
    ```
 
 3. Compile TypeScript:
    ```bash
-   npm run compile
+   yarn compile
    ```
 
 4. Launch Extension Development Host:
@@ -111,14 +111,14 @@ When you create a Pull Request:
 
 ## Build Commands
 
-- `npm run compile` - Compile TypeScript to JavaScript
-- `npm run watch` - Watch mode compilation for development
-- `npm run vscode:prepublish` - Prepare for publishing (runs compile)
+- `yarn compile` - Compile TypeScript to JavaScript
+- `yarn watch` - Watch mode compilation for development
+- `yarn vscode:prepublish` - Prepare for publishing (runs compile)
 
 ## Troubleshooting
 
 ### Extension Not Loading
-- Ensure TypeScript compilation succeeded (`npm run compile`)
+- Ensure TypeScript compilation succeeded (`yarn compile`)
 - Check console for activation errors (Developer Tools → Console)
 - Verify `package.json` manifest is correct
 
