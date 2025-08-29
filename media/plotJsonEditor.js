@@ -15,6 +15,11 @@
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
+        
+        // Save map state whenever the user moves or zooms the map
+        map.on('moveend zoomend', function() {
+            saveCurrentMapState();
+        });
     }
 
     // Update the map with GeoJSON data
@@ -34,7 +39,6 @@
                     return null;
                 }).filter(id => id !== null);
                 
-                console.log('🔄 Updating map, preserving selection for IDs:', previousSelectedIds);
                 
                 // Clear all existing selection visuals
                 clearAllSelectionVisuals();
@@ -90,14 +94,32 @@
                     }
                 }).addTo(map);
                 
-                // Fit map to show all features
+                // Fit map to show all features (but check for saved state first)
                 if (data.features.length > 0) {
-                    map.fitBounds(geoJsonLayer.getBounds());
+                    // Set a flag to track if we're expecting state restoration
+                    window.expectingStateRestoration = true;
+                    
+                    // Request saved state from extension
+                    vscode.postMessage({
+                        type: 'requestSavedState'
+                    });
+                    
+                    // Use timeout to allow state restoration message to be processed first
+                    setTimeout(() => {
+                        if (window.expectingStateRestoration) {
+                            // No state restoration happened, so fit bounds normally
+                            map.fitBounds(geoJsonLayer.getBounds());
+                            // Save state after fitting bounds
+                            setTimeout(() => {
+                                saveCurrentMapState();
+                            }, 100);
+                        }
+                        window.expectingStateRestoration = false;
+                    }, 50);
                 }
                 
                 // Restore previous selection if any features had IDs that match
                 if (previousSelectedIds.length > 0) {
-                    console.log('🔄 Restoring selection for IDs:', previousSelectedIds);
                     setSelectionByIds(previousSelectedIds);
                 }
                
@@ -136,7 +158,6 @@
             return;
         }
 
-        console.log('Highlighting feature:', featureIndex, feature.properties?.name);
 
         // Create a highlighted version of the feature
         highlightedLayer = L.geoJSON(feature, {
@@ -206,6 +227,17 @@
                 // Refresh selection visual indicators after feature updates
                 refreshSelectionVisuals();
                 break;
+            case 'requestMapState':
+                // Extension is requesting current map state (before tab becomes hidden)
+                saveCurrentMapState();
+                break;
+            case 'restoreMapState':
+                // Extension wants us to restore map state (after tab becomes visible)
+                // Use setTimeout to ensure this happens after any pending update messages
+                setTimeout(() => {
+                    restoreMapState(message.center, message.zoom);
+                }, 50);
+                break;
         }
     });
 
@@ -246,8 +278,6 @@
 
         // Notify VS Code of selection change
         notifySelectionChange();
-        
-        console.log('Selected features:', Array.from(selectedFeatures));
     }
 
     // Update feature visual style based on selection state
@@ -318,8 +348,6 @@
                 updateFeatureStyle(index, true);
             }
         });
-        
-        console.log('Selection set to:', featureIndices);
     }
 
     // Set selection by feature IDs
@@ -344,8 +372,6 @@
         
         // Set selection
         setSelection(indices);
-        
-        console.log('Selection set by IDs:', featureIds, 'indices:', indices);
     }
 
     // Clear all selections
@@ -358,8 +384,6 @@
 
     // Clear all selection visuals
     function clearAllSelectionVisuals() {
-        console.log('🧹 Clearing all selection visuals...');
-        
         // Clear tracked selections first
         selectedFeatures.forEach(index => {
             updateFeatureStyle(index, false);
@@ -408,13 +432,6 @@
             return feature.id ? feature.id : `index_${index}`;
         });
 
-        console.log('🔄 Selection changed:');
-        console.log('  Selected indices:', Array.from(selectedFeatures));
-        console.log('  Selected feature IDs:', selectedFeatureIds);
-        console.log('  Features with missing IDs:', Array.from(selectedFeatures).filter(index => {
-            const feature = currentData.features[index];
-            return !feature.id;
-        }));
 
         vscode.postMessage({
             type: 'selectionChanged',
@@ -425,8 +442,6 @@
 
     // Refresh selection visual indicators (removes old selection circles and redraws them)
     function refreshSelectionVisuals() {
-        console.log('🔄 Refreshing selection visuals...');
-        
         if (!currentData || selectedFeatures.size === 0) {
             return;
         }
@@ -444,8 +459,42 @@
                 updateFeatureStyle(index, true);
             }
         });
+    }
+
+    // Save current map state to the extension
+    function saveCurrentMapState() {
+        if (!map) {
+            return;
+        }
         
-        console.log('✅ Selection visuals refreshed for', currentSelection.length, 'features');
+        const center = map.getCenter();
+        const zoom = map.getZoom();
+        
+        vscode.postMessage({
+            type: 'mapStateSaved',
+            center: [center.lat, center.lng],
+            zoom: zoom
+        });
+    }
+
+    // Restore map state
+    function restoreMapState(center, zoom) {
+        if (!map || !center || typeof zoom !== 'number') {
+            return;
+        }
+        
+        // Cancel the pending fitBounds operation
+        if (window.expectingStateRestoration) {
+            window.expectingStateRestoration = false;
+        }
+        
+        // Restore map view immediately with animation disabled
+        map.setView(center, zoom, { animate: false });
+        
+        // Force a redraw to ensure the state is applied
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 10);
     }
 
     // Handle add button click

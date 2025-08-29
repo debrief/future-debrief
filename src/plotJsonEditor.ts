@@ -4,6 +4,8 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
     private static outlineUpdateCallback: ((document: vscode.TextDocument) => void) | undefined;
     private static activeWebviewPanel: vscode.WebviewPanel | undefined;
     private static currentSelectionState: { [filename: string]: string[] } = {};
+    private static mapViewState: { [filename: string]: { center: [number, number], zoom: number } } = {};
+    private static wasHidden: { [filename: string]: boolean } = {};
 
     public static setOutlineUpdateCallback(callback: (document: vscode.TextDocument) => void): void {
         PlotJsonEditorProvider.outlineUpdateCallback = callback;
@@ -29,6 +31,14 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
                 featureIds: featureIds
             });
         }
+    }
+
+    public static saveMapViewState(filename: string, center: [number, number], zoom: number): void {
+        PlotJsonEditorProvider.mapViewState[filename] = { center, zoom };
+    }
+
+    public static getMapViewState(filename: string): { center: [number, number], zoom: number } | undefined {
+        return PlotJsonEditorProvider.mapViewState[filename];
     }
 
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
@@ -58,11 +68,46 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 
         // Listen for when this webview panel becomes visible (tab switching)
         webviewPanel.onDidChangeViewState(() => {
+            const filename = document.fileName;
+            
             if (webviewPanel.visible) {
                 PlotJsonEditorProvider.activeWebviewPanel = webviewPanel;
                 if (PlotJsonEditorProvider.outlineUpdateCallback) {
                     PlotJsonEditorProvider.outlineUpdateCallback(document);
                 }
+                
+                // Only restore state and force update if this tab was previously hidden
+                if (PlotJsonEditorProvider.wasHidden[filename]) {
+                    PlotJsonEditorProvider.wasHidden[filename] = false;
+                    
+                    // Send document content when tab becomes visible after being hidden
+                    updateWebview();
+                    
+                    // Restore map state when tab becomes visible after being hidden
+                    const savedState = PlotJsonEditorProvider.getMapViewState(filename);
+                    if (savedState) {
+                        webviewPanel.webview.postMessage({
+                            type: 'restoreMapState',
+                            center: savedState.center,
+                            zoom: savedState.zoom
+                        });
+                    }
+                    
+                    // Restore selection state
+                    const savedSelection = PlotJsonEditorProvider.getSelectedFeatures(filename);
+                    if (savedSelection.length > 0) {
+                        webviewPanel.webview.postMessage({
+                            type: 'setSelectionByIds',
+                            featureIds: savedSelection
+                        });
+                    }
+                }
+            } else {
+                PlotJsonEditorProvider.wasHidden[filename] = true;
+                // Tab is becoming hidden, request current map state to save it
+                webviewPanel.webview.postMessage({
+                    type: 'requestMapState'
+                });
             }
         });
 
@@ -110,10 +155,27 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
                     // Update selection state when user clicks features in webview
                     const filename = document.fileName;
                     PlotJsonEditorProvider.currentSelectionState[filename] = e.selectedFeatureIds;
-                    console.log(`🔄 Selection updated for ${filename}:`);
-                    console.log('  Selected feature IDs:', e.selectedFeatureIds);
-                    console.log('  Selected indices:', e.selectedIndices);
-                    console.log('  Current selection state:', PlotJsonEditorProvider.currentSelectionState);
+                    return;
+
+                case 'mapStateSaved':
+                    // Save map view state when requested, but only if this is the active webview
+                    if (PlotJsonEditorProvider.activeWebviewPanel === webviewPanel) {
+                        const saveFilename = document.fileName;
+                        PlotJsonEditorProvider.saveMapViewState(saveFilename, e.center, e.zoom);
+                    }
+                    return;
+
+                case 'requestSavedState':
+                    // Webview is asking if there's saved state to restore
+                    const requestFilename = document.fileName;
+                    const savedState = PlotJsonEditorProvider.getMapViewState(requestFilename);
+                    if (savedState) {
+                        webviewPanel.webview.postMessage({
+                            type: 'restoreMapState',
+                            center: savedState.center,
+                            zoom: savedState.zoom
+                        });
+                    }
                     return;
             }
         });

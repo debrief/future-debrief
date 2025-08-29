@@ -24,6 +24,8 @@ export class DebriefWebSocketServer {
     private httpServer: http.Server | null = null;
     private readonly port = 60123;
     private clients: Set<WebSocket> = new Set();
+    private cachedFilename: string | null = null;
+    private healthCheckInterval: NodeJS.Timeout | null = null;
 
     constructor() {}
 
@@ -91,14 +93,18 @@ export class DebriefWebSocketServer {
                     }
                 });
 
-                ws.on('close', () => {
-                    console.log('WebSocket client disconnected');
+                ws.on('close', (code, reason) => {
+                    console.log(`WebSocket client disconnected. Code: ${code}, Reason: ${reason}. Remaining clients: ${this.clients.size - 1}`);
                     this.clients.delete(ws);
+                    // Clear cached filename when client disconnects
+                    this.cachedFilename = null;
                 });
 
                 ws.on('error', (error) => {
                     console.error('WebSocket client error:', error);
                     this.clients.delete(ws);
+                    // Clear cached filename when client disconnects with error
+                    this.cachedFilename = null;
                 });
 
                 // Send welcome message
@@ -108,10 +114,27 @@ export class DebriefWebSocketServer {
             this.server.on('error', (error) => {
                 console.error('WebSocket server error:', error);
                 vscode.window.showErrorMessage(`WebSocket server error: ${error.message}`);
+                
+                // Attempt to restart the server after a brief delay
+                setTimeout(() => {
+                    console.log('Attempting to restart WebSocket server...');
+                    this.stop().then(() => {
+                        return this.start();
+                    }).catch((restartError) => {
+                        console.error('Failed to restart WebSocket server:', restartError);
+                    });
+                }, 2000);
             });
 
             console.log(`Debrief WebSocket server started on ws://localhost:${this.port}`);
             vscode.window.showInformationMessage(`Debrief WebSocket bridge started on port ${this.port}`);
+            
+            // Start health check logging every 30 seconds
+            this.healthCheckInterval = setInterval(() => {
+                const isServerRunning = this.server !== null;
+                const isHttpServerListening = this.httpServer && this.httpServer.listening;
+                console.log(`WebSocket Health Check - Server running: ${isServerRunning}, HTTP listening: ${isHttpServerListening}, Active clients: ${this.clients.size}`);
+            }, 30000);
 
         } catch (error) {
             console.error('Failed to start WebSocket server:', error);
@@ -122,6 +145,12 @@ export class DebriefWebSocketServer {
 
     async stop(): Promise<void> {
         console.log('Stopping Debrief WebSocket server...');
+        
+        // Clear health check interval
+        if (this.healthCheckInterval) {
+            clearInterval(this.healthCheckInterval);
+            this.healthCheckInterval = null;
+        }
 
         // Close all client connections
         this.clients.forEach(ws => {
@@ -724,6 +753,10 @@ export class DebriefWebSocketServer {
         }
     }
 
+    private clearFilenameCache(): void {
+        this.cachedFilename = null;
+    }
+
     private getOpenPlotFiles(): Array<{filename: string, title: string}> {
         const openDocs = vscode.workspace.textDocuments;
         const plotFiles: Array<{filename: string, title: string}> = [];
@@ -741,11 +774,26 @@ export class DebriefWebSocketServer {
 
     private async resolveFilename(providedFilename?: string): Promise<DebriefResponse> {
         if (providedFilename) {
-            // Filename provided, use it directly
+            // Filename provided, cache it for future use and use it directly
+            this.cachedFilename = providedFilename;
             return { result: providedFilename };
         }
         
-        // No filename provided, check open plots
+        // No filename provided, check cached filename first
+        if (this.cachedFilename) {
+            // Verify cached filename is still open
+            const openPlots = this.getOpenPlotFiles();
+            const cachedStillOpen = openPlots.some(plot => plot.filename === this.cachedFilename);
+            
+            if (cachedStillOpen) {
+                return { result: this.cachedFilename };
+            } else {
+                // Cached file is no longer open, clear cache
+                this.cachedFilename = null;
+            }
+        }
+        
+        // No cached filename or cache invalid, check open plots
         const openPlots = this.getOpenPlotFiles();
         
         if (openPlots.length === 0) {
