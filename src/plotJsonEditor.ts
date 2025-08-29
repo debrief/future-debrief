@@ -35,13 +35,10 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 
     public static saveMapViewState(filename: string, center: [number, number], zoom: number): void {
         PlotJsonEditorProvider.mapViewState[filename] = { center, zoom };
-        console.log(`💾 Saved map state: ${filename}`, { center, zoom });
     }
 
     public static getMapViewState(filename: string): { center: [number, number], zoom: number } | undefined {
-        const state = PlotJsonEditorProvider.mapViewState[filename];
-        console.log(`💾 Retrieved map state: ${filename}`, state);
-        return state;
+        return PlotJsonEditorProvider.mapViewState[filename];
     }
 
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
@@ -62,7 +59,6 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         // Note: Document Activation Trigger removed - it conflicts with custom editor display
 
         // Track this as the active webview panel
-        console.log(`🔄 Initial active webview set to: ${document.fileName}`);
         PlotJsonEditorProvider.activeWebviewPanel = webviewPanel;
 
         // Notify outline tree that this document is now active
@@ -73,10 +69,8 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         // Listen for when this webview panel becomes visible (tab switching)
         webviewPanel.onDidChangeViewState(() => {
             const filename = document.fileName;
-            console.log(`🔄 ViewState changed: visible=${webviewPanel.visible}, active=${webviewPanel.active} for ${filename}`);
             
             if (webviewPanel.visible) {
-                console.log(`🔄 Setting active webview to: ${filename}`);
                 PlotJsonEditorProvider.activeWebviewPanel = webviewPanel;
                 if (PlotJsonEditorProvider.outlineUpdateCallback) {
                     PlotJsonEditorProvider.outlineUpdateCallback(document);
@@ -84,18 +78,14 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
                 
                 // Only restore state and force update if this tab was previously hidden
                 if (PlotJsonEditorProvider.wasHidden[filename]) {
-                    console.log(`🔄 Tab was hidden - performing full restoration`);
                     PlotJsonEditorProvider.wasHidden[filename] = false;
                     
-                    // FORCE UPDATE: Send document content when tab becomes visible after being hidden
-                    console.log(`🔄 Tab restored - forcing document update`);
+                    // Send document content when tab becomes visible after being hidden
                     updateWebview();
                     
                     // Restore map state when tab becomes visible after being hidden
                     const savedState = PlotJsonEditorProvider.getMapViewState(filename);
-                    console.log(`🗺️ Checking for saved state for ${filename}:`, savedState);
                     if (savedState) {
-                        console.log(`🗺️ Sending restoreMapState message:`, savedState);
                         webviewPanel.webview.postMessage({
                             type: 'restoreMapState',
                             center: savedState.center,
@@ -106,17 +96,13 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
                     // Restore selection state
                     const savedSelection = PlotJsonEditorProvider.getSelectedFeatures(filename);
                     if (savedSelection.length > 0) {
-                        console.log(`🔄 Restoring selection:`, savedSelection);
                         webviewPanel.webview.postMessage({
                             type: 'setSelectionByIds',
                             featureIds: savedSelection
                         });
                     }
-                } else {
-                    console.log(`🔄 Tab activated (was not hidden) - no restoration needed`);
                 }
             } else {
-                console.log(`🗺️ Tab becoming hidden, requesting state save`);
                 PlotJsonEditorProvider.wasHidden[filename] = true;
                 // Tab is becoming hidden, request current map state to save it
                 webviewPanel.webview.postMessage({
@@ -131,7 +117,6 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview, document);
 
         function updateWebview() {
-            console.log('📤 Sending updateWebview message, document length:', document.getText().length);
             webviewPanel.webview.postMessage({
                 type: 'update',
                 text: document.getText(),
@@ -170,10 +155,6 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
                     // Update selection state when user clicks features in webview
                     const filename = document.fileName;
                     PlotJsonEditorProvider.currentSelectionState[filename] = e.selectedFeatureIds;
-                    console.log(`🔄 Selection updated for ${filename}:`);
-                    console.log('  Selected feature IDs:', e.selectedFeatureIds);
-                    console.log('  Selected indices:', e.selectedIndices);
-                    console.log('  Current selection state:', PlotJsonEditorProvider.currentSelectionState);
                     return;
 
                 case 'mapStateSaved':
@@ -181,9 +162,6 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
                     if (PlotJsonEditorProvider.activeWebviewPanel === webviewPanel) {
                         const saveFilename = document.fileName;
                         PlotJsonEditorProvider.saveMapViewState(saveFilename, e.center, e.zoom);
-                        console.log(`🗺️ Map state saved for ${saveFilename}: center=${e.center}, zoom=${e.zoom}`);
-                    } else {
-                        console.log(`🗺️ Ignoring map state save from inactive webview for ${document.fileName}`);
                     }
                     return;
 
@@ -192,7 +170,6 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
                     const requestFilename = document.fileName;
                     const savedState = PlotJsonEditorProvider.getMapViewState(requestFilename);
                     if (savedState) {
-                        console.log(`🗺️ Sending saved state for restoration:`, savedState);
                         webviewPanel.webview.postMessage({
                             type: 'restoreMapState',
                             center: savedState.center,

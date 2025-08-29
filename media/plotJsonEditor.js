@@ -24,11 +24,9 @@
 
     // Update the map with GeoJSON data
     function updateMap(jsonText) {
-        console.log('🗺️ updateMap called, jsonText length:', jsonText?.length);
         try {
             const data = JSON.parse(jsonText);
             currentData = data;
-            console.log('🗺️ Parsed data:', data?.type, 'features:', data?.features?.length);
             
             // Check if it's a valid GeoJSON FeatureCollection
             if (data.type === 'FeatureCollection' && Array.isArray(data.features)) {
@@ -41,7 +39,6 @@
                     return null;
                 }).filter(id => id !== null);
                 
-                console.log('🔄 Updating map, preserving selection for IDs:', previousSelectedIds);
                 
                 // Clear all existing selection visuals
                 clearAllSelectionVisuals();
@@ -111,7 +108,6 @@
                     setTimeout(() => {
                         if (window.expectingStateRestoration) {
                             // No state restoration happened, so fit bounds normally
-                            console.log('🗺️ No saved state found, fitting bounds to features');
                             map.fitBounds(geoJsonLayer.getBounds());
                             // Save state after fitting bounds
                             setTimeout(() => {
@@ -124,7 +120,6 @@
                 
                 // Restore previous selection if any features had IDs that match
                 if (previousSelectedIds.length > 0) {
-                    console.log('🔄 Restoring selection for IDs:', previousSelectedIds);
                     setSelectionByIds(previousSelectedIds);
                 }
                
@@ -163,7 +158,6 @@
             return;
         }
 
-        console.log('Highlighting feature:', featureIndex, feature.properties?.name);
 
         // Create a highlighted version of the feature
         highlightedLayer = L.geoJSON(feature, {
@@ -198,7 +192,6 @@
     // Handle messages from the extension
     window.addEventListener('message', event => {
         const message = event.data;
-        console.log('📥 Received message:', message.type, message);
         switch (message.type) {
             case 'update':
                 updateMap(message.text);
@@ -285,8 +278,6 @@
 
         // Notify VS Code of selection change
         notifySelectionChange();
-        
-        console.log('Selected features:', Array.from(selectedFeatures));
     }
 
     // Update feature visual style based on selection state
@@ -357,8 +348,6 @@
                 updateFeatureStyle(index, true);
             }
         });
-        
-        console.log('Selection set to:', featureIndices);
     }
 
     // Set selection by feature IDs
@@ -383,8 +372,6 @@
         
         // Set selection
         setSelection(indices);
-        
-        console.log('Selection set by IDs:', featureIds, 'indices:', indices);
     }
 
     // Clear all selections
@@ -397,8 +384,6 @@
 
     // Clear all selection visuals
     function clearAllSelectionVisuals() {
-        console.log('🧹 Clearing all selection visuals...');
-        
         // Clear tracked selections first
         selectedFeatures.forEach(index => {
             updateFeatureStyle(index, false);
@@ -447,13 +432,6 @@
             return feature.id ? feature.id : `index_${index}`;
         });
 
-        console.log('🔄 Selection changed:');
-        console.log('  Selected indices:', Array.from(selectedFeatures));
-        console.log('  Selected feature IDs:', selectedFeatureIds);
-        console.log('  Features with missing IDs:', Array.from(selectedFeatures).filter(index => {
-            const feature = currentData.features[index];
-            return !feature.id;
-        }));
 
         vscode.postMessage({
             type: 'selectionChanged',
@@ -464,8 +442,6 @@
 
     // Refresh selection visual indicators (removes old selection circles and redraws them)
     function refreshSelectionVisuals() {
-        console.log('🔄 Refreshing selection visuals...');
-        
         if (!currentData || selectedFeatures.size === 0) {
             return;
         }
@@ -483,8 +459,6 @@
                 updateFeatureStyle(index, true);
             }
         });
-        
-        console.log('✅ Selection visuals refreshed for', currentSelection.length, 'features');
     }
 
     // Save current map state to the extension
@@ -496,9 +470,6 @@
         const center = map.getCenter();
         const zoom = map.getZoom();
         
-        console.log('🗺️ Saving map state for this webview:', { center: [center.lat, center.lng], zoom });
-        
-        // Only save state if this webview is the active one
         vscode.postMessage({
             type: 'mapStateSaved',
             center: [center.lat, center.lng],
@@ -512,12 +483,9 @@
             return;
         }
         
-        console.log('🗺️ Restoring map state immediately:', { center, zoom });
-        
         // Cancel the pending fitBounds operation
         if (window.expectingStateRestoration) {
             window.expectingStateRestoration = false;
-            console.log('🗺️ Cancelled fitBounds - using saved state instead');
         }
         
         // Restore map view immediately with animation disabled
