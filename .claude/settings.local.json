@@ -45,7 +45,10 @@
       "Bash(gh issue:*)",
       "WebSearch",
       "Bash(find:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(pip install:*)",
+      "Bash(time npm run compile)",
+      "Bash(time npm run vscode:prepublish)"
     ]
   },
   "outputStyle": "default"
