@@ -12,6 +12,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  call-pr-preview:
-    uses: ./vs-code/CI/workflows/pr-preview.yml
-    secrets: inherit
+  pr-preview:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    
+    steps:
+    - name: Run VS Code Extension PR Preview
+      uses: ./vs-code/CI/action
+      with:
+        pr_number: ${{ github.event.number }}
+        pr_sha: ${{ github.event.pull_request.head.sha }}
+        fly_api_token: ${{ secrets.FLY_API_TOKEN }}
