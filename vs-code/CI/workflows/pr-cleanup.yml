@@ -4,6 +4,7 @@ on:
   pull_request:
     types: [closed]
     branches: [main]
+  workflow_call:
 
 concurrency:
   group: destroy-preview-${{ github.event.number }}

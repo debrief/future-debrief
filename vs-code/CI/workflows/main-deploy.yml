@@ -10,6 +10,13 @@ on:
         required: false
         default: false
         type: boolean
+  workflow_call:
+    inputs:
+      force_deploy:
+        description: 'Force deployment even if no changes detected'
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: main-production-deploy
@@ -17,7 +24,7 @@ concurrency:
 
 jobs:
   build-extension:
-    uses: ./vs-code/CI/workflows/vs-build-extension.yml
+    uses: ./vs-code/CI/workflows/build-extension.yml
     with:
       artifact_retention_days: 7
 
