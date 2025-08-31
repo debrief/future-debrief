@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   call-main-deploy:
-    uses: ./vs-code/CI/workflows/main-deploy.yml
+    uses: ./vs-code/CI/workflows/main-deploy.yml@${{ github.sha }}
     with:
       force_deploy: ${{ inputs.force_deploy || false }}
     secrets: inherit
