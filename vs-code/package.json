@@ -1,0 +1,90 @@
+{
+  "name": "codespace-extension",
+  "displayName": "Codespace Extension",
+  "description": "VS Code extension demonstrator for Codespace preview from PRs",
+  "version": "0.0.1",
+  "publisher": "ian",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/debrief/codespace-extension.git"
+  },
+    "scripts": {
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
+    "compile": "yarn esbuild-base --sourcemap",
+    "watch": "yarn esbuild-base --sourcemap --watch",
+    "vscode:prepublish": "yarn esbuild-base --minify",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "plot-json",
+        "aliases": [
+          "Plot JSON",
+          "plot-json"
+        ],
+        "extensions": [
+          ".plot.json"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "codespace-extension.helloWorld",
+        "title": "Hello World"
+      },
+      {
+        "command": "customOutline.selectFeature",
+        "title": "Select Feature"
+      }
+    ],
+    "views": {
+      "explorer": [
+        {
+          "id": "codespace-extension.helloView",
+          "name": "Hello World",
+          "when": "true"
+        },
+        {
+          "id": "customGeoJsonOutline",
+          "name": "GeoJSON Features",
+          "when": "true"
+        }
+      ]
+    },
+    "customEditors": [
+      {
+        "viewType": "plotJsonEditor",
+        "displayName": "Plot JSON Viewer",
+        "selector": [
+          {
+            "filenamePattern": "*.plot.json"
+          }
+        ]
+      }
+    ]
+  },
+  "devDependencies": {
+    "@types/node": "16.x",
+    "@types/vscode": "^1.74.0",
+    "@types/ws": "^8.5.10",
+    "@vscode/vsce": "^3.6.0",
+    "esbuild": "^0.25.9",
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4",
+    "ws": "^8.14.2"
+  }
+}

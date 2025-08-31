@@ -1,0 +1,23 @@
+# Files to exclude from the VSIX package
+.vscode/**
+.vscode-test/**
+.gitignore
+vsc-extension-quickstart.md
+**/tsconfig.json
+**/.eslintrc.json
+**/*.map
+**/*.ts
+!file.schema.json
+.github/**
+docs/**
+prompts/**
+scripts/**
+node_modules/**/.cache/**
+.dockerignore
+Dockerfile
+fly*.toml
+*.md
+!README.md
+*.log
+.DS_Store
+Thumbs.db
