@@ -1,0 +1,17 @@
+name: VS Code Extension PR Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths:
+      - 'vs-code/**'
+
+concurrency:
+  group: vs-pr-preview-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  call-pr-preview:
+    uses: ./vs-code/CI/workflows/pr-preview.yml
+    secrets: inherit

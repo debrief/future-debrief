@@ -1,0 +1,25 @@
+name: VS Code Extension Main Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'vs-code/**'
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment even if no changes detected'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: vs-main-production-deploy
+  cancel-in-progress: true
+
+jobs:
+  call-main-deploy:
+    uses: ./vs-code/CI/workflows/main-deploy.yml
+    with:
+      force_deploy: ${{ inputs.force_deploy || false }}
+    secrets: inherit

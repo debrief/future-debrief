@@ -1,0 +1,13 @@
+name: VS Code Extension PR Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+    paths:
+      - 'vs-code/**'
+
+jobs:
+  call-pr-cleanup:
+    uses: ./vs-code/CI/workflows/pr-cleanup.yml
+    secrets: inherit
