@@ -1,0 +1,155 @@
+name: Main Branch Production Deployment
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment even if no changes detected'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: main-production-deploy
+  cancel-in-progress: true
+
+jobs:
+  build-extension:
+    uses: ./.github/workflows/build-extension.yml
+    with:
+      artifact_retention_days: 7
+
+  deploy-production:
+    needs: build-extension
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout main branch
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    
+    - name: Download extension artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: debrief-vsix
+        path: .
+    
+    - name: Setup Fly CLI
+      uses: superfly/flyctl-actions/setup-flyctl@master
+    
+    - name: Verify Fly CLI installation
+      run: |
+        echo "PATH: $PATH"
+        which flyctl
+        flyctl version
+    
+    - name: Configure production deployment
+      id: config
+      run: |
+        APP_NAME="main-futuredebrief"
+        PRODUCTION_URL="https://${APP_NAME}.fly.dev"
+        
+        echo "app_name=${APP_NAME}" >> $GITHUB_OUTPUT
+        echo "production_url=${PRODUCTION_URL}" >> $GITHUB_OUTPUT
+        
+        # Use production configuration
+        cp fly-production.toml fly.toml
+        
+        echo "Production deployment configuration:"
+        cat fly.toml
+    
+    - name: Deploy to Fly.io Production
+      id: deploy
+      env:
+        FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      run: |
+        APP_NAME="${{ steps.config.outputs.app_name }}"
+        
+        # Check if app exists, create if it doesn't
+        if ! flyctl apps list | grep -q "^${APP_NAME}"; then
+          echo "Creating new production app: ${APP_NAME}"
+          flyctl apps create "${APP_NAME}" --org personal
+        else
+          echo "Production app ${APP_NAME} exists, updating..."
+        fi
+        
+        # Deploy the application
+        echo "Deploying to production: ${APP_NAME}..."
+        echo "Starting deployment at $(date)"
+        
+        # Deploy with timeout protection
+        timeout 600 flyctl deploy --app "${APP_NAME}" --dockerfile ./Dockerfile \
+          --build-arg GITHUB_SHA="${{ github.sha }}" \
+          --build-arg BRANCH="main" \
+          --wait-timeout 300 \
+          --strategy immediate \
+          --verbose || {
+            echo "Deployment timed out or failed after 10 minutes"
+            echo "Checking app status..."
+            flyctl status --app "${APP_NAME}" || true
+            exit 1
+          }
+        
+        echo "Deployment completed at $(date)"
+        
+        # Check deployment status
+        echo "Checking production deployment status..."
+        flyctl status --app "${APP_NAME}"
+        
+        # Check recent logs for any startup issues
+        echo "Checking recent logs..."
+        flyctl logs --app "${APP_NAME}" --limit 50 || true
+        
+        # Give the app time to fully start
+        echo "Waiting for app to fully initialize..."
+        sleep 45
+        
+        # Verify the app is responding
+        PRODUCTION_URL="https://${APP_NAME}.fly.dev"
+        echo "Testing production availability at ${PRODUCTION_URL}..."
+        
+        # Test with extended timeout for code-server startup
+        if timeout 120 bash -c "until curl -f -s -m 30 ${PRODUCTION_URL} > /dev/null; do echo 'Waiting for response...'; sleep 10; done"; then
+          echo "✅ Production app is responding at ${PRODUCTION_URL}"
+          echo "deployment_status=success" >> $GITHUB_OUTPUT
+        else
+          echo "⚠️ Production app deployed but not responding at ${PRODUCTION_URL}"
+          echo "Checking final app status and logs..."
+          flyctl status --app "${APP_NAME}" || true
+          flyctl logs --app "${APP_NAME}" --limit 20 || true
+          echo "deployment_status=partial" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Create deployment summary
+      if: steps.deploy.outputs.deployment_status == 'success' || steps.deploy.outputs.deployment_status == 'partial'
+      run: |
+        echo "## 🚀 Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**🌐 Production URL:** ${{ steps.config.outputs.production_url }}" >> $GITHUB_STEP_SUMMARY
+        echo "**📦 Build:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**🕒 Deployed:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+        echo "**📋 Status:** ${{ steps.deploy.outputs.deployment_status == 'success' && '✅ Healthy' || '⚠️ Partial' }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**🔧 What's included:**" >> $GITHUB_STEP_SUMMARY
+        echo "- VS Code (code-server) environment" >> $GITHUB_STEP_SUMMARY
+        echo "- Debrief extension pre-installed" >> $GITHUB_STEP_SUMMARY
+        echo "- Sample workspace with test files" >> $GITHUB_STEP_SUMMARY
+        echo "- Always-available production instance" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Handle deployment failure
+      if: failure()
+      run: |
+        echo "## ❌ Production Deployment Failed" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**🔧 Troubleshooting:**" >> $GITHUB_STEP_SUMMARY
+        echo "- Check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed error information" >> $GITHUB_STEP_SUMMARY
+        echo "- Verify Fly.io account status and billing" >> $GITHUB_STEP_SUMMARY
+        echo "- Check Fly.io dashboard for app status" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**📋 Details:**" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Run ID:** \`${{ github.run_id }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
