@@ -14,12 +14,6 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Checkout PR branch
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ inputs.pr_sha }}
-        fetch-depth: 1
-    
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
