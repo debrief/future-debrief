@@ -23,6 +23,8 @@ These workflows are called by corresponding trigger workflows in the repository 
 - `/.github/workflows/vs-pr-preview.yml` → `CI/workflows/pr-preview.yml`
 - `/.github/workflows/vs-main-deploy.yml` → `CI/workflows/main-deploy.yml`
 - `/.github/workflows/vs-pr-cleanup.yml` → `CI/workflows/pr-cleanup.yml`
+- `/.github/workflows/vs-build-extension.yml` → `CI/workflows/build-extension.yml`
+
 
 The trigger workflows:
 1. Monitor changes in the `vs-code/` directory
