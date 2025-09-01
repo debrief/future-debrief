@@ -13,26 +13,17 @@
     "features": {
       "type": "array",
       "items": {
-        "type": "object",
-        "required": ["type", "id", "geometry", "properties"],
-        "properties": {
-          "type": {
-            "type": "string",
-            "enum": ["Feature"]
+        "oneOf": [
+          {
+            "$ref": "track.schema.json"
           },
-          "id": {
-            "type": ["string", "number"],
-            "description": "Unique identifier for this feature"
+          {
+            "$ref": "point.schema.json"
           },
-          "geometry": {
-            "type": "object",
-            "description": "Any valid GeoJSON geometry"
-          },
-          "properties": {
-            "type": "object",
-            "description": "Feature properties"
+          {
+            "$ref": "annotation.schema.json"
           }
-        }
+        ]
       }
     },
     "bbox": {
