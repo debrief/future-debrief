@@ -12,130 +12,22 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
+    - name: Build VS Code Extension
+      uses: ./apps/vs-code/CI/action/build-extension
       with:
-        node-version: '20'
-        cache: 'yarn'
-        cache-dependency-path: apps/vs-code/yarn.lock
-    
-    - name: Install dependencies
-      shell: bash
-      working-directory: apps/vs-code
-      run: yarn install --frozen-lockfile
-    
-    - name: Compile TypeScript
-      shell: bash
-      working-directory: apps/vs-code
-      run: yarn compile
-    
-    - name: Install vsce
-      shell: bash
-      working-directory: apps/vs-code
-      run: |
-        yarn global add @vscode/vsce || yarn add @vscode/vsce
-    
-    - name: Package extension
-      shell: bash
-      working-directory: apps/vs-code
-      run: |
-        if which vsce > /dev/null 2>&1; then
-          vsce package --out extension.vsix
-        else
-          npx vsce package --out extension.vsix
-        fi
-        
-        if [ -f extension.vsix ]; then
-          echo "✅ Extension packaged successfully"
-          ls -la *.vsix
-        else
-          echo "❌ Extension packaging failed"
-          exit 1
-        fi
-    
-    - name: Setup Fly CLI
-      uses: superfly/flyctl-actions/setup-flyctl@master
-    
-    - name: Configure production deployment
-      id: config
-      shell: bash
-      working-directory: apps/vs-code
-      run: |
-        APP_NAME="main-futuredebrief"
-        PRODUCTION_URL="https://${APP_NAME}.fly.dev"
-        
-        echo "app_name=${APP_NAME}" >> $GITHUB_OUTPUT
-        echo "production_url=${PRODUCTION_URL}" >> $GITHUB_OUTPUT
-        
-        # Use production configuration
-        cp fly-production.toml fly.toml
-        
-        echo "Production deployment configuration:"
-        cat fly.toml
+        artifact_retention_days: 7
     
     - name: Deploy to Fly.io Production
       id: deploy
-      shell: bash
-      working-directory: apps/vs-code
-      env:
-        FLY_API_TOKEN: ${{ inputs.fly_api_token }}
-      run: |
-        APP_NAME="${{ steps.config.outputs.app_name }}"
-        
-        # Check if app exists, create if it doesn't
-        if ! flyctl apps list | grep -q "^${APP_NAME}"; then
-          echo "Creating new production app: ${APP_NAME}"
-          flyctl apps create "${APP_NAME}" --org personal
-        else
-          echo "Production app ${APP_NAME} exists, updating..."
-        fi
-        
-        # Deploy the application
-        echo "Deploying to production: ${APP_NAME}..."
-        echo "Starting deployment at $(date)"
-        
-        # Deploy with timeout protection
-        timeout 600 flyctl deploy --app "${APP_NAME}" --dockerfile ./Dockerfile \
-          --build-arg GITHUB_SHA="${{ github.sha }}" \
-          --build-arg BRANCH="main" \
-          --wait-timeout 300 \
-          --strategy immediate \
-          --verbose || {
-            echo "Deployment timed out or failed after 10 minutes"
-            echo "Checking app status..."
-            flyctl status --app "${APP_NAME}" || true
-            exit 1
-          }
-        
-        echo "Deployment completed at $(date)"
-        
-        # Check deployment status
-        echo "Checking production deployment status..."
-        flyctl status --app "${APP_NAME}"
-        
-        # Check recent logs for any startup issues
-        echo "Checking recent logs..."
-        flyctl logs --app "${APP_NAME}" --limit 50 || true
-        
-        # Give the app time to fully start
-        echo "Waiting for app to fully initialize..."
-        sleep 45
-        
-        # Verify the app is responding
-        PRODUCTION_URL="https://${APP_NAME}.fly.dev"
-        echo "Testing production availability at ${PRODUCTION_URL}..."
-        
-        # Test with extended timeout for code-server startup
-        if timeout 120 bash -c "until curl -f -s -m 30 ${PRODUCTION_URL} > /dev/null; do echo 'Waiting for response...'; sleep 10; done"; then
-          echo "✅ Production app is responding at ${PRODUCTION_URL}"
-          echo "deployment_status=success" >> $GITHUB_OUTPUT
-        else
-          echo "⚠️ Production app deployed but not responding at ${PRODUCTION_URL}"
-          echo "Checking final app status and logs..."
-          flyctl status --app "${APP_NAME}" || true
-          flyctl logs --app "${APP_NAME}" --limit 20 || true
-          echo "deployment_status=partial" >> $GITHUB_OUTPUT
-        fi
+      uses: ./apps/vs-code/CI/action/fly-deploy
+      with:
+        app_name: "main-futuredebrief"
+        config_file: "fly-production.toml"
+        build_args: |
+          GITHUB_SHA=${{ github.sha }}
+          BRANCH=main
+        github_sha: ${{ github.sha }}
+        fly_api_token: ${{ inputs.fly_api_token }}
     
     - name: Create deployment summary
       if: steps.deploy.outputs.deployment_status == 'success' || steps.deploy.outputs.deployment_status == 'partial'
@@ -143,7 +35,7 @@ runs:
       run: |
         echo "## 🚀 VS Code Extension Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**🌐 Production URL:** ${{ steps.config.outputs.production_url }}" >> $GITHUB_STEP_SUMMARY
+        echo "**🌐 Production URL:** ${{ steps.deploy.outputs.app_url }}" >> $GITHUB_STEP_SUMMARY
         echo "**📦 Build:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
         echo "**🕒 Deployed:** $(date -u)" >> $GITHUB_STEP_SUMMARY
         echo "**📋 Status:** ${{ steps.deploy.outputs.deployment_status == 'success' && '✅ Healthy' || '⚠️ Partial' }}" >> $GITHUB_STEP_SUMMARY

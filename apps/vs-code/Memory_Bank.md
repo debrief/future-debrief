@@ -1594,6 +1594,32 @@ Successfully implemented esbuild bundling optimization for the VS Code extension
 - ✅ **Clean Structure**: CI now contains only `action/` directory and documentation
 - ✅ **Modern Pattern**: Uses GitHub Actions composite actions best practices
 
-**Final Status:** ✅ **COMPLETED SUCCESSFULLY** - Phase 1 monorepo refactor completed including GitHub Actions workflow path corrections and CI structure cleanup. All CI/CD pipelines use modern composite actions and correctly reference the new `apps/vs-code/` structure. Repository fully restructured and operational with clean CI architecture.
+8. **CI Actions Refactoring - Eliminated Code Duplication**
+   - **Problem Identified**: Build and deployment steps were duplicated across `main-deploy` and `pr-preview` actions
+   - **Analysis Completed**: Created parameter comparison table to identify truly different vs. unifiable parameters
+   - **New Reusable Action Created**: `fly-deploy` composite action to handle all Fly.io deployment logic
+   - **Unified Common Parameters**: Deployment timeouts, health checks, Docker settings, and Fly.io org settings
+   - **Parameterized Differences**: App naming patterns, config files, and build arguments only
+   - **Refactored Actions**: Both `main-deploy` and `pr-preview` now use: `build-extension` → `fly-deploy` pattern
+
+**CI Refactoring Results:**
+- ✅ **Build Step Duplication Eliminated**: All actions now use single `build-extension` action
+- ✅ **Deployment Logic Unified**: Single `fly-deploy` action handles all deployment scenarios
+- ✅ **Parameter Reduction**: Only 4 parameters needed instead of 8+ originally planned
+- ✅ **Code Maintenance Improved**: Changes to build/deploy logic now made in single location
+- ✅ **DRY Principle Applied**: No duplicate code patterns across composite actions
+- ✅ **Modern Architecture**: Clean separation of concerns with reusable components
+
+**Final CI Action Structure:**
+```
+apps/vs-code/CI/action/
+├── build-extension/     # Builds and packages VS Code extension (reusable)
+├── fly-deploy/          # Handles all Fly.io deployments (reusable)  
+├── main-deploy/         # Orchestrates: build-extension → fly-deploy (main)
+├── pr-preview/          # Orchestrates: build-extension → fly-deploy (PR)
+└── pr-cleanup/          # Handles cleanup (unchanged)
+```
+
+**Final Status:** ✅ **COMPLETED SUCCESSFULLY** - Phase 1 monorepo refactor completed including GitHub Actions workflow path corrections, CI structure cleanup, and comprehensive CI actions refactoring. All CI/CD pipelines use modern composite actions with zero code duplication, correctly reference the new `apps/vs-code/` structure, and follow DRY principles. Repository fully restructured and operational with optimal CI architecture.
 
 ---
