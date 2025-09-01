@@ -37,19 +37,30 @@ The project does not cover UI logic, persistence, or business processes. It stri
 - Optional property: `time` (for instantaneous event), or `timeStart` and `timeEnd` for period events, which are ISO-8601 strings.
 
 ### 3.5 Validators
+- Derive language-specific definitions for TypeScript and python (pydantic) from the core JSON schema
 - Provide TypeScript validator functions (Ajv + custom checks).
 - Provide Python validator functions (Pydantic + custom checks).
 - Custom rules include: `timestamps[]` length must equal `geometry.coordinates[]` length.
 
 ### 3.6 Packaging
-- TypeScript package published to npm.
-- Python package published to PyPI.
+- TypeScript package published to npm standard package type (dist folder).
+- Python package published to PyPI standard package type (dist folder).
 - Both packages include JSON Schemas and validators.
 
 ### 3.7 Organisation
 - Modular schemas: `track.schema.json`, `event.schema.json`, `annotation.schema.json`.
 - Top-level `featurecollection.schema.json` references each type.
 - FeatureCollections may contain a **mix** of feature types.
+- Folder structure:
+    - schema (json schema)
+    - derived / typescript (TS interface)
+    - derived / python (pydantic definition)
+    - validators / typescript (TS validation of GeoJSON FC)
+    - validators / python (python validation of GeoJSON FC)
+    - tests / json (validation of test data against JSON schema)
+    - tests / typescript (TS unit testing of validator)
+    - tests / python (python unit testing ovalidator)
+    - dist (schema, plus separate packages for TS and python)
 
 ## 4. Non-Functional Requirements
 - Portability: schemas must be usable by any JSON Schema–compliant tool.
