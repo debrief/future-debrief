@@ -96,4 +96,4 @@ When assigning tasks to specialized agents, especially those involving file/dire
 *   **Log Conciseness and Quality:** "All log entries must conform to the [Memory_Bank_Log_Format.md](../02_Utility_Prompts_And_Format_Definitions/Memory_Bank_Log_Format.md). Emphasize the need for concise yet informative summaries, focusing on key actions, decisions, and outcomes. Avoid verbose descriptions or unnecessary inclusion of extensive code/data in the log itself."
 
 Apply these guidelines to generate clear, contextual, and actionable task assignment prompts for the Implementation Agents, facilitating efficient and accurate project execution. 
-*    **Prompt Stprage:**  The task assignment prompt should be stored in the `prompts/tasks/` directory, with a filename that follows the pattern `Task_X.Y_Z.md`, where X is the phase number, Y is the task number, and Z is a short task title.
+*    **Prompt Stprage:**  The task assignment prompt should be stored in the `_tasks/` directory, with a filename that follows the pattern `Task_X.Y_Z.md`, where X is the phase number, Y is the task number, and Z is a short task title.
