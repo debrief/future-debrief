@@ -2,6 +2,12 @@
 derived/
 dist/
 
+# Compiled TypeScript artifacts (should not be in VCS)
+validators/**/*.js
+validators/**/*.d.ts
+validators/**/*.d.ts.map
+validators/**/*.js.map
+
 # Dependencies
 node_modules/
 package-lock.json
