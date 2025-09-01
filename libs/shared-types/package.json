@@ -16,7 +16,7 @@
     "build:ts:track": "QT_SCHEMA=track QT_TYPE=TrackFeature npm run quicktype:ts",
     "build:ts:point": "QT_SCHEMA=point QT_TYPE=PointFeature npm run quicktype:ts",
     "build:ts:annotation": "QT_SCHEMA=annotation QT_TYPE=AnnotationFeature npm run quicktype:ts",
-    "build:ts:featurecollection": "echo 'Using manual discriminated union - see templates/featurecollection.ts' && cp templates/featurecollection.ts derived/typescript/featurecollection.ts",
+    "build:ts:featurecollection": "echo 'Using manual discriminated union - see templates/featurecollection.ts' && cp templates/featurecollection.ts.txt derived/typescript/featurecollection.ts",
     "build:python": "npm run build:python:track && npm run build:python:point && npm run build:python:annotation && npm run build:python:featurecollection",
     "build:python:track": "QT_SCHEMA=track QT_TYPE=TrackFeature npm run quicktype:python",
     "build:python:point": "QT_SCHEMA=point QT_TYPE=PointFeature npm run quicktype:python",
