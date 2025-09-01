@@ -110,7 +110,8 @@
       "WebSearch",
       "Bash(quicktype:*)",
       "WebFetch(domain:docs.quicktype.io)",
-      "WebFetch(domain:json-schema.org)"
+      "WebFetch(domain:json-schema.org)",
+      "WebFetch(domain:www.npmjs.com)"
     ]
   }
 }
