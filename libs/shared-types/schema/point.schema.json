@@ -1,5 +1,5 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "https://json-schema.org/draft-07/schema#",
   "$id": "https://schemas.debrief.org/point.schema.json",
   "title": "Debrief Point Feature",
   "description": "A GeoJSON Feature representing a point with time properties",
