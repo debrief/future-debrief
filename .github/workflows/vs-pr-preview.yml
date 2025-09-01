@@ -1,0 +1,31 @@
+name: VS Code Extension PR Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths:
+      - 'vs-code/**'
+
+concurrency:
+  group: vs-pr-preview-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr-preview:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 1
+    
+    - name: Run VS Code Extension PR Preview
+      uses: ./vs-code/CI/action/pr-preview
+      with:
+        pr_number: ${{ github.event.number }}
+        pr_sha: ${{ github.event.pull_request.head.sha }}
+        fly_api_token: ${{ secrets.FLY_API_TOKEN }}

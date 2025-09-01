@@ -1,0 +1,40 @@
+# Fly.io Production Configuration for Debrief Extension Main Branch
+# Production deployment accessible at: https://main-futuredebrief.fly.dev
+# This configuration is for the stable main branch deployment
+
+app = "main-futuredebrief"
+primary_region = "dfw"
+
+[build]
+  # Use the existing Dockerfile for code-server with Debrief extension
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+[[vm]]
+  # Same resources as PR previews - proven to work well
+  cpu_kind = "shared"  
+  cpus = 2
+  memory_mb = 2048
+
+[env]
+  # Environment variables for code-server operation
+  PASSWORD = ""
+  SUDO_PASSWORD = ""
+  # Disable telemetry for privacy and performance
+  DISABLE_TELEMETRY = "true"
+  # Set proper timezone
+  TZ = "UTC"
+  # Identify this as main branch deployment
+  BRANCH = "main"
+
+# No persistent storage - stateless operation as required
+# All data is ephemeral and reset with each deployment
+
+# Remove processes section - let Dockerfile CMD handle the startup
+# This prevents conflicts and uses the container's defined entry point

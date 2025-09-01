@@ -1,85 +1,153 @@
-# Debrief VS Code Extension
+# Codespace Extension
 
-A Visual Studio Code extension for the Debrief Analysis Tool, providing integrated analysis capabilities directly within your IDE.
+A demonstration project showing how to create a VS Code extension that can be previewed in GitHub Codespaces directly from Pull Requests.
 
 ## Features
 
-- **Outline View**: Navigate document structure and analysis points
-- **Timeline View**: Track recent events and analysis history
-- **Integrated Sidebar**: Dedicated Debrief panel in the VS Code activity bar
+This extension demonstrates three core VS Code extension capabilities:
 
-## Development
+- **Command Palette Integration**: Execute "Hello World" command via Command Palette (`Ctrl+Shift+P`)
+- **Activation Notification**: Displays welcome message when extension activates
+- **Custom View Panel**: Shows Hello World content in Explorer sidebar
 
-### Prerequisites
+## Development Setup
 
-- Node.js and npm/yarn
-- VS Code
+### Local Development
 
-### Setup
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-username/codespace-extension.git
+   cd codespace-extension
+   ```
 
-1. Clone the repository
 2. Install dependencies:
    ```bash
    yarn install
    ```
 
-### Running the Extension
-
-To run the extension in development mode with hot-reloading:
-
-1. **Start the watch process**:
+3. Compile TypeScript:
    ```bash
-   yarn watch
+   yarn compile
    ```
-   This starts webpack in watch mode and will automatically recompile when you make changes.
 
-2. **Launch the Extension Development Host**:
-   - Press `F5` in VS Code, or
-   - Go to Run and Debug panel and click "Run Extension"
-   
-   This opens a new VS Code window with your extension loaded.
+4. Launch Extension Development Host:
+   - Press `F5` in VS Code
+   - Or run "Debug: Start Debugging" from Command Palette
 
-3. **View the extension**:
-   - Look for the Debrief icon in the activity bar (left sidebar)
-   - Click it to see the Outline and Timeline views
+### GitHub Codespaces Development
 
-### Hot Reloading During Development
+1. **From Repository**: Click "Code" → "Create codespace on main"
+2. **From PR**: Use the Codespace link automatically added to PR comments
+3. Dependencies install automatically via devcontainer configuration
 
-The extension is configured for efficient development workflow:
+## Testing the Extension
 
-1. **Make code changes** in the `src/` directory
-2. **Watch for compilation** - the `yarn watch` process will automatically recompile
-3. **Reload the extension** - Press `Cmd+R` (macOS) or `Ctrl+R` (Windows/Linux) in the Extension Development Host window to reload with your changes
+Once the Extension Development Host launches:
 
-The extension will automatically refresh its views when reloaded.
+1. **Test Command Palette**:
+   - Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
+   - Type "Hello World" and execute the command
+   - Verify information message appears
 
-### Project Structure
+2. **Check Activation Notification**:
+   - Should appear automatically when extension activates
+   - Look for "Codespace Extension has been activated successfully!"
+
+3. **View Custom Panel**:
+   - Open Explorer sidebar if not already open
+   - Look for "Hello World" section
+   - Should display extension status messages
+
+## Project Structure
 
 ```
-src/
-├── extension.ts           # Main extension entry point
-├── DebriefSidebar.ts     # Sidebar panel implementation
-├── OutlineViewProvider.ts # Outline tree view provider
-└── TimelineViewProvider.ts # Timeline tree view provider
+codespace-extension/
+├── .devcontainer/
+│   └── devcontainer.json          # Codespace configuration
+├── .github/
+│   └── workflows/
+│       └── codespace-preview.yml  # PR preview automation
+├── docs/
+│   ├── implementation-plan.md     # Development roadmap
+│   └── software-requirements.md   # Requirements specification
+├── src/
+│   └── extension.ts               # Main extension code
+├── out/                           # Compiled JavaScript (generated)
+├── package.json                   # Extension manifest
+└── tsconfig.json                 # TypeScript configuration
 ```
 
-### Build Commands
+## PR Preview Workflow
 
-- `yarn compile` - One-time compilation
-- `yarn watch` - Watch mode for development
-- `yarn package` - Production build
-- `yarn lint` - Run ESLint
-- `yarn test` - Run tests
+When you create a Pull Request:
 
-## Extension Settings
+1. **GitHub Actions triggers** automatically on PR creation/updates
+2. **Workflow validates** extension compiles successfully  
+3. **Comment is added** to PR with Codespace preview link
+4. **Team members can test** changes directly in Codespace
 
-This extension contributes the following commands:
+### Creating a Test PR
 
-- `debriefOutline.refresh` - Refresh the outline view
-- `debriefTimeline.refresh` - Refresh the timeline view
+1. Create a feature branch:
+   ```bash
+   git checkout -b feature/test-changes
+   ```
 
-## Release Notes
+2. Make changes to the extension (e.g., modify messages in `src/extension.ts`)
 
-### 0.0.1
+3. Commit and push:
+   ```bash
+   git add .
+   git commit -m "Test extension changes"
+   git push origin feature/test-changes
+   ```
 
-Initial development version with basic sidebar views.
+4. Create PR via GitHub UI or CLI:
+   ```bash
+   gh pr create --title "Test Extension Changes" --body "Testing PR preview workflow"
+   ```
+
+5. Check PR comments for Codespace preview link
+
+## Build Commands
+
+- `yarn compile` - Compile TypeScript to JavaScript
+- `yarn watch` - Watch mode compilation for development
+- `yarn vscode:prepublish` - Prepare for publishing (runs compile)
+
+## Troubleshooting
+
+### Extension Not Loading
+- Ensure TypeScript compilation succeeded (`yarn compile`)
+- Check console for activation errors (Developer Tools → Console)
+- Verify `package.json` manifest is correct
+
+### Codespace Issues
+- Check `.devcontainer/devcontainer.json` configuration
+- Ensure required extensions are listed in devcontainer
+- Verify Node.js version compatibility
+
+### GitHub Actions Failing
+- Check workflow logs in GitHub Actions tab
+- Ensure repository has Actions enabled
+- Verify workflow permissions for commenting on PRs
+
+## Contributing
+
+This is a demonstration project for internal team use. To replicate for your own extension:
+
+1. Fork this repository
+2. Update `package.json` with your extension details
+3. Modify `src/extension.ts` with your functionality
+4. Update documentation as needed
+5. Test the PR preview workflow
+
+## Next Steps
+
+After understanding this workflow, consider:
+
+- Adding unit tests with `@vscode/test-electron`
+- Implementing more complex extension features
+- Setting up automated publishing to VS Code Marketplace
+- Adding integration with other GitHub features
+

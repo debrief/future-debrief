@@ -1,33 +1,25 @@
-// Place your settings in this file to overwrite default and user settings.
 {
-	"files.exclude": {
-		"out": false, // set this to true to hide the "out" folder with the compiled JS files
-		"dist": false // set this to true to hide the "dist" folder with the compiled JS files
-	},
-	"search.exclude": {
-		"out": true, // set this to false to include "out" folder in search results
-		"dist": true // set this to false to include "dist" folder in search results
-	},
-	// Turn off tsc task auto detection since we have the necessary tasks as npm scripts
-  "typescript.tsc.autoDetect": "off",
   "workbench.colorCustomizations": {
-    "activityBar.activeBackground": "#8c67df",
-    "activityBar.background": "#8c67df",
-    "activityBar.foreground": "#e7e7e7",
-    "activityBar.inactiveForeground": "#e7e7e799",
-    "activityBarBadge.background": "#e9af96",
-    "activityBarBadge.foreground": "#15202b",
-    "commandCenter.border": "#e7e7e799",
-    "sash.hoverBorder": "#8c67df",
-    "statusBar.background": "#6c3dd6",
-    "statusBar.foreground": "#e7e7e7",
-    "statusBarItem.hoverBackground": "#8c67df",
-    "statusBarItem.remoteBackground": "#6c3dd6",
-    "statusBarItem.remoteForeground": "#e7e7e7",
-    "titleBar.activeBackground": "#6c3dd6",
-    "titleBar.activeForeground": "#e7e7e7",
-    "titleBar.inactiveBackground": "#6c3dd699",
-    "titleBar.inactiveForeground": "#e7e7e799"
+    "activityBar.activeBackground": "#e1dd8a",
+    "activityBar.background": "#e1dd8a",
+    "activityBar.foreground": "#15202b",
+    "activityBar.inactiveForeground": "#15202b99",
+    "activityBarBadge.background": "#279893",
+    "activityBarBadge.foreground": "#e7e7e7",
+    "commandCenter.border": "#15202b99",
+    "sash.hoverBorder": "#e1dd8a",
+    "statusBar.background": "#d7d161",
+    "statusBar.foreground": "#15202b",
+    "statusBarItem.hoverBackground": "#cdc538",
+    "statusBarItem.remoteBackground": "#d7d161",
+    "statusBarItem.remoteForeground": "#15202b",
+    "titleBar.activeBackground": "#d7d161",
+    "titleBar.activeForeground": "#15202b",
+    "titleBar.inactiveBackground": "#d7d16199",
+    "titleBar.inactiveForeground": "#15202b99"
   },
-  "peacock.color": "#6c3dd6"
+  "peacock.color": "#d7d161",
+  "debug.focusWindowOnBreak": false,
+  "debug.openDebug": "neverOpen",
+  "workbench.view.debug.alwaysOpenWelcomeView": false
 }

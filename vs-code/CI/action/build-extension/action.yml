@@ -1,0 +1,70 @@
+name: 'Build VS Code Extension'
+description: 'Build and package VS Code extension'
+inputs:
+  ref:
+    description: 'Git ref to checkout'
+    required: false
+    default: ''
+  artifact_retention_days:
+    description: 'Days to retain the artifact'
+    required: false
+    default: '7'
+
+outputs:
+  artifact_name:
+    description: 'Name of the uploaded artifact'
+    value: 'debrief-vsix'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'yarn'
+        cache-dependency-path: vs-code/yarn.lock
+    
+    - name: Install dependencies
+      shell: bash
+      working-directory: vs-code
+      run: yarn install --frozen-lockfile
+    
+    - name: Compile TypeScript
+      shell: bash
+      working-directory: vs-code
+      run: yarn compile
+    
+    - name: Install vsce
+      shell: bash
+      working-directory: vs-code
+      run: |
+        # Install vsce with fallback to local installation
+        yarn global add @vscode/vsce || yarn add @vscode/vsce
+    
+    - name: Package extension
+      shell: bash
+      working-directory: vs-code
+      run: |
+        # Package the extension
+        if which vsce > /dev/null 2>&1; then
+          vsce package --out extension.vsix
+        else
+          npx vsce package --out extension.vsix
+        fi
+        
+        # Verify package was created
+        if [ -f extension.vsix ]; then
+          echo "✅ Extension packaged successfully"
+          ls -la *.vsix
+        else
+          echo "❌ Extension packaging failed"
+          exit 1
+        fi
+    
+    - name: Upload extension artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: debrief-vsix
+        path: vs-code/extension.vsix
+        retention-days: ${{ inputs.artifact_retention_days }}

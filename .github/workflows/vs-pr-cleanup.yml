@@ -1,0 +1,25 @@
+name: VS Code Extension PR Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+    paths:
+      - 'vs-code/**'
+
+jobs:
+  pr-cleanup:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    
+    - name: Run VS Code Extension PR Cleanup
+      uses: ./vs-code/CI/action/pr-cleanup
+      with:
+        pr_number: ${{ github.event.number }}
+        fly_api_token: ${{ secrets.FLY_API_TOKEN }}

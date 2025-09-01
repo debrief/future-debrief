@@ -1,0 +1,34 @@
+name: VS Code Extension Main Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'vs-code/**'
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment even if no changes detected'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: vs-main-production-deploy
+  cancel-in-progress: true
+
+jobs:
+  main-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    
+    - name: Run VS Code Extension Main Deploy
+      uses: ./vs-code/CI/action/main-deploy
+      with:
+        force_deploy: ${{ inputs.force_deploy || false }}
+        fly_api_token: ${{ secrets.FLY_API_TOKEN }}

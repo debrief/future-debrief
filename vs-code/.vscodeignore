@@ -1,14 +1,17 @@
 .vscode/**
 .vscode-test/**
-out/**
-node_modules/**
 src/**
+out/**
 .gitignore
 .yarnrc
-webpack.config.js
 vsc-extension-quickstart.md
 **/tsconfig.json
-**/eslint.config.mjs
+**/.eslintrc.json
 **/*.map
 **/*.ts
-**/.vscode-test.*
+**/__pycache__/**
+Dockerfile
+Memory_Bank.md
+prompts/**
+# Preserve workspace/tests/ - essential Python integration examples
+# Preserve sample .rep and .plot.json files for testing
