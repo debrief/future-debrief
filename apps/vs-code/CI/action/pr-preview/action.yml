@@ -1,0 +1,126 @@
+name: 'VS Code Extension PR Preview'
+description: 'Build and deploy VS Code extension PR preview'
+inputs:
+  pr_number:
+    description: 'Pull request number'
+    required: true
+  pr_sha:
+    description: 'Pull request SHA'
+    required: true
+  fly_api_token:
+    description: 'Fly.io API token'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Build VS Code Extension
+      uses: ./apps/vs-code/CI/action/build-extension
+      with:
+        artifact_retention_days: 1
+    
+    - name: Deploy to Fly.io PR Preview
+      id: deploy
+      uses: ./apps/vs-code/CI/action/fly-deploy
+      with:
+        app_name: "pr-${{ inputs.pr_number }}-futuredebrief"
+        config_file: "fly-template.toml"
+        build_args: |
+          GITHUB_SHA=${{ inputs.pr_sha }}
+          PR_NUMBER=${{ inputs.pr_number }}
+        github_sha: ${{ inputs.pr_sha }}
+        fly_api_token: ${{ inputs.fly_api_token }}
+    
+    - name: Post PR comment with preview link
+      if: steps.deploy.outputs.deployment_status == 'success' || steps.deploy.outputs.deployment_status == 'partial'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const prNumber = ${{ inputs.pr_number }};
+          const previewUrl = "${{ steps.deploy.outputs.app_url }}";
+          const appName = "pr-" + prNumber + "-futuredebrief";
+          
+          const commentBody = `## 🚀 VS Code Extension PR Preview Deployed
+          
+          Your VS Code extension PR preview has been successfully deployed to Fly.io!
+          
+          **🌐 Preview URL:** ${previewUrl}
+          
+          **📋 Details:**
+          - **App Name:** \`${appName}\`
+          - **Build:** \`${{ inputs.pr_sha }}\`
+          - **PR:** #${prNumber}
+          
+          **🔧 What's included:**
+          - VS Code (code-server) environment
+          - Debrief extension pre-installed
+          - Sample workspace with test files
+          
+          **💡 How to use:**
+          1. Click the preview URL above
+          2. Open any \`.plot.json\` file to test the custom editor
+          3. Use Ctrl+Shift+P to access extension commands
+          4. Check the Explorer panel for the "Hello World" view
+          
+          ---
+          *This preview will be automatically updated when you push new commits to this PR.*`;
+          
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: prNumber,
+          });
+          
+          const existingComment = comments.find(comment => 
+            comment.user.login === 'github-actions[bot]' && 
+            comment.body.includes('🚀 VS Code Extension PR Preview Deployed')
+          );
+          
+          if (existingComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existingComment.id,
+              body: commentBody
+            });
+            console.log('Updated existing preview comment');
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: commentBody
+            });
+            console.log('Created new preview comment');
+          }
+    
+    - name: Handle deployment failure
+      if: failure()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const prNumber = ${{ inputs.pr_number }};
+          
+          const errorComment = `## ❌ VS Code Extension PR Preview Deployment Failed
+          
+          The VS Code extension PR preview deployment encountered an error during the build or deployment process.
+          
+          **🔧 Troubleshooting:**
+          - Check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed error information
+          - Ensure the extension builds successfully locally
+          - Verify that all required secrets are configured
+          
+          **📋 Details:**
+          - **PR:** #${prNumber}
+          - **Build:** \`${{ inputs.pr_sha }}\`
+          - **Run ID:** \`${{ github.run_id }}\`
+          
+          ---
+          *The deployment will retry automatically when you push new commits to this PR.*`;
+          
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: prNumber,
+            body: errorComment
+          });

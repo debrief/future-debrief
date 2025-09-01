@@ -1,0 +1,63 @@
+name: 'VS Code Extension Main Deploy'
+description: 'Build and deploy VS Code extension to production'
+inputs:
+  force_deploy:
+    description: 'Force deployment even if no changes detected'
+    required: false
+    default: 'false'
+  fly_api_token:
+    description: 'Fly.io API token'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Build VS Code Extension
+      uses: ./apps/vs-code/CI/action/build-extension
+      with:
+        artifact_retention_days: 7
+    
+    - name: Deploy to Fly.io Production
+      id: deploy
+      uses: ./apps/vs-code/CI/action/fly-deploy
+      with:
+        app_name: "main-futuredebrief"
+        config_file: "fly-production.toml"
+        build_args: |
+          GITHUB_SHA=${{ github.sha }}
+          BRANCH=main
+        github_sha: ${{ github.sha }}
+        fly_api_token: ${{ inputs.fly_api_token }}
+    
+    - name: Create deployment summary
+      if: steps.deploy.outputs.deployment_status == 'success' || steps.deploy.outputs.deployment_status == 'partial'
+      shell: bash
+      run: |
+        echo "## 🚀 VS Code Extension Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**🌐 Production URL:** ${{ steps.deploy.outputs.app_url }}" >> $GITHUB_STEP_SUMMARY
+        echo "**📦 Build:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "**🕒 Deployed:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+        echo "**📋 Status:** ${{ steps.deploy.outputs.deployment_status == 'success' && '✅ Healthy' || '⚠️ Partial' }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**🔧 What's included:**" >> $GITHUB_STEP_SUMMARY
+        echo "- VS Code (code-server) environment" >> $GITHUB_STEP_SUMMARY
+        echo "- Debrief extension pre-installed" >> $GITHUB_STEP_SUMMARY
+        echo "- Sample workspace with test files" >> $GITHUB_STEP_SUMMARY
+        echo "- Always-available production instance" >> $GITHUB_STEP_SUMMARY
+    
+    - name: Handle deployment failure
+      if: failure()
+      shell: bash
+      run: |
+        echo "## ❌ VS Code Extension Production Deployment Failed" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**🔧 Troubleshooting:**" >> $GITHUB_STEP_SUMMARY
+        echo "- Check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for detailed error information" >> $GITHUB_STEP_SUMMARY
+        echo "- Verify Fly.io account status and billing" >> $GITHUB_STEP_SUMMARY
+        echo "- Check Fly.io dashboard for app status" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "**📋 Details:**" >> $GITHUB_STEP_SUMMARY
+        echo "- **Build:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Run ID:** \`${{ github.run_id }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY

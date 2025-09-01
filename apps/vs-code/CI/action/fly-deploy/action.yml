@@ -1,0 +1,129 @@
+name: 'Deploy to Fly.io'
+description: 'Deploy VS Code extension to Fly.io with Docker'
+inputs:
+  app_name:
+    description: 'Fly.io app name'
+    required: true
+  config_file:
+    description: 'Fly.io config file to use (fly-production.toml or fly-template.toml)'
+    required: true
+  build_args:
+    description: 'Docker build args (multiline string)'
+    required: true
+  github_sha:
+    description: 'GitHub SHA for the deployment'
+    required: true
+  fly_api_token:
+    description: 'Fly.io API token'
+    required: true
+
+outputs:
+  deployment_status:
+    description: 'Deployment status (success or partial)'
+    value: ${{ steps.deploy.outputs.deployment_status }}
+  app_url:
+    description: 'URL of the deployed app'
+    value: ${{ steps.config.outputs.app_url }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Fly CLI
+      uses: superfly/flyctl-actions/setup-flyctl@master
+    
+    - name: Configure deployment
+      id: config
+      shell: bash
+      working-directory: apps/vs-code
+      run: |
+        APP_NAME="${{ inputs.app_name }}"
+        APP_URL="https://${APP_NAME}.fly.dev"
+        
+        echo "app_url=${APP_URL}" >> $GITHUB_OUTPUT
+        
+        # Handle different config file patterns
+        if [[ "${{ inputs.config_file }}" == "fly-template.toml" ]]; then
+          # For PR deployments - substitute placeholders
+          sed "s/PR_APP_NAME_PLACEHOLDER/${APP_NAME}/g; s/PR_NUMBER_PLACEHOLDER/${{ github.event.number || 'unknown' }}/g" \
+            fly-template.toml > fly.toml
+          echo "Generated fly.toml from template for app: ${APP_NAME}"
+        else
+          # For production deployments - copy config file
+          cp "${{ inputs.config_file }}" fly.toml
+          echo "Using config file: ${{ inputs.config_file }} for app: ${APP_NAME}"
+        fi
+        
+        echo "Final deployment configuration:"
+        cat fly.toml
+    
+    - name: Deploy to Fly.io
+      id: deploy
+      shell: bash
+      working-directory: apps/vs-code
+      env:
+        FLY_API_TOKEN: ${{ inputs.fly_api_token }}
+      run: |
+        APP_NAME="${{ inputs.app_name }}"
+        
+        # Check if app exists, create if it doesn't
+        if ! flyctl apps list | grep -q "^${APP_NAME}"; then
+          echo "Creating new app: ${APP_NAME}"
+          flyctl apps create "${APP_NAME}" --org personal
+        else
+          echo "App ${APP_NAME} already exists, updating..."
+        fi
+        
+        # Prepare build args
+        BUILD_ARGS=""
+        while IFS= read -r line; do
+          if [[ -n "$line" && "$line" != " "* ]]; then
+            BUILD_ARGS="$BUILD_ARGS --build-arg $line"
+          fi
+        done <<< "${{ inputs.build_args }}"
+        
+        # Deploy the application
+        echo "Deploying to ${APP_NAME}..."
+        echo "Starting deployment at $(date)"
+        echo "Build args: $BUILD_ARGS"
+        
+        # Deploy with timeout protection (all settings unified)
+        timeout 600 flyctl deploy --app "${APP_NAME}" --dockerfile ./Dockerfile \
+          $BUILD_ARGS \
+          --wait-timeout 300 \
+          --strategy immediate \
+          --verbose || {
+            echo "Deployment timed out or failed after 10 minutes"
+            echo "Checking app status..."
+            flyctl status --app "${APP_NAME}" || true
+            exit 1
+          }
+        
+        echo "Deployment completed at $(date)"
+        
+        # Check deployment status (unified settings)
+        echo "Checking deployment status..."
+        flyctl status --app "${APP_NAME}"
+        
+        # Check recent logs for any startup issues
+        echo "Checking recent logs..."
+        flyctl logs --app "${APP_NAME}" --limit 50 || true
+        
+        # Give the app time to fully start (unified timing)
+        echo "Waiting for app to fully initialize..."
+        sleep 45
+        
+        # Verify the app is responding (unified health check)
+        APP_URL="https://${APP_NAME}.fly.dev"
+        echo "Testing app availability at ${APP_URL}..."
+        
+        # Test with unified timeout settings
+        if timeout 120 bash -c "until curl -f -s -m 30 ${APP_URL} > /dev/null; do echo 'Waiting for response...'; sleep 10; done"; then
+          echo "✅ App is responding at ${APP_URL}"
+          echo "deployment_status=success" >> $GITHUB_OUTPUT
+        else
+          echo "⚠️  App deployed but not responding at ${APP_URL}"
+          echo "Checking final app status and logs..."
+          flyctl status --app "${APP_NAME}" || true
+          flyctl logs --app "${APP_NAME}" --limit 20 || true
+          echo "deployment_status=partial" >> $GITHUB_OUTPUT
+        fi

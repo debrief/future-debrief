@@ -23,28 +23,28 @@ runs:
       with:
         node-version: '20'
         cache: 'yarn'
-        cache-dependency-path: vs-code/yarn.lock
+        cache-dependency-path: apps/vs-code/yarn.lock
     
     - name: Install dependencies
       shell: bash
-      working-directory: vs-code
+      working-directory: apps/vs-code
       run: yarn install --frozen-lockfile
     
     - name: Compile TypeScript
       shell: bash
-      working-directory: vs-code
+      working-directory: apps/vs-code
       run: yarn compile
     
     - name: Install vsce
       shell: bash
-      working-directory: vs-code
+      working-directory: apps/vs-code
       run: |
         # Install vsce with fallback to local installation
         yarn global add @vscode/vsce || yarn add @vscode/vsce
     
     - name: Package extension
       shell: bash
-      working-directory: vs-code
+      working-directory: apps/vs-code
       run: |
         # Package the extension
         if which vsce > /dev/null 2>&1; then
@@ -66,5 +66,5 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: debrief-vsix
-        path: vs-code/extension.vsix
+        path: apps/vs-code/extension.vsix
         retention-days: ${{ inputs.artifact_retention_days }}
