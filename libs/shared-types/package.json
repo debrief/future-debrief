@@ -1,0 +1,65 @@
+{
+  "name": "@debrief/shared-types",
+  "version": "1.0.0",
+  "description": "Shared types for Debrief ecosystem with constrained GeoJSON FeatureCollections",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist/",
+    "schema/",
+    "derived/",
+    "validators/"
+  ],
+  "scripts": {
+    "clean": "rm -rf derived/typescript/* derived/python/* dist/*",
+    "build:ts": "npm run build:ts:track && npm run build:ts:point && npm run build:ts:annotation && npm run build:ts:featurecollection",
+    "build:ts:track": "quicktype -s schema schema/track.schema.json -o derived/typescript/track.ts --lang typescript --top-level TrackFeature",
+    "build:ts:point": "quicktype -s schema schema/point.schema.json -o derived/typescript/point.ts --lang typescript --top-level PointFeature",
+    "build:ts:annotation": "quicktype -s schema schema/annotation.schema.json -o derived/typescript/annotation.ts --lang typescript --top-level AnnotationFeature",
+    "build:ts:featurecollection": "quicktype -s schema schema/featurecollection.schema.json -o derived/typescript/featurecollection.ts --lang typescript --top-level DebriefFeatureCollection",
+    "build:python": "npm run build:python:track && npm run build:python:point && npm run build:python:annotation && npm run build:python:featurecollection",
+    "build:python:track": "quicktype -s schema schema/track.schema.json -o derived/python/track.py --lang python --top-level TrackFeature",
+    "build:python:point": "quicktype -s schema schema/point.schema.json -o derived/python/point.py --lang python --top-level PointFeature",
+    "build:python:annotation": "quicktype -s schema schema/annotation.schema.json -o derived/python/annotation.py --lang python --top-level AnnotationFeature",
+    "build:python:featurecollection": "quicktype -s schema schema/featurecollection.schema.json -o derived/python/featurecollection.py --lang python --top-level DebriefFeatureCollection",
+    "build:types": "npm run build:ts && npm run build:python",
+    "build:dist": "npm run build:types && mkdir -p dist && npx tsc",
+    "build": "npm run clean && npm run build:dist",
+    "test:generated": "npm run test:generated:ts && npm run test:generated:python",
+    "test:generated:ts": "node tests/typescript/test-generated-files.js",
+    "test:generated:python": "python3 tests/python/test_generated_files.py",
+    "test:validators": "npm run test:validators:ts && npm run test:validators:python",
+    "test:validators:ts": "node tests/typescript/test-validators.js",
+    "test:validators:python": "python3 tests/python/test_validators.py",
+    "test:schemas": "npm run test:schemas:json",
+    "test:schemas:json": "node tests/json/test-schemas.js",
+    "test": "npm run test:generated && npm run test:validators && npm run test:schemas",
+    "validate": "npm run build && npm run test",
+    "prepublishOnly": "npm run validate"
+  },
+  "devDependencies": {
+    "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.1",
+    "quicktype": "^23.2.6",
+    "typescript": "^5.9.2"
+  },
+  "keywords": [
+    "geojson",
+    "maritime",
+    "debrief",
+    "shared-types",
+    "typescript",
+    "python",
+    "json-schema"
+  ],
+  "author": "Debrief Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/debrief/future-debrief.git",
+    "directory": "libs/shared-types"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
