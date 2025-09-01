@@ -6,6 +6,151 @@ This document tracks all implementation work completed on the project following 
 
 ---
 
+## TypeScript Generator Investigation - Issue #16
+
+**Task Reference:** GitHub Issue #16: "Investigate alternate TS interface generator"  
+**Date:** 2025-01-09  
+**Assigned Task:** Research and evaluate alternative TypeScript interface generators, specifically `json-schema-to-typescript`, to determine if they can properly generate discriminated union types from the project's JSON schemas  
+**Implementation Agent:** Task execution completed
+
+### Problem Context
+
+The project currently uses `quicktype` to generate TypeScript and Python interfaces from JSON schemas in the `libs/shared-types/` package. However, quicktype fails to generate proper discriminated types for the point, track, and annotation feature types. Instead, it creates one large `properties` object that is the union of all child types, which reduces type safety and developer experience.
+
+### Actions Taken
+
+1. **Analyzed Current quicktype Implementation**
+   - Reviewed current build scripts in `libs/shared-types/package.json` (quicktype:ts, build:ts:*)
+   - Examined generated TypeScript files in `derived/typescript/` to understand type generation issues
+   - Identified that quicktype creates union properties instead of proper discriminated unions
+   - Found existing manual workaround using `templates/featurecollection.ts.txt` for proper discriminated union
+
+2. **Research Alternative Generators**
+   - Investigated `json-schema-to-typescript` as primary alternative
+   - Researched `json-schema-to-ts`, TypeBox, and other viable TypeScript interface generators
+   - Compared features, discriminated union support, CLI options, and integration possibilities
+   - Analyzed community adoption, maintenance status, and documentation quality
+
+3. **Prototype Implementation**
+   - Installed and configured `json-schema-to-typescript` in shared-types package
+   - Created test scripts to generate TypeScript interfaces from existing schemas
+   - Generated samples for track, point, annotation, and featurecollection schemas
+   - Tested discriminated union generation with oneOf patterns
+
+4. **Evaluation and Comparison**
+   - **json-schema-to-typescript**: ✅ Generates proper discriminated unions, clean interfaces, literal types for discriminators
+   - **json-schema-to-ts**: Limited CLI support, requires runtime dependency
+   - **TypeBox**: Runtime type builder, not suitable for existing JSON Schema workflow
+   - **quicktype**: ❌ Poor discriminated union support, requires manual templates
+
+### Key Findings
+
+**Major Discovery**: `json-schema-to-typescript` generates perfect discriminated union types for oneOf schemas:
+
+```typescript
+export interface TestDebriefFeatureCollection {
+  type: "FeatureCollection";
+  features: (
+    | { // TrackFeature variant
+        type: "Feature";
+        geometry: { type: "LineString"; /* ... */ };
+        properties: { featureType: "track"; /* track-specific props */ };
+      }
+    | { // PointFeature variant
+        type: "Feature";
+        geometry: { type: "Point"; /* ... */ };
+        properties: { featureType: "point"; /* point-specific props */ };
+      }
+  )[];
+}
+```
+
+**Type Safety Improvements**:
+- Literal types for discriminator properties (`featureType: "track"` vs `featureType: string`)
+- Automatic TypeScript type narrowing without manual type guards
+- Clean separation of feature-specific properties
+- Better IDE autocomplete and error detection
+
+### Recommendation and Integration Plan
+
+**Primary Recommendation**: Replace quicktype with `json-schema-to-typescript` for TypeScript generation while keeping quicktype for Python generation.
+
+**Hybrid Build System**:
+```json
+{
+  "build:ts": "json-schema-to-typescript schema/*.json",
+  "build:python": "quicktype schema/*.json --lang python"
+}
+```
+
+**Migration Strategy**:
+1. **Phase 1**: Parallel implementation alongside existing quicktype
+2. **Phase 2**: Schema reference resolution (handle $ref in featurecollection.schema.json)
+3. **Phase 3**: Replace existing TypeScript generation, remove manual templates
+4. **Phase 4**: Validation and testing with new discriminated union types
+
+### Challenges Encountered
+
+- **Schema References**: json-schema-to-typescript has difficulty with external `$ref` schemas, requires self-contained schemas or bundling
+- **Runtime Validation**: Unlike quicktype, doesn't generate runtime type checking/conversion code (acceptable trade-off)
+
+### Deliverables Created
+
+1. **Research Report**: `TYPESCRIPT_GENERATOR_EVALUATION.md` - Comprehensive evaluation with technical comparison
+2. **Prototype Implementation**: Working configuration in `test-output/` directory
+3. **Generated Type Samples**: Example TypeScript interfaces showing improved discriminated union support
+4. **Integration Plan**: Detailed steps for migrating from quicktype to json-schema-to-typescript
+5. **Migration Strategy**: Phased approach for transitioning build system
+
+### Code Examples and Configuration
+
+**Installation**:
+```bash
+npm install json-schema-to-typescript --save-dev
+```
+
+**CLI Usage**:
+```bash
+npx json-schema-to-typescript schema.json > output.ts
+```
+
+**Sample Generated Output** (track.schema.json):
+```typescript
+export interface DebriefTrackFeature {
+  type: "Feature";
+  id: string | number;
+  geometry: {
+    type: "LineString";
+    coordinates: [...]; // Proper tuple types
+  };
+  properties: {
+    featureType: "track"; // Literal type for perfect discrimination
+    timestamps?: string[];
+    name?: string;
+    description?: string;
+    [k: string]: unknown;
+  };
+}
+```
+
+### Impact and Next Steps
+
+**Immediate Impact**: Project now has a clear path to solve discriminated union type safety issues that have required manual workarounds.
+
+**Next Steps for Implementation**:
+1. Schema bundling solution for featurecollection references
+2. Update build scripts to use json-schema-to-typescript
+3. Remove manual template files once automated generation works
+4. Validate backward compatibility with existing consumers
+
+**Success Metrics**: 
+- Proper discriminated union generation confirmed ✅
+- Type safety improvements demonstrated ✅
+- Integration path validated ✅
+- Recommendation with clear justification provided ✅
+
+---
+
 ## Phase 1: Bootstrap Environment - Docker Infrastructure Setup
 
 **Task Reference:** Phase 1: Bootstrap Environment in [Implementation Plan](docs/debrief-pr-preview-implementation-plan.md)
