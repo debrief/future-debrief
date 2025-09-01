@@ -8,6 +8,18 @@ on:
       - 'vs-code/**'
 
 jobs:
-  call-pr-cleanup:
-    uses: ./vs-code/CI/workflows/pr-cleanup.yml@${{ github.sha }}
-    secrets: inherit
+  pr-cleanup:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    
+    - name: Run VS Code Extension PR Cleanup
+      uses: ./vs-code/CI/action/pr-cleanup.yml
+      with:
+        pr_number: ${{ github.event.number }}
+        fly_api_token: ${{ secrets.FLY_API_TOKEN }}

@@ -18,8 +18,17 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  call-main-deploy:
-    uses: ./vs-code/CI/workflows/main-deploy.yml@${{ github.sha }}
-    with:
-      force_deploy: ${{ inputs.force_deploy || false }}
-    secrets: inherit
+  main-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    
+    - name: Run VS Code Extension Main Deploy
+      uses: ./vs-code/CI/action/main-deploy.yml
+      with:
+        force_deploy: ${{ inputs.force_deploy || false }}
+        fly_api_token: ${{ secrets.FLY_API_TOKEN }}
