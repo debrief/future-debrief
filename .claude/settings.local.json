@@ -108,7 +108,9 @@
       "Bash(tree:*)",
       "Bash(npm run:*)",
       "WebSearch",
-      "Bash(quicktype:*)"
+      "Bash(quicktype:*)",
+      "WebFetch(domain:docs.quicktype.io)",
+      "WebFetch(domain:json-schema.org)"
     ]
   }
 }
