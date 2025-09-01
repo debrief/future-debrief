@@ -107,7 +107,8 @@
       "Bash(npm create:*)",
       "Bash(tree:*)",
       "Bash(npm run:*)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(quicktype:*)"
     ]
   }
 }
