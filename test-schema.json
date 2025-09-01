@@ -1,0 +1,117 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Test Discriminated Union",
+  "type": "object",
+  "properties": {
+    "features": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "featureType": { "const": "waypoint" },
+              "geometry": {
+                "type": "object",
+                "properties": {
+                  "type": { "const": "Point" },
+                  "coordinates": {
+                    "type": "array",
+                    "items": { "type": "number" },
+                    "minItems": 2,
+                    "maxItems": 2
+                  }
+                },
+                "required": ["type", "coordinates"]
+              },
+              "properties": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "elevation": { "type": "number" },
+                  "markerColor": { "type": "string" }
+                },
+                "required": ["name"]
+              }
+            },
+            "required": ["featureType", "geometry", "properties"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "featureType": { "const": "route" },
+              "geometry": {
+                "type": "object",
+                "properties": {
+                  "type": { "const": "LineString" },
+                  "coordinates": {
+                    "type": "array",
+                    "items": {
+                      "type": "array",
+                      "items": { "type": "number" },
+                      "minItems": 2,
+                      "maxItems": 2
+                    },
+                    "minItems": 2
+                  }
+                },
+                "required": ["type", "coordinates"]
+              },
+              "properties": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "distance": { "type": "number" },
+                  "strokeWidth": { "type": "number" },
+                  "strokeColor": { "type": "string" }
+                },
+                "required": ["name", "distance"]
+              }
+            },
+            "required": ["featureType", "geometry", "properties"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "featureType": { "const": "area" },
+              "geometry": {
+                "type": "object",
+                "properties": {
+                  "type": { "const": "Polygon" },
+                  "coordinates": {
+                    "type": "array",
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "array",
+                        "items": { "type": "number" },
+                        "minItems": 2,
+                        "maxItems": 2
+                      }
+                    }
+                  }
+                },
+                "required": ["type", "coordinates"]
+              },
+              "properties": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "area": { "type": "number" },
+                  "fillColor": { "type": "string" },
+                  "fillOpacity": { "type": "number" }
+                },
+                "required": ["name", "area"]
+              }
+            },
+            "required": ["featureType", "geometry", "properties"],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "required": ["features"]
+}
