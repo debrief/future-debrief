@@ -12,6 +12,7 @@
     ]]
   },
   "properties": {
+    "featureType": "annotation",
     "annotationType": "area",
     "name": "Test Area",
     "color": "#FF0000",

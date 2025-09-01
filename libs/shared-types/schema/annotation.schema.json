@@ -8,7 +8,7 @@
   "properties": {
     "type": {
       "type": "string",
-      "enum": ["Feature"]
+      "const": "Feature"
     },
     "id": {
       "type": ["string", "number"],
@@ -168,7 +168,13 @@
     },
     "properties": {
       "type": "object",
+      "required": ["featureType"],
       "properties": {
+        "featureType": {
+          "type": "string",
+          "enum": ["annotation"],
+          "description": "Discriminator to identify this as an annotation feature"
+        },
         "annotationType": {
           "type": "string",
           "enum": ["label", "area", "measurement", "comment", "boundary"],

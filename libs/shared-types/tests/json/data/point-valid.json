@@ -6,6 +6,7 @@
     "coordinates": [-1.0, 51.0]
   },
   "properties": {
+    "featureType": "point",
     "name": "Test Point",
     "time": "2024-01-01T10:00:00Z"
   }

@@ -8,7 +8,7 @@
   "properties": {
     "type": {
       "type": "string",
-      "enum": ["Feature"]
+      "const": "Feature"
     },
     "id": {
       "type": ["string", "number"],
@@ -70,7 +70,13 @@
     },
     "properties": {
       "type": "object",
+      "required": ["featureType"],
       "properties": {
+        "featureType": {
+          "type": "string",
+          "enum": ["track"],
+          "description": "Discriminator to identify this as a track feature"
+        },
         "timestamps": {
           "type": "array",
           "description": "Optional array of timestamps corresponding to each coordinate point",

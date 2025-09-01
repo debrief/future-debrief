@@ -8,7 +8,7 @@
   "properties": {
     "type": {
       "type": "string",
-      "enum": ["Feature"]
+      "const": "Feature"
     },
     "id": {
       "type": ["string", "number"],
@@ -35,7 +35,13 @@
     },
     "properties": {
       "type": "object",
+      "required": ["featureType"],
       "properties": {
+        "featureType": {
+          "type": "string",
+          "enum": ["point"],
+          "description": "Discriminator to identify this as a point feature"
+        },
         "time": {
           "type": "string",
           "format": "date-time",
@@ -57,7 +63,7 @@
         },
         "description": {
           "type": "string",
-          "description": "Additional description or notes about this point"
+          "description": "Additional description or notes for this point"
         }
       },
       "additionalProperties": true
