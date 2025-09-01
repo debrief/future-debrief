@@ -28,7 +28,7 @@ jobs:
         fetch-depth: 1
     
     - name: Run VS Code Extension Main Deploy
-      uses: ./vs-code/CI/action/main-deploy.yml
+      uses: ./vs-code/CI/action/main-deploy
       with:
         force_deploy: ${{ inputs.force_deploy || false }}
         fly_api_token: ${{ secrets.FLY_API_TOKEN }}

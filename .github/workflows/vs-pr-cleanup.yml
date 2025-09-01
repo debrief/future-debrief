@@ -19,7 +19,7 @@ jobs:
         fetch-depth: 1
     
     - name: Run VS Code Extension PR Cleanup
-      uses: ./vs-code/CI/action/pr-cleanup.yml
+      uses: ./vs-code/CI/action/pr-cleanup
       with:
         pr_number: ${{ github.event.number }}
         fly_api_token: ${{ secrets.FLY_API_TOKEN }}
