@@ -17,27 +17,27 @@ runs:
       with:
         node-version: '20'
         cache: 'yarn'
-        cache-dependency-path: vs-code/yarn.lock
+        cache-dependency-path: apps/vs-code/yarn.lock
     
     - name: Install dependencies
       shell: bash
-      working-directory: vs-code
+      working-directory: apps/vs-code
       run: yarn install --frozen-lockfile
     
     - name: Compile TypeScript
       shell: bash
-      working-directory: vs-code
+      working-directory: apps/vs-code
       run: yarn compile
     
     - name: Install vsce
       shell: bash
-      working-directory: vs-code
+      working-directory: apps/vs-code
       run: |
         yarn global add @vscode/vsce || yarn add @vscode/vsce
     
     - name: Package extension
       shell: bash
-      working-directory: vs-code
+      working-directory: apps/vs-code
       run: |
         if which vsce > /dev/null 2>&1; then
           vsce package --out extension.vsix
@@ -59,7 +59,7 @@ runs:
     - name: Configure production deployment
       id: config
       shell: bash
-      working-directory: vs-code
+      working-directory: apps/vs-code
       run: |
         APP_NAME="main-futuredebrief"
         PRODUCTION_URL="https://${APP_NAME}.fly.dev"
@@ -76,7 +76,7 @@ runs:
     - name: Deploy to Fly.io Production
       id: deploy
       shell: bash
-      working-directory: vs-code
+      working-directory: apps/vs-code
       env:
         FLY_API_TOKEN: ${{ inputs.fly_api_token }}
       run: |

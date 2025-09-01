@@ -10,7 +10,7 @@ concurrency:
 jobs:
   build-extension:
     if: github.event.pull_request.head.repo.full_name == github.repository
-    uses: ./vs-code/CI/workflows/build-extension.yml
+    uses: ./apps/vs-code/CI/workflows/build-extension.yml
     with:
       ref: ${{ github.event.pull_request.head.sha }}
       artifact_retention_days: 1

@@ -8,7 +8,7 @@ These workflows are stored in the `CI/` directory instead of `.github/workflows/
 
 1. **Monorepo Structure**: The extension is now part of a larger monorepo
 2. **Clean PRs**: Keeps extension-specific workflows isolated from the main project
-3. **Manual Trigger**: Root-level trigger workflows in `/.github/workflows/` call these workflows when changes are detected in the `vs-code/` directory
+3. **Manual Trigger**: Root-level trigger workflows in `/.github/workflows/` call these workflows when changes are detected in the `apps/vs-code/` directory
 
 ## Workflow Files
 
@@ -26,7 +26,7 @@ These workflows are called by corresponding trigger workflows in the repository 
 
 
 The trigger workflows:
-1. Monitor changes in the `vs-code/` directory
+1. Monitor changes in the `apps/vs-code/` directory
 2. Use GitHub's `uses:` syntax to call these CI workflows
 3. Set appropriate working directories and context
 
