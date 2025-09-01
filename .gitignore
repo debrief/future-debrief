@@ -138,3 +138,6 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 vs-code/media/
+
+# ephemeral TAP prompts
+_tasks/
