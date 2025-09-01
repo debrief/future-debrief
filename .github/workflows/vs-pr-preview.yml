@@ -5,7 +5,7 @@ on:
     types: [opened, synchronize, reopened]
     branches: [main]
     paths:
-      - 'vs-code/**'
+      - 'apps/vs-code/**'
 
 concurrency:
   group: vs-pr-preview-${{ github.event.number }}
@@ -24,7 +24,7 @@ jobs:
         fetch-depth: 1
     
     - name: Run VS Code Extension PR Preview
-      uses: ./vs-code/CI/action/pr-preview
+      uses: ./apps/vs-code/CI/action/pr-preview
       with:
         pr_number: ${{ github.event.number }}
         pr_sha: ${{ github.event.pull_request.head.sha }}
