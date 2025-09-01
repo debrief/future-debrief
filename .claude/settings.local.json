@@ -106,7 +106,8 @@
       "WebFetch(domain:debrief.github.io)",
       "Bash(npm create:*)",
       "Bash(tree:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "WebSearch"
     ]
   }
 }
