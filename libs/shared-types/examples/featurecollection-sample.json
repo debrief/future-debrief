@@ -1,0 +1,39 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "track-001",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-1.0, 51.0],
+          [-0.9, 51.1]
+        ]
+      },
+      "properties": {
+        "timestamps": [
+          "2024-01-01T10:00:00Z",
+          "2024-01-01T10:01:00Z"
+        ],
+        "name": "Track 1"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "point-001",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-1.0, 51.0]
+      },
+      "properties": {
+        "time": "2024-01-01T10:00:00Z",
+        "name": "Point 1"
+      }
+    }
+  ],
+  "properties": {
+    "name": "Sample Collection",
+    "created": "2024-01-01T10:00:00Z"
+  }
+}
