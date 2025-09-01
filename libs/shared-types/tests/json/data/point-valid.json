@@ -1,0 +1,12 @@
+{
+  "type": "Feature",
+  "id": "point-1",
+  "geometry": {
+    "type": "Point",
+    "coordinates": [-1.0, 51.0]
+  },
+  "properties": {
+    "name": "Test Point",
+    "time": "2024-01-01T10:00:00Z"
+  }
+}

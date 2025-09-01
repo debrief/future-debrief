@@ -10,6 +10,7 @@ const Ajv = require('ajv');
 const addFormats = require('ajv-formats');
 
 const SCHEMA_DIR = path.join(__dirname, '..', '..', 'schema');
+const TEST_DATA_DIR = path.join(__dirname, 'data');
 
 const SCHEMA_FILES = [
   'track.schema.json',
@@ -18,134 +19,35 @@ const SCHEMA_FILES = [
   'featurecollection.schema.json'
 ];
 
-// Test data for each schema
-const TEST_DATA = {
-  'track.schema.json': {
-    valid: {
-      type: 'Feature',
-      id: 'track-1',
-      geometry: {
-        type: 'LineString',
-        coordinates: [
-          [-1.0, 51.0],
-          [-0.9, 51.1],
-          [-0.8, 51.2]
-        ]
-      },
-      properties: {
-        timestamps: [
-          '2024-01-01T10:00:00Z',
-          '2024-01-01T10:01:00Z',
-          '2024-01-01T10:02:00Z'
-        ],
-        name: 'Test Track'
-      }
-    },
-    invalid: {
-      type: 'Feature',
-      // missing id
-      geometry: {
-        type: 'Point', // wrong geometry type
-        coordinates: [-1.0, 51.0]
-      },
-      properties: {}
-    }
-  },
+/**
+ * Load test data from JSON files
+ */
+function loadTestData(schemaFilename) {
+  const baseName = schemaFilename.replace('.schema.json', '');
+  const validPath = path.join(TEST_DATA_DIR, `${baseName}-valid.json`);
+  const invalidPath = path.join(TEST_DATA_DIR, `${baseName}-invalid.json`);
   
-  'point.schema.json': {
-    valid: {
-      type: 'Feature',
-      id: 'point-1',
-      geometry: {
-        type: 'Point',
-        coordinates: [-1.0, 51.0]
-      },
-      properties: {
-        time: '2024-01-01T10:00:00Z',
-        name: 'Test Point'
-      }
-    },
-    invalid: {
-      type: 'Feature',
-      id: 'point-1',
-      geometry: {
-        type: 'LineString', // wrong geometry type
-        coordinates: [[-1.0, 51.0], [-0.9, 51.1]]
-      },
-      properties: {}
-    }
-  },
+  let valid = null;
+  let invalid = null;
   
-  'annotation.schema.json': {
-    valid: {
-      type: 'Feature',
-      id: 'annotation-1',
-      geometry: {
-        type: 'Polygon',
-        coordinates: [[
-          [-1.0, 51.0],
-          [-0.5, 51.0],
-          [-0.5, 51.5],
-          [-1.0, 51.5],
-          [-1.0, 51.0]
-        ]]
-      },
-      properties: {
-        annotationType: 'area',
-        text: 'Important area',
-        color: '#FF0000',
-        name: 'Test Annotation'
-      }
-    },
-    invalid: {
-      type: 'Feature',
-      id: 'annotation-1',
-      geometry: {
-        type: 'Polygon',
-        coordinates: [] // invalid coordinates
-      },
-      properties: {
-        annotationType: 'invalid-type', // invalid annotation type
-        color: 'red' // invalid color format
-      }
+  try {
+    if (fs.existsSync(validPath)) {
+      valid = JSON.parse(fs.readFileSync(validPath, 'utf8'));
     }
-  },
-  
-  'featurecollection.schema.json': {
-    valid: {
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          id: 'track-1',
-          geometry: {
-            type: 'LineString',
-            coordinates: [[-1.0, 51.0], [-0.9, 51.1]]
-          },
-          properties: { name: 'Track 1' }
-        }
-      ],
-      properties: {
-        name: 'Test Collection',
-        created: '2024-01-01T10:00:00Z'
-      }
-    },
-    invalid: {
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          // missing id
-          geometry: {
-            type: 'LineString',
-            coordinates: [[-1.0, 51.0], [-0.9, 51.1]]
-          },
-          properties: {}
-        }
-      ]
-    }
+  } catch (error) {
+    console.log(`⚠ Warning: Could not load valid test data for ${baseName}: ${error.message}`);
   }
-};
+  
+  try {
+    if (fs.existsSync(invalidPath)) {
+      invalid = JSON.parse(fs.readFileSync(invalidPath, 'utf8'));
+    }
+  } catch (error) {
+    console.log(`⚠ Warning: Could not load invalid test data for ${baseName}: ${error.message}`);
+  }
+  
+  return { valid, invalid };
+}
 
 
 function loadSchema(filename) {
@@ -178,6 +80,30 @@ function testSchemaValidation(filename, schema) {
   });
   addFormats(ajv);
   
+  // For featurecollection schema, we need to add the referenced schemas
+  if (filename === 'featurecollection.schema.json') {
+    // Load and add the referenced schemas to AJV
+    try {
+      const trackSchema = loadSchema('track.schema.json');
+      const pointSchema = loadSchema('point.schema.json');
+      const annotationSchema = loadSchema('annotation.schema.json');
+      
+      // Remove $schema properties and add to AJV
+      const trackForValidation = { ...trackSchema };
+      delete trackForValidation.$schema;
+      const pointForValidation = { ...pointSchema };
+      delete pointForValidation.$schema;
+      const annotationForValidation = { ...annotationSchema };
+      delete annotationForValidation.$schema;
+      
+      ajv.addSchema(trackForValidation, 'track.schema.json');
+      ajv.addSchema(pointForValidation, 'point.schema.json');
+      ajv.addSchema(annotationForValidation, 'annotation.schema.json');
+    } catch (error) {
+      console.log(`⚠ Warning: Could not add referenced schemas: ${error.message}`);
+    }
+  }
+  
   let validate;
   try {
     validate = ajv.compile(schemaForValidation);
@@ -187,14 +113,16 @@ function testSchemaValidation(filename, schema) {
   }
   
   // Test valid data
-  const testData = TEST_DATA[filename];
-  if (testData) {
+  const testData = loadTestData(filename);
+  if (testData.valid) {
     const validResult = validate(testData.valid);
     if (!validResult) {
       throw new Error(`Valid data failed validation for ${filename}: ${JSON.stringify(validate.errors, null, 2)}`);
     }
     console.log(`✓ Valid data passes: ${filename}`);
-    
+  }
+  
+  if (testData.invalid) {
     const invalidResult = validate(testData.invalid);
     if (invalidResult) {
       throw new Error(`Invalid data incorrectly passed validation for ${filename}`);
