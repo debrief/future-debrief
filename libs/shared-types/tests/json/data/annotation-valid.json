@@ -1,0 +1,21 @@
+{
+  "type": "Feature",
+  "id": "annotation-1",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[
+      [-1.0, 51.0],
+      [-0.9, 51.0],
+      [-0.9, 51.1],
+      [-1.0, 51.1],
+      [-1.0, 51.0]
+    ]]
+  },
+  "properties": {
+    "featureType": "annotation",
+    "annotationType": "area",
+    "name": "Test Area",
+    "color": "#FF0000",
+    "text": "Test annotation"
+  }
+}

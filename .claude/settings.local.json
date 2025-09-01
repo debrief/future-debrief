@@ -106,7 +106,11 @@
       "WebFetch(domain:debrief.github.io)",
       "Bash(npm create:*)",
       "Bash(tree:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "WebSearch",
+      "Bash(quicktype:*)",
+      "WebFetch(domain:docs.quicktype.io)",
+      "WebFetch(domain:json-schema.org)"
     ]
   }
 }

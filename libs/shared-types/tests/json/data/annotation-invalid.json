@@ -1,0 +1,12 @@
+{
+  "type": "Feature",
+  "id": "annotation-1",
+  "geometry": {
+    "type": "Point",
+    "coordinates": [-1.0, 51.0]
+  },
+  "properties": {
+    "annotationType": "invalid-type",
+    "name": "Invalid Annotation"
+  }
+}

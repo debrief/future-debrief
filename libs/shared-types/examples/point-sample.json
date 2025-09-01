@@ -1,0 +1,13 @@
+{
+  "type": "Feature",
+  "id": "point-001",
+  "geometry": {
+    "type": "Point",
+    "coordinates": [-1.0, 51.0]
+  },
+  "properties": {
+    "time": "2024-01-01T10:00:00Z",
+    "name": "Sample Point",
+    "description": "A sample point for testing"
+  }
+}

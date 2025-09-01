@@ -1,0 +1,10 @@
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "LineString",
+    "coordinates": [[-1.0, 51.0], [-0.9, 51.1]]
+  },
+  "properties": {
+    "name": "Invalid Point"
+  }
+}

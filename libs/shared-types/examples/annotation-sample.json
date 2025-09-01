@@ -1,0 +1,16 @@
+{
+  "type": "Feature",
+  "id": "annotation-001",
+  "geometry": {
+    "type": "Polygon",
+    "coordinates": [[[-1.0, 51.0], [-0.5, 51.0], [-0.5, 51.5], [-1.0, 51.5], [-1.0, 51.0]]]
+  },
+  "properties": {
+    "annotationType": "area",
+    "text": "Important area",
+    "color": "#FF0000",
+    "time": "2024-01-01T10:00:00Z",
+    "name": "Sample Annotation",
+    "description": "A sample annotation for testing"
+  }
+}
