@@ -26,7 +26,7 @@ npm-debug.log*
 
 # Build artifacts that will be regenerated
 out/
-*.vsix
+# *.vsix - commented out because Docker needs the pre-built extension.vsix
 
 # Lock files (package-lock.json will be copied, but not yarn.lock if present)
 yarn.lock
