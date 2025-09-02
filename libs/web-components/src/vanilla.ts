@@ -1,9 +1,23 @@
 // Vanilla JS widget wrappers for VS Code webviews and non-React environments
 import { createElement } from 'react';
-import { createRoot, Root } from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 import { TimeController, TimeControllerProps } from './TimeController/TimeController';
 import { PropertiesView, PropertiesViewProps } from './PropertiesView/PropertiesView';
 import { MapComponent, MapComponentProps } from './MapComponent/MapComponent';
+
+// Window interface extensions
+declare global {
+  interface Window {
+    createTimeController: typeof createTimeController;
+    createPropertiesView: typeof createPropertiesView;
+    createMapComponent: typeof createMapComponent;
+    DebriefWebComponents: {
+      createTimeController: typeof createTimeController;
+      createPropertiesView: typeof createPropertiesView;
+      createMapComponent: typeof createMapComponent;
+    };
+  }
+}
 
 // TimeController vanilla wrapper
 export function createTimeController(container: HTMLElement, props: TimeControllerProps): { destroy: () => void } {
@@ -52,12 +66,12 @@ export function createMapComponent(container: HTMLElement, props: MapComponentPr
 // Expose functions globally for VS Code webviews and other environments
 if (typeof window !== 'undefined') {
   // Direct global assignment for backward compatibility
-  (window as any).createTimeController = createTimeController;
-  (window as any).createPropertiesView = createPropertiesView;
-  (window as any).createMapComponent = createMapComponent;
+  window.createTimeController = createTimeController;
+  window.createPropertiesView = createPropertiesView;
+  window.createMapComponent = createMapComponent;
   
   // Also create a namespace for the IIFE build
-  (window as any).DebriefWebComponents = {
+  window.DebriefWebComponents = {
     createTimeController,
     createPropertiesView,
     createMapComponent
