@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { validateFeatureCollectionComprehensive } from '@debrief/shared-types/validators/typescript';
 
 export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
     private static outlineUpdateCallback: ((document: vscode.TextDocument) => void) | undefined;
@@ -56,6 +57,15 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         webviewPanel: vscode.WebviewPanel,
         _token: vscode.CancellationToken
     ): Promise<void> {
+        
+        // Validate the document and check if it's valid
+        let validationError: string | null = null;
+        try {
+            this.getDocumentAsJson(document, true); // This will throw on validation error
+        } catch (error) {
+            validationError = error instanceof Error ? error.message : String(error);
+        }
+        
         // Note: Document Activation Trigger removed - it conflicts with custom editor display
 
         // Track this as the active webview panel
@@ -114,7 +124,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         webviewPanel.webview.options = {
             enableScripts: true,
         };
-        webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview, document);
+        webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview, document, validationError);
 
         function updateWebview() {
             webviewPanel.webview.postMessage({
@@ -183,7 +193,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         updateWebview();
     }
 
-    private getHtmlForWebview(webview: vscode.Webview, document: vscode.TextDocument): string {
+    private getHtmlForWebview(webview: vscode.Webview, _document: vscode.TextDocument, validationError?: string | null): string {
         const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(
             this.context.extensionUri, 'media', 'plotJsonEditor.js'));
 
@@ -205,6 +215,92 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 
         const nonce = getNonce();
 
+        // If there's a validation error, show error page instead of map
+        if (validationError) {
+            return `<!DOCTYPE html>
+				<html lang="en">
+				<head>
+					<meta charset="UTF-8">
+					<meta name="viewport" content="width=device-width, initial-scale=1.0">
+					<link href="${styleResetUri}" rel="stylesheet">
+					<link href="${styleVSCodeUri}" rel="stylesheet">
+					<title>Plot JSON Editor - Validation Error</title>
+					<style>
+						body {
+							padding: 20px;
+							font-family: var(--vscode-font-family);
+							background-color: var(--vscode-editor-background);
+							color: var(--vscode-editor-foreground);
+						}
+						.error-container {
+							max-width: 800px;
+							margin: 0 auto;
+						}
+						.error-header {
+							color: var(--vscode-errorForeground);
+							font-size: 1.2em;
+							font-weight: bold;
+							margin-bottom: 15px;
+							display: flex;
+							align-items: center;
+						}
+						.error-icon {
+							margin-right: 8px;
+							font-size: 1.5em;
+						}
+						.error-message {
+							background-color: var(--vscode-inputValidation-errorBackground);
+							border: 1px solid var(--vscode-inputValidation-errorBorder);
+							padding: 15px;
+							border-radius: 4px;
+							margin-bottom: 20px;
+							white-space: pre-wrap;
+							font-family: var(--vscode-editor-font-family);
+						}
+						.help-text {
+							color: var(--vscode-descriptionForeground);
+							line-height: 1.5;
+						}
+						.requirements {
+							background-color: var(--vscode-textBlockQuote-background);
+							border-left: 4px solid var(--vscode-textBlockQuote-border);
+							padding: 15px;
+							margin-top: 15px;
+						}
+						.requirements ul {
+							margin: 10px 0;
+							padding-left: 20px;
+						}
+						.requirements li {
+							margin: 5px 0;
+						}
+					</style>
+				</head>
+				<body>
+					<div class="error-container">
+						<div class="error-header">
+							<span class="error-icon">⚠️</span>
+							Invalid Plot File
+						</div>
+						<div class="error-message">${validationError.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+						<div class="help-text">
+							This .plot.json file does not conform to the Debrief FeatureCollection schema and cannot be opened in the plot editor.
+							<div class="requirements">
+								<strong>Debrief FeatureCollection Requirements:</strong>
+								<ul>
+									<li>Type: "FeatureCollection"</li>
+									<li>Features: Array of track, point, or annotation features</li>
+									<li>Each feature must have: id, type:"Feature", geometry, properties</li>
+									<li>Valid geometry types: Point (point/annotation), LineString/MultiLineString (track/annotation), Polygon/MultiPoint/MultiPolygon (annotation)</li>
+								</ul>
+							</div>
+						</div>
+					</div>
+				</body>
+				</html>`;
+        }
+
+        // Normal case - show the map editor
         return `<!DOCTYPE html>
 			<html lang="en">
 			<head>
@@ -284,13 +380,26 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             return;
         }
 
-        json.features = json.features.filter((feature: any, index: number) => index.toString() !== id);
+        json.features = json.features.filter((_feature: any, index: number) => index.toString() !== id);
 
         return this.updateTextDocument(document, json);
     }
 
-    private getDocumentAsJson(document: vscode.TextDocument): any {
+    private validateDebriefFeatureCollection(data: any): { valid: boolean; errors: string[]; featureCounts?: any } {
+        // Use the comprehensive validator from shared-types
+        const validation = validateFeatureCollectionComprehensive(data);
+        
+        return {
+            valid: validation.isValid,
+            errors: validation.errors,
+            featureCounts: validation.featureCounts
+        };
+    }
+
+    private getDocumentAsJson(document: vscode.TextDocument, throwOnValidationError: boolean = true): any {
+        
         const text = document.getText();
+        
         if (text.trim().length === 0) {
             return {
                 type: "FeatureCollection",
@@ -298,11 +407,54 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             };
         }
 
+        let json: any;
         try {
-            return JSON.parse(text);
-        } catch {
+            json = JSON.parse(text);
+        } catch (error) {
             throw new Error('Could not get document as json. Content is not valid json');
         }
+        
+        // Validate against Debrief schema using shared-types validators
+        const validation = this.validateDebriefFeatureCollection(json);
+        
+        if (!validation.valid) {
+            const errorMessage = `Invalid Debrief FeatureCollection:\n${validation.errors.join('\n')}`;
+            
+            vscode.window.showErrorMessage(errorMessage, 'Details', 'Schema Info').then(selection => {
+                if (selection === 'Details') {
+                    vscode.window.showInformationMessage(
+                        'This plot.json file does not conform to the Debrief FeatureCollection schema. ' +
+                        'Please check the validation errors and ensure all features have proper geometry, properties, and required fields.'
+                    );
+                } else if (selection === 'Schema Info') {
+                    vscode.window.showInformationMessage(
+                        'Debrief FeatureCollection schema requires:\n' +
+                        '• Type: "FeatureCollection"\n' +
+                        '• Features: Array of track, point, or annotation features\n' +
+                        '• Each feature must have: id, type:"Feature", geometry, properties\n' +
+                        '• Geometry types: Point (point/annotation), LineString/MultiLineString (track/annotation), Polygon/MultiPoint/MultiPolygon (annotation)'
+                    );
+                }
+            });
+            
+            // Throw an error to prevent the invalid file from opening in the editor (only if requested)
+            if (throwOnValidationError) {
+                throw new Error(`Cannot open invalid plot file: ${validation.errors.join('; ')}`);
+            } else {
+                // Return a basic structure so the editor can still function
+                return {
+                    type: "FeatureCollection",
+                    features: []
+                };
+            }
+        } else if (validation.featureCounts) {
+            // Show success message with feature counts for valid collections
+            const counts = validation.featureCounts;
+            const summary = `Valid FeatureCollection loaded: ${counts.total} features (${counts.tracks} tracks, ${counts.points} points, ${counts.annotations} annotations)`;
+            console.log('Debrief FeatureCollection:', summary);
+        }
+        
+        return json;
     }
 
     private updateTextDocument(document: vscode.TextDocument, json: any) {

@@ -4,7 +4,7 @@ FROM codercom/code-server:latest
 # Set the working directory
 WORKDIR /home/coder
 
-# Install Node.js, yarn, and Python (required for VS Code extension builds and testing)
+# Install Node.js, pnpm, and Python (required for VS Code extension builds and testing)
 USER root
 RUN apt-get update && apt-get install -y \
     curl \
@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
     python3-venv \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
-    && npm install -g yarn \
+    && npm install -g pnpm \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -26,20 +26,14 @@ USER coder
 # Create workspace directory
 RUN mkdir -p /home/coder/workspace
 
-# Copy the entire project context (will be filtered by .dockerignore)
+# Copy the VS Code extension files (pre-compiled)
 COPY --chown=coder:coder . /home/coder/project/
 
-# Build the VS Code extension
+# Extension should already be compiled and packaged by CI build step
+# Verify both compiled extension and packaged .vsix exist
 WORKDIR /home/coder/project
-RUN yarn install && yarn compile
-
-# Install vsce for packaging the extension (as root, then switch back)
-USER root
-RUN yarn global add @vscode/vsce
-USER coder
-
-# Package the extension as .vsix
-RUN vsce package --out extension.vsix
+RUN if [ ! -d "dist" ]; then echo "Error: Extension not compiled - dist/ directory missing"; exit 1; fi
+RUN if [ ! -f "extension.vsix" ]; then echo "Error: Extension not packaged - extension.vsix missing"; exit 1; fi
 
 # Install the extension in code-server
 RUN code-server --install-extension ./extension.vsix
@@ -48,7 +42,7 @@ RUN code-server --install-extension ./extension.vsix
 RUN code-server --install-extension ms-python.python
 
 # Copy workspace files to the workspace directory
-RUN cp -r workspace/* /home/coder/workspace/
+RUN cp -r workspace/* /home/coder/workspace/ 2>/dev/null || true
 
 # Create VS Code settings to use virtual environment Python
 RUN mkdir -p /home/coder/workspace/.vscode && \

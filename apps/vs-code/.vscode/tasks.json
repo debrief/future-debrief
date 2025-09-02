@@ -2,9 +2,13 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "yarn: compile",
+            "label": "pnpm: compile",
             "type": "shell",
-            "command": "yarn compile",
+            "command": "bash",
+            "args": [
+                "-c",
+                "source $NVM_DIR/nvm.sh && nvm use && pnpm compile"
+            ],
             "group": "build",
             "presentation": {
                 "panel": "shared",
@@ -13,19 +17,19 @@
             "problemMatcher": "$tsc"
         },
         {
-            "label": "yarn: watch",
+            "label": "pnpm: lint",
             "type": "shell",
-            "command": "yarn watch",
-            "isBackground": true,
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
+            "command": "bash",
+            "args": [
+                "-c",
+                "source $NVM_DIR/nvm.sh && nvm use && pnpm lint"
+            ],
+            "group": "test",
             "presentation": {
                 "panel": "shared",
-                "reveal": "silent"
+                "reveal": "always"
             },
-            "problemMatcher": "$tsc-watch"
+            "problemMatcher": "$tsc"
         }
     ]
 }

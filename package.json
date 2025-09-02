@@ -1,0 +1,14 @@
+{
+  "name": "future-debrief",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build:shared-types": "pnpm --filter @debrief/shared-types build",
+    "build:vs-code": "pnpm --filter codespace-extension compile",
+    "build": "pnpm run build:shared-types && pnpm run build:vs-code",
+    "dev": "code future-debrief.code-workspace"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

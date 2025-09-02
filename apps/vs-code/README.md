@@ -20,14 +20,17 @@ This extension demonstrates three core VS Code extension capabilities:
    cd codespace-extension
    ```
 
-2. Install dependencies:
+2. Install dependencies (from monorepo root):
    ```bash
-   yarn install
+   cd ../../  # Navigate to monorepo root
+   pnpm install
    ```
 
 3. Compile TypeScript:
    ```bash
-   yarn compile
+   pnpm --filter codespace-extension compile
+   # Or from vs-code directory:
+   cd apps/vs-code && pnpm compile
    ```
 
 4. Launch Extension Development Host:
@@ -111,16 +114,19 @@ When you create a Pull Request:
 
 ## Build Commands
 
-- `yarn compile` - Compile TypeScript to JavaScript
-- `yarn watch` - Watch mode compilation for development
-- `yarn vscode:prepublish` - Prepare for publishing (runs compile)
+- `pnpm compile` - Compile TypeScript to JavaScript
+- `pnpm watch` - Watch mode compilation for development  
+- `pnpm vscode:prepublish` - Prepare for publishing (runs compile)
+
+**Note**: This extension is part of a pnpm monorepo. Install dependencies from the root directory with `pnpm install`.
 
 ## Troubleshooting
 
 ### Extension Not Loading
-- Ensure TypeScript compilation succeeded (`yarn compile`)
+- Ensure TypeScript compilation succeeded (`pnpm compile`)
 - Check console for activation errors (Developer Tools → Console)
 - Verify `package.json` manifest is correct
+- Ensure dependencies are installed from monorepo root (`pnpm install`)
 
 ### Codespace Issues
 - Check `.devcontainer/devcontainer.json` configuration

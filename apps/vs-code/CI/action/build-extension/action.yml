@@ -18,39 +18,44 @@ outputs:
 runs:
   using: 'composite'
   steps:
+    - name: Install pnpm
+      shell: bash
+      run: npm install -g pnpm
+    
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'yarn'
-        cache-dependency-path: apps/vs-code/yarn.lock
+        cache: 'pnpm'
+        cache-dependency-path: pnpm-lock.yaml
     
     - name: Install dependencies
       shell: bash
       working-directory: apps/vs-code
-      run: yarn install --frozen-lockfile
+      run: pnpm install --frozen-lockfile
     
     - name: Compile TypeScript
       shell: bash
       working-directory: apps/vs-code
-      run: yarn compile
+      run: pnpm compile
     
     - name: Install vsce
       shell: bash
       working-directory: apps/vs-code
       run: |
         # Install vsce with fallback to local installation
-        yarn global add @vscode/vsce || yarn add @vscode/vsce
+        pnpm add -g @vscode/vsce || pnpm add @vscode/vsce
     
     - name: Package extension
       shell: bash
       working-directory: apps/vs-code
       run: |
-        # Package the extension
+        # Package the extension with pnpm workspace compatibility
+        # Use --no-dependencies to skip npm list validation since we're using pnpm
         if which vsce > /dev/null 2>&1; then
-          vsce package --out extension.vsix
+          vsce package --out extension.vsix --no-dependencies
         else
-          npx vsce package --out extension.vsix
+          npx vsce package --out extension.vsix --no-dependencies
         fi
         
         # Verify package was created

@@ -3,13 +3,13 @@
  * These validators work with the generated types and provide additional validation logic
  */
 
-import { TrackFeature } from '../../derived/typescript/track';
+import { DebriefTrackFeature } from '../../derived/typescript/featurecollection';
 
 /**
  * Validates that timestamps array length matches coordinate points count
  * This is the critical cross-field validation not covered by JSON Schema
  */
-export function validateTimestampsLength(feature: TrackFeature): boolean {
+export function validateTimestampsLength(feature: DebriefTrackFeature): boolean {
   if (!feature.properties.timestamps) {
     return true; // timestamps are optional
   }
@@ -35,7 +35,7 @@ export function validateTimestampsLength(feature: TrackFeature): boolean {
 /**
  * Validates that track feature has required properties and valid structure
  */
-export function validateTrackFeature(feature: any): feature is TrackFeature {
+export function validateTrackFeature(feature: any): feature is DebriefTrackFeature {
   if (!feature || typeof feature !== 'object') {
     return false;
   }
@@ -86,7 +86,7 @@ export function validateTrackFeature(feature: any): feature is TrackFeature {
     }
     
     // Apply timestamps length validation
-    if (!validateTimestampsLength(feature as TrackFeature)) {
+    if (!validateTimestampsLength(feature as DebriefTrackFeature)) {
       return false;
     }
   }

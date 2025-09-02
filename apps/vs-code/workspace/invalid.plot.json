@@ -1,0 +1,13 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Carrot",
+        "coordinates": [[-1.0, 51.0], [-0.9, 51.1]]
+      },
+      "properties": {}
+    }
+  ]
+}
