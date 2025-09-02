@@ -6,7 +6,7 @@
 import { DebriefFeatureCollection } from '../../derived/typescript/featurecollection';
 import { validateTrackFeature } from './track-validator';
 import { validatePointFeature } from './point-validator';
-import { validateAnnotationFeature } from './annotation-validator';
+import { validateAnnotationFeature, validateAnnotationType, validateColorFormat } from './annotation-validator';
 
 /**
  * Validates bounding box format
@@ -77,9 +77,32 @@ export function classifyFeature(feature: any): 'track' | 'point' | 'annotation' 
     return 'unknown';
   }
   
-  const geometryType = feature.geometry.type;
   const properties = feature.properties || {};
   
+  // Skip validation for unsupported dataType values
+  if (properties.dataType === 'buoyfield' || properties.dataType === 'backdrop') {
+    return 'unknown';
+  }
+  
+  const geometryType = feature.geometry.type;
+  
+  // Use dataType for classification if available
+  if (properties.dataType) {
+    switch (properties.dataType) {
+      case 'track':
+        return 'track';
+      case 'reference-point':
+        return 'point';
+      case 'zone':
+        return 'annotation';
+      default:
+        // Invalid dataType values should still be validated based on geometry
+        // Only 'buoyfield' and 'backdrop' should be skipped (handled above)
+        break;
+    }
+  }
+  
+  // Fallback to geometry-based classification for backward compatibility
   // Track features: LineString or MultiLineString with optional timestamps
   if (geometryType === 'LineString' || geometryType === 'MultiLineString') {
     // If it has annotationType, it's an annotation, not a track
@@ -118,6 +141,9 @@ export function validateFeatureByType(feature: any): boolean {
       return validatePointFeature(feature);
     case 'annotation':
       return validateAnnotationFeature(feature);
+    case 'unknown':
+      // Skip validation for unknown types (including buoyfield and backdrop)
+      return true;
     default:
       return false;
   }
@@ -243,7 +269,6 @@ function getFeatureIdentifier(feature: any, index: number): string {
  */
 export function validateFeatureDetailed(feature: any, index: number): FeatureError | null {
   const featureType = classifyFeature(feature);
-  const featureId = getFeatureIdentifier(feature, index);
   const errors: string[] = [];
   
   // Basic structure validation
@@ -282,8 +307,8 @@ export function validateFeatureDetailed(feature: any, index: number): FeatureErr
               errors.push(`Track must have LineString or MultiLineString geometry, got "${feature.geometry.type}"`);
             }
           }
-          if (feature.properties && !feature.properties.featureType) {
-            errors.push('Track features must have featureType: "track" in properties');
+          if (feature.properties && !feature.properties.dataType) {
+            errors.push('Track features must have dataType: "track" in properties');
           }
         }
         break;
@@ -296,8 +321,8 @@ export function validateFeatureDetailed(feature: any, index: number): FeatureErr
           if (feature.geometry && feature.geometry.type !== 'Point') {
             errors.push(`Point feature must have Point geometry, got "${feature.geometry.type}"`);
           }
-          if (feature.properties && !feature.properties.featureType) {
-            errors.push('Point features must have featureType: "point" in properties');
+          if (feature.properties && !feature.properties.dataType) {
+            errors.push('Point features must have dataType: "reference-point" in properties');
           }
           if (feature.properties) {
             const { time, timeStart, timeEnd } = feature.properties;
@@ -317,8 +342,8 @@ export function validateFeatureDetailed(feature: any, index: number): FeatureErr
           errors.push('Failed annotation-specific validation');
           // Add more specific annotation validation errors
           if (feature.properties) {
-            if (!feature.properties.featureType) {
-              errors.push('Annotation features must have featureType: "annotation" in properties');
+            if (!feature.properties.dataType) {
+              errors.push('Annotation features must have dataType: "zone" in properties');
             }
             if (feature.properties.annotationType && !validateAnnotationType(feature.properties.annotationType)) {
               errors.push(`Invalid annotation type: "${feature.properties.annotationType}"`);
@@ -331,7 +356,8 @@ export function validateFeatureDetailed(feature: any, index: number): FeatureErr
         break;
         
       default:
-        errors.push(`Unknown feature type (geometry: ${feature.geometry?.type}, properties: ${JSON.stringify(feature.properties)})`);
+        // Don't add errors for unknown types - they are valid but not validated
+        // This includes buoyfield and backdrop dataTypes
         break;
     }
   }

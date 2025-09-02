@@ -79,8 +79,8 @@ export function validatePointFeature(feature: any): feature is DebriefPointFeatu
     return false;
   }
   
-  // Check required featureType discriminator
-  if (feature.properties.featureType !== 'point') {
+  // Check required dataType discriminator
+  if (feature.properties.dataType !== 'reference-point') {
     return false;
   }
   
