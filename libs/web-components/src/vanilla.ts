@@ -71,3 +71,20 @@ export function createLightweightMap(container: HTMLElement, props: LightweightM
     }
   };
 }
+
+// Expose functions globally for VS Code webviews and other environments
+if (typeof window !== 'undefined') {
+  // Direct global assignment for backward compatibility
+  (window as any).createTimeController = createTimeController;
+  (window as any).createPropertiesView = createPropertiesView;
+  (window as any).createMapComponent = createMapComponent;
+  (window as any).createLightweightMap = createLightweightMap;
+  
+  // Also create a namespace for the IIFE build
+  (window as any).DebriefWebComponents = {
+    createTimeController,
+    createPropertiesView,
+    createMapComponent,
+    createLightweightMap
+  };
+}

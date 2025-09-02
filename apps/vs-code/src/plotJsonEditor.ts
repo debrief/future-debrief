@@ -194,8 +194,8 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
     }
 
     private getHtmlForWebview(webview: vscode.Webview, _document: vscode.TextDocument, validationError?: string | null): string {
-        const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(
-            this.context.extensionUri, 'media', 'plotJsonEditor.js'));
+        const webComponentsScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(
+            this.context.extensionUri, 'media', 'web-components.js'));
 
         const styleResetUri = webview.asWebviewUri(vscode.Uri.joinPath(
             this.context.extensionUri, 'media', 'reset.css'));
@@ -205,13 +205,6 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 
         const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(
             this.context.extensionUri, 'media', 'plotJsonEditor.css'));
-
-        const markerIconUri = webview.asWebviewUri(vscode.Uri.joinPath(
-            this.context.extensionUri, 'media', 'marker-icon.png'));
-        const markerIcon2xUri = webview.asWebviewUri(vscode.Uri.joinPath(
-            this.context.extensionUri, 'media', 'marker-icon-2x.png'));
-        const markerShadowUri = webview.asWebviewUri(vscode.Uri.joinPath(
-            this.context.extensionUri, 'media', 'marker-shadow.png'));
 
         const nonce = getNonce();
 
@@ -305,7 +298,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 			<html lang="en">
 			<head>
 				<meta charset="UTF-8">
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} https://unpkg.com; script-src 'nonce-${nonce}' https://unpkg.com; img-src ${webview.cspSource} https://*.tile.openstreetmap.org data:; connect-src https://*.tile.openstreetmap.org;">
+				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} https://unpkg.com https://cdnjs.cloudflare.com; script-src 'nonce-${nonce}' https://unpkg.com; img-src ${webview.cspSource} https://*.tile.openstreetmap.org data: https://cdnjs.cloudflare.com; connect-src https://*.tile.openstreetmap.org;">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 				<link href="${styleResetUri}" rel="stylesheet">
 				<link href="${styleVSCodeUri}" rel="stylesheet">
@@ -315,21 +308,109 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 				<title>Plot JSON Editor</title>
 			</head>
 			<body>
-				<div class="plot-editor">
-					<div id="map"></div>
-				</div>
-				<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" 
-					integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+				<div id="map-container"></div>
+				<script nonce="${nonce}" src="${webComponentsScriptUri}"></script>
 				<script nonce="${nonce}">
-					// Configure Leaflet icon paths
-					delete L.Icon.Default.prototype._getIconUrl;
-					L.Icon.Default.mergeOptions({
-						iconUrl: '${markerIconUri}',
-						iconRetinaUrl: '${markerIcon2xUri}',
-						shadowUrl: '${markerShadowUri}',
+					const vscode = acquireVsCodeApi();
+					let mapComponentInstance = null;
+					let currentGeoJsonData = null;
+
+					// Initialize MapComponent when the page loads
+					window.addEventListener('DOMContentLoaded', () => {
+						const container = document.getElementById('map-container');
+						
+						// Add a small delay to ensure the script has fully executed
+						setTimeout(() => {
+							try {
+								// Get the createMapComponent function from DebriefWebComponents namespace
+								if (typeof window.DebriefWebComponents === 'undefined' || !window.DebriefWebComponents.createMapComponent) {
+									throw new Error('DebriefWebComponents.createMapComponent is not available');
+								}
+								
+								const createMapComponent = window.DebriefWebComponents.createMapComponent;
+							
+							mapComponentInstance = createMapComponent(container, {
+								showAddButton: true,
+								onAddClick: () => {
+									vscode.postMessage({ type: 'add' });
+								},
+								onMapClick: (lat, lng) => {
+									vscode.postMessage({ type: 'addPoint', lat, lng });
+								},
+								onSelectionChange: (selectedFeatures, selectedIndices) => {
+									const selectedFeatureIds = selectedFeatures.map(f => f.id).filter(id => id != null);
+									vscode.postMessage({ 
+										type: 'selectionChanged', 
+										selectedFeatureIds: selectedFeatureIds 
+									});
+								},
+								onMapStateChange: (state) => {
+									vscode.postMessage({ 
+										type: 'mapStateSaved', 
+										center: state.center, 
+										zoom: state.zoom 
+									});
+								}
+							});
+
+								// Request saved state after initialization
+								vscode.postMessage({ type: 'requestSavedState' });
+							} catch (err) {
+								console.error('Failed to load MapComponent:', err);
+								document.getElementById('map-container').innerHTML = 
+									'<div style="padding: 20px; color: red;">Failed to load map component: ' + err.message + '</div>';
+							}
+						}, 100); // 100ms delay to ensure script loads
+					});
+
+					// Handle messages from VS Code
+					window.addEventListener('message', event => {
+						const message = event.data;
+						
+						switch (message.type) {
+							case 'update':
+								try {
+									if (message.text.trim()) {
+										currentGeoJsonData = JSON.parse(message.text);
+									} else {
+										currentGeoJsonData = { type: 'FeatureCollection', features: [] };
+									}
+									
+									if (mapComponentInstance) {
+										mapComponentInstance.updateProps({
+											geoJsonData: currentGeoJsonData
+										});
+									}
+								} catch (error) {
+									console.error('Error parsing GeoJSON:', error);
+								}
+								break;
+								
+							case 'setSelectionByIds':
+								if (mapComponentInstance) {
+									mapComponentInstance.updateProps({
+										selectedFeatureIds: message.featureIds || []
+									});
+								}
+								break;
+								
+							case 'restoreMapState':
+								if (mapComponentInstance) {
+									mapComponentInstance.updateProps({
+										initialMapState: {
+											center: message.center,
+											zoom: message.zoom
+										}
+									});
+								}
+								break;
+								
+							case 'requestMapState':
+								// MapComponent handles this automatically through onMapStateChange
+								break;
+						}
 					});
 				</script>
-				<script nonce="${nonce}" src="${scriptUri}"></script>
 			</body>
 			</html>`;
     }

@@ -22,7 +22,7 @@
   "scripts": {
     "clean": "rm -rf dist/*",
     "build:react": "esbuild src/index.ts --bundle --outfile=dist/react/index.js --format=esm --external:react --external:react-dom",
-    "build:vanilla": "esbuild src/vanilla.ts --bundle --outfile=dist/vanilla/index.js --format=esm",
+    "build:vanilla": "esbuild src/vanilla.ts --bundle --outfile=dist/vanilla/index.js --format=iife",
     "build:types": "tsc --emitDeclarationOnly --outDir dist/react && tsc --emitDeclarationOnly --outDir dist/vanilla",
     "build": "pnpm clean && pnpm build:react && pnpm build:vanilla && pnpm build:types",
     "dev": "storybook dev -p 6006",

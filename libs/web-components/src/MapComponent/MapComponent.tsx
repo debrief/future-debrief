@@ -326,6 +326,8 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   className = '',
   mapId = 'map'
 }) => {
+  // TODO: Implement onZoomToSelection functionality
+  // TODO: Use mapId for container identification if needed
   const [currentData, setCurrentData] = useState<GeoJSONFeatureCollection | null>(null);
 
   // Parse GeoJSON data
