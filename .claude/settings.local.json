@@ -120,7 +120,9 @@
       "Bash(pnpx jest:*)",
       "Bash(pnpm -w run build:web-components)",
       "Bash(pnpm storybook:*)",
-      "Bash(pnpm info:*)"
+      "Bash(pnpm info:*)",
+      "Bash(pnpm --filter @debrief/web-components test)",
+      "Bash(pnpm --filter @debrief/web-components build-storybook)"
     ]
   }
 }
