@@ -45,22 +45,24 @@ export function validateFeatureCollection(collection: unknown): collection is De
     return false;
   }
   
+  const collectionObj = collection as Record<string, any>;
+  
   // Check basic GeoJSON FeatureCollection structure
-  if (collection.type !== 'FeatureCollection') {
+  if (collectionObj.type !== 'FeatureCollection') {
     return false;
   }
   
-  if (!Array.isArray(collection.features)) {
+  if (!Array.isArray(collectionObj.features)) {
     return false;
   }
   
   // Validate bbox if present
-  if (collection.bbox && !validateBbox(collection.bbox)) {
+  if (collectionObj.bbox && !validateBbox(collectionObj.bbox)) {
     return false;
   }
   
   // Validate each feature has required id property
-  for (const feature of collection.features) {
+  for (const feature of collectionObj.features) {
     if (!feature.id && feature.id !== 0) {
       return false; // id is required for all features
     }
@@ -126,7 +128,7 @@ export function classifyFeature(feature: unknown): 'track' | 'point' | 'annotati
   }
   
   // All other geometries are annotations
-  if (['Polygon', 'MultiPoint', 'MultiPolygon'].includes(geometryType)) {
+  if (['Polygon', 'MultiPoint', 'MultiPolygon'].indexOf(geometryType) !== -1) {
     return 'annotation';
   }
   
@@ -164,7 +166,7 @@ export function isValidDate(dateValue: unknown): boolean {
   
   if (typeof dateValue === 'string') {
     const parsed = new Date(dateValue);
-    return !isNaN(parsed.getTime()) && dateValue.includes('T'); // Expect ISO format
+    return !isNaN(parsed.getTime()) && dateValue.indexOf('T') !== -1; // Expect ISO format
   }
   
   return false;
@@ -178,19 +180,21 @@ export function validateFeatureCollectionProperties(properties: unknown): boolea
     return true; // properties are optional
   }
   
+  const propertiesObj = properties as Record<string, any>;
+  
   // Validate time properties if present
-  if (properties.created && !isValidDate(properties.created)) {
+  if (propertiesObj.created && !isValidDate(propertiesObj.created)) {
     return false;
   }
   
-  if (properties.modified && !isValidDate(properties.modified)) {
+  if (propertiesObj.modified && !isValidDate(propertiesObj.modified)) {
     return false;
   }
   
   // If both created and modified are present, created should be <= modified
-  if (properties.created && properties.modified) {
-    const created = new Date(properties.created);
-    const modified = new Date(properties.modified);
+  if (propertiesObj.created && propertiesObj.modified) {
+    const created = new Date(propertiesObj.created);
+    const modified = new Date(propertiesObj.modified);
     if (created > modified) {
       return false;
     }
@@ -281,19 +285,21 @@ export function validateFeatureDetailed(feature: unknown, index: number): Featur
   if (!feature || typeof feature !== 'object') {
     errors.push('Feature is not an object');
   } else {
-    if (feature.type !== 'Feature') {
-      errors.push(`Invalid feature type: "${feature.type}" (expected "Feature")`);
+    const featureObj = feature as Record<string, any>;
+    
+    if (featureObj.type !== 'Feature') {
+      errors.push(`Invalid feature type: "${featureObj.type}" (expected "Feature")`);
     }
     
-    if (!feature.id && feature.id !== 0) {
+    if (!featureObj.id && featureObj.id !== 0) {
       errors.push('Missing required "id" property');
     }
     
-    if (!feature.geometry || typeof feature.geometry !== 'object') {
+    if (!featureObj.geometry || typeof featureObj.geometry !== 'object') {
       errors.push('Missing or invalid geometry object');
     }
     
-    if (!feature.properties || typeof feature.properties !== 'object') {
+    if (!featureObj.properties || typeof featureObj.properties !== 'object') {
       errors.push('Missing or invalid properties object');
     }
   }
@@ -301,6 +307,7 @@ export function validateFeatureDetailed(feature: unknown, index: number): Featur
   // Type-specific validation
   if (errors.length === 0) {
     let isValidByType = false;
+    const featureObj = feature as Record<string, any>;
     
     switch (featureType) {
       case 'track':
@@ -308,12 +315,12 @@ export function validateFeatureDetailed(feature: unknown, index: number): Featur
         if (!isValidByType) {
           errors.push('Failed track-specific validation');
           // Add more specific track validation errors
-          if (feature.geometry) {
-            if (!['LineString', 'MultiLineString'].includes(feature.geometry.type)) {
-              errors.push(`Track must have LineString or MultiLineString geometry, got "${feature.geometry.type}"`);
+          if (featureObj.geometry) {
+            if (['LineString', 'MultiLineString'].indexOf(featureObj.geometry.type) === -1) {
+              errors.push(`Track must have LineString or MultiLineString geometry, got "${featureObj.geometry.type}"`);
             }
           }
-          if (feature.properties && !feature.properties.dataType) {
+          if (featureObj.properties && !featureObj.properties.dataType) {
             errors.push('Track features must have dataType: "track" in properties');
           }
         }
@@ -324,14 +331,14 @@ export function validateFeatureDetailed(feature: unknown, index: number): Featur
         if (!isValidByType) {
           errors.push('Failed point-specific validation');
           // Add more specific point validation errors
-          if (feature.geometry && feature.geometry.type !== 'Point') {
-            errors.push(`Point feature must have Point geometry, got "${feature.geometry.type}"`);
+          if (featureObj.geometry && featureObj.geometry.type !== 'Point') {
+            errors.push(`Point feature must have Point geometry, got "${featureObj.geometry.type}"`);
           }
-          if (feature.properties && !feature.properties.dataType) {
+          if (featureObj.properties && !featureObj.properties.dataType) {
             errors.push('Point features must have dataType: "reference-point" in properties');
           }
-          if (feature.properties) {
-            const { time, timeStart, timeEnd } = feature.properties;
+          if (featureObj.properties) {
+            const { time, timeStart, timeEnd } = featureObj.properties;
             if (time && (timeStart || timeEnd)) {
               errors.push('Cannot have both single time and time range (timeStart/timeEnd)');
             }
@@ -347,15 +354,15 @@ export function validateFeatureDetailed(feature: unknown, index: number): Featur
         if (!isValidByType) {
           errors.push('Failed annotation-specific validation');
           // Add more specific annotation validation errors
-          if (feature.properties) {
-            if (!feature.properties.dataType) {
+          if (featureObj.properties) {
+            if (!featureObj.properties.dataType) {
               errors.push('Annotation features must have dataType: "zone" in properties');
             }
-            if (feature.properties.annotationType && !validateAnnotationType(feature.properties.annotationType)) {
-              errors.push(`Invalid annotation type: "${feature.properties.annotationType}"`);
+            if (featureObj.properties.annotationType && !validateAnnotationType(featureObj.properties.annotationType)) {
+              errors.push(`Invalid annotation type: "${featureObj.properties.annotationType}"`);
             }
-            if (feature.properties.color && !validateColorFormat(feature.properties.color)) {
-              errors.push(`Invalid color format: "${feature.properties.color}" (expected #RRGGBB)`);
+            if (featureObj.properties.color && !validateColorFormat(featureObj.properties.color)) {
+              errors.push(`Invalid color format: "${featureObj.properties.color}" (expected #RRGGBB)`);
             }
           }
         }
@@ -393,18 +400,20 @@ export function validateFeatureCollectionComprehensive(collection: unknown): Fea
     return { isValid: false, errors };
   }
   
+  const collectionObj = collection as DebriefFeatureCollection;
+  
   // Properties validation
-  if (!validateFeatureCollectionProperties(collection.properties)) {
+  if (!validateFeatureCollectionProperties(collectionObj.properties)) {
     errors.push('Invalid feature collection properties');
   }
   
   // Validate bbox if present
-  if (collection.bbox && !validateBbox(collection.bbox)) {
+  if (collectionObj.bbox && !validateBbox(collectionObj.bbox)) {
     errors.push('Invalid bounding box format');
   }
   
   // Validate each feature with detailed error reporting
-  collection.features.forEach((feature: unknown, index: number) => {
+  collectionObj.features.forEach((feature: unknown, index: number) => {
     const featureError = validateFeatureDetailed(feature, index);
     if (featureError) {
       featureErrors.push(featureError);
@@ -415,7 +424,7 @@ export function validateFeatureCollectionComprehensive(collection: unknown): Fea
   });
   
   // Get feature counts for analysis
-  const featureCounts = errors.length === 0 ? getFeatureCounts(collection) : undefined;
+  const featureCounts = errors.length === 0 ? getFeatureCounts(collectionObj) : undefined;
   
   return {
     isValid: errors.length === 0,

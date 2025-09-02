@@ -18,7 +18,7 @@ export function validateColorFormat(color: string): boolean {
  */
 export function validateAnnotationType(annotationType: string): boolean {
   const validTypes = ['label', 'area', 'measurement', 'comment', 'boundary'];
-  return validTypes.includes(annotationType);
+  return validTypes.indexOf(annotationType) !== -1;
 }
 
 /**
@@ -49,7 +49,7 @@ export function validateAnnotationFeature(feature: unknown): feature is DebriefA
     'Point', 'LineString', 'Polygon', 
     'MultiPoint', 'MultiLineString', 'MultiPolygon'
   ];
-  if (!validGeometryTypes.includes(featureObj.geometry.type)) {
+  if (validGeometryTypes.indexOf(featureObj.geometry.type) === -1) {
     return false;
   }
   
@@ -184,7 +184,7 @@ export function isValidDate(dateValue: unknown): boolean {
   
   if (typeof dateValue === 'string') {
     const parsed = new Date(dateValue);
-    return !isNaN(parsed.getTime()) && dateValue.includes('T'); // Expect ISO format
+    return !isNaN(parsed.getTime()) && dateValue.indexOf('T') !== -1; // Expect ISO format
   }
   
   return false;
@@ -205,12 +205,14 @@ export function validateAnnotationFeatureComprehensive(feature: unknown): {
     return { isValid: false, errors };
   }
   
+  const validatedFeature = feature as DebriefAnnotationFeature;
+  
   // Detailed geometry validation
-  if (!validateGeometryCoordinates(feature.geometry)) {
+  if (!validateGeometryCoordinates(validatedFeature.geometry)) {
     errors.push('Invalid geometry coordinates');
   }
   
-  const props = feature.properties;
+  const props = validatedFeature.properties;
   
   // Color validation
   if (props.color && !validateColorFormat(props.color)) {

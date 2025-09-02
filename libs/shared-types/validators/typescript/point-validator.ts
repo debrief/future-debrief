@@ -42,30 +42,32 @@ export function validatePointFeature(feature: unknown): feature is DebriefPointF
     return false;
   }
   
+  const featureObj = feature as Record<string, any>;
+  
   // Check basic GeoJSON structure
-  if (feature.type !== 'Feature') {
+  if (featureObj.type !== 'Feature') {
     return false;
   }
   
-  if (!feature.id && feature.id !== 0) {
+  if (!featureObj.id && featureObj.id !== 0) {
     return false; // id is required (can be 0 but not null/undefined)
   }
   
   // Check geometry
-  if (!feature.geometry || typeof feature.geometry !== 'object') {
+  if (!featureObj.geometry || typeof featureObj.geometry !== 'object') {
     return false;
   }
   
-  if (feature.geometry.type !== 'Point') {
+  if (featureObj.geometry.type !== 'Point') {
     return false;
   }
   
-  if (!Array.isArray(feature.geometry.coordinates)) {
+  if (!Array.isArray(featureObj.geometry.coordinates)) {
     return false;
   }
   
   // Validate coordinates [lon, lat] or [lon, lat, elevation]
-  const coords = feature.geometry.coordinates;
+  const coords = featureObj.geometry.coordinates;
   if (coords.length < 2 || coords.length > 3) {
     return false;
   }
@@ -75,17 +77,17 @@ export function validatePointFeature(feature: unknown): feature is DebriefPointF
   }
   
   // Check properties
-  if (!feature.properties || typeof feature.properties !== 'object') {
+  if (!featureObj.properties || typeof featureObj.properties !== 'object') {
     return false;
   }
   
   // Check required dataType discriminator
-  if (feature.properties.dataType !== 'reference-point') {
+  if (featureObj.properties.dataType !== 'reference-point') {
     return false;
   }
   
   // Validate time properties if present
-  return validateTimeProperties(feature as DebriefPointFeature);
+  return validateTimeProperties(featureObj as DebriefPointFeature);
 }
 
 /**
@@ -98,7 +100,7 @@ export function isValidDate(dateValue: unknown): boolean {
   
   if (typeof dateValue === 'string') {
     const parsed = new Date(dateValue);
-    return !isNaN(parsed.getTime()) && dateValue.includes('T'); // Expect ISO format
+    return !isNaN(parsed.getTime()) && dateValue.indexOf('T') !== -1; // Expect ISO format
   }
   
   return false;
@@ -146,18 +148,20 @@ export function validatePointFeatureComprehensive(feature: unknown): {
     return { isValid: false, errors };
   }
   
+  const validatedFeature = feature as DebriefPointFeature;
+  
   // Geographic coordinate validation
-  if (!validateGeographicCoordinates(feature.geometry.coordinates)) {
+  if (!validateGeographicCoordinates(validatedFeature.geometry.coordinates)) {
     errors.push('Coordinates are outside valid geographic ranges');
   }
   
   // Time property validation
-  if (!validateTimeProperties(feature)) {
+  if (!validateTimeProperties(validatedFeature)) {
     errors.push('Invalid time properties configuration');
   }
   
   // Individual date validation
-  const { time, timeStart, timeEnd } = feature.properties;
+  const { time, timeStart, timeEnd } = validatedFeature.properties;
   if (time && !isValidDate(time)) {
     errors.push('Invalid time format');
   }

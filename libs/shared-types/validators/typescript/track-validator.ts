@@ -40,47 +40,49 @@ export function validateTrackFeature(feature: unknown): feature is DebriefTrackF
     return false;
   }
   
+  const featureObj = feature as Record<string, any>;
+  
   // Check basic GeoJSON structure
-  if (feature.type !== 'Feature') {
+  if (featureObj.type !== 'Feature') {
     return false;
   }
   
-  if (!feature.id && feature.id !== 0) {
+  if (!featureObj.id && featureObj.id !== 0) {
     return false; // id is required (can be 0 but not null/undefined)
   }
   
   // Check geometry
-  if (!feature.geometry || typeof feature.geometry !== 'object') {
+  if (!featureObj.geometry || typeof featureObj.geometry !== 'object') {
     return false;
   }
   
   const validGeometryTypes = ['LineString', 'MultiLineString'];
-  if (!validGeometryTypes.includes(feature.geometry.type)) {
+  if (validGeometryTypes.indexOf(featureObj.geometry.type) === -1) {
     return false;
   }
   
-  if (!Array.isArray(feature.geometry.coordinates)) {
+  if (!Array.isArray(featureObj.geometry.coordinates)) {
     return false;
   }
   
   // Check properties
-  if (!feature.properties || typeof feature.properties !== 'object') {
+  if (!featureObj.properties || typeof featureObj.properties !== 'object') {
     return false;
   }
   
   // Check required dataType discriminator
-  if (feature.properties.dataType !== 'track') {
+  if (featureObj.properties.dataType !== 'track') {
     return false;
   }
   
   // Validate timestamps if present
-  if (feature.properties.timestamps) {
-    if (!Array.isArray(feature.properties.timestamps)) {
+  if (featureObj.properties.timestamps) {
+    if (!Array.isArray(featureObj.properties.timestamps)) {
       return false;
     }
     
     // Check each timestamp is a valid date string or Date object
-    for (const timestamp of feature.properties.timestamps) {
+    for (const timestamp of featureObj.properties.timestamps) {
       if (typeof timestamp === 'string') {
         if (isNaN(Date.parse(timestamp))) {
           return false;
@@ -91,7 +93,7 @@ export function validateTrackFeature(feature: unknown): feature is DebriefTrackF
     }
     
     // Apply timestamps length validation
-    if (!validateTimestampsLength(feature as DebriefTrackFeature)) {
+    if (!validateTimestampsLength(featureObj as DebriefTrackFeature)) {
       return false;
     }
   }
@@ -149,19 +151,21 @@ export function validateTrackFeatureComprehensive(feature: unknown): {
     return { isValid: false, errors };
   }
   
+  const validatedFeature = feature as DebriefTrackFeature;
+  
   // Detailed coordinate validation
-  if (feature.geometry.type === 'LineString') {
-    if (!validateLineStringCoordinates(feature.geometry.coordinates)) {
+  if (validatedFeature.geometry.type === 'LineString') {
+    if (!validateLineStringCoordinates(validatedFeature.geometry.coordinates)) {
       errors.push('Invalid LineString coordinates');
     }
-  } else if (feature.geometry.type === 'MultiLineString') {
-    if (!validateMultiLineStringCoordinates(feature.geometry.coordinates)) {
+  } else if (validatedFeature.geometry.type === 'MultiLineString') {
+    if (!validateMultiLineStringCoordinates(validatedFeature.geometry.coordinates)) {
       errors.push('Invalid MultiLineString coordinates');
     }
   }
   
   // Timestamps validation
-  if (!validateTimestampsLength(feature)) {
+  if (!validateTimestampsLength(validatedFeature)) {
     errors.push('Timestamps array length does not match coordinate points count');
   }
   
