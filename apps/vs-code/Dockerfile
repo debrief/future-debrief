@@ -30,9 +30,9 @@ RUN mkdir -p /home/coder/workspace
 COPY --chown=coder:coder . /home/coder/project/
 
 # Extension should already be compiled and packaged by CI build step
-# Just verify the .vsix file exists
+# The .vsix file should be at the root of the build context (apps/vs-code directory)
 WORKDIR /home/coder/project
-RUN if [ ! -f "extension.vsix" ]; then echo "Error: Extension not packaged - extension.vsix missing"; exit 1; fi
+RUN ls -la && if [ ! -f "extension.vsix" ]; then echo "Error: Extension not packaged - extension.vsix missing"; exit 1; fi
 
 # Install the extension in code-server
 RUN code-server --install-extension ./extension.vsix
