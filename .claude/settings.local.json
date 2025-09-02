@@ -115,7 +115,10 @@
       "Bash(yarn install)",
       "Bash(yarn compile)",
       "Bash(pnpm compile:*)",
-      "Bash(pnpm lint:*)"
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm run:*)",
+      "Bash(pnpx jest:*)",
+      "Bash(pnpm -w run build:web-components)"
     ]
   }
 }
