@@ -195,71 +195,136 @@ export interface DebriefTrackFeature {
 
 ---
 
-## Issue #18: Shared-Types Import Implementation
+## Issue #18: Shared-Types Import Implementation and Monorepo Migration
 
-**Task Reference:** GitHub Issue #18: "Test import of shared-types into vs-code"  
-**Date:** 2025-09-01  
-**Assigned Task:** Implement intra-repo dependency management by modifying the VS Code extension to import and use JSON schema types from `libs/shared-types` for feature-collection validation  
+**Task Reference:** GitHub Issue #18: "Test import shared-types in VS Code"  
+**Date:** 2025-09-02  
+**Assigned Task:** Integrate shared-types validators into VS Code extension and migrate project to pnpm monorepo  
 **Implementation Agent:** Task execution completed
 
 ### Problem Context
 
-The VS Code extension (`apps/vs-code`) needed to integrate with the shared-types package (`libs/shared-types`) to demonstrate workspace dependencies and add plot.json validation using shared schema types. This establishes the foundation for more complex build patterns using turborepo and validates the shared-types implementation.
+The VS Code extension needed to import and use the shared-types validators for real-time validation of plot JSON files. The project was using yarn/npm with mixed package managers across workspaces, creating dependency resolution conflicts and CI/build issues.
 
 ### Actions Taken
 
-1. **Migrated to pnpm Workspace Architecture**
-   - Created root `package.json` with workspace configuration
-   - Added `pnpm-workspace.yaml` defining workspace packages
-   - Migrated all package scripts from yarn/npm to pnpm
-   - Established proper monorepo dependency management
+1. **Migrated to pnpm Monorepo**
+   - Converted from yarn/npm to pnpm across entire project structure
+   - Created `pnpm-workspace.yaml` defining `apps/*` and `libs/*` workspaces
+   - Updated root `package.json` with pnpm workspace build scripts
+   - Removed conflicting `package-lock.json` and `yarn.lock` files
+   - Configured workspace dependencies using `workspace:^1.0.0` protocol
 
-2. **Implemented Shared Types Workspace Dependency**
-   - Added `@debrief/shared-types: "workspace:^1.0.0"` in `apps/vs-code/package.json` devDependencies
-   - pnpm automatically creates symlink: `node_modules/@debrief/shared-types -> ../../../../libs/shared-types`
-   - Removed need for custom TypeScript path mapping - workspace resolution works natively
+2. **Integrated Shared-Types Validators**
+   - Added `@debrief/shared-types` as workspace dependency in VS Code extension
+   - Imported `validateFeatureCollectionComprehensive` function from shared-types validators
+   - Implemented real-time validation in `plotJsonEditor.ts` with error display
+   - Added comprehensive error handling with user-friendly validation messages
+   - Created invalid plot file error page with schema requirements and helpful guidance
 
-3. **Enhanced Validation with Shared-Types Validators**
-   - **Plot Editor Enhancement**: Replaced manual validation with `validateFeatureCollectionComprehensive()` from shared-types
-   - **WebSocket Server Enhancement**: Added comprehensive validation to all feature-related commands:
-     - `set_feature_collection`: Validates entire collection with detailed error reporting
-     - `add_features`: Validates each individual feature before adding
-     - `update_features`: Validates each feature before updating
-   - **Feature-Level Validation**: Uses `validateFeatureByType()` and `classifyFeature()` for granular validation
+3. **Fixed CI/Build Pipeline for pnpm**
+   - **Build Extension Action**: Updated from yarn to pnpm commands
+   - **Cache Configuration**: Changed from `yarn.lock` to `pnpm-lock.yaml` (root level)
+   - **Dependency Installation**: Added global pnpm installation step in CI
+   - **vsce Packaging**: Added `--no-dependencies` flag to skip npm validation conflicts
+   - **Docker Integration**: Removed workspace compilation from Dockerfile since extension is pre-compiled
 
-4. **Comprehensive Validation Features**
-   - **Schema Compliance**: Validates against Debrief FeatureCollection schema structure
-   - **Feature Type Classification**: Automatically detects track, point, or annotation features
-   - **Cross-Field Validation**: Validates timestamps, coordinate bounds, time ranges, color formats
-   - **Detailed Error Reporting**: Provides specific validation errors with feature indices
-   - **Feature Counting**: Reports counts by feature type for valid collections
+4. **Enhanced Developer Experience**
+   - **TypeScript Configuration**: Added `noUnusedLocals` and `noUnusedParameters` for unused import detection
+   - **NPM Scripts**: Added `pnpm lint` command for easy type checking
+   - **VS Code Tasks**: Created `pnpm: lint` task accessible via Command Palette
+   - **Documentation**: Updated README.md to reflect pnpm monorepo usage patterns
 
-5. **Enhanced User Experience**
-   - **VS Code Integration**: Warning messages with "Details" and "Schema Info" buttons
-   - **Console Logging**: Feature count summaries for valid collections
-   - **WebSocket Feedback**: Detailed validation errors sent back to API clients
-   - **Non-blocking Validation**: Files open even with validation issues, but users are informed
+5. **Resolved Docker Build Issues**
+   - **Artifact Availability**: Fixed `.dockerignore` excluding `*.vsix` files needed for deployment
+   - **Build Context**: Corrected workspace file copy paths for Docker build context
+   - **Pre-built Extension**: Modified Dockerfile to use pre-compiled extension instead of rebuilding
+   - **Package Manager**: Used npm for global vsce installation to avoid pnpm global bin issues
 
-### Key Implementation Details
+### Key Findings
 
-**Enhanced Validation Implementation**:
+**Major Discovery**: The migration to pnpm workspace resolved multiple dependency resolution issues while enabling proper shared-types integration:
+
+- **Workspace Protocol**: `"@debrief/shared-types": "workspace:^1.0.0"` provides clean local package linking
+- **Hoisted Dependencies**: pnpm's content-addressable store eliminates duplicate dependencies
+- **Build Performance**: esbuild bundles all workspace dependencies into single `dist/extension.js`
+- **CI Efficiency**: Centralized dependency management with root-level `pnpm-lock.yaml`
+
+**TypeScript Linting Enhancement**: Unused import detection now provides immediate feedback:
 ```typescript
-// Plot Editor - Uses comprehensive shared-types validator
-import { validateFeatureCollectionComprehensive } from '@debrief/shared-types/validators/typescript';
+// Before: Silent unused imports
+import { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types/derived/typescript/featurecollection';
+import { validateFeatureCollectionComprehensive, getFeatureCounts } from '@debrief/shared-types/validators/typescript';
 
+// After: TypeScript errors for unused imports
+// TS6133: 'getFeatureCounts' is declared but its value is never read
+// TS6192: All imports in import declaration are unused
+```
+
+**Real-time Validation**: Plot JSON files now validate in real-time with comprehensive error messages:
+```typescript
+const validation = validateFeatureCollectionComprehensive(json);
+if (!validation.valid) {
+    // Shows detailed error page with schema requirements
+    // Prevents invalid files from opening in editor
+    // Provides helpful guidance for fixing validation issues
+}
+```
+
+### Technical Implementation Details
+
+**pnpm Workspace Structure**:
+```yaml
+# pnpm-workspace.yaml
+packages:
+  - 'apps/*'    # VS Code extension
+  - 'libs/*'    # shared-types package
+```
+
+**Build Pipeline Flow**:
+1. **CI Build**: `pnpm install` → `pnpm --filter codespace-extension compile` → `vsce package --no-dependencies`
+2. **Docker Build**: Uses pre-built `extension.vsix` → Installs in code-server → No workspace compilation needed
+
+**Validation Integration**:
+```typescript
+// plotJsonEditor.ts - Real-time validation
 private validateDebriefFeatureCollection(data: any) {
     const validation = validateFeatureCollectionComprehensive(data);
     return {
         valid: validation.isValid,
         errors: validation.errors,
-        featureCounts: validation.featureCounts  // Track/Point/Annotation counts
+        featureCounts: validation.featureCounts
     };
 }
+```
 
-// WebSocket Server - Individual feature validation
-import { validateFeatureByType, classifyFeature } from '@debrief/shared-types/validators/typescript';
+### Results Achieved
 
-// Validates each feature before add/update operations
+- ✅ **Shared-types Integration**: VS Code extension now uses shared-types validators for real-time plot JSON validation
+- ✅ **Monorepo Migration**: Clean pnpm workspace setup with proper dependency resolution
+- ✅ **CI/Docker Fixes**: Complete build pipeline compatibility with pnpm workspace
+- ✅ **Developer Experience**: Added unused import detection and improved linting workflow
+- ✅ **Error Handling**: Comprehensive validation error display with user-friendly guidance
+- ✅ **Build Performance**: Streamlined Docker builds using pre-compiled extension artifacts
+
+### Follow-up Actions Required
+
+- **Performance Testing**: Monitor extension load times with bundled shared-types validators
+- **Schema Evolution**: Establish process for updating shared-types and regenerating extension validation
+- **Documentation**: Create developer guide for adding new validators to the extension
+
+**Status**: ✅ **Implementation Complete** - Shared-types successfully integrated with full pnpm monorepo migration and CI/Docker compatibility
+
+---
+
+
+**Next Steps for Enhancement**:
+1. Add more sophisticated JSON Schema validation using AJV library
+2. Implement schema-aware autocomplete in plot.json editor
+3. Add validation for geometry constraints and coordinate validation
+4. Create unit tests for validation logic
+
+---
 for (const feature of params.features) {
     if (!validateFeatureByType(feature)) {
         const featureType = classifyFeature(feature);
