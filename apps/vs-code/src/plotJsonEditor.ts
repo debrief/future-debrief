@@ -389,9 +389,21 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         // Use the comprehensive validator from shared-types
         const validation = validateFeatureCollectionComprehensive(data);
         
+        // Enhanced error reporting with detailed feature errors
+        const detailedErrors = [...validation.errors];
+        
+        if (validation.featureErrors) {
+            validation.featureErrors.forEach(featureError => {
+                detailedErrors.push(`\n${featureError.featureType.toUpperCase()} Feature at index ${featureError.index} (id: "${featureError.featureId || 'no id'}"):`);
+                featureError.errors.forEach((error, i) => {
+                    detailedErrors.push(`  ${i + 1}. ${error}`);
+                });
+            });
+        }
+        
         return {
             valid: validation.isValid,
-            errors: validation.errors,
+            errors: detailedErrors,
             featureCounts: validation.featureCounts
         };
     }

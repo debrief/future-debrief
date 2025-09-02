@@ -60,6 +60,11 @@ export function validateAnnotationFeature(feature: any): feature is DebriefAnnot
     return false;
   }
   
+  // Check required featureType discriminator
+  if (feature.properties.featureType !== 'annotation') {
+    return false;
+  }
+  
   // Validate specific annotation properties
   const props = feature.properties;
   

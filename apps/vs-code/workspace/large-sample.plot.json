@@ -21064,11 +21064,11 @@
             "id": "p-2",
             "properties": {
                 "name": "SONO 1-2",
+                "featureType": "point",
                 "dataType": "reference-point",
                 "marker-color": "#00FF00",
                 "visible": true,
-                "time": "2024-11-14T21:10:00.000Z",
-                "timeEnd": "2024-11-15T02:10:00.000Z"
+                "time": "2024-11-14T21:10:00.000Z"
             },
             "geometry": {
                 "coordinates": [
