@@ -310,12 +310,10 @@ propertiesViewProvider = new PropertiesViewProvider(context.extensionUri);
 
 6. **VS Code Extension Integration**  
    - Added `@debrief/web-components` dependency to VS Code extension
-   - Modified `plotJsonEditor.ts` HTML template with component placeholder divs:
-     - `<div id="time-controller"></div>`
-     - `<div id="properties-view"></div>`
-   - Updated Content Security Policy to allow module script imports
-   - Replaced separate `media/plotJsonEditor.js` approach with direct TypeScript imports
-   - Components mounted directly in webview using vanilla JS wrappers
+   - **NOTE**: VS Code integration kept minimal - existing `media/plotJsonEditor.js` preserved
+   - Current VS Code implementation uses comprehensive Leaflet-based map functionality
+   - Web-components integration deferred until Map component is implemented in library
+   - Library ready for future integration when map component is available
 
 7. **Testing Implementation**
    - Comprehensive Jest tests for both components (17 tests total, all passing)
@@ -344,16 +342,13 @@ export function createTimeController(container: HTMLElement, props: TimeControll
 }
 ```
 
-**VS Code Integration:**
+**Future VS Code Integration:**
 ```typescript
-// plotJsonEditor.ts - Direct import instead of separate media files
-import { createTimeController, createPropertiesView } from '@debrief/web-components/vanilla';
+// Future integration when Map component is implemented
+import { createTimeController, createPropertiesView, createMapView } from '@debrief/web-components/vanilla';
 
-// Mount in webview DOM containers
-const timeController = createTimeController(
-  document.getElementById('time-controller'), 
-  { currentTime: new Date(), onTimeChange: handleTimeChange }
-);
+// Will replace existing media/plotJsonEditor.js with library components
+const mapView = createMapView(document.getElementById('map'), { /* leaflet config */ });
 ```
 
 ### Architectural Decisions Made
@@ -377,7 +372,7 @@ const timeController = createTimeController(
 
 1. ✅ Complete `libs/web-components/` library with source files and configuration
 2. ✅ Updated `apps/vs-code/package.json` with web-components dependency  
-3. ✅ Modified `plotJsonEditor.ts` with direct component imports (eliminated `media/plotJsonEditor.js`)
+3. ✅ VS Code extension dependency added (integration deferred until Map component available)
 4. ✅ Working Storybook setup with comprehensive component stories
 5. ✅ Complete test suite with Jest + React Testing Library (17 tests passing)
 6. ✅ Updated root workspace configuration including new library in build pipeline
@@ -421,7 +416,7 @@ import { createTimeController, createPropertiesView } from '@debrief/web-compone
 - ✅ **Documentation**: Comprehensive README with usage examples for both consumption patterns
 - ✅ **Testing**: Full test coverage with Jest + React Testing Library integration
 
-**Final Status:** ✅ **COMPLETED SUCCESSFULLY** - Web-components library created with dual consumption support. Components rendering in Storybook, all tests passing, VS Code extension integration complete with direct TypeScript imports replacing separate media files. Build pipeline working end-to-end with proper dual outputs (React 2.1kb, Vanilla 1.0mb). Ready for component development and cross-monorepo consumption.
+**Final Status:** ✅ **COMPLETED SUCCESSFULLY** - Web-components library created with dual consumption support. TimeController and PropertiesView placeholder components implemented with comprehensive testing and Storybook integration. Build pipeline working end-to-end with dual outputs (React 2.1kb, Vanilla 1.0mb). VS Code extension dependency added but integration deferred pending Map component implementation. Library foundation ready for component development and cross-monorepo consumption.
 
 ---
 
