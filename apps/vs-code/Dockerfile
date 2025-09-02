@@ -42,7 +42,7 @@ RUN code-server --install-extension ./extension.vsix
 RUN code-server --install-extension ms-python.python
 
 # Copy workspace files to the workspace directory
-RUN cp -r apps/vs-code/workspace/* /home/coder/workspace/ 2>/dev/null || true
+RUN cp -r workspace/* /home/coder/workspace/ 2>/dev/null || true
 
 # Create VS Code settings to use virtual environment Python
 RUN mkdir -p /home/coder/workspace/.vscode && \
