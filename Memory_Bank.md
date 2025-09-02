@@ -195,6 +195,156 @@ export interface DebriefTrackFeature {
 
 ---
 
+## Issue #18: Shared-Types Import Implementation
+
+**Task Reference:** GitHub Issue #18: "Test import of shared-types into vs-code"  
+**Date:** 2025-09-01  
+**Assigned Task:** Implement intra-repo dependency management by modifying the VS Code extension to import and use JSON schema types from `libs/shared-types` for feature-collection validation  
+**Implementation Agent:** Task execution completed
+
+### Problem Context
+
+The VS Code extension (`apps/vs-code`) needed to integrate with the shared-types package (`libs/shared-types`) to demonstrate workspace dependencies and add plot.json validation using shared schema types. This establishes the foundation for more complex build patterns using turborepo and validates the shared-types implementation.
+
+### Actions Taken
+
+1. **Added NPM Workspace Dependency**
+   - Modified `apps/vs-code/package.json` to include `@debrief/shared-types: "workspace:*"` in devDependencies
+   - Configured workspace protocol for local package resolution
+   - Ran `yarn install` to link workspace dependency
+
+2. **Configured TypeScript Path Resolution**
+   - Updated `apps/vs-code/tsconfig.json` to include path mapping for shared-types
+   - Added `baseUrl: "."` and `paths` configuration to resolve `@debrief/shared-types/*`
+   - Removed restrictive `rootDir` setting and added `include` pattern for proper compilation
+   - Fixed TypeScript module resolution issues for cross-package imports
+
+3. **Implemented Shared Types Import**
+   - Added import statement in `plotJsonEditor.ts`: `import { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types/derived/typescript/featurecollection'`
+   - Successfully imported TypeScript interfaces generated from JSON schemas
+   - Verified build system compatibility with workspace dependencies
+
+4. **Added Plot JSON Validation Logic**
+   - Created comprehensive `validateDebriefFeatureCollection()` function in plot editor
+   - Validates document structure, feature types, and required properties
+   - Checks for proper `featureType` discriminator ("track", "point", "annotation")
+   - Provides detailed error messages for validation failures
+   - Integrated validation into existing `getDocumentAsJson()` method
+
+5. **Enhanced User Experience**
+   - Added VS Code warning messages for schema validation failures
+   - Implemented "Details" button to show additional schema information
+   - Validation occurs when plot.json files are opened in the custom editor
+   - Non-blocking validation - files still open but users are informed of issues
+
+### Key Implementation Details
+
+**Validation Function Core Logic**:
+```typescript
+private validateDebriefFeatureCollection(data: any): { valid: boolean; errors: string[] } {
+    // Validates FeatureCollection structure
+    // Checks each feature for required properties and geometry
+    // Validates featureType discriminator values
+    // Returns structured validation results
+}
+```
+
+**TypeScript Configuration Changes**:
+```json
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@debrief/shared-types/*": ["../../libs/shared-types/*"]
+    }
+  },
+  "include": ["src/**/*"]
+}
+```
+
+**Package.json Dependency**:
+```json
+{
+  "devDependencies": {
+    "@debrief/shared-types": "workspace:*"
+  }
+}
+```
+
+### Testing and Validation
+
+1. **Build System Verification**
+   - Extension builds successfully with esbuild: `yarn compile` produces 159.2kb bundle
+   - TypeScript compilation passes: `yarn typecheck` completes without errors
+   - All existing VS Code extension functionality preserved
+
+2. **Test Files Created**
+   - `test-valid.plot.json`: Valid FeatureCollection with proper featureType values
+   - `test-invalid.plot.json`: Invalid FeatureCollection missing required featureType
+   - Both files test validation logic in custom editor
+
+3. **Functionality Testing**
+   - WebSocket server integration remains intact
+   - Custom Plot JSON editor registration preserved
+   - Outline view and feature selection functionality maintained
+   - Extension activation and lifecycle management unaffected
+
+### Challenges Encountered
+
+- **TypeScript Path Resolution**: Initial import failures due to rootDir restrictions and missing baseUrl
+- **Workspace Dependency**: Required proper tsconfig.json configuration for cross-package imports
+- **Build System Compatibility**: Needed to ensure esbuild bundling works with workspace dependencies
+
+### Deliverables Created
+
+1. **Modified Package Configuration**: Updated `apps/vs-code/package.json` with workspace dependency
+2. **Enhanced TypeScript Configuration**: Updated tsconfig.json for proper path resolution
+3. **Validation Implementation**: Added comprehensive schema validation in plotJsonEditor.ts
+4. **Test Files**: Created valid and invalid plot.json samples for testing
+5. **Build System Integration**: Verified compatibility with existing esbuild workflow
+
+### Code Examples and Configuration
+
+**Import Statement**:
+```typescript
+import { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types/derived/typescript/featurecollection';
+```
+
+**Validation Integration**:
+```typescript
+private getDocumentAsJson(document: vscode.TextDocument): any {
+    // Parse JSON and validate against Debrief schema
+    const validation = this.validateDebriefFeatureCollection(json);
+    if (!validation.valid) {
+        // Show user-friendly error messages
+        vscode.window.showWarningMessage(errorMessage, 'Details');
+    }
+    return json;
+}
+```
+
+### Impact and Success Metrics
+
+**Immediate Impact**: 
+- VS Code extension now validates plot.json files against shared Debrief schema ✅
+- Demonstrates successful intra-repo dependency management ✅
+- Establishes foundation for more complex turborepo build patterns ✅
+
+**Technical Achievements**:
+- Workspace dependency resolution working ✅
+- TypeScript path mapping configured correctly ✅
+- Schema validation integrated into plot editor ✅
+- Build system compatibility maintained ✅
+- All existing functionality preserved ✅
+
+**Next Steps for Enhancement**:
+1. Add more sophisticated JSON Schema validation using AJV library
+2. Implement schema-aware autocomplete in plot.json editor
+3. Add validation for geometry constraints and coordinate validation
+4. Create unit tests for validation logic
+
+---
+
 ## Issue #9: VS Code Extension Bundling Optimization Investigation
 
 **Task Reference:** GitHub Issue #9 - "Investigate VS Code extension bundling optimization"

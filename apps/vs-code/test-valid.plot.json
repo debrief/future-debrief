@@ -1,0 +1,35 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "track-1",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-1.0, 50.0],
+          [-1.1, 50.1],
+          [-1.2, 50.2]
+        ]
+      },
+      "properties": {
+        "featureType": "track",
+        "name": "Test Track",
+        "description": "A valid track feature for testing"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "point-1", 
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-1.0, 50.0]
+      },
+      "properties": {
+        "featureType": "point",
+        "name": "Test Point",
+        "time": "2023-01-01T12:00:00Z"
+      }
+    }
+  ]
+}

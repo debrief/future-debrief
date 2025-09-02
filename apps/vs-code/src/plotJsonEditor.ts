@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types/derived/typescript/featurecollection';
 
 export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
     private static outlineUpdateCallback: ((document: vscode.TextDocument) => void) | undefined;
@@ -289,6 +290,50 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         return this.updateTextDocument(document, json);
     }
 
+    private validateDebriefFeatureCollection(data: any): { valid: boolean; errors: string[] } {
+        const errors: string[] = [];
+        
+        // Basic structure validation
+        if (!data || typeof data !== 'object') {
+            errors.push('Document must be a valid JSON object');
+            return { valid: false, errors };
+        }
+        
+        if (data.type !== 'FeatureCollection') {
+            errors.push('Document must be a FeatureCollection with type: "FeatureCollection"');
+        }
+        
+        if (!Array.isArray(data.features)) {
+            errors.push('Document must have a "features" array');
+        } else {
+            // Validate each feature
+            data.features.forEach((feature: any, index: number) => {
+                if (!feature || typeof feature !== 'object') {
+                    errors.push(`Feature at index ${index} must be an object`);
+                    return;
+                }
+                
+                if (feature.type !== 'Feature') {
+                    errors.push(`Feature at index ${index} must have type: "Feature"`);
+                }
+                
+                if (!feature.properties || typeof feature.properties !== 'object') {
+                    errors.push(`Feature at index ${index} must have a properties object`);
+                } else if (!feature.properties.featureType) {
+                    errors.push(`Feature at index ${index} must have properties.featureType set to "track", "point", or "annotation"`);
+                } else if (!['track', 'point', 'annotation'].includes(feature.properties.featureType)) {
+                    errors.push(`Feature at index ${index} has invalid featureType: "${feature.properties.featureType}". Must be "track", "point", or "annotation"`);
+                }
+                
+                if (!feature.geometry || typeof feature.geometry !== 'object') {
+                    errors.push(`Feature at index ${index} must have a geometry object`);
+                }
+            });
+        }
+        
+        return { valid: errors.length === 0, errors };
+    }
+
     private getDocumentAsJson(document: vscode.TextDocument): any {
         const text = document.getText();
         if (text.trim().length === 0) {
@@ -298,11 +343,28 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             };
         }
 
+        let json: any;
         try {
-            return JSON.parse(text);
+            json = JSON.parse(text);
         } catch {
             throw new Error('Could not get document as json. Content is not valid json');
         }
+        
+        // Validate against Debrief schema
+        const validation = this.validateDebriefFeatureCollection(json);
+        if (!validation.valid) {
+            const errorMessage = `Invalid Debrief FeatureCollection:\n${validation.errors.join('\n')}`;
+            vscode.window.showWarningMessage(errorMessage, 'Details').then(selection => {
+                if (selection === 'Details') {
+                    vscode.window.showInformationMessage(
+                        'This plot.json file does not conform to the Debrief FeatureCollection schema. ' +
+                        'Features should have a "featureType" property set to "track", "point", or "annotation".'
+                    );
+                }
+            });
+        }
+        
+        return json;
     }
 
     private updateTextDocument(document: vscode.TextDocument, json: any) {
