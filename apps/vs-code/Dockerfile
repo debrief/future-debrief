@@ -29,19 +29,10 @@ RUN mkdir -p /home/coder/workspace
 # Copy the VS Code extension files (pre-compiled)
 COPY --chown=coder:coder . /home/coder/project/
 
-# Extension should already be compiled by CI build step
-# Skip compilation in Docker - just verify the dist directory exists
+# Extension should already be compiled and packaged by CI build step
+# Just verify the .vsix file exists
 WORKDIR /home/coder/project
-RUN if [ ! -d "dist" ]; then echo "Error: Extension not compiled - dist/ directory missing"; exit 1; fi
-
-# Install vsce for packaging the extension (as root, then switch back)
-USER root
-RUN pnpm add -g @vscode/vsce
-USER coder
-
-# Package the extension as .vsix
-WORKDIR /home/coder/project/apps/vs-code
-RUN vsce package --out extension.vsix --no-dependencies
+RUN if [ ! -f "extension.vsix" ]; then echo "Error: Extension not packaged - extension.vsix missing"; exit 1; fi
 
 # Install the extension in code-server
 RUN code-server --install-extension ./extension.vsix
