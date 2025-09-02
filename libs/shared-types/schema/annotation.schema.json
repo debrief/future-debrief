@@ -168,12 +168,12 @@
     },
     "properties": {
       "type": "object",
-      "required": ["featureType"],
+      "required": ["dataType"],
       "properties": {
-        "featureType": {
+        "dataType": {
           "type": "string",
-          "enum": ["annotation"],
-          "description": "Discriminator to identify this as an annotation feature"
+          "enum": ["zone"],
+          "description": "Discriminator to identify this as a zone feature"
         },
         "annotationType": {
           "type": "string",

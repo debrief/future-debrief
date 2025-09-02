@@ -68,8 +68,8 @@ export function validateTrackFeature(feature: any): feature is DebriefTrackFeatu
     return false;
   }
   
-  // Check required featureType discriminator
-  if (feature.properties.featureType !== 'track') {
+  // Check required dataType discriminator
+  if (feature.properties.dataType !== 'track') {
     return false;
   }
   

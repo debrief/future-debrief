@@ -60,8 +60,8 @@ export function validateAnnotationFeature(feature: any): feature is DebriefAnnot
     return false;
   }
   
-  // Check required featureType discriminator
-  if (feature.properties.featureType !== 'annotation') {
+  // Check required dataType discriminator
+  if (feature.properties.dataType !== 'zone') {
     return false;
   }
   

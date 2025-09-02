@@ -70,9 +70,9 @@
     },
     "properties": {
       "type": "object",
-      "required": ["featureType"],
+      "required": ["dataType"],
       "properties": {
-        "featureType": {
+        "dataType": {
           "type": "string",
           "enum": ["track"],
           "description": "Discriminator to identify this as a track feature"
