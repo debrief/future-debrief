@@ -118,7 +118,9 @@
       "Bash(pnpm lint:*)",
       "Bash(pnpm run:*)",
       "Bash(pnpx jest:*)",
-      "Bash(pnpm -w run build:web-components)"
+      "Bash(pnpm -w run build:web-components)",
+      "Bash(pnpm storybook:*)",
+      "Bash(pnpm info:*)"
     ]
   }
 }
