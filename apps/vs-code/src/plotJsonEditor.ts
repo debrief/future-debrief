@@ -319,12 +319,14 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 					window.addEventListener('DOMContentLoaded', () => {
 						const container = document.getElementById('map-container');
 						
-						// Add a small delay to ensure the script has fully executed
-						setTimeout(() => {
+						// Wait for DebriefWebComponents to be available using a proper check
+						function initializeMapComponent() {
 							try {
 								// Get the createMapComponent function from DebriefWebComponents namespace
 								if (typeof window.DebriefWebComponents === 'undefined' || !window.DebriefWebComponents.createMapComponent) {
-									throw new Error('DebriefWebComponents.createMapComponent is not available');
+									// If not available yet, check again in next tick
+									requestAnimationFrame(initializeMapComponent);
+									return;
 								}
 								
 								const createMapComponent = window.DebriefWebComponents.createMapComponent;
@@ -360,7 +362,10 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 								document.getElementById('map-container').innerHTML = 
 									'<div style="padding: 20px; color: red;">Failed to load map component: ' + err.message + '</div>';
 							}
-						}, 100); // 100ms delay to ensure script loads
+						}
+						
+						// Start the initialization process
+						initializeMapComponent();
 					});
 
 					// Handle messages from VS Code
