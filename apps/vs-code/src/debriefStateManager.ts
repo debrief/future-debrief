@@ -27,6 +27,7 @@ export interface DebriefState {
         feature: GeoJSONFeature;
     };
     featureCollection?: GeoJSONFeatureCollection;
+    [key: string]: unknown;
 }
 
 export class DebriefStateManager {
