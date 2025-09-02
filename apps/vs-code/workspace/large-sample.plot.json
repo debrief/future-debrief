@@ -21064,6 +21064,7 @@
             "id": "p-2",
             "properties": {
                 "name": "SONO 1-2",
+                "featureType": "point",
                 "dataType": "reference-point",
                 "marker-color": "#00FF00",
                 "visible": true,
