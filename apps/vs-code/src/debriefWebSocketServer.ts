@@ -751,16 +751,6 @@ export class DebriefWebSocketServer {
         await vscode.workspace.applyEdit(edit);
     }
 
-    private findFeatureIndexById(featureCollection: any, id: string): number {
-        if (!featureCollection.features) {
-            return -1;
-        }
-        
-        return featureCollection.features.findIndex((feature: any) =>
-            feature.id === id
-        );
-    }
-
     private generateFeatureId(): string {
         return 'feature_' + Date.now() + '_' + Math.random().toString(36).substring(2, 11);
     }
@@ -793,10 +783,6 @@ export class DebriefWebSocketServer {
                 }
             };
         }
-    }
-
-    private clearFilenameCache(): void {
-        this.cachedFilename = null;
     }
 
     private getOpenPlotFiles(): Array<{filename: string, title: string}> {

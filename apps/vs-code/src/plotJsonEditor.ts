@@ -1,6 +1,5 @@
 import * as vscode from 'vscode';
-import { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types/derived/typescript/featurecollection';
-import { validateFeatureCollectionComprehensive, getFeatureCounts } from '@debrief/shared-types/validators/typescript';
+import { validateFeatureCollectionComprehensive } from '@debrief/shared-types/validators/typescript';
 
 export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
     private static outlineUpdateCallback: ((document: vscode.TextDocument) => void) | undefined;
@@ -194,7 +193,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         updateWebview();
     }
 
-    private getHtmlForWebview(webview: vscode.Webview, document: vscode.TextDocument, validationError?: string | null): string {
+    private getHtmlForWebview(webview: vscode.Webview, _document: vscode.TextDocument, validationError?: string | null): string {
         const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(
             this.context.extensionUri, 'media', 'plotJsonEditor.js'));
 
@@ -381,7 +380,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             return;
         }
 
-        json.features = json.features.filter((feature: any, index: number) => index.toString() !== id);
+        json.features = json.features.filter((_feature: any, index: number) => index.toString() !== id);
 
         return this.updateTextDocument(document, json);
     }
