@@ -50,11 +50,12 @@ runs:
       shell: bash
       working-directory: apps/vs-code
       run: |
-        # Package the extension
+        # Package the extension with pnpm workspace compatibility
+        # Use --no-dependencies to skip npm list validation since we're using pnpm
         if which vsce > /dev/null 2>&1; then
-          vsce package --out extension.vsix
+          vsce package --out extension.vsix --no-dependencies
         else
-          npx vsce package --out extension.vsix
+          npx vsce package --out extension.vsix --no-dependencies
         fi
         
         # Verify package was created
