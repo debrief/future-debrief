@@ -11,6 +11,10 @@
     {
       "name": "Shared Types",
       "path": "./libs/shared-types"
+    },
+    {
+      "name": "Web Components",
+      "path": "libs/web-components"
     }
   ],
   "settings": {
