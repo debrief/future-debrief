@@ -15,6 +15,21 @@
                 "reveal": "silent"
             },
             "problemMatcher": "$tsc"
+        },
+        {
+            "label": "pnpm: lint",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "source $NVM_DIR/nvm.sh && nvm use && pnpm lint"
+            ],
+            "group": "test",
+            "presentation": {
+                "panel": "shared",
+                "reveal": "always"
+            },
+            "problemMatcher": "$tsc"
         }
     ]
 }

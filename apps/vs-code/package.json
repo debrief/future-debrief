@@ -13,7 +13,8 @@
     "compile": "pnpm esbuild-base --sourcemap",
     "watch": "pnpm esbuild-base --sourcemap --watch",
     "vscode:prepublish": "pnpm esbuild-base --minify",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "pnpm typecheck"
   },
   "engines": {
     "vscode": "^1.74.0"
