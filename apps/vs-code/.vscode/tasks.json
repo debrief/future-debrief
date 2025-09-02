@@ -4,44 +4,11 @@
         {
             "label": "pnpm: compile",
             "type": "shell",
-            "command": "./compile.sh",
-            "group": "build",
-            "options": {
-                "cwd": "${workspaceFolder}",
-                "env": {
-                    "PATH": "/Users/ian/.nvm/versions/node/v23.2.0/bin:${env:PATH}",
-                    "NODE_PATH": "/Users/ian/.nvm/versions/node/v23.2.0/lib/node_modules",
-                    "NVM_DIR": "/Users/ian/.nvm",
-                    "NVM_BIN": "/Users/ian/.nvm/versions/node/v23.2.0/bin",
-                    "NVM_INC": "/Users/ian/.nvm/versions/node/v23.2.0/include/node"
-                }
-            },
-            "presentation": {
-                "panel": "shared",
-                "reveal": "always"
-            },
-            "problemMatcher": "$tsc"
-        },
-        {
-            "label": "pnpm: watch",
-            "type": "shell",
-            "command": "/Users/ian/.nvm/versions/node/v23.2.0/bin/pnpm",
-            "args": ["watch"],
-            "isBackground": true,
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "presentation": {
-                "panel": "shared",
-                "reveal": "silent"
-            },
-            "problemMatcher": "$tsc-watch"
-        },
-        {
-            "label": "yarn: compile",
-            "type": "shell",
-            "command": "pnpm compile",
+            "command": "bash",
+            "args": [
+                "-c",
+                "source $NVM_DIR/nvm.sh && nvm use && pnpm compile"
+            ],
             "group": "build",
             "presentation": {
                 "panel": "shared",
