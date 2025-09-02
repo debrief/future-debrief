@@ -29,7 +29,7 @@ module.exports = {
     }],
   },
   transformIgnorePatterns: [
-    'node_modules/(?!(@testing-library/.*|@storybook/.*))'
+    'node_modules/(?!(@testing-library/.*|@storybook/.*|react-leaflet))'
   ],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
