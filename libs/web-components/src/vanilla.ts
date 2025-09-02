@@ -4,7 +4,6 @@ import { createRoot, Root } from 'react-dom/client';
 import { TimeController, TimeControllerProps } from './TimeController/TimeController';
 import { PropertiesView, PropertiesViewProps } from './PropertiesView/PropertiesView';
 import { MapComponent, MapComponentProps } from './MapComponent/MapComponent';
-import { LightweightMap, LightweightMapProps } from './LightweightMap/LightweightMap';
 
 // TimeController vanilla wrapper
 export function createTimeController(container: HTMLElement, props: TimeControllerProps): { destroy: () => void } {
@@ -49,28 +48,6 @@ export function createMapComponent(container: HTMLElement, props: MapComponentPr
   };
 }
 
-// LightweightMap vanilla wrapper
-export function createLightweightMap(container: HTMLElement, props: LightweightMapProps): { 
-  destroy: () => void;
-  updateProps: (newProps: Partial<LightweightMapProps>) => void;
-} {
-  const root = createRoot(container);
-  let currentProps = { ...props };
-  
-  const renderComponent = (componentProps: LightweightMapProps) => {
-    root.render(createElement(LightweightMap, componentProps));
-  };
-  
-  renderComponent(currentProps);
-  
-  return {
-    destroy: () => root.unmount(),
-    updateProps: (newProps: Partial<LightweightMapProps>) => {
-      currentProps = { ...currentProps, ...newProps };
-      renderComponent(currentProps);
-    }
-  };
-}
 
 // Expose functions globally for VS Code webviews and other environments
 if (typeof window !== 'undefined') {
@@ -78,13 +55,11 @@ if (typeof window !== 'undefined') {
   (window as any).createTimeController = createTimeController;
   (window as any).createPropertiesView = createPropertiesView;
   (window as any).createMapComponent = createMapComponent;
-  (window as any).createLightweightMap = createLightweightMap;
   
   // Also create a namespace for the IIFE build
   (window as any).DebriefWebComponents = {
     createTimeController,
     createPropertiesView,
-    createMapComponent,
-    createLightweightMap
+    createMapComponent
   };
 }
