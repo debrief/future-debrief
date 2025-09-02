@@ -10,9 +10,9 @@
   },
     "scripts": {
     "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
-    "compile": "yarn esbuild-base --sourcemap",
-    "watch": "yarn esbuild-base --sourcemap --watch",
-    "vscode:prepublish": "yarn esbuild-base --minify",
+    "compile": "pnpm esbuild-base --sourcemap",
+    "watch": "pnpm esbuild-base --sourcemap --watch",
+    "vscode:prepublish": "pnpm esbuild-base --minify",
     "typecheck": "tsc --noEmit"
   },
   "engines": {
@@ -76,7 +76,7 @@
     ]
   },
   "devDependencies": {
-    "@debrief/shared-types": "workspace:*",
+    "@debrief/shared-types": "workspace:^1.0.0",
     "@types/node": "16.x",
     "@types/vscode": "^1.74.0",
     "@types/ws": "^8.5.10",

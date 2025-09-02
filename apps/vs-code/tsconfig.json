@@ -8,13 +8,7 @@
       "DOM"
     ],
     "sourceMap": true,
-    "strict": true,
-    "baseUrl": ".",
-    "paths": {
-      "@debrief/shared-types/*": ["../../libs/shared-types/*"]
-    }
-  },
-  "include": [
-    "src/**/*"
-  ]
+    "rootDir": "src",
+    "strict": true
+  }
 }

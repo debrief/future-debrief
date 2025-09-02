@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Commands
 
-- `yarn install` - Install dependencies
-- `yarn compile` - Bundle extension with esbuild (includes sourcemap for development)
-- `yarn watch` - Watch mode bundling with esbuild for development
-- `yarn vscode:prepublish` - Prepare for publishing (minified esbuild bundle)
-- `yarn typecheck` - Type check TypeScript without compilation
+- `pnpm install` - Install dependencies (run from root for full workspace)
+- `pnpm compile` - Bundle extension with esbuild (includes sourcemap for development)
+- `pnpm watch` - Watch mode bundling with esbuild for development
+- `pnpm vscode:prepublish` - Prepare for publishing (minified esbuild bundle)
+- `pnpm typecheck` - Type check TypeScript without compilation
 
 ### Build System
 

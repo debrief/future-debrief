@@ -337,6 +337,16 @@ private getDocumentAsJson(document: vscode.TextDocument): any {
 - Build system compatibility maintained ✅
 - All existing functionality preserved ✅
 
+**Workspace Migration to pnpm**:
+During implementation, migrated the entire monorepo from yarn to pnpm for better workspace support:
+- Created root `package.json` with workspace scripts
+- Added `pnpm-workspace.yaml` configuration
+- Updated all package.json scripts to use pnpm instead of yarn/npm
+- Removed custom TypeScript path mapping (no longer needed with proper workspaces)
+- Verified `@debrief/shared-types` workspace dependency resolves correctly via symlink
+
+**Final Result**: Clean monorepo architecture with proper workspace dependency management.
+
 **Next Steps for Enhancement**:
 1. Add more sophisticated JSON Schema validation using AJV library
 2. Implement schema-aware autocomplete in plot.json editor
