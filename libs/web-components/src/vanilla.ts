@@ -63,17 +63,32 @@ export function createMapComponent(container: HTMLElement, props: MapComponentPr
 }
 
 
+// Define the namespace interface for type safety
+declare global {
+  interface Window {
+    DebriefWebComponents?: {
+      createTimeController: typeof createTimeController;
+      createPropertiesView: typeof createPropertiesView;
+      createMapComponent: typeof createMapComponent;
+    };
+  }
+}
+
 // Expose functions globally for VS Code webviews and other environments
 if (typeof window !== 'undefined') {
-  // Direct global assignment for backward compatibility
-  window.createTimeController = createTimeController;
-  window.createPropertiesView = createPropertiesView;
-  window.createMapComponent = createMapComponent;
-  
-  // Also create a namespace for the IIFE build
-  window.DebriefWebComponents = {
-    createTimeController,
-    createPropertiesView,
-    createMapComponent
-  };
+  // Use a single namespace to avoid conflicts - avoid direct global assignments
+  if (!window.DebriefWebComponents) {
+    window.DebriefWebComponents = {
+      createTimeController,
+      createPropertiesView,
+      createMapComponent
+    };
+  } else {
+    // If namespace already exists, merge functions safely
+    Object.assign(window.DebriefWebComponents, {
+      createTimeController,
+      createPropertiesView,
+      createMapComponent
+    });
+  }
 }
