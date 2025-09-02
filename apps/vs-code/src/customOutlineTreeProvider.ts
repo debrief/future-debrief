@@ -50,7 +50,7 @@ export class CustomOutlineTreeProvider implements vscode.TreeDataProvider<Outlin
                 }
 
                 // Create outline items from features
-                const items: OutlineItem[] = geoJson.features.map((feature: any, index: number) => {
+                const items: OutlineItem[] = geoJson.features.map((feature: { properties?: { name?: string } }, index: number) => {
                     const featureName = feature.properties?.name || `Feature ${index}`;
                     return new OutlineItem(featureName, index);
                 });

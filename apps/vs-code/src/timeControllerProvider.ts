@@ -34,7 +34,7 @@ export class TimeControllerProvider implements vscode.WebviewViewProvider {
         });
     }
 
-    public updateState(state: any) {
+    public updateState(state: { time?: number; [key: string]: unknown }) {
         if (this._view) {
             this._view.webview.postMessage({
                 type: 'stateUpdate',

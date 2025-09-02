@@ -1,6 +1,27 @@
 import * as vscode from 'vscode';
 import { validateFeatureCollectionComprehensive } from '@debrief/shared-types/validators/typescript';
 
+interface GeoJSONFeature {
+    type: 'Feature';
+    id?: string | number;
+    geometry: {
+        type: string;
+        coordinates: unknown;
+    };
+    properties: Record<string, unknown>;
+}
+
+interface GeoJSONFeatureCollection {
+    type: 'FeatureCollection';
+    features: GeoJSONFeature[];
+    bbox?: number[];
+}
+
+interface WebviewMessage {
+    type: string;
+    [key: string]: unknown;
+}
+
 export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
     private static outlineUpdateCallback: ((document: vscode.TextDocument) => void) | undefined;
     private static activeWebviewPanel: vscode.WebviewPanel | undefined;
@@ -12,7 +33,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         PlotJsonEditorProvider.outlineUpdateCallback = callback;
     }
 
-    public static sendMessageToActiveWebview(message: any): void {
+    public static sendMessageToActiveWebview(message: WebviewMessage): void {
         if (PlotJsonEditorProvider.activeWebviewPanel) {
             PlotJsonEditorProvider.activeWebviewPanel.webview.postMessage(message);
         }
@@ -161,21 +182,23 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
                     this.deleteScratch(document, e.id);
                     return;
 
-                case 'selectionChanged':
+                case 'selectionChanged': {
                     // Update selection state when user clicks features in webview
                     const filename = document.fileName;
                     PlotJsonEditorProvider.currentSelectionState[filename] = e.selectedFeatureIds;
                     return;
+                }
 
-                case 'mapStateSaved':
+                case 'mapStateSaved': {
                     // Save map view state when requested, but only if this is the active webview
                     if (PlotJsonEditorProvider.activeWebviewPanel === webviewPanel) {
                         const saveFilename = document.fileName;
                         PlotJsonEditorProvider.saveMapViewState(saveFilename, e.center, e.zoom);
                     }
                     return;
+                }
 
-                case 'requestSavedState':
+                case 'requestSavedState': {
                     // Webview is asking if there's saved state to restore
                     const requestFilename = document.fileName;
                     const savedState = PlotJsonEditorProvider.getMapViewState(requestFilename);
@@ -187,6 +210,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
                         });
                     }
                     return;
+                }
             }
         });
 
@@ -461,12 +485,12 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             return;
         }
 
-        json.features = json.features.filter((_feature: any, index: number) => index.toString() !== id);
+        json.features = json.features.filter((_feature: GeoJSONFeature, index: number) => index.toString() !== id);
 
         return this.updateTextDocument(document, json);
     }
 
-    private validateDebriefFeatureCollection(data: any): { valid: boolean; errors: string[]; featureCounts?: any } {
+    private validateDebriefFeatureCollection(data: unknown): { valid: boolean; errors: string[]; featureCounts?: { tracks: number; points: number; annotations: number; unknown: number; total: number } } {
         // Use the comprehensive validator from shared-types
         const validation = validateFeatureCollectionComprehensive(data);
         
@@ -489,7 +513,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         };
     }
 
-    private getDocumentAsJson(document: vscode.TextDocument, throwOnValidationError: boolean = true): any {
+    private getDocumentAsJson(document: vscode.TextDocument, throwOnValidationError = true): GeoJSONFeatureCollection {
         
         const text = document.getText();
         
@@ -500,10 +524,10 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             };
         }
 
-        let json: any;
+        let json: GeoJSONFeatureCollection;
         try {
             json = JSON.parse(text);
-        } catch (error) {
+        } catch {
             throw new Error('Could not get document as json. Content is not valid json');
         }
         
@@ -550,7 +574,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         return json;
     }
 
-    private updateTextDocument(document: vscode.TextDocument, json: any) {
+    private updateTextDocument(document: vscode.TextDocument, json: GeoJSONFeatureCollection) {
         const edit = new vscode.WorkspaceEdit();
         edit.replace(
             document.uri,

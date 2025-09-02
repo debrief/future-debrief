@@ -11,10 +11,10 @@ export interface TimeControllerProps {
 }
 
 export const TimeController: React.FC<TimeControllerProps> = ({
-  onTimeChange,
+  onTimeChange: _onTimeChange,
   currentTime,
-  startTime,
-  endTime,
+  startTime: _startTime,
+  endTime: _endTime,
   isPlaying = false,
   onPlayPause,
   className = '',

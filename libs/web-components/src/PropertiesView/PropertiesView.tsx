@@ -17,7 +17,7 @@ export interface PropertiesViewProps {
 export const PropertiesView: React.FC<PropertiesViewProps> = ({
   properties = [],
   title = 'Properties',
-  onPropertyChange,
+  onPropertyChange: _onPropertyChange,
   readonly = false,
   className = '',
 }) => {

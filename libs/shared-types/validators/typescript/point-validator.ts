@@ -37,7 +37,7 @@ export function validateTimeProperties(feature: DebriefPointFeature): boolean {
 /**
  * Validates that point feature has required properties and valid structure
  */
-export function validatePointFeature(feature: any): feature is DebriefPointFeature {
+export function validatePointFeature(feature: unknown): feature is DebriefPointFeature {
   if (!feature || typeof feature !== 'object') {
     return false;
   }
@@ -70,7 +70,7 @@ export function validatePointFeature(feature: any): feature is DebriefPointFeatu
     return false;
   }
   
-  if (!coords.every((coord: any) => typeof coord === 'number')) {
+  if (!coords.every((coord: unknown) => typeof coord === 'number')) {
     return false;
   }
   
@@ -91,7 +91,7 @@ export function validatePointFeature(feature: any): feature is DebriefPointFeatu
 /**
  * Validates that date string or Date object is valid
  */
-export function isValidDate(dateValue: any): boolean {
+export function isValidDate(dateValue: unknown): boolean {
   if (dateValue instanceof Date) {
     return !isNaN(dateValue.getTime());
   }
@@ -134,7 +134,7 @@ export function validateGeographicCoordinates(coordinates: number[]): boolean {
 /**
  * Comprehensive point feature validation
  */
-export function validatePointFeatureComprehensive(feature: any): {
+export function validatePointFeatureComprehensive(feature: unknown): {
   isValid: boolean;
   errors: string[];
 } {

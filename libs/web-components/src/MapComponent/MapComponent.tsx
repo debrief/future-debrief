@@ -220,7 +220,7 @@ const InteractiveGeoJSON: React.FC<InteractiveGeoJSONProps> = ({
     }
 
     const props = feature.properties;
-    const style: any = {};
+    const style: Record<string, unknown> = {};
 
     // Track lines - use stroke color
     if (props.stroke) {
@@ -366,11 +366,11 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   selectedFeatureIds = [],
   showAddButton = false,
   onAddClick,
-  onZoomToSelection,
+  onZoomToSelection: _onZoomToSelection,
   onMapStateChange,
   initialMapState,
   className = '',
-  mapId = 'map'
+  mapId: _mapId = 'map'
 }) => {
   // TODO: Implement onZoomToSelection functionality
   // TODO: Use mapId for container identification if needed

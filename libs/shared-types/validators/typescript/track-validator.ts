@@ -35,7 +35,7 @@ export function validateTimestampsLength(feature: DebriefTrackFeature): boolean 
 /**
  * Validates that track feature has required properties and valid structure
  */
-export function validateTrackFeature(feature: any): feature is DebriefTrackFeature {
+export function validateTrackFeature(feature: unknown): feature is DebriefTrackFeature {
   if (!feature || typeof feature !== 'object') {
     return false;
   }
@@ -102,7 +102,7 @@ export function validateTrackFeature(feature: any): feature is DebriefTrackFeatu
 /**
  * Validates coordinate structure for LineString
  */
-export function validateLineStringCoordinates(coordinates: any): boolean {
+export function validateLineStringCoordinates(coordinates: unknown): boolean {
   if (!Array.isArray(coordinates)) {
     return false;
   }
@@ -122,7 +122,7 @@ export function validateLineStringCoordinates(coordinates: any): boolean {
 /**
  * Validates coordinate structure for MultiLineString
  */
-export function validateMultiLineStringCoordinates(coordinates: any): boolean {
+export function validateMultiLineStringCoordinates(coordinates: unknown): boolean {
   if (!Array.isArray(coordinates)) {
     return false;
   }
@@ -137,7 +137,7 @@ export function validateMultiLineStringCoordinates(coordinates: any): boolean {
 /**
  * Comprehensive track feature validation
  */
-export function validateTrackFeatureComprehensive(feature: any): {
+export function validateTrackFeatureComprehensive(feature: unknown): {
   isValid: boolean;
   errors: string[];
 } {

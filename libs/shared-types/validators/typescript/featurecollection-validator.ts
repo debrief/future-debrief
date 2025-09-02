@@ -40,7 +40,7 @@ export function validateBbox(bbox: number[]): boolean {
 /**
  * Validates that feature collection has required properties and valid structure
  */
-export function validateFeatureCollection(collection: any): collection is DebriefFeatureCollection {
+export function validateFeatureCollection(collection: unknown): collection is DebriefFeatureCollection {
   if (!collection || typeof collection !== 'object') {
     return false;
   }
@@ -72,19 +72,24 @@ export function validateFeatureCollection(collection: any): collection is Debrie
 /**
  * Determines the type of feature based on geometry and properties
  */
-export function classifyFeature(feature: any): 'track' | 'point' | 'annotation' | 'unknown' {
-  if (!feature || !feature.geometry) {
+export function classifyFeature(feature: unknown): 'track' | 'point' | 'annotation' | 'unknown' {
+  if (!feature || typeof feature !== 'object' || feature === null) {
     return 'unknown';
   }
   
-  const properties = feature.properties || {};
+  const featureObj = feature as Record<string, any>;
+  if (!featureObj.geometry) {
+    return 'unknown';
+  }
+  
+  const properties = featureObj.properties || {};
   
   // Skip validation for unsupported dataType values
   if (properties.dataType === 'buoyfield' || properties.dataType === 'backdrop') {
     return 'unknown';
   }
   
-  const geometryType = feature.geometry.type;
+  const geometryType = featureObj.geometry.type;
   
   // Use dataType for classification if available
   if (properties.dataType) {
@@ -131,7 +136,7 @@ export function classifyFeature(feature: any): 'track' | 'point' | 'annotation' 
 /**
  * Validates individual feature based on its type
  */
-export function validateFeatureByType(feature: any): boolean {
+export function validateFeatureByType(feature: unknown): boolean {
   const featureType = classifyFeature(feature);
   
   switch (featureType) {
@@ -152,7 +157,7 @@ export function validateFeatureByType(feature: any): boolean {
 /**
  * Validates that date string or Date object is valid
  */
-export function isValidDate(dateValue: any): boolean {
+export function isValidDate(dateValue: unknown): boolean {
   if (dateValue instanceof Date) {
     return !isNaN(dateValue.getTime());
   }
@@ -168,7 +173,7 @@ export function isValidDate(dateValue: any): boolean {
 /**
  * Validates feature collection properties
  */
-export function validateFeatureCollectionProperties(properties: any): boolean {
+export function validateFeatureCollectionProperties(properties: unknown): boolean {
   if (!properties || typeof properties !== 'object') {
     return true; // properties are optional
   }
@@ -256,8 +261,9 @@ export interface FeatureError {
 /**
  * Get feature identifier for error reporting
  */
-function getFeatureIdentifier(feature: any, index: number): string {
-  const id = feature?.id;
+function getFeatureIdentifier(feature: unknown, index: number): string {
+  const featureObj = feature as Record<string, any>;
+  const id = featureObj?.id;
   if (id !== undefined && id !== null) {
     return `index ${index} (id: "${id}")`;
   }
@@ -267,7 +273,7 @@ function getFeatureIdentifier(feature: any, index: number): string {
 /**
  * Validates individual feature with detailed error reporting
  */
-export function validateFeatureDetailed(feature: any, index: number): FeatureError | null {
+export function validateFeatureDetailed(feature: unknown, index: number): FeatureError | null {
   const featureType = classifyFeature(feature);
   const errors: string[] = [];
   
@@ -368,7 +374,7 @@ export function validateFeatureDetailed(feature: any, index: number): FeatureErr
   
   return {
     index,
-    featureId: feature?.id,
+    featureId: (feature as Record<string, any>)?.id,
     featureType,
     errors
   };
@@ -377,7 +383,7 @@ export function validateFeatureDetailed(feature: any, index: number): FeatureErr
 /**
  * Comprehensive feature collection validation with enhanced error reporting
  */
-export function validateFeatureCollectionComprehensive(collection: any): FeatureValidationResult {
+export function validateFeatureCollectionComprehensive(collection: unknown): FeatureValidationResult {
   const errors: string[] = [];
   const featureErrors: FeatureError[] = [];
   
@@ -398,7 +404,7 @@ export function validateFeatureCollectionComprehensive(collection: any): Feature
   }
   
   // Validate each feature with detailed error reporting
-  collection.features.forEach((feature: any, index: number) => {
+  collection.features.forEach((feature: unknown, index: number) => {
     const featureError = validateFeatureDetailed(feature, index);
     if (featureError) {
       featureErrors.push(featureError);

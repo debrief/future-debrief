@@ -6,13 +6,38 @@ import * as path from 'path';
 import { PlotJsonEditorProvider } from './plotJsonEditor';
 import { validateFeatureCollectionComprehensive, validateFeatureByType, classifyFeature } from '@debrief/shared-types/validators/typescript';
 
+interface GeoJSONFeature {
+    type: 'Feature';
+    id?: string | number;
+    geometry: {
+        type: string;
+        coordinates: unknown;
+    };
+    properties: Record<string, unknown>;
+}
+
+interface GeoJSONFeatureCollection {
+    type: 'FeatureCollection';
+    features: GeoJSONFeature[];
+    bbox?: number[];
+}
+
+interface CommandParams {
+    message?: string;
+    filename?: string;
+    featureCollection?: GeoJSONFeatureCollection;
+    ids?: (string | number)[];
+    features?: GeoJSONFeature[];
+    [key: string]: unknown;
+}
+
 interface DebriefMessage {
     command: string;
-    params?: any;
+    params?: CommandParams;
 }
 
 interface DebriefResponse {
-    result?: any;
+    result?: unknown;
     error?: {
         message: string;
         code: number | string;
@@ -36,7 +61,7 @@ export class DebriefWebSocketServer {
             this.httpServer = http.createServer();
             
             // Handle port conflicts
-            this.httpServer.on('error', (error: any) => {
+            this.httpServer.on('error', (error: NodeJS.ErrnoException) => {
                 if (error.code === 'EADDRINUSE') {
                     console.error(`Port ${this.port} is already in use`);
                     vscode.window.showErrorMessage(
@@ -76,7 +101,7 @@ export class DebriefWebSocketServer {
                         try {
                             const parsedMessage: DebriefMessage = JSON.parse(message);
                             response = await this.handleCommand(parsedMessage);
-                        } catch (jsonError) {
+                        } catch {
                             // If not valid JSON, treat as raw message (for backward compatibility)
                             response = { result: `Echo: ${message}` };
                         }
@@ -196,31 +221,31 @@ export class DebriefWebSocketServer {
         try {
             switch (message.command) {
                 case 'notify':
-                    return await this.handleNotifyCommand(message.params);
+                    return await this.handleNotifyCommand(message.params || {});
                 
                 case 'get_feature_collection':
-                    return await this.handleGetFeatureCollectionCommand(message.params);
+                    return await this.handleGetFeatureCollectionCommand(message.params || {});
                 
                 case 'set_feature_collection':
-                    return await this.handleSetFeatureCollectionCommand(message.params);
+                    return await this.handleSetFeatureCollectionCommand(message.params || {});
                 
                 case 'get_selected_features':
-                    return await this.handleGetSelectedFeaturesCommand(message.params);
+                    return await this.handleGetSelectedFeaturesCommand(message.params || {});
                 
                 case 'set_selected_features':
-                    return await this.handleSetSelectedFeaturesCommand(message.params);
+                    return await this.handleSetSelectedFeaturesCommand(message.params || {});
                 
                 case 'update_features':
-                    return await this.handleUpdateFeaturesCommand(message.params);
+                    return await this.handleUpdateFeaturesCommand(message.params || {});
                 
                 case 'add_features':
-                    return await this.handleAddFeaturesCommand(message.params);
+                    return await this.handleAddFeaturesCommand(message.params || {});
                 
                 case 'delete_features':
-                    return await this.handleDeleteFeaturesCommand(message.params);
+                    return await this.handleDeleteFeaturesCommand(message.params || {});
                 
                 case 'zoom_to_selection':
-                    return await this.handleZoomToSelectionCommand(message.params);
+                    return await this.handleZoomToSelectionCommand(message.params || {});
                 
                 case 'list_open_plots':
                     return await this.handleListOpenPlotsCommand();
@@ -244,7 +269,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private async handleNotifyCommand(params: any): Promise<DebriefResponse> {
+    private async handleNotifyCommand(params: CommandParams): Promise<DebriefResponse> {
         if (!params || typeof params.message !== 'string') {
             return {
                 error: {
@@ -272,7 +297,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private async handleGetFeatureCollectionCommand(params: any): Promise<DebriefResponse> {
+    private async handleGetFeatureCollectionCommand(params: CommandParams): Promise<DebriefResponse> {
         // Resolve filename (optional parameter)
         const resolution = await this.resolveFilename(params?.filename);
         if (resolution.error) {
@@ -303,7 +328,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private async handleSetFeatureCollectionCommand(params: any): Promise<DebriefResponse> {
+    private async handleSetFeatureCollectionCommand(params: CommandParams): Promise<DebriefResponse> {
         if (!params || typeof params.data !== 'object') {
             return {
                 error: {
@@ -361,7 +386,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private async handleGetSelectedFeaturesCommand(params: any): Promise<DebriefResponse> {
+    private async handleGetSelectedFeaturesCommand(params: CommandParams): Promise<DebriefResponse> {
         // Resolve filename (optional parameter)
         const resolution = await this.resolveFilename(params?.filename);
         if (resolution.error) {
@@ -384,7 +409,7 @@ export class DebriefWebSocketServer {
             
             // Convert IDs to actual feature objects
             const featureCollection = this.parseGeoJsonDocument(document);
-            const selectedFeatures = featureCollection.features.filter((feature: any) =>
+            const selectedFeatures = featureCollection.features.filter((feature: GeoJSONFeature) =>
                 feature.id && selectedFeatureIds.includes(feature.id)
             );
 
@@ -400,7 +425,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private async handleSetSelectedFeaturesCommand(params: any): Promise<DebriefResponse> {
+    private async handleSetSelectedFeaturesCommand(params: CommandParams): Promise<DebriefResponse> {
         if (!params || !Array.isArray(params.ids)) {
             return {
                 error: {
@@ -442,7 +467,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private async handleUpdateFeaturesCommand(params: any): Promise<DebriefResponse> {
+    private async handleUpdateFeaturesCommand(params: CommandParams): Promise<DebriefResponse> {
         if (!params || !Array.isArray(params.features)) {
             return {
                 error: {
@@ -492,7 +517,7 @@ export class DebriefWebSocketServer {
                     continue; // Skip features without ID
                 }
                 
-                const index = featureCollection.features.findIndex((f: any) => 
+                const index = featureCollection.features.findIndex((f: GeoJSONFeature) => 
                     f.id === updatedFeature.id
                 );
                 
@@ -520,7 +545,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private async handleAddFeaturesCommand(params: any): Promise<DebriefResponse> {
+    private async handleAddFeaturesCommand(params: CommandParams): Promise<DebriefResponse> {
         if (!params || !Array.isArray(params.features)) {
             return {
                 error: {
@@ -590,7 +615,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private async handleDeleteFeaturesCommand(params: any): Promise<DebriefResponse> {
+    private async handleDeleteFeaturesCommand(params: CommandParams): Promise<DebriefResponse> {
         if (!params || !Array.isArray(params.ids)) {
             return {
                 error: {
@@ -620,7 +645,7 @@ export class DebriefWebSocketServer {
             const featureCollection = this.parseGeoJsonDocument(document);
             
             // Delete features by ID
-            featureCollection.features = featureCollection.features.filter((feature: any) =>
+            featureCollection.features = featureCollection.features.filter((feature: GeoJSONFeature) =>
                 !feature.id || !params.ids.includes(feature.id)
             );
 
@@ -641,7 +666,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private async handleZoomToSelectionCommand(params: any): Promise<DebriefResponse> {
+    private async handleZoomToSelectionCommand(params: CommandParams): Promise<DebriefResponse> {
         // Resolve filename (optional parameter)
         const resolution = await this.resolveFilename(params?.filename);
         if (resolution.error) {
@@ -708,7 +733,7 @@ export class DebriefWebSocketServer {
         return null;
     }
 
-    private parseGeoJsonDocument(document: vscode.TextDocument): any {
+    private parseGeoJsonDocument(document: vscode.TextDocument): GeoJSONFeatureCollection | null {
         const text = document.getText();
         if (text.trim().length === 0) {
             return {
@@ -730,7 +755,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private isValidFeatureCollection(data: any): { isValid: boolean; errors?: string[]; featureCounts?: any } {
+    private isValidFeatureCollection(data: unknown): { isValid: boolean; errors?: string[]; featureCounts?: { tracks: number; points: number; annotations: number; unknown: number; total: number } } {
         // Use comprehensive validation from shared-types
         const validation = validateFeatureCollectionComprehensive(data);
         return {
@@ -740,7 +765,7 @@ export class DebriefWebSocketServer {
         };
     }
 
-    private async updateDocument(document: vscode.TextDocument, data: any): Promise<void> {
+    private async updateDocument(document: vscode.TextDocument, data: GeoJSONFeatureCollection): Promise<void> {
         const edit = new vscode.WorkspaceEdit();
         edit.replace(
             document.uri,
