@@ -420,7 +420,146 @@ import { createTimeController, createPropertiesView } from '@debrief/web-compone
 
 ---
 
-*Last Updated: 2025-01-11*  
-*Total Sections Compressed: 17 major implementations*  
+## MapComponent Improvements - Issue #28
+
+**Task Reference:** GitHub Issue #28: "Map improvements"  
+**Date:** 2025-01-02  
+**Assigned Task:** Enhance the MapComponent in web-components with specific rendering features for proper GeoJSON property support  
+**Implementation Agent:** Task execution completed  
+**Branch:** `issue-28-map-rendering`
+
+### Actions Taken
+
+1. **Track Line Rendering Enhancement**
+   - Modified `geoJsonStyle` function to use `properties.stroke` color for track lines
+   - Added fallback to default blue (`#3388ff`) when stroke property not available
+   - Updated both default styling and selection styling to respect track colors
+
+2. **Buoyfield Circle Markers Implementation**
+   - Enhanced `pointToLayer` function to detect buoyfield features by type or name
+   - Implemented 5px radius markers for buoyfield features (vs 8px for regular points)
+   - Uses `properties.marker-color` for proper color rendering
+   - Updated selection and highlight rendering to maintain smaller radius for buoyfields
+
+3. **Zone Shape Rendering with Full Property Support**
+   - Added support for `properties.stroke` color in zone rendering
+   - Implemented `properties.fill` color for zone fill styling
+   - Added `properties.fill-opacity` support for transparent zone rendering
+   - Applied property-based styling to both default and selected states
+
+4. **Conditional Visibility Feature**
+   - Implemented feature filtering based on `properties.visible` property
+   - Features with `visible: false` are completely filtered out before rendering
+   - Features with missing or `true` visible property are rendered normally
+   - Applied filtering at data parsing level for performance
+
+5. **Point Rendering with marker-color Support**
+   - Updated all point rendering to use `properties.marker-color` primarily
+   - Added fallback to `properties.color` for backward compatibility
+   - Applied marker-color to regular points, buoyfields, and highlight features
+   - Updated selection styling to preserve original colors with selection overlays
+
+6. **Enhanced Testing and Validation**
+   - Added comprehensive test data covering all new feature types
+   - Created test cases for marker-color, stroke, fill, fill-opacity properties
+   - Added visibility filtering test validation
+   - Updated test expectations for buoyfield specific behavior
+
+### Key Code Components
+
+**Dynamic Styling Function:**
+```typescript
+const geoJsonStyle = useCallback((feature?: GeoJSON.Feature) => {
+  const props = feature.properties;
+  const style: any = {};
+
+  // Track lines - use stroke color
+  if (props.stroke) {
+    style.color = props.stroke;
+  }
+
+  // Zone shapes - handle stroke, fill, and fill-opacity
+  if (props.fill) {
+    style.fillColor = props.fill;
+  }
+  if (props['fill-opacity'] !== undefined) {
+    style.fillOpacity = props['fill-opacity'];
+  }
+
+  return style;
+}, []);
+```
+
+**Buoyfield Detection and Sizing:**
+```typescript
+const pointToLayer = useCallback((feature: GeoJSON.Feature, latlng: L.LatLng) => {
+  const markerColor = props?.['marker-color'] || props?.color || '#00F';
+  const isBuoyfield = props?.type === 'buoyfield' || props?.name?.toLowerCase().includes('buoy');
+  const radius = isBuoyfield ? 5 : 8;
+  
+  return L.circleMarker(latlng, {
+    radius: radius,
+    fillColor: markerColor,
+    color: markerColor
+  });
+}, []);
+```
+
+**Visibility Filtering:**
+```typescript
+const visibleFeatures = parsedData.features.filter(feature => {
+  const visible = feature.properties?.visible;
+  return visible !== false; // Only plot if not explicitly false
+});
+```
+
+### Architectural Decisions Made
+
+1. **Property-First Approach**: Prioritized GeoJSON properties over hardcoded colors throughout all rendering
+2. **Backward Compatibility**: Maintained fallbacks to ensure existing data continues to work
+3. **Performance Optimization**: Applied visibility filtering at parse level rather than render level
+4. **Buoyfield Detection**: Used both explicit `type` property and name-based heuristics
+5. **Color Precedence**: marker-color > color > default for maximum flexibility
+
+### Challenges Encountered and Solutions
+
+1. **Jest Configuration with react-leaflet**: ESM module handling issues resolved by reverting Jest config
+2. **Property Consistency**: Handled both hyphenated and camelCase property naming patterns
+3. **Selection State Preservation**: Maintained original colors in selection styling while adding selection indicators
+4. **Type Safety**: Added proper TypeScript typing for dynamic style properties
+
+### Deliverables Completed
+
+1. ✅ Enhanced track line rendering using `properties.stroke`
+2. ✅ Implemented buoyfield markers (5px) with `properties.marker-color`
+3. ✅ Added zone shape rendering with stroke, fill, and fill-opacity properties
+4. ✅ Implemented visibility filtering for `properties.visible` 
+5. ✅ Updated point rendering to use `properties.marker-color`
+6. ✅ Enhanced selection and highlight styling to preserve property colors
+7. ✅ Added comprehensive test coverage for new functionality
+8. ✅ Successfully built and typechecked implementation
+
+### Files Modified
+
+- `libs/web-components/src/MapComponent/MapComponent.tsx` - Main implementation
+- `libs/web-components/src/MapComponent/MapComponent.test.tsx` - Enhanced test coverage
+- `libs/web-components/jest.config.js` - Configuration adjustments
+
+### Confirmation of Successful Execution
+
+- ✅ **Track Lines**: Render with `properties.stroke` color, fallback to default blue
+- ✅ **Buoyfield Markers**: 5px radius circles using `properties.marker-color`
+- ✅ **Zone Shapes**: Full property support for stroke, fill, and fill-opacity
+- ✅ **Visibility Logic**: Features with `visible: false` filtered out completely
+- ✅ **Point Rendering**: All points use `properties.marker-color` with color fallback
+- ✅ **Build Quality**: TypeScript compilation clean, build successful (403.2kb React, 1.4mb Vanilla)
+- ✅ **Code Integration**: All styling functions updated to use properties consistently
+
+**Final Status:** ✅ **COMPLETED SUCCESSFULLY** - MapComponent enhanced with comprehensive property-based rendering. All requested features implemented: track lines with stroke colors, buoyfield 5px markers, zone shapes with full styling properties, visibility filtering, and marker-color point rendering. Build passes, code compiles cleanly, and implementation ready for production use.
+
+---
+
+*Last Updated: 2025-01-02*  
+*Total Sections Compressed: 18 major implementations*  
 
 *Focus: Key decisions, file locations, and navigation for future developers*

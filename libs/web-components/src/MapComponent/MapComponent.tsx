@@ -148,11 +148,13 @@ const InteractiveGeoJSON: React.FC<InteractiveGeoJSONProps> = ({
     if (!layer || !feature) return;
 
     if (feature.geometry.type === 'Point') {
-      const baseColor = feature.properties?.color || '#00F';
+      const baseColor = feature.properties?.['marker-color'] || feature.properties?.color || '#00F';
+      const isBuoyfield = feature.properties?.type === 'buoyfield' || feature.properties?.name?.toLowerCase().includes('buoy');
+      const baseRadius = isBuoyfield ? 5 : 8;
       
       if (isSelected) {
         (layer as L.CircleMarker).setStyle({
-          radius: 10,
+          radius: baseRadius + 2,
           fillColor: baseColor,
           color: '#ff6b35',
           weight: 4,
@@ -161,7 +163,7 @@ const InteractiveGeoJSON: React.FC<InteractiveGeoJSONProps> = ({
         });
       } else {
         (layer as L.CircleMarker).setStyle({
-          radius: 8,
+          radius: baseRadius,
           fillColor: baseColor,
           color: baseColor,
           weight: 2,
@@ -170,6 +172,12 @@ const InteractiveGeoJSON: React.FC<InteractiveGeoJSONProps> = ({
         });
       }
     } else {
+      // Non-point features (lines, polygons) - use properties for colors
+      const props = feature.properties || {};
+      const strokeColor = props.stroke || '#3388ff';
+      const fillColor = props.fill || strokeColor;
+      const fillOpacity = props['fill-opacity'] !== undefined ? props['fill-opacity'] : 0.2;
+      
       const selectedStyle = {
         color: '#ff6b35',
         weight: 4,
@@ -179,11 +187,11 @@ const InteractiveGeoJSON: React.FC<InteractiveGeoJSONProps> = ({
       };
       
       const defaultStyle = {
-        color: '#3388ff',
+        color: strokeColor,
         weight: 3,
         opacity: 0.8,
-        fillColor: '#3388ff',
-        fillOpacity: 0.2
+        fillColor: fillColor,
+        fillOpacity: fillOpacity
       };
       
       (layer as L.Path).setStyle(isSelected ? selectedStyle : defaultStyle);
@@ -208,21 +216,56 @@ const InteractiveGeoJSON: React.FC<InteractiveGeoJSONProps> = ({
     }
   }, [geoJsonData, onSelectionChange, updateFeatureStyle]);
 
-  // GeoJSON styling functions
-  const geoJsonStyle = useCallback(() => ({
-    color: '#3388ff',
-    weight: 3,
-    opacity: 0.8,
-    fillOpacity: 0.2
-  }), []);
+  // GeoJSON styling functions with dynamic properties
+  const geoJsonStyle = useCallback((feature?: GeoJSON.Feature) => {
+    if (!feature?.properties) {
+      return {
+        color: '#3388ff',
+        weight: 3,
+        opacity: 0.8,
+        fillOpacity: 0.2
+      };
+    }
+
+    const props = feature.properties;
+    const style: any = {};
+
+    // Track lines - use stroke color
+    if (props.stroke) {
+      style.color = props.stroke;
+    } else {
+      style.color = '#3388ff';
+    }
+
+    // Zone shapes - handle stroke, fill, and fill-opacity
+    if (props.fill) {
+      style.fillColor = props.fill;
+    }
+    if (props['fill-opacity'] !== undefined) {
+      style.fillOpacity = props['fill-opacity'];
+    } else {
+      style.fillOpacity = 0.2;
+    }
+
+    // Default weight and opacity
+    style.weight = 3;
+    style.opacity = 0.8;
+
+    return style;
+  }, []);
 
   const pointToLayer = useCallback((feature: GeoJSON.Feature, latlng: L.LatLng) => {
-    const color = feature.properties?.color || '#00F';
+    const props = feature.properties;
+    const markerColor = props?.['marker-color'] || props?.color || '#00F';
+    
+    // Check if this is a buoyfield - use smaller 5px radius markers
+    const isBuoyfield = props?.type === 'buoyfield' || props?.name?.toLowerCase().includes('buoy');
+    const radius = isBuoyfield ? 5 : 8;
     
     return L.circleMarker(latlng, {
-      radius: 8,
-      fillColor: color,
-      color: color,
+      radius: radius,
+      fillColor: markerColor,
+      color: markerColor,
       weight: 2,
       opacity: 0.8,
       fillOpacity: 0.7
@@ -280,8 +323,11 @@ const InteractiveGeoJSON: React.FC<InteractiveGeoJSONProps> = ({
       
       const highlightedLayer = L.geoJSON(feature, {
         pointToLayer: (_geoJsonFeature: GeoJSON.Feature, latlng: L.LatLng) => {
+          const isBuoyfield = feature.properties?.type === 'buoyfield' || feature.properties?.name?.toLowerCase().includes('buoy');
+          const radius = isBuoyfield ? 7 : 12; // Slightly larger for highlight
+          
           return L.circleMarker(latlng, {
-            radius: 12,
+            radius: radius,
             fillColor: '#ff7f00',
             color: '#ff4500',
             weight: 4,
@@ -352,10 +398,24 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     return null;
   }, []);
 
-  // Update parsed data when input changes
+  // Filter features based on visibility and update parsed data when input changes
   useEffect(() => {
     const parsedData = parseGeoJsonData(geoJsonData);
-    setCurrentData(parsedData);
+    if (parsedData) {
+      // Filter out features with properties.visible === false
+      const visibleFeatures = parsedData.features.filter(feature => {
+        const visible = feature.properties?.visible;
+        // Only plot features if visible is not explicitly false
+        return visible !== false;
+      });
+      
+      setCurrentData({
+        ...parsedData,
+        features: visibleFeatures
+      });
+    } else {
+      setCurrentData(null);
+    }
   }, [geoJsonData, parseGeoJsonData]);
 
   // Handle zoom to selection
