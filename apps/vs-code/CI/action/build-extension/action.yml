@@ -27,7 +27,7 @@ runs:
       with:
         node-version: '20'
         cache: 'pnpm'
-        cache-dependency-path: apps/vs-code/pnpm-lock.yaml
+        cache-dependency-path: pnpm-lock.yaml
     
     - name: Install dependencies
       shell: bash
