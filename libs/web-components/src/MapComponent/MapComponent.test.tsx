@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MapComponent } from './MapComponent';
@@ -149,7 +148,7 @@ describe('MapComponent', () => {
 
   it('filters out features with visible: false', () => {
     // Create a component with the sample data that includes a hidden feature
-    const component = render(<MapComponent geoJsonData={sampleGeoJSON} />);
+    render(<MapComponent geoJsonData={sampleGeoJSON} />);
     
     // The component should render without errors, and the internal logic
     // should filter out features where visible === false

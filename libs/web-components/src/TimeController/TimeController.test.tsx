@@ -25,7 +25,7 @@ describe('TimeController', () => {
     render(<TimeController isPlaying={true} />);
     expect(screen.getByText('Playing: Yes')).toBeInTheDocument();
     
-    const { rerender } = render(<TimeController isPlaying={false} />);
+    render(<TimeController isPlaying={false} />);
     expect(screen.getByText('Playing: No')).toBeInTheDocument();
   });
 

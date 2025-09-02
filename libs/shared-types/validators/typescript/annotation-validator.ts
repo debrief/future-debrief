@@ -6,6 +6,20 @@
 import { DebriefAnnotationFeature } from '../../derived/typescript/featurecollection';
 
 /**
+ * Type-safe helper to check if a value is a non-null object
+ */
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object';
+}
+
+/**
+ * Type-safe helper to access object properties
+ */
+function getObjectProperty(obj: Record<string, unknown>, key: string): unknown {
+  return obj[key];
+}
+
+/**
  * Validates color format (hex color)
  */
 export function validateColorFormat(color: string): boolean {
@@ -18,28 +32,30 @@ export function validateColorFormat(color: string): boolean {
  */
 export function validateAnnotationType(annotationType: string): boolean {
   const validTypes = ['label', 'area', 'measurement', 'comment', 'boundary'];
-  return validTypes.includes(annotationType);
+  return validTypes.indexOf(annotationType) !== -1;
 }
 
 /**
  * Validates that annotation feature has required properties and valid structure
  */
-export function validateAnnotationFeature(feature: any): feature is DebriefAnnotationFeature {
-  if (!feature || typeof feature !== 'object') {
+export function validateAnnotationFeature(feature: unknown): feature is DebriefAnnotationFeature {
+  if (!isObject(feature)) {
     return false;
   }
   
   // Check basic GeoJSON structure
-  if (feature.type !== 'Feature') {
+  if (getObjectProperty(feature, 'type') !== 'Feature') {
     return false;
   }
   
-  if (!feature.id && feature.id !== 0) {
+  const id = getObjectProperty(feature, 'id');
+  if (id === null || id === undefined) {
     return false; // id is required (can be 0 but not null/undefined)
   }
   
   // Check geometry
-  if (!feature.geometry || typeof feature.geometry !== 'object') {
+  const geometry = getObjectProperty(feature, 'geometry');
+  if (!isObject(geometry)) {
     return false;
   }
   
@@ -47,32 +63,35 @@ export function validateAnnotationFeature(feature: any): feature is DebriefAnnot
     'Point', 'LineString', 'Polygon', 
     'MultiPoint', 'MultiLineString', 'MultiPolygon'
   ];
-  if (!validGeometryTypes.includes(feature.geometry.type)) {
+  const geometryType = getObjectProperty(geometry, 'type');
+  if (typeof geometryType !== 'string' || validGeometryTypes.indexOf(geometryType) === -1) {
     return false;
   }
   
-  if (!Array.isArray(feature.geometry.coordinates)) {
+  const coordinates = getObjectProperty(geometry, 'coordinates');
+  if (!Array.isArray(coordinates)) {
     return false;
   }
   
   // Check properties
-  if (!feature.properties || typeof feature.properties !== 'object') {
+  const properties = getObjectProperty(feature, 'properties');
+  if (!isObject(properties)) {
     return false;
   }
   
   // Check required dataType discriminator
-  if (feature.properties.dataType !== 'zone') {
+  if (getObjectProperty(properties, 'dataType') !== 'zone') {
     return false;
   }
   
   // Validate specific annotation properties
-  const props = feature.properties;
-  
-  if (props.annotationType && !validateAnnotationType(props.annotationType)) {
+  const annotationType = getObjectProperty(properties, 'annotationType');
+  if (annotationType !== undefined && typeof annotationType === 'string' && !validateAnnotationType(annotationType)) {
     return false;
   }
   
-  if (props.color && !validateColorFormat(props.color)) {
+  const color = getObjectProperty(properties, 'color');
+  if (color !== undefined && typeof color === 'string' && !validateColorFormat(color)) {
     return false;
   }
   
@@ -82,7 +101,7 @@ export function validateAnnotationFeature(feature: any): feature is DebriefAnnot
 /**
  * Validates Point geometry coordinates
  */
-export function validatePointCoordinates(coordinates: any): boolean {
+export function validatePointCoordinates(coordinates: unknown): boolean {
   return Array.isArray(coordinates) && 
          coordinates.length >= 2 && 
          coordinates.length <= 3 &&
@@ -92,7 +111,7 @@ export function validatePointCoordinates(coordinates: any): boolean {
 /**
  * Validates LineString geometry coordinates
  */
-export function validateLineStringCoordinates(coordinates: any): boolean {
+export function validateLineStringCoordinates(coordinates: unknown): boolean {
   if (!Array.isArray(coordinates) || coordinates.length < 2) {
     return false;
   }
@@ -102,7 +121,7 @@ export function validateLineStringCoordinates(coordinates: any): boolean {
 /**
  * Validates Polygon geometry coordinates
  */
-export function validatePolygonCoordinates(coordinates: any): boolean {
+export function validatePolygonCoordinates(coordinates: unknown): boolean {
   if (!Array.isArray(coordinates) || coordinates.length < 1) {
     return false;
   }
@@ -129,7 +148,7 @@ export function validatePolygonCoordinates(coordinates: any): boolean {
 /**
  * Validates MultiPoint geometry coordinates
  */
-export function validateMultiPointCoordinates(coordinates: any): boolean {
+export function validateMultiPointCoordinates(coordinates: unknown): boolean {
   return Array.isArray(coordinates) &&
          coordinates.every(coord => validatePointCoordinates(coord));
 }
@@ -137,7 +156,7 @@ export function validateMultiPointCoordinates(coordinates: any): boolean {
 /**
  * Validates MultiLineString geometry coordinates
  */
-export function validateMultiLineStringCoordinates(coordinates: any): boolean {
+export function validateMultiLineStringCoordinates(coordinates: unknown): boolean {
   return Array.isArray(coordinates) &&
          coordinates.every(lineString => validateLineStringCoordinates(lineString));
 }
@@ -145,7 +164,7 @@ export function validateMultiLineStringCoordinates(coordinates: any): boolean {
 /**
  * Validates MultiPolygon geometry coordinates
  */
-export function validateMultiPolygonCoordinates(coordinates: any): boolean {
+export function validateMultiPolygonCoordinates(coordinates: unknown): boolean {
   return Array.isArray(coordinates) &&
          coordinates.every(polygon => validatePolygonCoordinates(polygon));
 }
@@ -153,7 +172,7 @@ export function validateMultiPolygonCoordinates(coordinates: any): boolean {
 /**
  * Validates geometry coordinates based on type
  */
-export function validateGeometryCoordinates(geometry: any): boolean {
+export function validateGeometryCoordinates(geometry: { type: string; coordinates: unknown }): boolean {
   switch (geometry.type) {
     case 'Point':
       return validatePointCoordinates(geometry.coordinates);
@@ -175,14 +194,14 @@ export function validateGeometryCoordinates(geometry: any): boolean {
 /**
  * Validates that date string or Date object is valid
  */
-export function isValidDate(dateValue: any): boolean {
+export function isValidDate(dateValue: unknown): boolean {
   if (dateValue instanceof Date) {
     return !isNaN(dateValue.getTime());
   }
   
   if (typeof dateValue === 'string') {
     const parsed = new Date(dateValue);
-    return !isNaN(parsed.getTime()) && dateValue.includes('T'); // Expect ISO format
+    return !isNaN(parsed.getTime()) && dateValue.indexOf('T') !== -1; // Expect ISO format
   }
   
   return false;
@@ -191,7 +210,7 @@ export function isValidDate(dateValue: any): boolean {
 /**
  * Comprehensive annotation feature validation
  */
-export function validateAnnotationFeatureComprehensive(feature: any): {
+export function validateAnnotationFeatureComprehensive(feature: unknown): {
   isValid: boolean;
   errors: string[];
 } {
@@ -203,12 +222,14 @@ export function validateAnnotationFeatureComprehensive(feature: any): {
     return { isValid: false, errors };
   }
   
+  const validatedFeature = feature as DebriefAnnotationFeature;
+  
   // Detailed geometry validation
-  if (!validateGeometryCoordinates(feature.geometry)) {
+  if (!validateGeometryCoordinates(validatedFeature.geometry)) {
     errors.push('Invalid geometry coordinates');
   }
   
-  const props = feature.properties;
+  const props = validatedFeature.properties;
   
   // Color validation
   if (props.color && !validateColorFormat(props.color)) {

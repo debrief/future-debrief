@@ -1,5 +1,21 @@
 import * as vscode from 'vscode';
 
+interface GeoJSONFeature {
+    type: 'Feature';
+    id?: string | number;
+    geometry: {
+        type: string;
+        coordinates: unknown;
+    };
+    properties: Record<string, unknown>;
+}
+
+interface GeoJSONFeatureCollection {
+    type: 'FeatureCollection';
+    features: GeoJSONFeature[];
+    bbox?: number[];
+}
+
 export interface DebriefState {
     time?: number;
     viewport?: {
@@ -8,9 +24,10 @@ export interface DebriefState {
     };
     selection?: {
         featureIndex: number;
-        feature: any;
+        feature: GeoJSONFeature;
     };
-    featureCollection?: any;
+    featureCollection?: GeoJSONFeatureCollection;
+    [key: string]: unknown;
 }
 
 export class DebriefStateManager {

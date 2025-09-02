@@ -8,13 +8,15 @@
     "type": "git",
     "url": "https://github.com/debrief/codespace-extension.git"
   },
-    "scripts": {
+  "scripts": {
     "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
     "compile": "pnpm esbuild-base --sourcemap",
     "watch": "pnpm esbuild-base --sourcemap --watch",
     "vscode:prepublish": "pnpm esbuild-base --minify",
     "typecheck": "tsc --noEmit",
-    "lint": "pnpm typecheck"
+    "eslint": "eslint . --ext .ts,.tsx",
+    "eslint:fix": "eslint . --ext .ts,.tsx --fix",
+    "lint": "pnpm typecheck && pnpm eslint"
   },
   "engines": {
     "vscode": "^1.74.0"
@@ -112,12 +114,17 @@
   "devDependencies": {
     "@debrief/shared-types": "workspace:^1.0.0",
     "@debrief/web-components": "workspace:^1.0.0",
+    "@eslint/js": "^9.34.0",
     "@types/node": "18.x",
     "@types/vscode": "^1.74.0",
     "@types/ws": "^8.5.10",
+    "@typescript-eslint/eslint-plugin": "^8.42.0",
+    "@typescript-eslint/parser": "^8.42.0",
     "@vscode/vsce": "^3.6.0",
     "esbuild": "^0.25.9",
-    "typescript": "^4.9.4"
+    "eslint": "^9.34.0",
+    "typescript": "^4.9.4",
+    "typescript-eslint": "^8.42.0"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

@@ -5,7 +5,7 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
     readonly onDidChangeTreeData: vscode.Event<OutlineItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
     private currentDocument: vscode.TextDocument | undefined;
-    private currentState: any = {};
+    private currentState: { selection?: { featureIndex: number } } = {};
 
     refresh(): void {
         this._onDidChangeTreeData.fire();
@@ -16,7 +16,7 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
         this.refresh();
     }
 
-    updateState(state: any): void {
+    updateState(state: { selection?: { featureIndex: number } }): void {
         this.currentState = { ...this.currentState, ...state };
         this.refresh();
     }
@@ -67,7 +67,7 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
                 }
 
                 // Create outline items from features
-                const items: OutlineItem[] = geoJson.features.map((feature: any, index: number) => {
+                const items: OutlineItem[] = geoJson.features.map((feature: { properties?: { name?: string }; geometry?: { type?: string } }, index: number) => {
                     const featureName = feature.properties?.name || `Feature ${index}`;
                     const featureType = feature.geometry?.type || 'Unknown';
                     const isSelected = this.currentState.selection?.featureIndex === index;
@@ -90,6 +90,6 @@ class OutlineItem {
         public readonly label: string,
         public readonly featureIndex: number,
         public readonly featureType?: string,
-        public readonly isSelected: boolean = false
+        public readonly isSelected = false
     ) {}
 }

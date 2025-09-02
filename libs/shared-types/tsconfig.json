@@ -4,8 +4,9 @@
     "module": "CommonJS",
     "lib": ["ES2020"],
     "outDir": "dist",
-    "rootDir": "src",
-    "strict": false,
+    "rootDir": ".",
+    "strict": true,
+    "noImplicitAny": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -15,14 +16,14 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    "noImplicitAny": false,
     "baseUrl": ".",
     "paths": {
       "*": ["*", "node_modules/*"]
     }
   },
   "include": [
-    "src/**/*"
+    "src/**/*",
+    "validators/**/*"
   ],
   "exclude": [
     "node_modules",

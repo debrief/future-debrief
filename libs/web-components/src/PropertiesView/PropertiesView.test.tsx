@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { PropertiesView } from './PropertiesView';
@@ -60,7 +59,7 @@ describe('PropertiesView', () => {
     render(<PropertiesView readonly={true} />);
     expect(screen.getByText('Read-only: Yes')).toBeInTheDocument();
     
-    const { rerender } = render(<PropertiesView readonly={false} />);
+    render(<PropertiesView readonly={false} />);
     expect(screen.getByText('Read-only: No')).toBeInTheDocument();
   });
 

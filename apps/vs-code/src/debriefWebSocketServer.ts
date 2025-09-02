@@ -6,13 +6,38 @@ import * as path from 'path';
 import { PlotJsonEditorProvider } from './plotJsonEditor';
 import { validateFeatureCollectionComprehensive, validateFeatureByType, classifyFeature } from '@debrief/shared-types/validators/typescript';
 
+interface GeoJSONFeature {
+    type: 'Feature';
+    id?: string | number;
+    geometry: {
+        type: string;
+        coordinates: unknown;
+    };
+    properties: Record<string, unknown>;
+}
+
+interface GeoJSONFeatureCollection {
+    type: 'FeatureCollection';
+    features: GeoJSONFeature[];
+    bbox?: number[];
+}
+
+interface CommandParams {
+    message?: string;
+    filename?: string;
+    featureCollection?: GeoJSONFeatureCollection;
+    ids?: (string | number)[];
+    features?: GeoJSONFeature[];
+    [key: string]: unknown;
+}
+
 interface DebriefMessage {
     command: string;
-    params?: any;
+    params?: CommandParams;
 }
 
 interface DebriefResponse {
-    result?: any;
+    result?: unknown;
     error?: {
         message: string;
         code: number | string;
@@ -36,7 +61,7 @@ export class DebriefWebSocketServer {
             this.httpServer = http.createServer();
             
             // Handle port conflicts
-            this.httpServer.on('error', (error: any) => {
+            this.httpServer.on('error', (error: NodeJS.ErrnoException) => {
                 if (error.code === 'EADDRINUSE') {
                     console.error(`Port ${this.port} is already in use`);
                     vscode.window.showErrorMessage(
@@ -76,7 +101,7 @@ export class DebriefWebSocketServer {
                         try {
                             const parsedMessage: DebriefMessage = JSON.parse(message);
                             response = await this.handleCommand(parsedMessage);
-                        } catch (jsonError) {
+                        } catch {
                             // If not valid JSON, treat as raw message (for backward compatibility)
                             response = { result: `Echo: ${message}` };
                         }
@@ -196,31 +221,31 @@ export class DebriefWebSocketServer {
         try {
             switch (message.command) {
                 case 'notify':
-                    return await this.handleNotifyCommand(message.params);
+                    return await this.handleNotifyCommand(message.params || {});
                 
                 case 'get_feature_collection':
-                    return await this.handleGetFeatureCollectionCommand(message.params);
+                    return await this.handleGetFeatureCollectionCommand(message.params || {});
                 
                 case 'set_feature_collection':
-                    return await this.handleSetFeatureCollectionCommand(message.params);
+                    return await this.handleSetFeatureCollectionCommand(message.params || {});
                 
                 case 'get_selected_features':
-                    return await this.handleGetSelectedFeaturesCommand(message.params);
+                    return await this.handleGetSelectedFeaturesCommand(message.params || {});
                 
                 case 'set_selected_features':
-                    return await this.handleSetSelectedFeaturesCommand(message.params);
+                    return await this.handleSetSelectedFeaturesCommand(message.params || {});
                 
                 case 'update_features':
-                    return await this.handleUpdateFeaturesCommand(message.params);
+                    return await this.handleUpdateFeaturesCommand(message.params || {});
                 
                 case 'add_features':
-                    return await this.handleAddFeaturesCommand(message.params);
+                    return await this.handleAddFeaturesCommand(message.params || {});
                 
                 case 'delete_features':
-                    return await this.handleDeleteFeaturesCommand(message.params);
+                    return await this.handleDeleteFeaturesCommand(message.params || {});
                 
                 case 'zoom_to_selection':
-                    return await this.handleZoomToSelectionCommand(message.params);
+                    return await this.handleZoomToSelectionCommand(message.params || {});
                 
                 case 'list_open_plots':
                     return await this.handleListOpenPlotsCommand();
@@ -244,7 +269,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private async handleNotifyCommand(params: any): Promise<DebriefResponse> {
+    private async handleNotifyCommand(params: CommandParams): Promise<DebriefResponse> {
         if (!params || typeof params.message !== 'string') {
             return {
                 error: {
@@ -272,7 +297,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private async handleGetFeatureCollectionCommand(params: any): Promise<DebriefResponse> {
+    private async handleGetFeatureCollectionCommand(params: CommandParams): Promise<DebriefResponse> {
         // Resolve filename (optional parameter)
         const resolution = await this.resolveFilename(params?.filename);
         if (resolution.error) {
@@ -280,11 +305,21 @@ export class DebriefWebSocketServer {
         }
 
         try {
-            const document = await this.findOpenDocument(resolution.result!);
+            const filename = resolution.result;
+            if (typeof filename !== 'string') {
+                return {
+                    error: {
+                        message: 'Invalid filename resolved',
+                        code: 500
+                    }
+                };
+            }
+            
+            const document = await this.findOpenDocument(filename);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${resolution.result}`,
+                        message: `File not found or not open: ${filename}`,
                         code: 404
                     }
                 };
@@ -303,11 +338,11 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private async handleSetFeatureCollectionCommand(params: any): Promise<DebriefResponse> {
-        if (!params || typeof params.data !== 'object') {
+    private async handleSetFeatureCollectionCommand(params: CommandParams): Promise<DebriefResponse> {
+        if (!params || !params.featureCollection || typeof params.featureCollection !== 'object') {
             return {
                 error: {
-                    message: 'set_feature_collection command requires "data" (object) parameter',
+                    message: 'set_feature_collection command requires "featureCollection" (object) parameter',
                     code: 400
                 }
             };
@@ -321,7 +356,7 @@ export class DebriefWebSocketServer {
 
         try {
             // Validate the feature collection structure using shared-types validators
-            const validation = this.isValidFeatureCollection(params.data);
+            const validation = this.isValidFeatureCollection(params.featureCollection);
             if (!validation.isValid) {
                 const errorMsg = validation.errors ? validation.errors.join('; ') : 'Invalid FeatureCollection data structure';
                 return {
@@ -338,17 +373,27 @@ export class DebriefWebSocketServer {
                 console.log(`WebSocket: Valid FeatureCollection received - ${counts.total} features (${counts.tracks} tracks, ${counts.points} points, ${counts.annotations} annotations)`);
             }
 
-            const document = await this.findOpenDocument(resolution.result!);
+            const filename = resolution.result;
+            if (typeof filename !== 'string') {
+                return {
+                    error: {
+                        message: 'Invalid filename resolved',
+                        code: 500
+                    }
+                };
+            }
+            
+            const document = await this.findOpenDocument(filename);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${resolution.result}`,
+                        message: `File not found or not open: ${filename}`,
                         code: 404
                     }
                 };
             }
 
-            await this.updateDocument(document, params.data);
+            await this.updateDocument(document, params.featureCollection as GeoJSONFeatureCollection);
             return { result: null };
         } catch (error) {
             console.error('Error setting feature collection:', error);
@@ -361,7 +406,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private async handleGetSelectedFeaturesCommand(params: any): Promise<DebriefResponse> {
+    private async handleGetSelectedFeaturesCommand(params: CommandParams): Promise<DebriefResponse> {
         // Resolve filename (optional parameter)
         const resolution = await this.resolveFilename(params?.filename);
         if (resolution.error) {
@@ -369,11 +414,21 @@ export class DebriefWebSocketServer {
         }
 
         try {
-            const document = await this.findOpenDocument(resolution.result!);
+            const filename = resolution.result;
+            if (typeof filename !== 'string') {
+                return {
+                    error: {
+                        message: 'Invalid filename resolved',
+                        code: 500
+                    }
+                };
+            }
+            
+            const document = await this.findOpenDocument(filename);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${resolution.result}`,
+                        message: `File not found or not open: ${filename}`,
                         code: 404
                     }
                 };
@@ -384,8 +439,17 @@ export class DebriefWebSocketServer {
             
             // Convert IDs to actual feature objects
             const featureCollection = this.parseGeoJsonDocument(document);
-            const selectedFeatures = featureCollection.features.filter((feature: any) =>
-                feature.id && selectedFeatureIds.includes(feature.id)
+            if (!featureCollection) {
+                return {
+                    error: {
+                        message: 'Failed to parse feature collection from document',
+                        code: 500
+                    }
+                };
+            }
+            
+            const selectedFeatures = featureCollection.features.filter((feature: GeoJSONFeature) =>
+                feature.id && selectedFeatureIds.includes(String(feature.id))
             );
 
             return { result: selectedFeatures };
@@ -400,7 +464,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private async handleSetSelectedFeaturesCommand(params: any): Promise<DebriefResponse> {
+    private async handleSetSelectedFeaturesCommand(params: CommandParams): Promise<DebriefResponse> {
         if (!params || !Array.isArray(params.ids)) {
             return {
                 error: {
@@ -417,18 +481,29 @@ export class DebriefWebSocketServer {
         }
 
         try {
-            const document = await this.findOpenDocument(resolution.result!);
+            const filename = resolution.result;
+            if (typeof filename !== 'string') {
+                return {
+                    error: {
+                        message: 'Invalid filename resolved',
+                        code: 500
+                    }
+                };
+            }
+            
+            const document = await this.findOpenDocument(filename);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${resolution.result}`,
+                        message: `File not found or not open: ${filename}`,
                         code: 404
                     }
                 };
             }
 
-            // Update selection state in PlotJsonEditorProvider
-            PlotJsonEditorProvider.setSelectedFeatures(document.fileName, params.ids);
+            // Update selection state in PlotJsonEditorProvider (convert to string array)
+            const stringIds = params.ids.map(id => String(id));
+            PlotJsonEditorProvider.setSelectedFeatures(document.fileName, stringIds);
             
             return { result: null };
         } catch (error) {
@@ -442,7 +517,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private async handleUpdateFeaturesCommand(params: any): Promise<DebriefResponse> {
+    private async handleUpdateFeaturesCommand(params: CommandParams): Promise<DebriefResponse> {
         if (!params || !Array.isArray(params.features)) {
             return {
                 error: {
@@ -473,17 +548,35 @@ export class DebriefWebSocketServer {
         }
 
         try {
-            const document = await this.findOpenDocument(resolution.result!);
+            const filename = resolution.result;
+            if (typeof filename !== 'string') {
+                return {
+                    error: {
+                        message: 'Invalid filename resolved',
+                        code: 500
+                    }
+                };
+            }
+            
+            const document = await this.findOpenDocument(filename);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${resolution.result}`,
+                        message: `File not found or not open: ${filename}`,
                         code: 404
                     }
                 };
             }
 
             const featureCollection = this.parseGeoJsonDocument(document);
+            if (!featureCollection) {
+                return {
+                    error: {
+                        message: 'Failed to parse feature collection from document',
+                        code: 500
+                    }
+                };
+            }
             
             // Update features by ID
             for (const updatedFeature of params.features) {
@@ -492,8 +585,8 @@ export class DebriefWebSocketServer {
                     continue; // Skip features without ID
                 }
                 
-                const index = featureCollection.features.findIndex((f: any) => 
-                    f.id === updatedFeature.id
+                const index = featureCollection.features.findIndex((f: GeoJSONFeature) => 
+                    String(f.id) === String(updatedFeature.id)
                 );
                 
                 if (index >= 0) {
@@ -520,7 +613,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private async handleAddFeaturesCommand(params: any): Promise<DebriefResponse> {
+    private async handleAddFeaturesCommand(params: CommandParams): Promise<DebriefResponse> {
         if (!params || !Array.isArray(params.features)) {
             return {
                 error: {
@@ -551,17 +644,35 @@ export class DebriefWebSocketServer {
         }
 
         try {
-            const document = await this.findOpenDocument(resolution.result!);
+            const filename = resolution.result;
+            if (typeof filename !== 'string') {
+                return {
+                    error: {
+                        message: 'Invalid filename resolved',
+                        code: 500
+                    }
+                };
+            }
+            
+            const document = await this.findOpenDocument(filename);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${resolution.result}`,
+                        message: `File not found or not open: ${filename}`,
                         code: 404
                     }
                 };
             }
 
             const featureCollection = this.parseGeoJsonDocument(document);
+            if (!featureCollection) {
+                return {
+                    error: {
+                        message: 'Failed to parse feature collection from document',
+                        code: 500
+                    }
+                };
+            }
             
             // Add features with auto-generated IDs
             for (const feature of params.features) {
@@ -590,7 +701,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private async handleDeleteFeaturesCommand(params: any): Promise<DebriefResponse> {
+    private async handleDeleteFeaturesCommand(params: CommandParams): Promise<DebriefResponse> {
         if (!params || !Array.isArray(params.ids)) {
             return {
                 error: {
@@ -607,21 +718,40 @@ export class DebriefWebSocketServer {
         }
 
         try {
-            const document = await this.findOpenDocument(resolution.result!);
+            const filename = resolution.result;
+            if (typeof filename !== 'string') {
+                return {
+                    error: {
+                        message: 'Invalid filename resolved',
+                        code: 500
+                    }
+                };
+            }
+            
+            const document = await this.findOpenDocument(filename);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${resolution.result}`,
+                        message: `File not found or not open: ${filename}`,
                         code: 404
                     }
                 };
             }
 
             const featureCollection = this.parseGeoJsonDocument(document);
+            if (!featureCollection) {
+                return {
+                    error: {
+                        message: 'Failed to parse feature collection from document',
+                        code: 500
+                    }
+                };
+            }
             
-            // Delete features by ID
-            featureCollection.features = featureCollection.features.filter((feature: any) =>
-                !feature.id || !params.ids.includes(feature.id)
+            // Delete features by ID (convert ids to strings for comparison)
+            const stringIds = params.ids.map(id => String(id));
+            featureCollection.features = featureCollection.features.filter((feature: GeoJSONFeature) =>
+                !feature.id || !stringIds.includes(String(feature.id))
             );
 
             await this.updateDocument(document, featureCollection);
@@ -641,7 +771,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private async handleZoomToSelectionCommand(params: any): Promise<DebriefResponse> {
+    private async handleZoomToSelectionCommand(params: CommandParams): Promise<DebriefResponse> {
         // Resolve filename (optional parameter)
         const resolution = await this.resolveFilename(params?.filename);
         if (resolution.error) {
@@ -649,11 +779,21 @@ export class DebriefWebSocketServer {
         }
 
         try {
-            const document = await this.findOpenDocument(resolution.result!);
+            const filename = resolution.result;
+            if (typeof filename !== 'string') {
+                return {
+                    error: {
+                        message: 'Invalid filename resolved',
+                        code: 500
+                    }
+                };
+            }
+            
+            const document = await this.findOpenDocument(filename);
             if (!document) {
                 return {
                     error: {
-                        message: `File not found or not open: ${resolution.result}`,
+                        message: `File not found or not open: ${filename}`,
                         code: 404
                     }
                 };
@@ -708,7 +848,7 @@ export class DebriefWebSocketServer {
         return null;
     }
 
-    private parseGeoJsonDocument(document: vscode.TextDocument): any {
+    private parseGeoJsonDocument(document: vscode.TextDocument): GeoJSONFeatureCollection | null {
         const text = document.getText();
         if (text.trim().length === 0) {
             return {
@@ -730,7 +870,7 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private isValidFeatureCollection(data: any): { isValid: boolean; errors?: string[]; featureCounts?: any } {
+    private isValidFeatureCollection(data: unknown): { isValid: boolean; errors?: string[]; featureCounts?: { tracks: number; points: number; annotations: number; unknown: number; total: number } } {
         // Use comprehensive validation from shared-types
         const validation = validateFeatureCollectionComprehensive(data);
         return {
@@ -740,7 +880,7 @@ export class DebriefWebSocketServer {
         };
     }
 
-    private async updateDocument(document: vscode.TextDocument, data: any): Promise<void> {
+    private async updateDocument(document: vscode.TextDocument, data: GeoJSONFeatureCollection): Promise<void> {
         const edit = new vscode.WorkspaceEdit();
         edit.replace(
             document.uri,

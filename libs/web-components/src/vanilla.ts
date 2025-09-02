@@ -1,9 +1,23 @@
 // Vanilla JS widget wrappers for VS Code webviews and non-React environments
 import { createElement } from 'react';
-import { createRoot, Root } from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 import { TimeController, TimeControllerProps } from './TimeController/TimeController';
 import { PropertiesView, PropertiesViewProps } from './PropertiesView/PropertiesView';
 import { MapComponent, MapComponentProps } from './MapComponent/MapComponent';
+
+// Window interface extensions
+declare global {
+  interface Window {
+    createTimeController: typeof createTimeController;
+    createPropertiesView: typeof createPropertiesView;
+    createMapComponent: typeof createMapComponent;
+    DebriefWebComponents: {
+      createTimeController: typeof createTimeController;
+      createPropertiesView: typeof createPropertiesView;
+      createMapComponent: typeof createMapComponent;
+    };
+  }
+}
 
 // TimeController vanilla wrapper
 export function createTimeController(container: HTMLElement, props: TimeControllerProps): { destroy: () => void } {

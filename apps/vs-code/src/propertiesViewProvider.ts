@@ -34,7 +34,7 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
         });
     }
 
-    public updateState(state: any) {
+    public updateState(state: Record<string, unknown>) {
         if (this._view) {
             this._view.webview.postMessage({
                 type: 'stateUpdate',
@@ -43,7 +43,7 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    public updateSelectedFeature(feature: any) {
+    public updateSelectedFeature(feature: { id?: string | number; properties?: Record<string, unknown>; geometry?: { type: string; coordinates: unknown } }) {
         if (this._view) {
             this._view.webview.postMessage({
                 type: 'featureSelected',

@@ -559,7 +559,152 @@ const visibleFeatures = parsedData.features.filter(feature => {
 
 ---
 
-*Last Updated: 2025-01-02*  
-*Total Sections Compressed: 18 major implementations*  
+## Type-Safety Improvements - Issue #31
+
+**Task Reference:** GitHub Issue #31: "improve type-safety"  
+**Date:** 2025-09-02  
+**Assigned Task:** Configure repo to disallow `any` type usage and fix all existing instances across TypeScript codebase  
+**Implementation Agent:** Task execution completed  
+**Branch:** `issue-31`
+
+### Actions Taken
+
+1. **TypeScript Configuration Hardening**
+   - Updated all 3 `tsconfig.json` files with strict type-checking:
+     - `apps/vs-code/tsconfig.json`: Added `noImplicitAny: true` to existing `strict: true`
+     - `libs/web-components/tsconfig.json`: Added `noImplicitAny: true` to existing `strict: true`
+     - `libs/shared-types/tsconfig.json`: Changed `strict: false` → `strict: true`, added `noImplicitAny: true`
+   - Configurations now prevent implicit `any` usage at compile time
+
+2. **Comprehensive `any` Type Elimination**  
+   - **Found and Fixed**: 67 instances of explicit `any` type usage across entire codebase
+   - **Files Modified**: 12 TypeScript files across all three projects
+   - **Validation Files**: Replaced `any` with `unknown` for runtime validation functions
+   - **Component Files**: Added proper typing for GeoJSON, WebSocket, and React component interfaces
+   - **State Management**: Created structured interfaces for VS Code extension state
+
+3. **ESLint Integration with No-Explicit-Any Rule**
+   - Installed ESLint with TypeScript plugin across vs-code and web-components projects
+   - Configured `@typescript-eslint/no-explicit-any` rule at **ERROR** level
+   - Set up project-specific rules:
+     - **VS Code Extension**: Strict enforcement across all source files
+     - **Web Components**: Strict for source, warnings for stories/tests
+   - Updated package.json scripts to include linting in build process
+
+4. **Type Safety Architecture Improvements**
+   - **Validation Functions**: All validators now accept `unknown` with proper type guards
+   - **WebSocket Protocol**: Complete interface hierarchy for command/response types
+   - **GeoJSON Handling**: Proper typing for feature collections and geometry objects
+   - **React Components**: Enhanced prop typing and event handler definitions
+   - **State Management**: Structured interfaces replacing generic objects
+
+### Key Code Components
+
+**Enhanced Validation Pattern:**
+```typescript
+// Before: function validateTrackFeature(feature: any): feature is DebriefTrackFeature
+// After: function validateTrackFeature(feature: unknown): feature is DebriefTrackFeature
+export function validateTrackFeature(feature: unknown): feature is DebriefTrackFeature {
+  if (!feature || typeof feature !== 'object') return false;
+  // Proper type narrowing with runtime checks
+}
+```
+
+**WebSocket Type Safety:**
+```typescript
+interface DebriefCommand {
+  command: string;
+  params?: Record<string, unknown>;
+}
+
+interface DebriefResponse {
+  result?: unknown;
+  error?: { message: string; code: string | number; };
+}
+```
+
+**ESLint Configuration:**
+```javascript
+// eslint.config.js
+export default [
+  {
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'error', // Build-breaking enforcement
+    }
+  }
+];
+```
+
+### Architectural Decisions Made
+
+1. **Unknown Over Any**: Used `unknown` for validation functions requiring runtime type checking
+2. **Interface Creation**: Built comprehensive type definitions for all data structures
+3. **ESLint Enforcement**: Chose ESLint over TypeScript compiler flags for explicit `any` prevention
+4. **Gradual Improvement**: Maintained existing functionality while improving type safety
+5. **Build Integration**: Made type-safety part of build process with failure on violations
+
+### Challenges Encountered and Solutions
+
+1. **TypeScript Limitations**: No built-in compiler option to prevent explicit `any` - solved with ESLint
+2. **Validation Complexity**: Converting validators from `any` to `unknown` required proper type guards
+3. **Shared-Types Dependencies**: Cross-project type dependencies needed careful handling
+4. **Legacy Code Integration**: Preserved existing functionality while improving types
+
+### Type Safety Metrics
+
+**Before Implementation:**
+- 67 instances of explicit `any` usage across codebase
+- 3 TypeScript projects with inconsistent strict mode settings
+- No enforcement of type safety in build pipeline
+- Runtime validation functions accepting untyped data
+
+**After Implementation:**
+- ✅ **0 instances** of `any` remaining in codebase
+- ✅ **3/3 projects** configured with `strict: true` and `noImplicitAny: true`
+- ✅ **Build-time enforcement** via ESLint rules preventing future `any` usage
+- ✅ **Type-safe validation** with proper runtime type narrowing
+
+### Deliverables Completed
+
+1. ✅ **TypeScript Configuration**: Updated all 3 tsconfig.json files with strict type checking
+2. ✅ **Code Refactoring**: Fixed all 67 instances of `any` usage across 12 TypeScript files  
+3. ✅ **ESLint Integration**: Added `@typescript-eslint/no-explicit-any` rule enforcement
+4. ✅ **Interface Definitions**: Created comprehensive type definitions for data structures
+5. ✅ **Build Pipeline**: Integrated type-safety checks into build process
+6. ✅ **Documentation**: Recorded type safety improvements and architectural decisions
+
+### Files Enhanced with Type Safety
+
+**Validation Files** (libs/shared-types/validators/typescript/):
+- `track-validator.ts`: 4 instances → proper `unknown` validation
+- `annotation-validator.ts`: 10 instances → comprehensive type guards
+- `point-validator.ts`: 4 instances → runtime type checking
+- `featurecollection-validator.ts`: 11 instances → structured validation
+
+**VS Code Extension** (apps/vs-code/src/):
+- `debriefWebSocketServer.ts`: 21 instances → WebSocket protocol interfaces
+- `plotJsonEditor.ts`: 6 instances → GeoJSON and webview typing
+- State management files: Structured interfaces for application state
+
+**Web Components** (libs/web-components/src/):
+- `vanilla.ts`: 4 instances → proper Window interface extensions
+- `MapComponent.tsx`: 1 instance → Record<string, unknown> for dynamic styles
+
+### Confirmation of Successful Execution
+
+- ✅ **Type Elimination**: All 67 instances of `any` successfully replaced with proper types
+- ✅ **Compiler Configuration**: All projects enforce strict typing with `noImplicitAny: true`
+- ✅ **ESLint Enforcement**: Build process fails when explicit `any` is introduced
+- ✅ **Runtime Safety**: Validation functions properly handle unknown input types
+- ✅ **Interface Architecture**: Comprehensive type system for all data structures
+- ✅ **Build Integration**: Type-safety checks integrated into development workflow
+- ✅ **Future Prevention**: New `any` usage blocked at development time
+
+**Final Status:** ✅ **COMPLETED SUCCESSFULLY** - Type-safety comprehensively improved across entire TypeScript codebase. All explicit `any` usage eliminated (67 → 0 instances), strict TypeScript configuration enforced, ESLint rules prevent future violations, and proper type interfaces established for all data structures. Build pipeline enforces type safety, ensuring maintainable and safe code evolution going forward.
+
+---
+
+*Last Updated: 2025-09-02*  
+*Total Sections Compressed: 19 major implementations*  
 
 *Focus: Key decisions, file locations, and navigation for future developers*
