@@ -2,20 +2,31 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "yarn: compile",
+            "label": "pnpm: compile",
             "type": "shell",
-            "command": "yarn compile",
+            "command": "./compile.sh",
             "group": "build",
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "PATH": "/Users/ian/.nvm/versions/node/v23.2.0/bin:${env:PATH}",
+                    "NODE_PATH": "/Users/ian/.nvm/versions/node/v23.2.0/lib/node_modules",
+                    "NVM_DIR": "/Users/ian/.nvm",
+                    "NVM_BIN": "/Users/ian/.nvm/versions/node/v23.2.0/bin",
+                    "NVM_INC": "/Users/ian/.nvm/versions/node/v23.2.0/include/node"
+                }
+            },
             "presentation": {
                 "panel": "shared",
-                "reveal": "silent"
+                "reveal": "always"
             },
             "problemMatcher": "$tsc"
         },
         {
-            "label": "yarn: watch",
+            "label": "pnpm: watch",
             "type": "shell",
-            "command": "yarn watch",
+            "command": "/Users/ian/.nvm/versions/node/v23.2.0/bin/pnpm",
+            "args": ["watch"],
             "isBackground": true,
             "group": {
                 "kind": "build",
@@ -26,6 +37,17 @@
                 "reveal": "silent"
             },
             "problemMatcher": "$tsc-watch"
+        },
+        {
+            "label": "yarn: compile",
+            "type": "shell",
+            "command": "pnpm compile",
+            "group": "build",
+            "presentation": {
+                "panel": "shared",
+                "reveal": "silent"
+            },
+            "problemMatcher": "$tsc"
         }
     ]
 }

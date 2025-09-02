@@ -10,9 +10,9 @@
                 "--folder-uri=file://${workspaceFolder}/workspace"
             ],
             "outFiles": [
-                "${workspaceFolder}/out/**/*.js"
+                "${workspaceFolder}/dist/**/*.js"
             ],
-            "preLaunchTask": "yarn: compile"
+            "preLaunchTask": "pnpm: compile"
         },
         {
             "name": "Extension Tests",
@@ -23,9 +23,9 @@
                 "--extensionTestsPath=${workspaceFolder}/out/test/suite/index"
             ],
             "outFiles": [
-                "${workspaceFolder}/out/test/**/*.js"
+                "${workspaceFolder}/dist/test/**/*.js"
             ],
-            "preLaunchTask": "yarn: compile"
+            "preLaunchTask": "pnpm: compile"
         }
     ]
 }
