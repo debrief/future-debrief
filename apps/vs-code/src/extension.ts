@@ -161,11 +161,13 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     // Update state manager when document changes (connect existing outline logic)
+    let lastDocument: vscode.TextDocument | undefined;
     stateManager.subscribe((_state) => {
         if (debriefOutlineProvider && stateManager) {
             const currentDoc = stateManager.getCurrentDocument();
-            if (currentDoc) {
+            if (currentDoc && currentDoc !== lastDocument) {
                 debriefOutlineProvider.updateDocument(currentDoc);
+                lastDocument = currentDoc;
             }
         }
     });

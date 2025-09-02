@@ -70,7 +70,7 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
                 const items: OutlineItem[] = geoJson.features.map((feature: any, index: number) => {
                     const featureName = feature.properties?.name || `Feature ${index}`;
                     const featureType = feature.geometry?.type || 'Unknown';
-                    const isSelected = this.currentState.selectedFeature === index;
+                    const isSelected = this.currentState.selection?.featureIndex === index;
                     
                     return new OutlineItem(featureName, index, featureType, isSelected);
                 });
