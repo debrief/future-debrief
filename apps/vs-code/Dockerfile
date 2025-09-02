@@ -26,12 +26,13 @@ USER coder
 # Create workspace directory
 RUN mkdir -p /home/coder/workspace
 
-# Copy the entire project context (will be filtered by .dockerignore)
+# Copy the VS Code extension files (pre-compiled)
 COPY --chown=coder:coder . /home/coder/project/
 
-# Build the VS Code extension
+# Extension should already be compiled by CI build step
+# Skip compilation in Docker - just verify the dist directory exists
 WORKDIR /home/coder/project
-RUN pnpm install && pnpm --filter codespace-extension compile
+RUN if [ ! -d "dist" ]; then echo "Error: Extension not compiled - dist/ directory missing"; exit 1; fi
 
 # Install vsce for packaging the extension (as root, then switch back)
 USER root
@@ -49,7 +50,7 @@ RUN code-server --install-extension ./extension.vsix
 RUN code-server --install-extension ms-python.python
 
 # Copy workspace files to the workspace directory
-RUN cp -r workspace/* /home/coder/workspace/
+RUN cp -r apps/vs-code/workspace/* /home/coder/workspace/ 2>/dev/null || true
 
 # Create VS Code settings to use virtual environment Python
 RUN mkdir -p /home/coder/workspace/.vscode && \
