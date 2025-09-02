@@ -6,7 +6,7 @@
             "properties": {
                 "dataType": "track",
                 "stroke": "#F00",
-                "name": "VAN GALEN",
+                "name": "VAN GALEN3",
                 "shortName": "VANG",
                 "env": "nav",
                 "labelInterval": 7200000,
@@ -21064,7 +21064,6 @@
             "id": "p-2",
             "properties": {
                 "name": "SONO 1-2",
-                "featureType": "point",
                 "dataType": "reference-point",
                 "marker-color": "#00FF00",
                 "visible": true,
