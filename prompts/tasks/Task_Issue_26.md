@@ -116,9 +116,35 @@
 4. Working Storybook setup with component stories
 5. Basic test suite with Jest + React Testing Library
 6. Updated root workspace configuration to include new library
-7. Documentation: `libs/web-components/README.md` with usage instructions
+7. Documentation: `libs/web-components/README.md` with comprehensive usage instructions for both consumption patterns
 
 **Format:** All code should follow existing TypeScript/React conventions in the codebase. Maintain consistency with the established pnpm workspace structure and esbuild configuration patterns.
+
+**Documentation Requirements:** The `README.md` must document both consumption patterns:
+
+1. **React Component Consumption (for albatross and future React apps):**
+   ```typescript
+   // Install as workspace dependency
+   import { TimeController, PropertiesView } from '@debrief/web-components';
+   
+   // Use in React components
+   function App() {
+     return <TimeController onTimeChange={handleTimeChange} />;
+   }
+   ```
+
+2. **Compiled HTML/JS/CSS Consumption (for VS Code webviews):**
+   ```javascript
+   // Import vanilla JS widgets
+   import { createTimeController, createPropertiesView } from '@debrief/web-components/vanilla';
+   
+   // Mount in DOM containers
+   const timeController = createTimeController(document.getElementById('time-controller'), {
+     onTimeChange: handleTimeChange
+   });
+   ```
+
+Include build output structure, installation instructions, API documentation for both patterns, and examples for each target project type in the monorepo.
 
 ## 4. Memory Bank Logging Instructions
 
