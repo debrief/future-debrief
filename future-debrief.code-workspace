@@ -15,7 +15,27 @@
   ],
   "settings": {
     "typescript.preferences.includePackageJsonAutoImports": "on",
-    "typescript.suggest.autoImports": true
+    "typescript.suggest.autoImports": true,
+    "workbench.colorCustomizations": {
+      "activityBar.activeBackground": "#4fb5ef",
+      "activityBar.background": "#4fb5ef",
+      "activityBar.foreground": "#15202b",
+      "activityBar.inactiveForeground": "#15202b99",
+      "activityBarBadge.background": "#cd1389",
+      "activityBarBadge.foreground": "#e7e7e7",
+      "commandCenter.border": "#15202b99",
+      "sash.hoverBorder": "#4fb5ef",
+      "statusBar.background": "#20a1eb",
+      "statusBar.foreground": "#15202b",
+      "statusBarItem.hoverBackground": "#1284c6",
+      "statusBarItem.remoteBackground": "#20a1eb",
+      "statusBarItem.remoteForeground": "#15202b",
+      "titleBar.activeBackground": "#20a1eb",
+      "titleBar.activeForeground": "#15202b",
+      "titleBar.inactiveBackground": "#20a1eb99",
+      "titleBar.inactiveForeground": "#15202b99"
+    },
+    "peacock.color": "#20a1eb"
   },
   "extensions": {
     "recommendations": [
