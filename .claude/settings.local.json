@@ -122,7 +122,10 @@
       "Bash(pnpm storybook:*)",
       "Bash(pnpm info:*)",
       "Bash(pnpm --filter @debrief/web-components test)",
-      "Bash(pnpm --filter @debrief/web-components build-storybook)"
+      "Bash(pnpm --filter @debrief/web-components build-storybook)",
+      "Bash(pnpx tsc:*)",
+      "Bash(pnpm --filter @debrief/shared-types build)",
+      "Bash(pnpm:*)"
     ]
   }
 }
