@@ -48,8 +48,21 @@
       {
         "command": "customOutline.selectFeature",
         "title": "Select Feature"
+      },
+      {
+        "command": "debrief.selectFeature",
+        "title": "Select Feature in Debrief Panel"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "debrief",
+          "title": "Debrief",
+          "icon": "media/debrief-icon.svg"
+        }
+      ]
+    },
     "views": {
       "explorer": [
         {
@@ -60,6 +73,26 @@
         {
           "id": "customGeoJsonOutline",
           "name": "GeoJSON Features",
+          "when": "true"
+        }
+      ],
+      "debrief": [
+        {
+          "id": "debrief.timeController",
+          "name": "Time Controller",
+          "type": "webview",
+          "when": "true"
+        },
+        {
+          "id": "debrief.outline",
+          "name": "Outline",
+          "type": "tree",
+          "when": "true"
+        },
+        {
+          "id": "debrief.propertiesView",
+          "name": "Properties View",
+          "type": "webview",
           "when": "true"
         }
       ]

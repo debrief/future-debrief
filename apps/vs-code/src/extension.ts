@@ -2,6 +2,10 @@ import * as vscode from 'vscode';
 import { PlotJsonEditorProvider } from './plotJsonEditor';
 import { CustomOutlineTreeProvider } from './customOutlineTreeProvider';
 import { DebriefWebSocketServer } from './debriefWebSocketServer';
+import { TimeControllerProvider } from './timeControllerProvider';
+import { DebriefOutlineProvider } from './debriefOutlineProvider';
+import { PropertiesViewProvider } from './propertiesViewProvider';
+import { DebriefStateManager } from './debriefStateManager';
 
 class HelloWorldProvider implements vscode.TreeDataProvider<string> {
     getTreeItem(element: string): vscode.TreeItem {
@@ -20,6 +24,12 @@ class HelloWorldProvider implements vscode.TreeDataProvider<string> {
 }
 
 let webSocketServer: DebriefWebSocketServer | null = null;
+let stateManager: DebriefStateManager | null = null;
+
+// Store references to the Debrief activity panel providers
+let timeControllerProvider: TimeControllerProvider | null = null;
+let debriefOutlineProvider: DebriefOutlineProvider | null = null;
+let propertiesViewProvider: PropertiesViewProvider | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('Codespace Extension is now active!');
@@ -112,6 +122,66 @@ export function activate(context: vscode.ExtensionContext) {
     );
     context.subscriptions.push(selectFeatureCommand);
 
+    // Initialize Debrief State Manager
+    stateManager = new DebriefStateManager();
+    context.subscriptions.push(stateManager);
+
+    // Register Debrief Activity Panel providers
+    timeControllerProvider = new TimeControllerProvider(context.extensionUri);
+    debriefOutlineProvider = new DebriefOutlineProvider();
+    propertiesViewProvider = new PropertiesViewProvider(context.extensionUri);
+
+    // Register the webview view providers
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(TimeControllerProvider.viewType, timeControllerProvider)
+    );
+    
+    context.subscriptions.push(
+        vscode.window.createTreeView('debrief.outline', {
+            treeDataProvider: debriefOutlineProvider,
+            showCollapseAll: false
+        })
+    );
+    
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(PropertiesViewProvider.viewType, propertiesViewProvider)
+    );
+
+    // Connect state manager to the Debrief activity panels
+    stateManager.subscribe((state) => {
+        if (timeControllerProvider) {
+            timeControllerProvider.updateState(state);
+        }
+        if (debriefOutlineProvider) {
+            debriefOutlineProvider.updateState(state);
+        }
+        if (propertiesViewProvider && state.selection) {
+            propertiesViewProvider.updateSelectedFeature(state.selection.feature);
+        }
+    });
+
+    // Update state manager when document changes (connect existing outline logic)
+    stateManager.subscribe((_state) => {
+        if (debriefOutlineProvider && stateManager) {
+            const currentDoc = stateManager.getCurrentDocument();
+            if (currentDoc) {
+                debriefOutlineProvider.updateDocument(currentDoc);
+            }
+        }
+    });
+
+    // Override the feature selection command to work with state manager
+    const debriefSelectFeatureCommand = vscode.commands.registerCommand(
+        'debrief.selectFeature',
+        (featureIndex: number) => {
+            console.log('Debrief feature selected:', featureIndex);
+            if (stateManager) {
+                stateManager.selectFeature(featureIndex);
+            }
+        }
+    );
+    context.subscriptions.push(debriefSelectFeatureCommand);
+
     context.subscriptions.push(disposable);
 }
 
@@ -125,4 +195,15 @@ export function deactivate() {
         });
         webSocketServer = null;
     }
+
+    // Cleanup state manager
+    if (stateManager) {
+        stateManager.dispose();
+        stateManager = null;
+    }
+
+    // Clear provider references
+    timeControllerProvider = null;
+    debriefOutlineProvider = null;
+    propertiesViewProvider = null;
 }
