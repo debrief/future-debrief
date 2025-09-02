@@ -42,7 +42,9 @@ export {
 } from './featurecollection-validator';
 
 // Re-export types for convenience
-export type { TrackFeature } from '../../derived/typescript/track';
-export type { PointFeature } from '../../derived/typescript/point';
-export type { AnnotationFeature } from '../../derived/typescript/annotation';
-export type { DebriefFeatureCollection } from '../../derived/typescript/featurecollection';
+export type { 
+  DebriefTrackFeature, 
+  DebriefPointFeature, 
+  DebriefAnnotationFeature, 
+  DebriefFeatureCollection 
+} from '../../derived/typescript/featurecollection';

@@ -3,13 +3,13 @@
  * These validators work with the generated types and provide additional validation logic
  */
 
-import { PointFeature } from '../../derived/typescript/point';
+import { DebriefPointFeature } from '../../derived/typescript/featurecollection';
 
 /**
  * Validates that point has valid time properties
  * Either single time OR time range (start/end) should be provided, not both
  */
-export function validateTimeProperties(feature: PointFeature): boolean {
+export function validateTimeProperties(feature: DebriefPointFeature): boolean {
   const { time, timeStart, timeEnd } = feature.properties;
   
   // Either single time OR time range (start/end) should be provided, not both
@@ -24,8 +24,8 @@ export function validateTimeProperties(feature: PointFeature): boolean {
   
   // If timeStart and timeEnd are provided, start should be before end
   if (timeStart && timeEnd) {
-    const start = timeStart instanceof Date ? timeStart : new Date(timeStart);
-    const end = timeEnd instanceof Date ? timeEnd : new Date(timeEnd);
+    const start = new Date(timeStart);
+    const end = new Date(timeEnd);
     if (start >= end) {
       return false; // Start time must be before end time
     }
@@ -37,7 +37,7 @@ export function validateTimeProperties(feature: PointFeature): boolean {
 /**
  * Validates that point feature has required properties and valid structure
  */
-export function validatePointFeature(feature: any): feature is PointFeature {
+export function validatePointFeature(feature: any): feature is DebriefPointFeature {
   if (!feature || typeof feature !== 'object') {
     return false;
   }
@@ -70,7 +70,7 @@ export function validatePointFeature(feature: any): feature is PointFeature {
     return false;
   }
   
-  if (!coords.every(coord => typeof coord === 'number')) {
+  if (!coords.every((coord: any) => typeof coord === 'number')) {
     return false;
   }
   
@@ -80,7 +80,7 @@ export function validatePointFeature(feature: any): feature is PointFeature {
   }
   
   // Validate time properties if present
-  return validateTimeProperties(feature as PointFeature);
+  return validateTimeProperties(feature as DebriefPointFeature);
 }
 
 /**

@@ -3,7 +3,7 @@
  * These validators work with the generated types and provide additional validation logic
  */
 
-import { AnnotationFeature } from '../../derived/typescript/annotation';
+import { DebriefAnnotationFeature } from '../../derived/typescript/featurecollection';
 
 /**
  * Validates color format (hex color)
@@ -24,7 +24,7 @@ export function validateAnnotationType(annotationType: string): boolean {
 /**
  * Validates that annotation feature has required properties and valid structure
  */
-export function validateAnnotationFeature(feature: any): feature is AnnotationFeature {
+export function validateAnnotationFeature(feature: any): feature is DebriefAnnotationFeature {
   if (!feature || typeof feature !== 'object') {
     return false;
   }

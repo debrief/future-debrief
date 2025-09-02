@@ -208,44 +208,63 @@ The VS Code extension (`apps/vs-code`) needed to integrate with the shared-types
 
 ### Actions Taken
 
-1. **Added NPM Workspace Dependency**
-   - Modified `apps/vs-code/package.json` to include `@debrief/shared-types: "workspace:*"` in devDependencies
-   - Configured workspace protocol for local package resolution
-   - Ran `yarn install` to link workspace dependency
+1. **Migrated to pnpm Workspace Architecture**
+   - Created root `package.json` with workspace configuration
+   - Added `pnpm-workspace.yaml` defining workspace packages
+   - Migrated all package scripts from yarn/npm to pnpm
+   - Established proper monorepo dependency management
 
-2. **Configured TypeScript Path Resolution**
-   - Updated `apps/vs-code/tsconfig.json` to include path mapping for shared-types
-   - Added `baseUrl: "."` and `paths` configuration to resolve `@debrief/shared-types/*`
-   - Removed restrictive `rootDir` setting and added `include` pattern for proper compilation
-   - Fixed TypeScript module resolution issues for cross-package imports
+2. **Implemented Shared Types Workspace Dependency**
+   - Added `@debrief/shared-types: "workspace:^1.0.0"` in `apps/vs-code/package.json` devDependencies
+   - pnpm automatically creates symlink: `node_modules/@debrief/shared-types -> ../../../../libs/shared-types`
+   - Removed need for custom TypeScript path mapping - workspace resolution works natively
 
-3. **Implemented Shared Types Import**
-   - Added import statement in `plotJsonEditor.ts`: `import { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types/derived/typescript/featurecollection'`
-   - Successfully imported TypeScript interfaces generated from JSON schemas
-   - Verified build system compatibility with workspace dependencies
+3. **Enhanced Validation with Shared-Types Validators**
+   - **Plot Editor Enhancement**: Replaced manual validation with `validateFeatureCollectionComprehensive()` from shared-types
+   - **WebSocket Server Enhancement**: Added comprehensive validation to all feature-related commands:
+     - `set_feature_collection`: Validates entire collection with detailed error reporting
+     - `add_features`: Validates each individual feature before adding
+     - `update_features`: Validates each feature before updating
+   - **Feature-Level Validation**: Uses `validateFeatureByType()` and `classifyFeature()` for granular validation
 
-4. **Added Plot JSON Validation Logic**
-   - Created comprehensive `validateDebriefFeatureCollection()` function in plot editor
-   - Validates document structure, feature types, and required properties
-   - Checks for proper `featureType` discriminator ("track", "point", "annotation")
-   - Provides detailed error messages for validation failures
-   - Integrated validation into existing `getDocumentAsJson()` method
+4. **Comprehensive Validation Features**
+   - **Schema Compliance**: Validates against Debrief FeatureCollection schema structure
+   - **Feature Type Classification**: Automatically detects track, point, or annotation features
+   - **Cross-Field Validation**: Validates timestamps, coordinate bounds, time ranges, color formats
+   - **Detailed Error Reporting**: Provides specific validation errors with feature indices
+   - **Feature Counting**: Reports counts by feature type for valid collections
 
 5. **Enhanced User Experience**
-   - Added VS Code warning messages for schema validation failures
-   - Implemented "Details" button to show additional schema information
-   - Validation occurs when plot.json files are opened in the custom editor
-   - Non-blocking validation - files still open but users are informed of issues
+   - **VS Code Integration**: Warning messages with "Details" and "Schema Info" buttons
+   - **Console Logging**: Feature count summaries for valid collections
+   - **WebSocket Feedback**: Detailed validation errors sent back to API clients
+   - **Non-blocking Validation**: Files open even with validation issues, but users are informed
 
 ### Key Implementation Details
 
-**Validation Function Core Logic**:
+**Enhanced Validation Implementation**:
 ```typescript
-private validateDebriefFeatureCollection(data: any): { valid: boolean; errors: string[] } {
-    // Validates FeatureCollection structure
-    // Checks each feature for required properties and geometry
-    // Validates featureType discriminator values
-    // Returns structured validation results
+// Plot Editor - Uses comprehensive shared-types validator
+import { validateFeatureCollectionComprehensive } from '@debrief/shared-types/validators/typescript';
+
+private validateDebriefFeatureCollection(data: any) {
+    const validation = validateFeatureCollectionComprehensive(data);
+    return {
+        valid: validation.isValid,
+        errors: validation.errors,
+        featureCounts: validation.featureCounts  // Track/Point/Annotation counts
+    };
+}
+
+// WebSocket Server - Individual feature validation
+import { validateFeatureByType, classifyFeature } from '@debrief/shared-types/validators/typescript';
+
+// Validates each feature before add/update operations
+for (const feature of params.features) {
+    if (!validateFeatureByType(feature)) {
+        const featureType = classifyFeature(feature);
+        // Return detailed error with feature type and index
+    }
 }
 ```
 
@@ -326,16 +345,18 @@ private getDocumentAsJson(document: vscode.TextDocument): any {
 ### Impact and Success Metrics
 
 **Immediate Impact**: 
-- VS Code extension now validates plot.json files against shared Debrief schema ✅
-- Demonstrates successful intra-repo dependency management ✅
-- Establishes foundation for more complex turborepo build patterns ✅
+- **Real Functionality Consumption**: Apps consume actual validation functions from libs, not just types ✅
+- **Comprehensive Validation**: Plot.json files validated using sophisticated shared-types validators ✅  
+- **API Validation**: WebSocket server validates all incoming features and collections ✅
+- **Monorepo Architecture**: Clean pnpm workspace with proper dependency management ✅
+- **Foundation Established**: Demonstrates pattern for consuming shared functionality across apps ✅
 
 **Technical Achievements**:
-- Workspace dependency resolution working ✅
-- TypeScript path mapping configured correctly ✅
-- Schema validation integrated into plot editor ✅
-- Build system compatibility maintained ✅
-- All existing functionality preserved ✅
+- **Workspace Architecture**: pnpm workspaces with automatic symlink resolution ✅
+- **Validator Integration**: Comprehensive use of shared-types validation functions ✅  
+- **Enhanced Error Reporting**: Detailed validation feedback with feature classification ✅
+- **Build System**: esbuild bundles shared validators (169.5kb vs 160.2kb baseline) ✅
+- **Type Safety**: Full TypeScript integration with generated types and validators ✅
 
 **Workspace Migration to pnpm**:
 During implementation, migrated the entire monorepo from yarn to pnpm for better workspace support:

@@ -4,6 +4,7 @@ import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PlotJsonEditorProvider } from './plotJsonEditor';
+import { validateFeatureCollectionComprehensive, validateFeatureByType, classifyFeature } from '@debrief/shared-types/validators/typescript';
 
 interface DebriefMessage {
     command: string;
@@ -319,14 +320,22 @@ export class DebriefWebSocketServer {
         }
 
         try {
-            // Validate the feature collection structure
-            if (!this.isValidFeatureCollection(params.data)) {
+            // Validate the feature collection structure using shared-types validators
+            const validation = this.isValidFeatureCollection(params.data);
+            if (!validation.isValid) {
+                const errorMsg = validation.errors ? validation.errors.join('; ') : 'Invalid FeatureCollection data structure';
                 return {
                     error: {
-                        message: 'Invalid FeatureCollection data structure',
+                        message: `Invalid FeatureCollection: ${errorMsg}`,
                         code: 400
                     }
                 };
+            }
+            
+            // Log successful validation with feature counts
+            if (validation.featureCounts) {
+                const counts = validation.featureCounts;
+                console.log(`WebSocket: Valid FeatureCollection received - ${counts.total} features (${counts.tracks} tracks, ${counts.points} points, ${counts.annotations} annotations)`);
             }
 
             const document = await this.findOpenDocument(resolution.result!);
@@ -443,6 +452,20 @@ export class DebriefWebSocketServer {
             };
         }
 
+        // Validate each feature using shared-types validators
+        for (let i = 0; i < params.features.length; i++) {
+            const feature = params.features[i];
+            if (!validateFeatureByType(feature)) {
+                const featureType = classifyFeature(feature);
+                return {
+                    error: {
+                        message: `Invalid feature at index ${i}: Feature classified as '${featureType}' but failed validation`,
+                        code: 400
+                    }
+                };
+            }
+        }
+
         // Resolve filename (optional parameter)
         const resolution = await this.resolveFilename(params?.filename);
         if (resolution.error) {
@@ -505,6 +528,20 @@ export class DebriefWebSocketServer {
                     code: 400
                 }
             };
+        }
+
+        // Validate each feature using shared-types validators
+        for (let i = 0; i < params.features.length; i++) {
+            const feature = params.features[i];
+            if (!validateFeatureByType(feature)) {
+                const featureType = classifyFeature(feature);
+                return {
+                    error: {
+                        message: `Invalid feature at index ${i}: Feature classified as '${featureType}' but failed validation`,
+                        code: 400
+                    }
+                };
+            }
         }
 
         // Resolve filename (optional parameter)
@@ -682,8 +719,10 @@ export class DebriefWebSocketServer {
 
         try {
             const parsed = JSON.parse(text);
-            if (!this.isValidFeatureCollection(parsed)) {
-                throw new Error('Document does not contain a valid GeoJSON FeatureCollection');
+            const validation = this.isValidFeatureCollection(parsed);
+            if (!validation.isValid) {
+                const errorMsg = validation.errors ? validation.errors.join('; ') : 'Invalid FeatureCollection structure';
+                throw new Error(`Document does not contain a valid Debrief FeatureCollection: ${errorMsg}`);
             }
             return parsed;
         } catch (error) {
@@ -691,11 +730,14 @@ export class DebriefWebSocketServer {
         }
     }
 
-    private isValidFeatureCollection(data: any): boolean {
-        return data && 
-               typeof data === 'object' &&
-               data.type === 'FeatureCollection' &&
-               Array.isArray(data.features);
+    private isValidFeatureCollection(data: any): { isValid: boolean; errors?: string[]; featureCounts?: any } {
+        // Use comprehensive validation from shared-types
+        const validation = validateFeatureCollectionComprehensive(data);
+        return {
+            isValid: validation.isValid,
+            errors: validation.errors,
+            featureCounts: validation.featureCounts
+        };
     }
 
     private async updateDocument(document: vscode.TextDocument, data: any): Promise<void> {
