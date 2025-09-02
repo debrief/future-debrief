@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "build:shared-types": "pnpm --filter @debrief/shared-types build",
+    "build:web-components": "pnpm --filter @debrief/web-components build",
     "build:vs-code": "pnpm --filter codespace-extension compile",
-    "build": "pnpm run build:shared-types && pnpm run build:vs-code",
+    "build": "pnpm run build:shared-types && pnpm run build:web-components && pnpm run build:vs-code",
     "dev": "code future-debrief.code-workspace"
   },
   "devDependencies": {
