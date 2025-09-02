@@ -60,6 +60,11 @@ export function validateAnnotationFeature(feature: any): feature is DebriefAnnot
     return false;
   }
   
+  // Check required dataType discriminator
+  if (feature.properties.dataType !== 'zone') {
+    return false;
+  }
+  
   // Validate specific annotation properties
   const props = feature.properties;
   

@@ -35,12 +35,12 @@
     },
     "properties": {
       "type": "object",
-      "required": ["featureType"],
+      "required": ["dataType"],
       "properties": {
-        "featureType": {
+        "dataType": {
           "type": "string",
-          "enum": ["point"],
-          "description": "Discriminator to identify this as a point feature"
+          "enum": ["reference-point"],
+          "description": "Discriminator to identify this as a reference point feature"
         },
         "time": {
           "type": "string",
