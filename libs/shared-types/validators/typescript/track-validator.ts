@@ -68,6 +68,11 @@ export function validateTrackFeature(feature: any): feature is DebriefTrackFeatu
     return false;
   }
   
+  // Check required featureType discriminator
+  if (feature.properties.featureType !== 'track') {
+    return false;
+  }
+  
   // Validate timestamps if present
   if (feature.properties.timestamps) {
     if (!Array.isArray(feature.properties.timestamps)) {

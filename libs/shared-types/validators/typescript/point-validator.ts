@@ -79,6 +79,11 @@ export function validatePointFeature(feature: any): feature is DebriefPointFeatu
     return false;
   }
   
+  // Check required featureType discriminator
+  if (feature.properties.featureType !== 'point') {
+    return false;
+  }
+  
   // Validate time properties if present
   return validateTimeProperties(feature as DebriefPointFeature);
 }
