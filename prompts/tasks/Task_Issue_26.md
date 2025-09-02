@@ -58,7 +58,8 @@
 6. **Update VS Code Extension Integration:**
    - Add `@debrief/web-components` dependency to `apps/vs-code/package.json`
    - Update `plotJsonEditor.ts` HTML template (lines 304-335) to include placeholder divs
-   - Update `media/plotJsonEditor.js` to load and mount vanilla JS widgets from web-components library
+   - Import vanilla JS widgets directly in `plotJsonEditor.ts` from `@debrief/web-components/vanilla`
+   - Mount components directly in TypeScript code, eliminating the need for `media/plotJsonEditor.js`
    - Replace current component implementations with library placeholders
 
 ### Phase 3: Storybook & Testing (Priority 3)
@@ -79,8 +80,9 @@
 
 - **Current VS Code Implementation:** The existing webview implementation lives in `apps/vs-code/`:
   - HTML structure generated in `plotJsonEditor.ts` lines 304-335
-  - JavaScript logic in `media/plotJsonEditor.js` with Leaflet-based map
+  - JavaScript logic in `media/plotJsonEditor.js` with Leaflet-based map (can be eliminated by direct import)
   - TimeController and PropertiesView are not yet implemented (placeholders needed)
+  - Goal: Import components directly in `plotJsonEditor.ts` instead of using separate media files
 
 - **Monorepo Structure:** Follow the established `/libs` pattern for reusable code consumed by apps (albatross, replay, stac, toolvault, vs-code)
 
@@ -112,7 +114,7 @@
 **Specify Deliverables:**
 1. Complete `libs/web-components/` directory with all source files and configuration
 2. Updated `apps/vs-code/package.json` with web-components dependency
-3. Modified `plotJsonEditor.ts` and `media/plotJsonEditor.js` to use library components
+3. Modified `plotJsonEditor.ts` to directly import and use library components (eliminating `media/plotJsonEditor.js`)
 4. Working Storybook setup with component stories
 5. Basic test suite with Jest + React Testing Library
 6. Updated root workspace configuration to include new library
@@ -134,11 +136,11 @@
    ```
 
 2. **Compiled HTML/JS/CSS Consumption (for VS Code webviews):**
-   ```javascript
-   // Import vanilla JS widgets
+   ```typescript
+   // Direct import in plotJsonEditor.ts (no separate media files needed)
    import { createTimeController, createPropertiesView } from '@debrief/web-components/vanilla';
    
-   // Mount in DOM containers
+   // Mount in webview DOM containers
    const timeController = createTimeController(document.getElementById('time-controller'), {
      onTimeChange: handleTimeChange
    });
