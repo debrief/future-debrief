@@ -13,8 +13,8 @@ module.exports = [
       },
     },
     rules: {
-      // Allow any in validator functions for type assertions, but warn elsewhere
-      '@typescript-eslint/no-explicit-any': ['warn', { fixToUnknown: false }],
+      // Enforce strict no-any rule - all instances have been eliminated
+      '@typescript-eslint/no-explicit-any': 'error',
       
       // Additional TypeScript rules for better code quality
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],

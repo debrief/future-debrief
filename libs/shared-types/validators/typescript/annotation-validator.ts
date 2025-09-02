@@ -6,6 +6,20 @@
 import { DebriefAnnotationFeature } from '../../derived/typescript/featurecollection';
 
 /**
+ * Type-safe helper to check if a value is a non-null object
+ */
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object';
+}
+
+/**
+ * Type-safe helper to access object properties
+ */
+function getObjectProperty(obj: Record<string, unknown>, key: string): unknown {
+  return obj[key];
+}
+
+/**
  * Validates color format (hex color)
  */
 export function validateColorFormat(color: string): boolean {
@@ -25,23 +39,23 @@ export function validateAnnotationType(annotationType: string): boolean {
  * Validates that annotation feature has required properties and valid structure
  */
 export function validateAnnotationFeature(feature: unknown): feature is DebriefAnnotationFeature {
-  if (!feature || typeof feature !== 'object' || feature === null) {
+  if (!isObject(feature)) {
     return false;
   }
-  
-  const featureObj = feature as Record<string, any>;
   
   // Check basic GeoJSON structure
-  if (featureObj.type !== 'Feature') {
+  if (getObjectProperty(feature, 'type') !== 'Feature') {
     return false;
   }
   
-  if (!featureObj.id && featureObj.id !== 0) {
+  const id = getObjectProperty(feature, 'id');
+  if (id === null || id === undefined) {
     return false; // id is required (can be 0 but not null/undefined)
   }
   
   // Check geometry
-  if (!featureObj.geometry || typeof featureObj.geometry !== 'object') {
+  const geometry = getObjectProperty(feature, 'geometry');
+  if (!isObject(geometry)) {
     return false;
   }
   
@@ -49,32 +63,35 @@ export function validateAnnotationFeature(feature: unknown): feature is DebriefA
     'Point', 'LineString', 'Polygon', 
     'MultiPoint', 'MultiLineString', 'MultiPolygon'
   ];
-  if (validGeometryTypes.indexOf(featureObj.geometry.type) === -1) {
+  const geometryType = getObjectProperty(geometry, 'type');
+  if (typeof geometryType !== 'string' || validGeometryTypes.indexOf(geometryType) === -1) {
     return false;
   }
   
-  if (!Array.isArray(featureObj.geometry.coordinates)) {
+  const coordinates = getObjectProperty(geometry, 'coordinates');
+  if (!Array.isArray(coordinates)) {
     return false;
   }
   
   // Check properties
-  if (!featureObj.properties || typeof featureObj.properties !== 'object') {
+  const properties = getObjectProperty(feature, 'properties');
+  if (!isObject(properties)) {
     return false;
   }
   
   // Check required dataType discriminator
-  if (featureObj.properties.dataType !== 'zone') {
+  if (getObjectProperty(properties, 'dataType') !== 'zone') {
     return false;
   }
   
   // Validate specific annotation properties
-  const props = featureObj.properties;
-  
-  if (props.annotationType && !validateAnnotationType(props.annotationType)) {
+  const annotationType = getObjectProperty(properties, 'annotationType');
+  if (annotationType !== undefined && typeof annotationType === 'string' && !validateAnnotationType(annotationType)) {
     return false;
   }
   
-  if (props.color && !validateColorFormat(props.color)) {
+  const color = getObjectProperty(properties, 'color');
+  if (color !== undefined && typeof color === 'string' && !validateColorFormat(color)) {
     return false;
   }
   

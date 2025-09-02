@@ -9,6 +9,20 @@ import { validatePointFeature } from './point-validator';
 import { validateAnnotationFeature, validateAnnotationType, validateColorFormat } from './annotation-validator';
 
 /**
+ * Type-safe helper to check if a value is a non-null object
+ */
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object';
+}
+
+/**
+ * Type-safe helper to access object properties
+ */
+function getObjectProperty(obj: Record<string, unknown>, key: string): unknown {
+  return obj[key];
+}
+
+/**
  * Validates bounding box format
  */
 export function validateBbox(bbox: number[]): boolean {
@@ -41,29 +55,33 @@ export function validateBbox(bbox: number[]): boolean {
  * Validates that feature collection has required properties and valid structure
  */
 export function validateFeatureCollection(collection: unknown): collection is DebriefFeatureCollection {
-  if (!collection || typeof collection !== 'object') {
+  if (!isObject(collection)) {
     return false;
   }
-  
-  const collectionObj = collection as Record<string, any>;
   
   // Check basic GeoJSON FeatureCollection structure
-  if (collectionObj.type !== 'FeatureCollection') {
+  if (getObjectProperty(collection, 'type') !== 'FeatureCollection') {
     return false;
   }
   
-  if (!Array.isArray(collectionObj.features)) {
+  const features = getObjectProperty(collection, 'features');
+  if (!Array.isArray(features)) {
     return false;
   }
   
   // Validate bbox if present
-  if (collectionObj.bbox && !validateBbox(collectionObj.bbox)) {
+  const bbox = getObjectProperty(collection, 'bbox');
+  if (bbox !== undefined && (!Array.isArray(bbox) || !validateBbox(bbox))) {
     return false;
   }
   
   // Validate each feature has required id property
-  for (const feature of collectionObj.features) {
-    if (!feature.id && feature.id !== 0) {
+  for (const feature of features) {
+    if (!isObject(feature)) {
+      return false;
+    }
+    const id = getObjectProperty(feature, 'id');
+    if (id === null || id === undefined) {
       return false; // id is required for all features
     }
   }
@@ -75,27 +93,29 @@ export function validateFeatureCollection(collection: unknown): collection is De
  * Determines the type of feature based on geometry and properties
  */
 export function classifyFeature(feature: unknown): 'track' | 'point' | 'annotation' | 'unknown' {
-  if (!feature || typeof feature !== 'object' || feature === null) {
+  if (!isObject(feature)) {
     return 'unknown';
   }
   
-  const featureObj = feature as Record<string, any>;
-  if (!featureObj.geometry) {
+  const geometry = getObjectProperty(feature, 'geometry');
+  if (!isObject(geometry)) {
     return 'unknown';
   }
   
-  const properties = featureObj.properties || {};
+  const properties = getObjectProperty(feature, 'properties');
+  const propertiesObj = isObject(properties) ? properties : {};
   
   // Skip validation for unsupported dataType values
-  if (properties.dataType === 'buoyfield' || properties.dataType === 'backdrop') {
+  const dataType = getObjectProperty(propertiesObj, 'dataType');
+  if (dataType === 'buoyfield' || dataType === 'backdrop') {
     return 'unknown';
   }
   
-  const geometryType = featureObj.geometry.type;
+  const geometryType = getObjectProperty(geometry, 'type');
   
   // Use dataType for classification if available
-  if (properties.dataType) {
-    switch (properties.dataType) {
+  if (typeof dataType === 'string') {
+    switch (dataType) {
       case 'track':
         return 'track';
       case 'reference-point':
@@ -113,7 +133,8 @@ export function classifyFeature(feature: unknown): 'track' | 'point' | 'annotati
   // Track features: LineString or MultiLineString with optional timestamps
   if (geometryType === 'LineString' || geometryType === 'MultiLineString') {
     // If it has annotationType, it's an annotation, not a track
-    if (properties.annotationType) {
+    const annotationType = getObjectProperty(propertiesObj, 'annotationType');
+    if (annotationType !== undefined) {
       return 'annotation';
     }
     return 'track';
@@ -121,14 +142,15 @@ export function classifyFeature(feature: unknown): 'track' | 'point' | 'annotati
   
   // Point features: Point geometry without annotationType
   if (geometryType === 'Point') {
-    if (properties.annotationType) {
+    const annotationType = getObjectProperty(propertiesObj, 'annotationType');
+    if (annotationType !== undefined) {
       return 'annotation';
     }
     return 'point';
   }
   
   // All other geometries are annotations
-  if (['Polygon', 'MultiPoint', 'MultiPolygon'].indexOf(geometryType) !== -1) {
+  if (typeof geometryType === 'string' && ['Polygon', 'MultiPoint', 'MultiPolygon'].indexOf(geometryType) !== -1) {
     return 'annotation';
   }
   
@@ -176,26 +198,26 @@ export function isValidDate(dateValue: unknown): boolean {
  * Validates feature collection properties
  */
 export function validateFeatureCollectionProperties(properties: unknown): boolean {
-  if (!properties || typeof properties !== 'object') {
+  if (!isObject(properties)) {
     return true; // properties are optional
   }
   
-  const propertiesObj = properties as Record<string, any>;
-  
   // Validate time properties if present
-  if (propertiesObj.created && !isValidDate(propertiesObj.created)) {
+  const created = getObjectProperty(properties, 'created');
+  if (created !== undefined && !isValidDate(created)) {
     return false;
   }
   
-  if (propertiesObj.modified && !isValidDate(propertiesObj.modified)) {
+  const modified = getObjectProperty(properties, 'modified');
+  if (modified !== undefined && !isValidDate(modified)) {
     return false;
   }
   
   // If both created and modified are present, created should be <= modified
-  if (propertiesObj.created && propertiesObj.modified) {
-    const created = new Date(propertiesObj.created);
-    const modified = new Date(propertiesObj.modified);
-    if (created > modified) {
+  if (created !== undefined && modified !== undefined) {
+    const createdDate = new Date(created as string | Date);
+    const modifiedDate = new Date(modified as string | Date);
+    if (createdDate > modifiedDate) {
       return false;
     }
   }
@@ -266,8 +288,10 @@ export interface FeatureError {
  * Get feature identifier for error reporting
  */
 function getFeatureIdentifier(feature: unknown, index: number): string {
-  const featureObj = feature as Record<string, any>;
-  const id = featureObj?.id;
+  if (!isObject(feature)) {
+    return `index ${index} (no id)`;
+  }
+  const id = getObjectProperty(feature, 'id');
   if (id !== undefined && id !== null) {
     return `index ${index} (id: "${id}")`;
   }
@@ -282,32 +306,35 @@ export function validateFeatureDetailed(feature: unknown, index: number): Featur
   const errors: string[] = [];
   
   // Basic structure validation
-  if (!feature || typeof feature !== 'object') {
+  if (!isObject(feature)) {
     errors.push('Feature is not an object');
   } else {
-    const featureObj = feature as Record<string, any>;
-    
-    if (featureObj.type !== 'Feature') {
-      errors.push(`Invalid feature type: "${featureObj.type}" (expected "Feature")`);
+    const featureType = getObjectProperty(feature, 'type');
+    if (featureType !== 'Feature') {
+      errors.push(`Invalid feature type: "${featureType}" (expected "Feature")`);
     }
     
-    if (!featureObj.id && featureObj.id !== 0) {
+    const id = getObjectProperty(feature, 'id');
+    if (id === null || id === undefined) {
       errors.push('Missing required "id" property');
     }
     
-    if (!featureObj.geometry || typeof featureObj.geometry !== 'object') {
+    const geometry = getObjectProperty(feature, 'geometry');
+    if (!isObject(geometry)) {
       errors.push('Missing or invalid geometry object');
     }
     
-    if (!featureObj.properties || typeof featureObj.properties !== 'object') {
+    const properties = getObjectProperty(feature, 'properties');
+    if (!isObject(properties)) {
       errors.push('Missing or invalid properties object');
     }
   }
   
   // Type-specific validation
-  if (errors.length === 0) {
+  if (errors.length === 0 && isObject(feature)) {
     let isValidByType = false;
-    const featureObj = feature as Record<string, any>;
+    const geometry = getObjectProperty(feature, 'geometry');
+    const properties = getObjectProperty(feature, 'properties');
     
     switch (featureType) {
       case 'track':
@@ -315,13 +342,17 @@ export function validateFeatureDetailed(feature: unknown, index: number): Featur
         if (!isValidByType) {
           errors.push('Failed track-specific validation');
           // Add more specific track validation errors
-          if (featureObj.geometry) {
-            if (['LineString', 'MultiLineString'].indexOf(featureObj.geometry.type) === -1) {
-              errors.push(`Track must have LineString or MultiLineString geometry, got "${featureObj.geometry.type}"`);
+          if (isObject(geometry)) {
+            const geometryType = getObjectProperty(geometry, 'type');
+            if (typeof geometryType === 'string' && ['LineString', 'MultiLineString'].indexOf(geometryType) === -1) {
+              errors.push(`Track must have LineString or MultiLineString geometry, got "${geometryType}"`);
             }
           }
-          if (featureObj.properties && !featureObj.properties.dataType) {
-            errors.push('Track features must have dataType: "track" in properties');
+          if (isObject(properties)) {
+            const dataType = getObjectProperty(properties, 'dataType');
+            if (!dataType) {
+              errors.push('Track features must have dataType: "track" in properties');
+            }
           }
         }
         break;
@@ -331,14 +362,20 @@ export function validateFeatureDetailed(feature: unknown, index: number): Featur
         if (!isValidByType) {
           errors.push('Failed point-specific validation');
           // Add more specific point validation errors
-          if (featureObj.geometry && featureObj.geometry.type !== 'Point') {
-            errors.push(`Point feature must have Point geometry, got "${featureObj.geometry.type}"`);
+          if (isObject(geometry)) {
+            const geometryType = getObjectProperty(geometry, 'type');
+            if (geometryType !== 'Point') {
+              errors.push(`Point feature must have Point geometry, got "${geometryType}"`);
+            }
           }
-          if (featureObj.properties && !featureObj.properties.dataType) {
-            errors.push('Point features must have dataType: "reference-point" in properties');
-          }
-          if (featureObj.properties) {
-            const { time, timeStart, timeEnd } = featureObj.properties;
+          if (isObject(properties)) {
+            const dataType = getObjectProperty(properties, 'dataType');
+            if (!dataType) {
+              errors.push('Point features must have dataType: "reference-point" in properties');
+            }
+            const time = getObjectProperty(properties, 'time');
+            const timeStart = getObjectProperty(properties, 'timeStart');
+            const timeEnd = getObjectProperty(properties, 'timeEnd');
             if (time && (timeStart || timeEnd)) {
               errors.push('Cannot have both single time and time range (timeStart/timeEnd)');
             }
@@ -354,15 +391,18 @@ export function validateFeatureDetailed(feature: unknown, index: number): Featur
         if (!isValidByType) {
           errors.push('Failed annotation-specific validation');
           // Add more specific annotation validation errors
-          if (featureObj.properties) {
-            if (!featureObj.properties.dataType) {
+          if (isObject(properties)) {
+            const dataType = getObjectProperty(properties, 'dataType');
+            if (!dataType) {
               errors.push('Annotation features must have dataType: "zone" in properties');
             }
-            if (featureObj.properties.annotationType && !validateAnnotationType(featureObj.properties.annotationType)) {
-              errors.push(`Invalid annotation type: "${featureObj.properties.annotationType}"`);
+            const annotationType = getObjectProperty(properties, 'annotationType');
+            if (typeof annotationType === 'string' && !validateAnnotationType(annotationType)) {
+              errors.push(`Invalid annotation type: "${annotationType}"`);
             }
-            if (featureObj.properties.color && !validateColorFormat(featureObj.properties.color)) {
-              errors.push(`Invalid color format: "${featureObj.properties.color}" (expected #RRGGBB)`);
+            const color = getObjectProperty(properties, 'color');
+            if (typeof color === 'string' && !validateColorFormat(color)) {
+              errors.push(`Invalid color format: "${color}" (expected #RRGGBB)`);
             }
           }
         }
@@ -379,9 +419,10 @@ export function validateFeatureDetailed(feature: unknown, index: number): Featur
     return null;
   }
   
+  const featureId = isObject(feature) ? getObjectProperty(feature, 'id') : undefined;
   return {
     index,
-    featureId: (feature as Record<string, any>)?.id,
+    featureId: typeof featureId === 'string' || typeof featureId === 'number' ? featureId : undefined,
     featureType,
     errors
   };

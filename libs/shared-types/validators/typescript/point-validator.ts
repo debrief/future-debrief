@@ -6,6 +6,21 @@
 import { DebriefPointFeature } from '../../derived/typescript/featurecollection';
 
 /**
+ * Type-safe helper to check if a value is a non-null object
+ */
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object';
+}
+
+/**
+ * Type-safe helper to access object properties
+ */
+function getObjectProperty(obj: Record<string, unknown>, key: string): unknown {
+  return obj[key];
+}
+
+
+/**
  * Validates that point has valid time properties
  * Either single time OR time range (start/end) should be provided, not both
  */
@@ -38,56 +53,57 @@ export function validateTimeProperties(feature: DebriefPointFeature): boolean {
  * Validates that point feature has required properties and valid structure
  */
 export function validatePointFeature(feature: unknown): feature is DebriefPointFeature {
-  if (!feature || typeof feature !== 'object') {
+  if (!isObject(feature)) {
     return false;
   }
-  
-  const featureObj = feature as Record<string, any>;
   
   // Check basic GeoJSON structure
-  if (featureObj.type !== 'Feature') {
+  if (getObjectProperty(feature, 'type') !== 'Feature') {
     return false;
   }
   
-  if (!featureObj.id && featureObj.id !== 0) {
+  const id = getObjectProperty(feature, 'id');
+  if (id === null || id === undefined) {
     return false; // id is required (can be 0 but not null/undefined)
   }
   
   // Check geometry
-  if (!featureObj.geometry || typeof featureObj.geometry !== 'object') {
+  const geometry = getObjectProperty(feature, 'geometry');
+  if (!isObject(geometry)) {
     return false;
   }
   
-  if (featureObj.geometry.type !== 'Point') {
+  if (getObjectProperty(geometry, 'type') !== 'Point') {
     return false;
   }
   
-  if (!Array.isArray(featureObj.geometry.coordinates)) {
+  const coordinates = getObjectProperty(geometry, 'coordinates');
+  if (!Array.isArray(coordinates)) {
     return false;
   }
   
   // Validate coordinates [lon, lat] or [lon, lat, elevation]
-  const coords = featureObj.geometry.coordinates;
-  if (coords.length < 2 || coords.length > 3) {
+  if (coordinates.length < 2 || coordinates.length > 3) {
     return false;
   }
   
-  if (!coords.every((coord: unknown) => typeof coord === 'number')) {
+  if (!coordinates.every((coord: unknown) => typeof coord === 'number')) {
     return false;
   }
   
   // Check properties
-  if (!featureObj.properties || typeof featureObj.properties !== 'object') {
+  const properties = getObjectProperty(feature, 'properties');
+  if (!isObject(properties)) {
     return false;
   }
   
   // Check required dataType discriminator
-  if (featureObj.properties.dataType !== 'reference-point') {
+  if (getObjectProperty(properties, 'dataType') !== 'reference-point') {
     return false;
   }
   
   // Validate time properties if present
-  return validateTimeProperties(featureObj as DebriefPointFeature);
+  return validateTimeProperties(feature as unknown as DebriefPointFeature);
 }
 
 /**
