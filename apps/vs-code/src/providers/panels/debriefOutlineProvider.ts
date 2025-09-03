@@ -56,28 +56,33 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
     }
 
     getTreeItem(element: OutlineItem): vscode.TreeItem {
-        const treeItem = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.None);
+        const collapsibleState = element.hasChildren()
+            ? vscode.TreeItemCollapsibleState.Collapsed
+            : vscode.TreeItemCollapsibleState.None;
+        const treeItem = new vscode.TreeItem(element.label, collapsibleState);
         treeItem.contextValue = 'debriefFeature';
-        
+
         // Set icon based on feature type or state
         if (element.isSelected) {
             treeItem.iconPath = new vscode.ThemeIcon('location', new vscode.ThemeColor('charts.yellow'));
         } else {
             treeItem.iconPath = new vscode.ThemeIcon('location');
         }
-        
-        // Add command to select feature when clicked
-        treeItem.command = {
-            command: 'debrief.selectFeature',
-            title: 'Select Feature',
-            arguments: [element.featureIndex]
-        };
+
+        // Only add command if leaf node
+        if (!element.hasChildren()) {
+            treeItem.command = {
+                command: 'debrief.selectFeature',
+                title: 'Select Feature',
+                arguments: [element.featureIndex]
+            };
+        }
 
         // Add description with feature details
         if (element.featureType) {
             treeItem.description = element.featureType;
         }
-        
+
         return treeItem;
     }
 
@@ -86,34 +91,38 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
             if (!this._currentEditorId) {
                 return Promise.resolve([]);
             }
-
             try {
                 // Get feature collection from GlobalController
                 const featureCollection = this._globalController.getStateSlice(this._currentEditorId, 'featureCollection');
                 const selectionState = this._globalController.getStateSlice(this._currentEditorId, 'selectionState');
-                
                 if (!featureCollection || !Array.isArray(featureCollection.features)) {
                     return Promise.resolve([]);
                 }
-
-                // Create outline items from features
-                const items: OutlineItem[] = featureCollection.features.map((feature: unknown, index: number) => {
+                // Group features by geometry type as an example hierarchy
+                const groups: { [type: string]: OutlineItem[] } = {};
+                featureCollection.features.forEach((feature: unknown, index: number) => {
                     const f = feature as { id?: string | number; properties?: { name?: string }; geometry?: { type?: string } };
                     const featureName = f.properties?.name || `Feature ${index}`;
                     const featureType = f.geometry?.type || 'Unknown';
                     const featureId = f.id !== undefined ? String(f.id) : index.toString();
                     const isSelected = selectionState?.selectedIds?.includes(featureId) || false;
-                    
-                    return new OutlineItem(featureName, index, featureType, isSelected, featureId);
+                    const item = new OutlineItem(featureName, index, featureType, isSelected, featureId);
+                    if (!groups[featureType]) groups[featureType] = [];
+                    groups[featureType].push(item);
                 });
-
-                return Promise.resolve(items);
+                // Create group nodes
+                const groupNodes = Object.entries(groups).map(([type, children]) =>
+                    new OutlineItem(type, -1, type, false, undefined, children)
+                );
+                return Promise.resolve(groupNodes);
             } catch (error) {
                 console.error('Error creating debrief outline items:', error);
                 return Promise.resolve([]);
             }
+        } else {
+            // Return children for a group node
+            return Promise.resolve(element.children || []);
         }
-        return Promise.resolve([]);
     }
 
     /**
@@ -150,6 +159,10 @@ class OutlineItem {
         public readonly featureIndex: number,
         public readonly featureType?: string,
         public readonly isSelected = false,
-        public readonly featureId?: string
+        public readonly featureId?: string,
+        public readonly children: OutlineItem[] = []
     ) {}
+    hasChildren(): boolean {
+        return this.children && this.children.length > 0;
+    }
 }
