@@ -47,7 +47,7 @@
    - The workflow must ensure dependencies rebuild in correct order when any source changes
 
 4. **Create Separate Storybook Development Configuration:**
-   - Set up launch.json and tasks.json in `libs/web-components/.vscode/` for Storybook development
+   - Create Storybook launch configuration in `libs/web-components/.vscode/launch.json` (this will appear under "Web Components" workspace folder)
    - Create watch-mode scripts for isolated component development in Storybook
    - Ensure Storybook can hot-reload when web-components source files change
    - Include shared-types dependency watching so Storybook updates when types change
@@ -62,11 +62,12 @@
    - Ensure proper file watching excludes `dist/`, `node_modules/`, and other build artifacts
 
 6. **Create Launch Configurations:**
-   - Add VS Code tasks in `apps/vs-code/.vscode/tasks.json` (if needed) to support VS Code extension development
-   - Add VS Code tasks in `libs/web-components/.vscode/tasks.json` for Storybook development
-   - Create specific launch configurations:
-     - In `libs/web-components/.vscode/launch.json`: "Develop Web Components (Storybook)" - launches Storybook with watch mode for isolated component development
-     - In `apps/vs-code/.vscode/launch.json`: "Develop VS Code Extension" - launches extension with live rebuild of dependencies
+   - Create tasks and launch configurations in `libs/web-components/.vscode/` for Storybook development
+   - Create/update tasks and launch configurations in `apps/vs-code/.vscode/` for VS Code extension development
+   - Multi-root workspace configuration means both will appear in "Run and Debug" activity:
+     - "Web Components" folder: "Develop Web Components (Storybook)" configuration
+     - "VS Code Extension" folder: "Develop VS Code Extension" configuration
+   - Each workspace folder maintains its own development environment independently
 
 7. **Test and Validate:**
    - Verify that changes to shared-types trigger rebuilds of both web-components and vs-code
@@ -86,6 +87,7 @@
 - Dependency graph should be automatically inferred from package.json dependencies, not manually defined in turbo.json
 
 **Provide Necessary Context/Assets:**
+- Project uses multi-root workspace configuration (`future-debrief.code-workspace`) with separate folders for "Web Components" and "VS Code Extension"
 - Current package.json scripts show sequential builds: `build:shared-types && build:web-components && build:vs-code`
 - Shared-types is a foundational dependency required by both web-components and vs-code
 - Package.json dependencies already define the workspace relationships (use `"workspace:^1.0.0"` format)
@@ -94,6 +96,7 @@
 - Storybook is configured to run on port 6006
 - Project should leverage pnpm workspaces and turborepo for optimal build performance
 - Turborepo should automatically respect existing package.json dependency declarations
+- Multi-root workspace allows each folder to have independent .vscode configurations
 
 ## 3. Expected Output & Deliverables
 
@@ -107,8 +110,9 @@
 **Specify Deliverables:**
 1. New `turbo.json` configuration defining build pipelines (with automatic dependency inference)
 2. Enhanced package.json scripts with turborepo-based watch capabilities
-3. VS Code tasks and launch configurations for web-components Storybook development (`libs/web-components/.vscode/`)
-4. VS Code tasks and launch configurations for VS Code extension development (`apps/vs-code/.vscode/`)
+3. VS Code tasks and launch configurations in `libs/web-components/.vscode/` for Storybook development
+4. VS Code tasks and launch configurations in `apps/vs-code/.vscode/` for VS Code extension development
+5. Both configurations accessible from "Run and Debug" activity (grouped by workspace folder)
 5. Updated documentation explaining both independent development workflows
 6. Verification that both development modes work correctly with proper dependency rebuilding
 
