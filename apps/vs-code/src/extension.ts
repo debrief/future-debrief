@@ -182,11 +182,22 @@ export function activate(context: vscode.ExtensionContext) {
     historyManager.initialize(context);
     context.subscriptions.push(historyManager);
 
+
     // Register Debrief Activity Panel providers
     timeControllerProvider = new TimeControllerProvider(context.extensionUri);
     debriefOutlineProvider = new DebriefOutlineProvider();
     propertiesViewProvider = new PropertiesViewProvider(context.extensionUri);
 
+    // Register feature visibility toggle command for Outline panel toolbar
+    const toggleFeatureVisibilityCommand = vscode.commands.registerCommand(
+        'debrief.toggleFeatureVisibility',
+        () => {
+            if (debriefOutlineProvider) {
+                debriefOutlineProvider.toggleFeatureVisibility();
+            }
+        }
+    );
+    context.subscriptions.push(toggleFeatureVisibilityCommand);
 
     // Register the webview view providers
     context.subscriptions.push(

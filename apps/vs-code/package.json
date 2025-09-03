@@ -44,8 +44,12 @@
         "configuration": "./language-configuration.json"
       }
     ],
-    "commands": [
+  "commands": [
       {
+        "command": "debrief.toggleFeatureVisibility",
+        "title": "Toggle Feature Visibility",
+        "category": "Debrief"
+      },
         "command": "vs-code.helloWorld",
         "title": "Hello World"
       },
@@ -112,6 +116,15 @@
           "name": "Current State",
           "type": "webview",
           "when": "true"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "debrief.toggleFeatureVisibility",
+          "when": "view == debrief.outline",
+          "group": "navigation@1"
         }
       ]
     },

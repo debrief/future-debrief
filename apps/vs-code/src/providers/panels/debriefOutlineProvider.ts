@@ -9,10 +9,16 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
     private _globalController: GlobalController;
     private _disposables: vscode.Disposable[] = [];
     private _currentEditorId?: string;
+    private _featuresVisible: boolean = true;
 
     constructor() {
         this._globalController = GlobalController.getInstance();
         this._setupGlobalControllerSubscriptions();
+    }
+
+    public toggleFeatureVisibility(): void {
+        this._featuresVisible = !this._featuresVisible;
+        this.refresh();
     }
 
     /**
@@ -90,7 +96,7 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
         return treeItem;
     }
 
-    getChildren(element?: OutlineItem): Thenable<OutlineItem[]> {
+    getChildren(element?: OutlineItem): Promise<OutlineItem[]> {
         if (!element) {
             if (!this._currentEditorId) {
                 return Promise.resolve([]);
@@ -101,6 +107,12 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
                 const selectionState = this._globalController.getStateSlice(this._currentEditorId, 'selectionState');
                 if (!featureCollection || !Array.isArray(featureCollection.features)) {
                     return Promise.resolve([]);
+                }
+                if (!this._featuresVisible) {
+                    // If features are hidden, show a single node as a placeholder
+                    return Promise.resolve([
+                        new OutlineItem('Features hidden (toggle to show)', -1, undefined, false, undefined, [])
+                    ]);
                 }
                 // Group features by properties.dataType
                 const groups: { [dataType: string]: OutlineItem[] } = {};
