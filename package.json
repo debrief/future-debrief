@@ -9,7 +9,7 @@
     "build:vs-code": "pnpm --filter vs-code compile",
     "build": "turbo run build",
     "dev": "turbo run dev --filter=vs-code",
-    "dev:web-components": "turbo run build --filter=vs-components",
+    "dev:web-components": "turbo run build --filter=@debrief/web-components",
     "dev:vs-code": "turbo run dev --filter=vs-code",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",

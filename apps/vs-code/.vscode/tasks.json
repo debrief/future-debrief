@@ -7,7 +7,7 @@
       "command": "bash",
       "args": [
         "-c",
-        "export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\" && nvm use 23 && pnpm turbo run dev --filter=vs-code..."
+        "export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\" && nvm use && pnpm turbo run dev --filter=vs-code..."
       ],
       "group": "build",
       "isBackground": true,
