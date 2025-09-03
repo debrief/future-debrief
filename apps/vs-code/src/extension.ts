@@ -12,6 +12,7 @@ import { PlotJsonEditorProvider } from './providers/editors/plotJsonEditor';
 import { TimeControllerProvider } from './providers/panels/timeControllerProvider';
 import { DebriefOutlineProvider } from './providers/panels/debriefOutlineProvider';
 import { PropertiesViewProvider } from './providers/panels/propertiesViewProvider';
+import { CurrentStateProvider } from './providers/panels/currentStateProvider';
 import { CustomOutlineTreeProvider } from './providers/outlines/customOutlineTreeProvider';
 
 // External services
@@ -44,6 +45,7 @@ let historyManager: HistoryManager | null = null;
 let timeControllerProvider: TimeControllerProvider | null = null;
 let debriefOutlineProvider: DebriefOutlineProvider | null = null;
 let propertiesViewProvider: PropertiesViewProvider | null = null;
+let currentStateProvider: CurrentStateProvider | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
     console.warn('Codespace Extension is now active!');
@@ -174,20 +176,27 @@ export function activate(context: vscode.ExtensionContext) {
     debriefOutlineProvider = new DebriefOutlineProvider();
     propertiesViewProvider = new PropertiesViewProvider(context.extensionUri);
 
+
     // Register the webview view providers
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(TimeControllerProvider.viewType, timeControllerProvider)
     );
-    
+
     context.subscriptions.push(
         vscode.window.createTreeView('debrief.outline', {
             treeDataProvider: debriefOutlineProvider,
             showCollapseAll: false
         })
     );
-    
+
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(PropertiesViewProvider.viewType, propertiesViewProvider)
+    );
+
+    // Register the Current State panel
+    currentStateProvider = new CurrentStateProvider();
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(CurrentStateProvider.viewType, currentStateProvider)
     );
 
     // Panel connections are handled automatically through GlobalController subscriptions

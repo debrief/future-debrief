@@ -106,6 +106,12 @@
           "name": "Properties View",
           "type": "webview",
           "when": "true"
+        },
+        {
+          "id": "debrief.currentState",
+          "name": "Current State",
+          "type": "webview",
+          "when": "true"
         }
       ]
     },
