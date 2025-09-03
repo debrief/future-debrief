@@ -203,7 +203,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         // Subscribe to viewport changes
         const viewportSubscription = globalController.on('viewportChanged', (data) => {
             if (data.editorId === editorId && webviewPanel.visible) {
-                const mapState = this.convertBoundsToMapState(data.state.viewportState?.bounds);
+                const mapState = PlotJsonEditorProvider.convertBoundsToMapState(data.state.viewportState?.bounds);
                 if (mapState) {
                     webviewPanel.webview.postMessage({
                         type: 'restoreMapState',
@@ -300,7 +300,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
                     if (PlotJsonEditorProvider.activeWebviewPanel === webviewPanel) {
                         const editorId = EditorIdManager.getEditorId(document);
                         const globalController = GlobalController.getInstance();
-                        const viewportState = this.convertCenterZoomToBounds(e.center, e.zoom);
+                        const viewportState = PlotJsonEditorProvider.convertCenterZoomToBounds(e.center, e.zoom);
                         globalController.updateState(editorId, 'viewportState', viewportState);
                     }
                     return;
@@ -690,33 +690,6 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         return vscode.workspace.applyEdit(edit);
     }
 
-    private convertCenterZoomToBounds(center: [number, number], zoom: number): { bounds: [number, number, number, number] } {
-        // Convert center/zoom to approximate bounds
-        const latRange = 180 / Math.pow(2, zoom);
-        const lngRange = 360 / Math.pow(2, zoom);
-        
-        return {
-            bounds: [
-                center[1] - lngRange/2,  // west
-                center[0] - latRange/2,  // south  
-                center[1] + lngRange/2,  // east
-                center[0] + latRange/2   // north
-            ]
-        };
-    }
-
-    private convertBoundsToMapState(bounds?: [number, number, number, number]): { center: [number, number], zoom: number } | null {
-        if (!bounds) return null;
-        
-        const [west, south, east, north] = bounds;
-        const center: [number, number] = [(south + north) / 2, (west + east) / 2];
-        
-        // Approximate zoom from bounds size
-        const latRange = north - south;
-        const zoom = Math.floor(Math.log2(180 / latRange));
-        
-        return { center, zoom: Math.max(1, Math.min(18, zoom)) };
-    }
 
     private syncWebviewWithGlobalState(webviewPanel: vscode.WebviewPanel, editorId: string): void {
         const globalController = GlobalController.getInstance();
@@ -732,7 +705,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         
         // Sync viewport
         if (state.viewportState?.bounds) {
-            const mapState = this.convertBoundsToMapState(state.viewportState.bounds);
+            const mapState = PlotJsonEditorProvider.convertBoundsToMapState(state.viewportState.bounds);
             if (mapState) {
                 webviewPanel.webview.postMessage({
                     type: 'restoreMapState',

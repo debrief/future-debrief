@@ -235,13 +235,24 @@ export class HistoryManager {
     
     /**
      * Deep clone state to avoid reference issues
+     * Uses structuredClone when available, with JSON fallback for compatibility
      */
     private deepCloneState(state: EditorState): EditorState {
-        // Use structuredClone if available (Node 17+), otherwise fall back to JSON method
-        if (typeof structuredClone === 'function') {
-            return structuredClone(state);
-        } else {
+        try {
+            // Use structuredClone if available (Node 17+/modern browsers)
+            // This handles more edge cases than JSON.parse/stringify (dates, regexes, etc.)
+            if (typeof structuredClone === 'function') {
+                return structuredClone(state);
+            }
+            
+            // Fallback to JSON method for older environments
+            // Note: This won't handle functions, undefined values, symbols, or circular references
+            // but these shouldn't exist in our EditorState objects anyway
             return JSON.parse(JSON.stringify(state));
+        } catch (error) {
+            console.error('Error deep cloning state:', error);
+            // If cloning fails, return a basic empty state to prevent crashes
+            return {};
         }
     }
     

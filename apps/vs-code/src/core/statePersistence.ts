@@ -302,7 +302,7 @@ export class StatePersistence {
                 id: 'debrief-time-metadata',
                 geometry: {
                     type: 'Point',
-                    coordinates: [0, 0] // Metadata features don't need real coordinates
+                    coordinates: [-999.999, -999.999] // Use extreme coordinates that won't interfere with real data
                 },
                 properties: {
                     'debrief-feature-type': StatePersistence.METADATA_FEATURE_TYPES.TIME,
@@ -319,7 +319,7 @@ export class StatePersistence {
                 id: 'debrief-viewport-metadata',
                 geometry: {
                     type: 'Point',
-                    coordinates: [0, 0]
+                    coordinates: [-999.999, -999.999] // Use extreme coordinates that won't interfere with real data
                 },
                 properties: {
                     'debrief-feature-type': StatePersistence.METADATA_FEATURE_TYPES.VIEWPORT,
