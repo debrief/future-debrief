@@ -1,14 +1,16 @@
-# Codespace Extension
+# Debrief VS Code Extension
 
-A demonstration project showing how to create a VS Code extension that can be previewed in GitHub Codespaces directly from Pull Requests.
+A comprehensive VS Code extension for Debrief maritime analysis, providing custom Plot JSON editing, GeoJSON visualization, and Python integration through WebSocket bridge.
 
 ## Features
 
-This extension demonstrates three core VS Code extension capabilities:
+This extension provides comprehensive maritime analysis capabilities:
 
-- **Command Palette Integration**: Execute "Hello World" command via Command Palette (`Ctrl+Shift+P`)
-- **Activation Notification**: Displays welcome message when extension activates
-- **Custom View Panel**: Shows Hello World content in Explorer sidebar
+- **Plot JSON Editor**: Custom webview editor for `.plot.json` files with interactive Leaflet map
+- **GeoJSON Outline View**: Tree view showing features from plot files with bidirectional selection
+- **WebSocket Bridge**: Python integration on localhost:60123 for external tool communication
+- **Debrief Activity Panel**: Dedicated activity bar with TimeController, Outline, and PropertiesView
+- **Feature Validation**: Comprehensive validation using shared JSON Schema types
 
 ## Development Setup
 
@@ -16,8 +18,8 @@ This extension demonstrates three core VS Code extension capabilities:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/vs-code.git
-   cd vs-code
+   git clone https://github.com/debrief/future-debrief-parent.git
+   cd future-debrief-parent/a/apps/vs-code
    ```
 
 2. Install dependencies (from monorepo root):
@@ -26,9 +28,9 @@ This extension demonstrates three core VS Code extension capabilities:
    pnpm install
    ```
 
-3. Compile TypeScript:
+3. Build the extension:
    ```bash
-   pnpm --filter vs-code compile
+   pnpm --filter vs-code build
    # Or from vs-code directory:
    cd apps/vs-code && pnpm compile
    ```
@@ -47,37 +49,44 @@ This extension demonstrates three core VS Code extension capabilities:
 
 Once the Extension Development Host launches:
 
-1. **Test Command Palette**:
-   - Open Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`)
-   - Type "Hello World" and execute the command
-   - Verify information message appears
+1. **Test Plot JSON Editor**:
+   - Open a `.plot.json` file from the workspace/ directory
+   - Verify the custom Plot JSON editor opens with interactive map
+   - Test feature selection and outline synchronization
 
-2. **Check Activation Notification**:
-   - Should appear automatically when extension activates
-   - Look for "Codespace Extension has been activated successfully!"
+2. **Check WebSocket Bridge**:
+   - Run Python tests: `cd workspace/tests && python test_integration.py`
+   - Verify WebSocket server starts on port 60123
+   - Test Python-to-VS Code communication
 
-3. **View Custom Panel**:
-   - Open Explorer sidebar if not already open
-   - Look for "Hello World" section
-   - Should display extension status messages
+3. **View Debrief Activity Panel**:
+   - Click the Debrief icon in the Activity Bar
+   - Verify TimeController, Outline, and PropertiesView panels
+   - Test feature selection across panels
 
 ## Project Structure
 
 ```
 vs-code/
-├── .devcontainer/
-│   └── devcontainer.json          # Codespace configuration
-├── .github/
-│   └── workflows/
-│       └── codespace-preview.yml  # PR preview automation
-├── docs/
-│   ├── implementation-plan.md     # Development roadmap
-│   └── software-requirements.md   # Requirements specification
+├── .vscode/
+│   ├── launch.json                # VS Code debug configurations
+│   └── tasks.json                 # Build and development tasks
+├── media/
+│   ├── debrief-icon.svg          # Activity bar icon
+│   └── plotJsonEditor.js         # Plot editor webview implementation
 ├── src/
-│   └── extension.ts               # Main extension code
-├── out/                           # Compiled JavaScript (generated)
-├── package.json                   # Extension manifest
-└── tsconfig.json                 # TypeScript configuration
+│   ├── extension.ts              # Main extension entry point
+│   ├── plotJsonEditor.ts         # Custom Plot JSON editor
+│   ├── debriefWebSocketServer.ts # Python WebSocket bridge
+│   ├── customOutlineTreeProvider.ts # GeoJSON outline view
+│   ├── timeControllerProvider.ts # Time controller webview
+│   ├── debriefOutlineProvider.ts # Debrief outline provider
+│   ├── propertiesViewProvider.ts # Properties view webview
+│   └── debriefStateManager.ts    # State management
+├── dist/                         # Compiled JavaScript (generated)
+├── package.json                  # Extension manifest
+├── tsconfig.json                # TypeScript configuration
+└── CLAUDE.md                    # Development guidance
 ```
 
 ## PR Preview Workflow
@@ -114,19 +123,24 @@ When you create a Pull Request:
 
 ## Build Commands
 
-- `pnpm compile` - Compile TypeScript to JavaScript
+- `pnpm compile` - Fast esbuild compilation with sourcemaps (~20ms)
 - `pnpm watch` - Watch mode compilation for development  
-- `pnpm vscode:prepublish` - Prepare for publishing (runs compile)
+- `pnpm dev` - Alias for watch mode
+- `pnpm build` - Production build (alias for compile)
+- `pnpm vscode:prepublish` - Minified build for publishing
+- `pnpm typecheck` - TypeScript validation without compilation
+- `pnpm lint` - ESLint + TypeScript checking
 
 **Note**: This extension is part of a pnpm monorepo. Install dependencies from the root directory with `pnpm install`.
 
 ## Troubleshooting
 
 ### Extension Not Loading
-- Ensure TypeScript compilation succeeded (`pnpm compile`)
+- Ensure esbuild compilation succeeded (`pnpm compile`)
 - Check console for activation errors (Developer Tools → Console)
-- Verify `package.json` manifest is correct
+- Verify WebSocket server starts on port 60123
 - Ensure dependencies are installed from monorepo root (`pnpm install`)
+- Check shared-types and web-components are built (`pnpm build` from root)
 
 ### Codespace Issues
 - Check `.devcontainer/devcontainer.json` configuration
@@ -138,22 +152,25 @@ When you create a Pull Request:
 - Ensure repository has Actions enabled
 - Verify workflow permissions for commenting on PRs
 
-## Contributing
+## Development Workflow
 
-This is a demonstration project for internal team use. To replicate for your own extension:
+This extension is part of a monorepo with shared dependencies:
 
-1. Fork this repository
-2. Update `package.json` with your extension details
-3. Modify `src/extension.ts` with your functionality
-4. Update documentation as needed
-5. Test the PR preview workflow
+1. **Root Setup**: Run `pnpm install` from monorepo root
+2. **Build Dependencies**: Run `pnpm build` to build shared-types and web-components
+3. **Extension Development**: Use `pnpm dev` for watch mode development
+4. **Testing**: Run Python integration tests from `workspace/tests/`
+5. **Debugging**: Use F5 to launch Extension Development Host
 
-## Next Steps
+## Architecture
 
-After understanding this workflow, consider:
+The extension integrates several key components:
 
-- Adding unit tests with `@vscode/test-electron`
-- Implementing more complex extension features
-- Setting up automated publishing to VS Code Marketplace
-- Adding integration with other GitHub features
+- **Custom Editor**: Plot JSON files open in custom webview with Leaflet map
+- **WebSocket Server**: Enables Python integration for external tools
+- **State Management**: Coordinates between multiple views and panels
+- **Type Validation**: Uses shared JSON Schema for feature validation
+- **Activity Panel**: Dedicated Debrief workspace with time control and properties
+
+See `CLAUDE.md` for detailed development guidance and `Memory_Bank.md` for architectural decisions.
 
