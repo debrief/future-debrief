@@ -2,17 +2,17 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run Extension",
+            "name": "Develop VS Code Extension",
             "type": "extensionHost",
             "request": "launch",
             "args": [
                 "--extensionDevelopmentPath=${workspaceFolder}",
                 "--folder-uri=file://${workspaceFolder}/workspace"
             ],
-            "preLaunchTask": "turbo: dev-deps-and-compile",
+            "preLaunchTask": "turbo: build-deps-and-compile",
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js"
-            ],
+            ]
         },
         {
             "name": "Extension Tests",
@@ -22,24 +22,10 @@
                 "--extensionDevelopmentPath=${workspaceFolder}",
                 "--extensionTestsPath=${workspaceFolder}/out/test/suite/index"
             ],
-            "preLaunchTask": "turbo: dev-deps-and-compile",
+            "preLaunchTask": "turbo: build-deps-and-compile",
             "outFiles": [
                 "${workspaceFolder}/dist/test/**/*.js"
-            ],
-        },
-        {
-            "name": "Develop VS Code Extension",
-            "type": "extensionHost",
-            "request": "launch",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}",
-                "--folder-uri=file://${workspaceFolder}/workspace"
-            ],
-            "preLaunchTask": "turbo: dev-deps-and-compile",
-            "postDebugTask": "turbo: dev-vs-code",
-            "outFiles": [
-                "${workspaceFolder}/dist/**/*.js"
-            ],
+            ]
         }
     ]
 }

@@ -2,22 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "pnpm: compile",
-            "type": "shell",
-            "command": "bash",
-            "args": [
-                "-c",
-                "source $NVM_DIR/nvm.sh && nvm use && pnpm compile"
-            ],
-            "group": "build",
-            "presentation": {
-                "panel": "shared",
-                "reveal": "silent"
-            },
-            "problemMatcher": "$tsc"
-        },
-        {
-            "label": "turbo: dev-deps-and-compile",
+            "label": "turbo: build-deps-and-compile",
             "type": "shell",
             "command": "bash",
             "args": [
