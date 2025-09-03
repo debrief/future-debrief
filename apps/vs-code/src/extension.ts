@@ -150,6 +150,17 @@ export function activate(context: vscode.ExtensionContext) {
     );
     context.subscriptions.push(selectFeatureCommand);
 
+    // Register command to handle multi-select feature toggling from outline
+    const toggleFeatureSelectionCommand = vscode.commands.registerCommand(
+        'debrief.toggleFeatureSelection',
+        (featureIndex: number, featureId?: string) => {
+            if (debriefOutlineProvider) {
+                debriefOutlineProvider.toggleFeatureSelection(featureIndex, featureId);
+            }
+        }
+    );
+    context.subscriptions.push(toggleFeatureSelectionCommand);
+
     // Initialize Global Controller (new centralized state management)
     globalController = GlobalController.getInstance();
     context.subscriptions.push(globalController);
