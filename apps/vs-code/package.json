@@ -56,6 +56,14 @@
       {
         "command": "debrief.selectFeature",
         "title": "Select Feature in Debrief Panel"
+      },
+      {
+        "command": "debrief.undo",
+        "title": "Debrief: Undo"
+      },
+      {
+        "command": "debrief.redo",
+        "title": "Debrief: Redo"
       }
     ],
     "viewsContainers": {

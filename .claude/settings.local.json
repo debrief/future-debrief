@@ -127,7 +127,8 @@
       "Bash(pnpm --filter @debrief/shared-types build)",
       "Bash(pnpm:*)",
       "Bash(turbo run:*)",
-      "Bash(git log:*)"
+      "Bash(git log:*)",
+      "Bash(python test_plot_api.py:*)"
     ]
   }
 }

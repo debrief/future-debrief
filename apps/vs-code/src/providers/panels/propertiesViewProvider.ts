@@ -1,13 +1,20 @@
 import * as vscode from 'vscode';
+import { GlobalController } from '../../core/globalController';
+import { SelectionState } from '@debrief/shared-types/derived/typescript/selectionstate';
 
 export class PropertiesViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'debrief.propertiesView';
 
     private _view?: vscode.WebviewView;
+    private _globalController: GlobalController;
+    private _disposables: vscode.Disposable[] = [];
+    private _currentEditorId?: string;
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
-    ) { }
+    ) {
+        this._globalController = GlobalController.getInstance();
+    }
 
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
@@ -28,28 +35,141 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
         webviewView.webview.onDidReceiveMessage(data => {
             switch (data.type) {
                 case 'propertyChange':
-                    console.log('Property changed:', data.property, data.value);
+                    this._handlePropertyChange(data.property, data.value);
                     break;
             }
         });
+
+        // Setup GlobalController subscriptions
+        this._setupGlobalControllerSubscriptions();
+
+        // Initialize with current active editor state
+        this._updateFromActiveEditor();
     }
 
-    public updateState(state: Record<string, unknown>) {
-        if (this._view) {
-            this._view.webview.postMessage({
-                type: 'stateUpdate',
-                state: state
-            });
+    /**
+     * Setup subscriptions to GlobalController events
+     */
+    private _setupGlobalControllerSubscriptions(): void {
+        // Subscribe to selection changes
+        const selectionSubscription = this._globalController.on('selectionChanged', (data) => {
+            if (data.editorId === this._currentEditorId) {
+                this._updateSelectedFeatureDisplay(data.editorId, data.state.selectionState);
+            }
+        });
+        this._disposables.push(selectionSubscription);
+
+        // Subscribe to feature collection changes
+        const fcSubscription = this._globalController.on('fcChanged', (data) => {
+            if (data.editorId === this._currentEditorId) {
+                // Re-display selected feature with updated data
+                const selectionState = data.state.selectionState;
+                this._updateSelectedFeatureDisplay(data.editorId, selectionState);
+            }
+        });
+        this._disposables.push(fcSubscription);
+
+        // Subscribe to active editor changes
+        const activeEditorSubscription = this._globalController.on('activeEditorChanged', (data) => {
+            this._currentEditorId = data.currentEditorId;
+            if (data.currentEditorId) {
+                const state = this._globalController.getEditorState(data.currentEditorId);
+                this._updateSelectedFeatureDisplay(data.currentEditorId, state.selectionState);
+            } else {
+                this._clearFeatureDisplay();
+            }
+        });
+        this._disposables.push(activeEditorSubscription);
+
+        // Initialize with current active editor
+        this._currentEditorId = this._globalController.activeEditorId;
+    }
+
+    /**
+     * Initialize with current active editor state
+     */
+    private _updateFromActiveEditor(): void {
+        if (this._currentEditorId) {
+            const state = this._globalController.getEditorState(this._currentEditorId);
+            this._updateSelectedFeatureDisplay(this._currentEditorId, state.selectionState);
         }
     }
 
-    public updateSelectedFeature(feature: { id?: string | number; properties?: Record<string, unknown>; geometry?: { type: string; coordinates: unknown } }) {
+    /**
+     * Update the properties display based on current selection
+     */
+    private _updateSelectedFeatureDisplay(editorId: string, selectionState?: SelectionState): void {
+        if (!this._view || !selectionState || !selectionState.selectedIds || selectionState.selectedIds.length === 0) {
+            this._clearFeatureDisplay();
+            return;
+        }
+
+        try {
+            const featureCollection = this._globalController.getStateSlice(editorId, 'featureCollection');
+            if (!featureCollection || !Array.isArray(featureCollection.features)) {
+                this._clearFeatureDisplay();
+                return;
+            }
+
+            // Get first selected feature (for now, handle single selection)
+            const selectedIndex = typeof selectionState.selectedIds[0] === 'string' 
+                ? parseInt(selectionState.selectedIds[0], 10)
+                : selectionState.selectedIds[0];
+            const rawFeature = featureCollection.features[selectedIndex];
+
+            if (rawFeature) {
+                // Type assert the feature to access its properties
+                const selectedFeature = rawFeature as { 
+                    id?: string | number; 
+                    properties?: Record<string, unknown>; 
+                    geometry?: { type: string; coordinates: unknown } 
+                };
+                
+                this._view.webview.postMessage({
+                    type: 'featureSelected',
+                    feature: {
+                        id: selectedFeature.id?.toString(),
+                        properties: selectedFeature.properties,
+                        geometry: selectedFeature.geometry
+                    }
+                });
+            } else {
+                this._clearFeatureDisplay();
+            }
+        } catch (error) {
+            console.error('Error updating selected feature display:', error);
+            this._clearFeatureDisplay();
+        }
+    }
+
+    /**
+     * Clear the feature display
+     */
+    private _clearFeatureDisplay(): void {
         if (this._view) {
             this._view.webview.postMessage({
                 type: 'featureSelected',
-                feature: feature
+                feature: null
             });
         }
+    }
+
+    /**
+     * Handle property changes from the webview
+     */
+    private _handlePropertyChange(property: string, value: unknown): void {
+        // TODO: Implement property editing functionality
+        // This would update the feature in the feature collection and trigger
+        // a state update through GlobalController
+        console.log('Property change requested:', property, value);
+    }
+
+    /**
+     * Dispose of the provider
+     */
+    public dispose(): void {
+        this._disposables.forEach(disposable => disposable.dispose());
+        this._disposables = [];
     }
 
     private _getHtmlForWebview(webview: vscode.Webview) {

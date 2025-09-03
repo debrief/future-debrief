@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { MapContainer, TileLayer, GeoJSON, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import './MapComponent.css';
 // Note: Consumer applications need to import 'leaflet/dist/leaflet.css' separately
 
 // Fix for default markers in React Leaflet
@@ -16,6 +17,71 @@ const DefaultIcon = L.icon({
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
+
+/**
+ * Helper function to calculate bounds from GeoJSON features
+ */
+const calculateFeatureBounds = (features: GeoJSONFeature[]): { bounds: L.LatLngBounds; hasValidGeometry: boolean } => {
+  const bounds = L.latLngBounds([]);
+  let hasValidGeometry = false;
+
+  features.forEach(feature => {
+    if (!feature.geometry) return;
+
+    try {
+      switch (feature.geometry.type) {
+        case 'Point': {
+          const coords = feature.geometry.coordinates as [number, number];
+          bounds.extend([coords[1], coords[0]]);
+          hasValidGeometry = true;
+          break;
+        }
+        case 'LineString': {
+          const lineCoords = feature.geometry.coordinates as [number, number][];
+          lineCoords.forEach(coord => bounds.extend([coord[1], coord[0]]));
+          hasValidGeometry = true;
+          break;
+        }
+        case 'MultiLineString': {
+          const multiLineCoords = feature.geometry.coordinates as [number, number][][];
+          multiLineCoords.forEach(line => 
+            line.forEach(coord => bounds.extend([coord[1], coord[0]]))
+          );
+          hasValidGeometry = true;
+          break;
+        }
+        case 'Polygon': {
+          const polyCoords = feature.geometry.coordinates as [number, number][][];
+          if (polyCoords.length > 0) {
+            polyCoords[0].forEach(coord => bounds.extend([coord[1], coord[0]]));
+            hasValidGeometry = true;
+          }
+          break;
+        }
+        case 'MultiPolygon': {
+          const multiPolyCoords = feature.geometry.coordinates as [number, number][][][];
+          multiPolyCoords.forEach(polygon => {
+            if (polygon.length > 0) {
+              polygon[0].forEach(coord => bounds.extend([coord[1], coord[0]]));
+            }
+          });
+          hasValidGeometry = true;
+          break;
+        }
+        case 'MultiPoint': {
+          const multiPointCoords = feature.geometry.coordinates as [number, number][];
+          multiPointCoords.forEach(coord => bounds.extend([coord[1], coord[0]]));
+          hasValidGeometry = true;
+          break;
+        }
+      }
+    } catch (error) {
+      console.warn('Error processing feature geometry for bounds:', error);
+    }
+  });
+
+  return { bounds, hasValidGeometry };
+};
 
 export interface GeoJSONFeature extends GeoJSON.Feature {
   id?: string | number;
@@ -153,13 +219,15 @@ const InteractiveGeoJSON: React.FC<InteractiveGeoJSONProps> = ({
       const baseRadius = isBuoyfield ? 5 : 8;
       
       if (isSelected) {
+        // Create white highlight effect with thick white border
         (layer as L.CircleMarker).setStyle({
           radius: baseRadius + 2,
           fillColor: baseColor,
-          color: '#ff6b35',
-          weight: 4,
+          color: '#ffffff',
+          weight: 5,
           opacity: 1,
-          fillOpacity: 0.8
+          fillOpacity: 0.9,
+          className: 'selected-feature' // Add CSS class for additional styling
         });
       } else {
         (layer as L.CircleMarker).setStyle({
@@ -168,7 +236,8 @@ const InteractiveGeoJSON: React.FC<InteractiveGeoJSONProps> = ({
           color: baseColor,
           weight: 2,
           opacity: 0.8,
-          fillOpacity: 0.7
+          fillOpacity: 0.7,
+          className: ''
         });
       }
     } else {
@@ -179,11 +248,12 @@ const InteractiveGeoJSON: React.FC<InteractiveGeoJSONProps> = ({
       const fillOpacity = props['fill-opacity'] !== undefined ? props['fill-opacity'] : 0.2;
       
       const selectedStyle = {
-        color: '#ff6b35',
-        weight: 4,
+        color: '#ffffff',
+        weight: 5,
         opacity: 1,
-        fillColor: '#ff6b35',
-        fillOpacity: 0.3
+        fillColor: fillColor,
+        fillOpacity: Math.min(fillOpacity + 0.2, 0.8),
+        className: 'selected-feature' // Add CSS class for additional styling
       };
       
       const defaultStyle = {
@@ -437,20 +507,25 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     
     if (selectedFeatures.length === 0) return;
     
-    // Create bounds from selected features
-    const bounds = L.latLngBounds([]);
-    selectedFeatures.forEach(feature => {
-      if (feature.geometry.type === 'Point') {
-        const coords = feature.geometry.coordinates;
-        bounds.extend([coords[1], coords[0]]);
-      }
-      // TODO: Add support for other geometry types if needed
-    });
+    // Use helper function to calculate bounds
+    const { bounds, hasValidGeometry } = calculateFeatureBounds(selectedFeatures);
     
-    if (bounds.isValid()) {
+    if (hasValidGeometry && bounds.isValid()) {
       mapRef.current.fitBounds(bounds, { padding: [20, 20] });
     }
   }, [currentData, selectedFeatureIndices, selectedFeatureIds]);
+
+  // Auto fit bounds when no initial viewport and data is loaded
+  useEffect(() => {
+    if (!initialMapState && currentData && currentData.features.length > 0 && mapRef.current) {
+      // Use helper function to calculate bounds
+      const { bounds, hasValidGeometry } = calculateFeatureBounds(currentData.features);
+
+      if (hasValidGeometry && bounds.isValid()) {
+        mapRef.current.fitBounds(bounds, { padding: [20, 20] });
+      }
+    }
+  }, [currentData, initialMapState]);
 
   // Expose zoom to selection functionality through callback
   // TODO: Fix this pattern - currently disabled due to type incompatibility

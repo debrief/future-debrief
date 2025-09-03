@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://debrief.org/schemas/TimeState.json",
+  "title": "TimeState",
+  "description": "State representing the current time position in a Debrief editor",
+  "type": "object",
+  "properties": {
+    "current": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Current time position as ISO 8601 date-time string"
+    }
+  },
+  "required": ["current"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "current": "2025-09-03T12:00:00Z"
+    }
+  ]
+}

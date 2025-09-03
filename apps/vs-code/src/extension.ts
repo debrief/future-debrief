@@ -1,11 +1,22 @@
 import * as vscode from 'vscode';
-import { PlotJsonEditorProvider } from './plotJsonEditor';
-import { CustomOutlineTreeProvider } from './customOutlineTreeProvider';
-import { DebriefWebSocketServer } from './debriefWebSocketServer';
-import { TimeControllerProvider } from './timeControllerProvider';
-import { DebriefOutlineProvider } from './debriefOutlineProvider';
-import { PropertiesViewProvider } from './propertiesViewProvider';
-import { DebriefStateManager } from './debriefStateManager';
+
+// Core architecture
+import { GlobalController } from './core/globalController';
+import { EditorIdManager } from './core/editorIdManager';
+import { EditorActivationHandler } from './core/editorActivationHandler';
+import { StatePersistence } from './core/statePersistence';
+import { HistoryManager } from './core/historyManager';
+
+// UI Providers
+import { PlotJsonEditorProvider } from './providers/editors/plotJsonEditor';
+import { TimeControllerProvider } from './providers/panels/timeControllerProvider';
+import { DebriefOutlineProvider } from './providers/panels/debriefOutlineProvider';
+import { PropertiesViewProvider } from './providers/panels/propertiesViewProvider';
+import { CustomOutlineTreeProvider } from './providers/outlines/customOutlineTreeProvider';
+
+// External services
+import { DebriefWebSocketServer } from './services/debriefWebSocketServer';
+
 
 class HelloWorldProvider implements vscode.TreeDataProvider<string> {
     getTreeItem(element: string): vscode.TreeItem {
@@ -24,7 +35,10 @@ class HelloWorldProvider implements vscode.TreeDataProvider<string> {
 }
 
 let webSocketServer: DebriefWebSocketServer | null = null;
-let stateManager: DebriefStateManager | null = null;
+let globalController: GlobalController | null = null;
+let activationHandler: EditorActivationHandler | null = null;
+let statePersistence: StatePersistence | null = null;
+let historyManager: HistoryManager | null = null;
 
 // Store references to the Debrief activity panel providers
 let timeControllerProvider: TimeControllerProvider | null = null;
@@ -32,7 +46,7 @@ let debriefOutlineProvider: DebriefOutlineProvider | null = null;
 let propertiesViewProvider: PropertiesViewProvider | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
-    console.log('Codespace Extension is now active!');
+    console.warn('Codespace Extension is now active!');
     
     vscode.window.showInformationMessage('Codespace Extension has been activated successfully!');
 
@@ -76,6 +90,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(outlineTreeView);
 
     // Update outline when active editor changes or document content changes
+    // Note: Active editor handling is now managed by EditorActivationHandler
     context.subscriptions.push(
         vscode.window.onDidChangeActiveTextEditor((editor) => {
             if (editor && editor.document.fileName.endsWith('.plot.json')) {
@@ -91,8 +106,21 @@ export function activate(context: vscode.ExtensionContext) {
             }
         })
     );
+    
+    // Handle document close events for GlobalController cleanup
+    context.subscriptions.push(
+        vscode.workspace.onDidCloseTextDocument((document) => {
+            if (EditorIdManager.isDebriefPlotFile(document)) {
+                const editorId = EditorIdManager.removeDocument(document);
+                if (editorId && globalController) {
+                    globalController.removeEditor(editorId);
+                }
+            }
+        })
+    );
 
     // Initialize with current active editor if it's a .plot.json file
+    // Note: Active editor initialization is now handled by EditorActivationHandler
     const activeEditor = vscode.window.activeTextEditor;
     if (activeEditor && activeEditor.document.fileName.endsWith('.plot.json')) {
         outlineTreeProvider.updateDocument(activeEditor.document);
@@ -102,7 +130,7 @@ export function activate(context: vscode.ExtensionContext) {
     const selectFeatureCommand = vscode.commands.registerCommand(
         'customOutline.selectFeature',
         (featureIndex: number) => {
-            console.log('Feature selected from custom outline:', featureIndex);
+            console.warn('Feature selected from custom outline:', featureIndex);
             
             // Find the active custom editor webview and send highlight message
             vscode.window.tabGroups.all.forEach(tabGroup => {
@@ -122,9 +150,24 @@ export function activate(context: vscode.ExtensionContext) {
     );
     context.subscriptions.push(selectFeatureCommand);
 
-    // Initialize Debrief State Manager
-    stateManager = new DebriefStateManager();
-    context.subscriptions.push(stateManager);
+    // Initialize Global Controller (new centralized state management)
+    globalController = GlobalController.getInstance();
+    context.subscriptions.push(globalController);
+    
+    // Initialize Editor Activation Handler
+    activationHandler = new EditorActivationHandler(globalController);
+    activationHandler.initialize(context);
+    activationHandler.registerCommands(context);
+    context.subscriptions.push(activationHandler);
+    
+    // Initialize State Persistence
+    statePersistence = new StatePersistence(globalController);
+    statePersistence.initialize(context);
+
+    // Initialize History Manager
+    historyManager = new HistoryManager(globalController);
+    historyManager.initialize(context);
+    context.subscriptions.push(historyManager);
 
     // Register Debrief Activity Panel providers
     timeControllerProvider = new TimeControllerProvider(context.extensionUri);
@@ -147,38 +190,15 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.registerWebviewViewProvider(PropertiesViewProvider.viewType, propertiesViewProvider)
     );
 
-    // Connect state manager to the Debrief activity panels
-    stateManager.subscribe((state) => {
-        if (timeControllerProvider) {
-            timeControllerProvider.updateState(state);
-        }
-        if (debriefOutlineProvider) {
-            debriefOutlineProvider.updateState(state);
-        }
-        if (propertiesViewProvider && state.selection) {
-            propertiesViewProvider.updateSelectedFeature(state.selection.feature);
-        }
-    });
+    // Panel connections are handled automatically through GlobalController subscriptions
 
-    // Update state manager when document changes (connect existing outline logic)
-    let lastDocument: vscode.TextDocument | undefined;
-    stateManager.subscribe((_state) => {
-        if (debriefOutlineProvider && stateManager) {
-            const currentDoc = stateManager.getCurrentDocument();
-            if (currentDoc && currentDoc !== lastDocument) {
-                debriefOutlineProvider.updateDocument(currentDoc);
-                lastDocument = currentDoc;
-            }
-        }
-    });
-
-    // Override the feature selection command to work with state manager
+    // Register feature selection command to work with GlobalController
     const debriefSelectFeatureCommand = vscode.commands.registerCommand(
         'debrief.selectFeature',
         (featureIndex: number) => {
-            console.log('Debrief feature selected:', featureIndex);
-            if (stateManager) {
-                stateManager.selectFeature(featureIndex);
+            console.warn('Debrief feature selected:', featureIndex);
+            if (debriefOutlineProvider) {
+                debriefOutlineProvider.selectFeature(featureIndex);
             }
         }
     );
@@ -188,7 +208,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-    console.log('Codespace Extension is now deactivated');
+    console.warn('Codespace Extension is now deactivated');
     
     // Stop WebSocket server
     if (webSocketServer) {
@@ -198,11 +218,46 @@ export function deactivate() {
         webSocketServer = null;
     }
 
-    // Cleanup state manager
-    if (stateManager) {
-        stateManager.dispose();
-        stateManager = null;
+
+    // Cleanup panel providers
+    if (timeControllerProvider) {
+        timeControllerProvider.dispose();
+        timeControllerProvider = null;
     }
+    
+    if (debriefOutlineProvider) {
+        debriefOutlineProvider.dispose();
+        debriefOutlineProvider = null;
+    }
+    
+    if (propertiesViewProvider) {
+        propertiesViewProvider.dispose();
+        propertiesViewProvider = null;
+    }
+
+    // Cleanup state persistence
+    statePersistence = null;
+    
+    // Cleanup history manager
+    if (historyManager) {
+        historyManager.dispose();
+        historyManager = null;
+    }
+    
+    // Cleanup activation handler
+    if (activationHandler) {
+        activationHandler.dispose();
+        activationHandler = null;
+    }
+    
+    // Cleanup GlobalController
+    if (globalController) {
+        globalController.dispose();
+        globalController = null;
+    }
+    
+    // Clear editor ID manager
+    EditorIdManager.clear();
 
     // Clear provider references
     timeControllerProvider = null;

@@ -3,7 +3,7 @@ import * as WebSocket from 'ws';
 import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
-import { PlotJsonEditorProvider } from './plotJsonEditor';
+import { PlotJsonEditorProvider } from '../providers/editors/plotJsonEditor';
 import { validateFeatureCollectionComprehensive, validateFeatureByType, classifyFeature } from '@debrief/shared-types/validators/typescript';
 
 interface GeoJSONFeature {
