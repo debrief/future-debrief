@@ -116,4 +116,3 @@ export class CurrentStateProvider implements vscode.WebviewViewProvider {
     return text;
   }
 }
-}
