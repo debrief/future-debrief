@@ -78,32 +78,15 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
         // Only add command if leaf node
         if (!element.hasChildren()) {
             treeItem.command = {
-                command: 'debrief.toggleFeatureSelection', // new command for multi-select
-                title: 'Toggle Feature Selection',
-                arguments: [element.featureIndex, element.featureId]
+                command: 'debrief.selectFeature',
+                title: 'Select Feature',
+                arguments: [element.featureIndex]
             };
         }
 
         // Add description with feature details
         if (element.featureType) {
             treeItem.description = element.featureType;
-        }
-
-
-        // Support multi-select in the UI
-        if (element.featureId) {
-            treeItem.resourceUri = vscode.Uri.parse(`debrief-feature:${element.featureId}`);
-            treeItem.id = element.featureId;
-        } else if (element.featureIndex === -1 && element.label.startsWith('Features hidden')) {
-            treeItem.resourceUri = vscode.Uri.parse('debrief-feature:hidden-placeholder');
-            treeItem.id = 'placeholder:hidden';
-        } else if (element.featureIndex === -1 && element.label) {
-            // Group node: use group: prefix and label for uniqueness
-            treeItem.resourceUri = vscode.Uri.parse(`debrief-feature:group-${element.label}`);
-            treeItem.id = `group:${element.label}`;
-        } else {
-            treeItem.resourceUri = vscode.Uri.parse(`debrief-feature:${element.featureIndex}`);
-            treeItem.id = element.featureIndex.toString();
         }
 
         return treeItem;
@@ -121,16 +104,11 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
                 if (!featureCollection || !Array.isArray(featureCollection.features)) {
                     return Promise.resolve([]);
                 }
-                if (!this._featuresVisible) {
-                    // If features are hidden, show a single node as a placeholder
-                    return Promise.resolve([
-                        new OutlineItem('Features hidden (toggle to show)', -1, undefined, false, undefined, [])
-                    ]);
-                }
-                // Group features by properties.dataType
-                const groups: { [dataType: string]: OutlineItem[] } = {};
+
+                // Group features by geometry type as an example hierarchy
+                const groups: { [type: string]: OutlineItem[] } = {};
                 featureCollection.features.forEach((feature: unknown, index: number) => {
-                    const f = feature as { id?: string | number; properties?: { name?: string; dataType?: string }; geometry?: { type?: string } };
+                    const f = feature as { id?: string | number; properties?: { [key: string]: string }; geometry?: { type?: string } };
                     const featureName = f.properties?.name || `Feature ${index}`;
                     const dataType = f.properties?.dataType || 'Unknown';
                     const featureType = f.geometry?.type || 'Unknown';
@@ -141,8 +119,8 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
                     groups[dataType].push(item);
                 });
                 // Create group nodes
-                const groupNodes = Object.entries(groups).map(([dataType, children]) =>
-                    new OutlineItem(dataType, -1, undefined, false, undefined, children)
+                const groupNodes = Object.entries(groups).map(([type, children]) =>
+                    new OutlineItem(type, -1, type, false, undefined, children)
                 );
                 return Promise.resolve(groupNodes);
             } catch (error) {
