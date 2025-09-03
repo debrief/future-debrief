@@ -50,7 +50,7 @@ export class GlobalController {
     private _activeEditorId?: string;
     
     // Event system
-    private eventHandlers = new Map<StateEventType, Set<Function>>();
+    private eventHandlers = new Map<StateEventType, Set<StateEventHandler | ActiveEditorChangedHandler>>();
     
     // VS Code event emitter for integration
     private _onDidChangeState = new vscode.EventEmitter<{ editorId: string; eventType: StateEventType; state: EditorState }>();
@@ -76,7 +76,7 @@ export class GlobalController {
     private initializeEventHandlers(): void {
         const eventTypes: StateEventType[] = ['fcChanged', 'timeChanged', 'viewportChanged', 'selectionChanged', 'activeEditorChanged'];
         eventTypes.forEach(eventType => {
-            this.eventHandlers.set(eventType, new Set());
+            this.eventHandlers.set(eventType, new Set<StateEventHandler | ActiveEditorChangedHandler>());
         });
     }
     

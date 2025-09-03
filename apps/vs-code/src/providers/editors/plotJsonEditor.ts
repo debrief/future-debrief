@@ -28,9 +28,6 @@ interface WebviewMessage {
 export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
     private static outlineUpdateCallback: ((document: vscode.TextDocument) => void) | undefined;
     private static activeWebviewPanel: vscode.WebviewPanel | undefined;
-    private static currentSelectionState: { [filename: string]: string[] } = {};
-    private static mapViewState: { [filename: string]: { center: [number, number], zoom: number } } = {};
-    private static wasHidden: { [filename: string]: boolean } = {};
 
     public static setOutlineUpdateCallback(callback: (document: vscode.TextDocument) => void): void {
         PlotJsonEditorProvider.outlineUpdateCallback = callback;
@@ -43,13 +40,34 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
     }
 
     public static getSelectedFeatures(filename: string): string[] {
-        return PlotJsonEditorProvider.currentSelectionState[filename] || [];
+        // Legacy method - find editor and use GlobalController
+        const globalController = GlobalController.getInstance();
+        const editorIds = globalController.getEditorIds();
+        
+        for (const editorId of editorIds) {
+            const document = EditorIdManager.getDocument(editorId);
+            if (document && document.fileName === filename) {
+                const selectionState = globalController.getStateSlice(editorId, 'selectionState');
+                return selectionState?.selectedIds?.map(id => String(id)) || [];
+            }
+        }
+        return [];
     }
 
     public static setSelectedFeatures(filename: string, featureIds: string[]): void {
-        PlotJsonEditorProvider.currentSelectionState[filename] = [...featureIds];
+        // Legacy method - find editor and use GlobalController
+        const globalController = GlobalController.getInstance();
+        const editorIds = globalController.getEditorIds();
         
-        // Convert feature IDs to indices and send to webview
+        for (const editorId of editorIds) {
+            const document = EditorIdManager.getDocument(editorId);
+            if (document && document.fileName === filename) {
+                globalController.updateState(editorId, 'selectionState', { selectedIds: featureIds });
+                break;
+            }
+        }
+        
+        // Send to active webview if it matches
         if (PlotJsonEditorProvider.activeWebviewPanel) {
             PlotJsonEditorProvider.activeWebviewPanel.webview.postMessage({
                 type: 'setSelectionByIds',
@@ -59,11 +77,62 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
     }
 
     public static saveMapViewState(filename: string, center: [number, number], zoom: number): void {
-        PlotJsonEditorProvider.mapViewState[filename] = { center, zoom };
+        // Legacy method - find editor and use GlobalController
+        const globalController = GlobalController.getInstance();
+        const editorIds = globalController.getEditorIds();
+        
+        for (const editorId of editorIds) {
+            const document = EditorIdManager.getDocument(editorId);
+            if (document && document.fileName === filename) {
+                const viewportState = this.convertCenterZoomToBounds(center, zoom);
+                globalController.updateState(editorId, 'viewportState', viewportState);
+                break;
+            }
+        }
     }
 
     public static getMapViewState(filename: string): { center: [number, number], zoom: number } | undefined {
-        return PlotJsonEditorProvider.mapViewState[filename];
+        // Legacy method - find editor and use GlobalController
+        const globalController = GlobalController.getInstance();
+        const editorIds = globalController.getEditorIds();
+        
+        for (const editorId of editorIds) {
+            const document = EditorIdManager.getDocument(editorId);
+            if (document && document.fileName === filename) {
+                const viewportState = globalController.getStateSlice(editorId, 'viewportState');
+                const result = this.convertBoundsToMapState(viewportState?.bounds);
+                return result || undefined;
+            }
+        }
+        return undefined;
+    }
+
+    private static convertCenterZoomToBounds(center: [number, number], zoom: number): { bounds: [number, number, number, number] } {
+        // Convert center/zoom to approximate bounds
+        const latRange = 180 / Math.pow(2, zoom);
+        const lngRange = 360 / Math.pow(2, zoom);
+        
+        return {
+            bounds: [
+                center[1] - lngRange/2,  // west
+                center[0] - latRange/2,  // south  
+                center[1] + lngRange/2,  // east
+                center[0] + latRange/2   // north
+            ]
+        };
+    }
+
+    private static convertBoundsToMapState(bounds?: [number, number, number, number]): { center: [number, number], zoom: number } | null {
+        if (!bounds) return null;
+        
+        const [west, south, east, north] = bounds;
+        const center: [number, number] = [(south + north) / 2, (west + east) / 2];
+        
+        // Approximate zoom from bounds size
+        const latRange = north - south;
+        const zoom = Math.floor(Math.log2(180 / latRange));
+        
+        return { center, zoom: Math.max(1, Math.min(18, zoom)) };
     }
 
     public static register(context: vscode.ExtensionContext): vscode.Disposable {
@@ -114,9 +183,42 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             PlotJsonEditorProvider.outlineUpdateCallback(document);
         }
 
+        // Subscribe to GlobalController state changes for this editor
+        const editorId = EditorIdManager.getEditorId(document);
+        const globalController = GlobalController.getInstance();
+        
+        const stateSubscriptions: vscode.Disposable[] = [];
+
+        // Subscribe to selection changes
+        const selectionSubscription = globalController.on('selectionChanged', (data) => {
+            if (data.editorId === editorId && webviewPanel.visible) {
+                webviewPanel.webview.postMessage({
+                    type: 'setSelectionByIds',
+                    featureIds: data.state.selectionState?.selectedIds || []
+                });
+            }
+        });
+        stateSubscriptions.push(selectionSubscription);
+
+        // Subscribe to viewport changes
+        const viewportSubscription = globalController.on('viewportChanged', (data) => {
+            if (data.editorId === editorId && webviewPanel.visible) {
+                const mapState = this.convertBoundsToMapState(data.state.viewportState?.bounds);
+                if (mapState) {
+                    webviewPanel.webview.postMessage({
+                        type: 'restoreMapState',
+                        center: mapState.center,
+                        zoom: mapState.zoom
+                    });
+                }
+            }
+        });
+        stateSubscriptions.push(viewportSubscription);
+
         // Listen for when this webview panel becomes visible (tab switching)
         webviewPanel.onDidChangeViewState(() => {
-            const filename = document.fileName;
+            const editorId = EditorIdManager.getEditorId(document);
+            const globalController = GlobalController.getInstance();
             
             if (webviewPanel.visible) {
                 PlotJsonEditorProvider.activeWebviewPanel = webviewPanel;
@@ -124,34 +226,10 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
                     PlotJsonEditorProvider.outlineUpdateCallback(document);
                 }
                 
-                // Only restore state and force update if this tab was previously hidden
-                if (PlotJsonEditorProvider.wasHidden[filename]) {
-                    PlotJsonEditorProvider.wasHidden[filename] = false;
-                    
-                    // Send document content when tab becomes visible after being hidden
-                    updateWebview();
-                    
-                    // Restore map state when tab becomes visible after being hidden
-                    const savedState = PlotJsonEditorProvider.getMapViewState(filename);
-                    if (savedState) {
-                        webviewPanel.webview.postMessage({
-                            type: 'restoreMapState',
-                            center: savedState.center,
-                            zoom: savedState.zoom
-                        });
-                    }
-                    
-                    // Restore selection state
-                    const savedSelection = PlotJsonEditorProvider.getSelectedFeatures(filename);
-                    if (savedSelection.length > 0) {
-                        webviewPanel.webview.postMessage({
-                            type: 'setSelectionByIds',
-                            featureIds: savedSelection
-                        });
-                    }
-                }
+                // Editor became visible - sync current state and set as active
+                globalController.setActiveEditor(editorId);
+                this.syncWebviewWithGlobalState(webviewPanel, editorId);
             } else {
-                PlotJsonEditorProvider.wasHidden[filename] = true;
                 // Tab is becoming hidden, request current map state to save it
                 webviewPanel.webview.postMessage({
                     type: 'requestMapState'
@@ -179,10 +257,19 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 
         webviewPanel.onDidDispose(() => {
             changeDocumentSubscription.dispose();
+            
+            // Dispose of state subscriptions
+            stateSubscriptions.forEach(subscription => subscription.dispose());
+            
             // Clear active webview reference if this panel is disposed
             if (PlotJsonEditorProvider.activeWebviewPanel === webviewPanel) {
                 PlotJsonEditorProvider.activeWebviewPanel = undefined;
             }
+            
+            // Remove editor from GlobalController tracking
+            const editorId = EditorIdManager.getEditorId(document);
+            EditorIdManager.removeDocument(document);
+            globalController.removeEditor(editorId);
         });
 
         webviewPanel.webview.onDidReceiveMessage(e => {
@@ -200,32 +287,29 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
                     return;
 
                 case 'selectionChanged': {
-                    // Update selection state when user clicks features in webview
-                    const filename = document.fileName;
-                    PlotJsonEditorProvider.currentSelectionState[filename] = e.selectedFeatureIds;
+                    // Update selection state using GlobalController
+                    const editorId = EditorIdManager.getEditorId(document);
+                    const globalController = GlobalController.getInstance();
+                    const selectionState = { selectedIds: e.selectedFeatureIds };
+                    globalController.updateState(editorId, 'selectionState', selectionState);
                     return;
                 }
 
                 case 'mapStateSaved': {
-                    // Save map view state when requested, but only if this is the active webview
+                    // Save map view state using GlobalController, but only if this is the active webview
                     if (PlotJsonEditorProvider.activeWebviewPanel === webviewPanel) {
-                        const saveFilename = document.fileName;
-                        PlotJsonEditorProvider.saveMapViewState(saveFilename, e.center, e.zoom);
+                        const editorId = EditorIdManager.getEditorId(document);
+                        const globalController = GlobalController.getInstance();
+                        const viewportState = this.convertCenterZoomToBounds(e.center, e.zoom);
+                        globalController.updateState(editorId, 'viewportState', viewportState);
                     }
                     return;
                 }
 
                 case 'requestSavedState': {
-                    // Webview is asking if there's saved state to restore
-                    const requestFilename = document.fileName;
-                    const savedState = PlotJsonEditorProvider.getMapViewState(requestFilename);
-                    if (savedState) {
-                        webviewPanel.webview.postMessage({
-                            type: 'restoreMapState',
-                            center: savedState.center,
-                            zoom: savedState.zoom
-                        });
-                    }
+                    // Webview is asking if there's saved state to restore - use GlobalController
+                    const editorId = EditorIdManager.getEditorId(document);
+                    this.syncWebviewWithGlobalState(webviewPanel, editorId);
                     return;
                 }
             }
@@ -604,6 +688,59 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             JSON.stringify(json, null, 2));
 
         return vscode.workspace.applyEdit(edit);
+    }
+
+    private convertCenterZoomToBounds(center: [number, number], zoom: number): { bounds: [number, number, number, number] } {
+        // Convert center/zoom to approximate bounds
+        const latRange = 180 / Math.pow(2, zoom);
+        const lngRange = 360 / Math.pow(2, zoom);
+        
+        return {
+            bounds: [
+                center[1] - lngRange/2,  // west
+                center[0] - latRange/2,  // south  
+                center[1] + lngRange/2,  // east
+                center[0] + latRange/2   // north
+            ]
+        };
+    }
+
+    private convertBoundsToMapState(bounds?: [number, number, number, number]): { center: [number, number], zoom: number } | null {
+        if (!bounds) return null;
+        
+        const [west, south, east, north] = bounds;
+        const center: [number, number] = [(south + north) / 2, (west + east) / 2];
+        
+        // Approximate zoom from bounds size
+        const latRange = north - south;
+        const zoom = Math.floor(Math.log2(180 / latRange));
+        
+        return { center, zoom: Math.max(1, Math.min(18, zoom)) };
+    }
+
+    private syncWebviewWithGlobalState(webviewPanel: vscode.WebviewPanel, editorId: string): void {
+        const globalController = GlobalController.getInstance();
+        const state = globalController.getEditorState(editorId);
+        
+        // Sync selection
+        if (state.selectionState?.selectedIds) {
+            webviewPanel.webview.postMessage({
+                type: 'setSelectionByIds',
+                featureIds: state.selectionState.selectedIds
+            });
+        }
+        
+        // Sync viewport
+        if (state.viewportState?.bounds) {
+            const mapState = this.convertBoundsToMapState(state.viewportState.bounds);
+            if (mapState) {
+                webviewPanel.webview.postMessage({
+                    type: 'restoreMapState',
+                    center: mapState.center,
+                    zoom: mapState.zoom
+                });
+            }
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { MapContainer, TileLayer, GeoJSON, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import './MapComponent.css';
 // Note: Consumer applications need to import 'leaflet/dist/leaflet.css' separately
 
 // Fix for default markers in React Leaflet
@@ -153,13 +154,15 @@ const InteractiveGeoJSON: React.FC<InteractiveGeoJSONProps> = ({
       const baseRadius = isBuoyfield ? 5 : 8;
       
       if (isSelected) {
+        // Create white highlight effect with thick white border
         (layer as L.CircleMarker).setStyle({
           radius: baseRadius + 2,
           fillColor: baseColor,
-          color: '#ff6b35',
-          weight: 4,
+          color: '#ffffff',
+          weight: 5,
           opacity: 1,
-          fillOpacity: 0.8
+          fillOpacity: 0.9,
+          className: 'selected-feature' // Add CSS class for additional styling
         });
       } else {
         (layer as L.CircleMarker).setStyle({
@@ -168,7 +171,8 @@ const InteractiveGeoJSON: React.FC<InteractiveGeoJSONProps> = ({
           color: baseColor,
           weight: 2,
           opacity: 0.8,
-          fillOpacity: 0.7
+          fillOpacity: 0.7,
+          className: ''
         });
       }
     } else {
@@ -179,11 +183,12 @@ const InteractiveGeoJSON: React.FC<InteractiveGeoJSONProps> = ({
       const fillOpacity = props['fill-opacity'] !== undefined ? props['fill-opacity'] : 0.2;
       
       const selectedStyle = {
-        color: '#ff6b35',
-        weight: 4,
+        color: '#ffffff',
+        weight: 5,
         opacity: 1,
-        fillColor: '#ff6b35',
-        fillOpacity: 0.3
+        fillColor: fillColor,
+        fillOpacity: Math.min(fillOpacity + 0.2, 0.8),
+        className: 'selected-feature' // Add CSS class for additional styling
       };
       
       const defaultStyle = {

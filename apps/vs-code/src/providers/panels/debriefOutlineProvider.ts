@@ -98,12 +98,13 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
 
                 // Create outline items from features
                 const items: OutlineItem[] = featureCollection.features.map((feature: unknown, index: number) => {
-                    const f = feature as { properties?: { name?: string }; geometry?: { type?: string } };
+                    const f = feature as { id?: string | number; properties?: { name?: string }; geometry?: { type?: string } };
                     const featureName = f.properties?.name || `Feature ${index}`;
                     const featureType = f.geometry?.type || 'Unknown';
-                    const isSelected = selectionState?.selectedIds?.includes(index.toString()) || false;
+                    const featureId = f.id !== undefined ? String(f.id) : index.toString();
+                    const isSelected = selectionState?.selectedIds?.includes(featureId) || false;
                     
-                    return new OutlineItem(featureName, index, featureType, isSelected);
+                    return new OutlineItem(featureName, index, featureType, isSelected, featureId);
                 });
 
                 return Promise.resolve(items);
@@ -120,10 +121,17 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
      */
     public selectFeature(featureIndex: number): void {
         if (this._currentEditorId) {
-            const selectionState: SelectionState = {
-                selectedIds: [featureIndex.toString()]
-            };
-            this._globalController.updateState(this._currentEditorId, 'selectionState', selectionState);
+            // Get the feature collection to find the actual feature ID
+            const featureCollection = this._globalController.getStateSlice(this._currentEditorId, 'featureCollection');
+            if (featureCollection && featureCollection.features && featureCollection.features[featureIndex]) {
+                const feature = featureCollection.features[featureIndex] as { id?: string | number };
+                const featureId = feature.id !== undefined ? String(feature.id) : featureIndex.toString();
+                
+                const selectionState: SelectionState = {
+                    selectedIds: [featureId]
+                };
+                this._globalController.updateState(this._currentEditorId, 'selectionState', selectionState);
+            }
         }
     }
 
@@ -141,6 +149,7 @@ class OutlineItem {
         public readonly label: string,
         public readonly featureIndex: number,
         public readonly featureType?: string,
-        public readonly isSelected = false
+        public readonly isSelected = false,
+        public readonly featureId?: string
     ) {}
 }
