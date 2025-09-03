@@ -135,7 +135,22 @@ export class GlobalController {
         const currentState = this.editorStates.get(editorId)!;
         
         // Update the specific slice
-        (currentState as any)[sliceType] = payload;
+        switch (sliceType) {
+            case 'featureCollection':
+                currentState.featureCollection = payload as EditorState['featureCollection'];
+                break;
+            case 'timeState':
+                currentState.timeState = payload as TimeState;
+                break;
+            case 'viewportState':
+                currentState.viewportState = payload as ViewportState;
+                break;
+            case 'selectionState':
+                currentState.selectionState = payload as SelectionState;
+                break;
+            default:
+                throw new Error(`Unknown slice type: ${sliceType}`);
+        }
         
         // Determine event type based on slice type
         const eventType = this.getEventTypeForSlice(sliceType);
@@ -159,8 +174,24 @@ export class GlobalController {
         // Apply all updates
         Object.entries(updates).forEach(([sliceType, payload]) => {
             if (payload !== undefined) {
-                (currentState as any)[sliceType] = payload;
-                eventTypes.add(this.getEventTypeForSlice(sliceType as StateSliceType));
+                const sliceKey = sliceType as StateSliceType;
+                switch (sliceKey) {
+                    case 'featureCollection':
+                        currentState.featureCollection = payload as EditorState['featureCollection'];
+                        break;
+                    case 'timeState':
+                        currentState.timeState = payload as TimeState;
+                        break;
+                    case 'viewportState':
+                        currentState.viewportState = payload as ViewportState;
+                        break;
+                    case 'selectionState':
+                        currentState.selectionState = payload as SelectionState;
+                        break;
+                    default:
+                        throw new Error(`Unknown slice type: ${sliceKey}`);
+                }
+                eventTypes.add(this.getEventTypeForSlice(sliceKey));
             }
         });
         

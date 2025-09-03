@@ -1,15 +1,23 @@
 import * as vscode from 'vscode';
-import { PlotJsonEditorProvider } from './plotJsonEditor';
-import { CustomOutlineTreeProvider } from './customOutlineTreeProvider';
-import { DebriefWebSocketServer } from './debriefWebSocketServer';
-import { TimeControllerProvider } from './timeControllerProvider';
-import { DebriefOutlineProvider } from './debriefOutlineProvider';
-import { PropertiesViewProvider } from './propertiesViewProvider';
-import { DebriefStateManager } from './debriefStateManager';
-import { GlobalController } from './globalController';
-import { EditorIdManager } from './editorIdManager';
-import { EditorActivationHandler } from './editorActivationHandler';
-import { StatePersistence } from './statePersistence';
+
+// Core architecture
+import { GlobalController } from './core/globalController';
+import { EditorIdManager } from './core/editorIdManager';
+import { EditorActivationHandler } from './core/editorActivationHandler';
+import { StatePersistence } from './core/statePersistence';
+
+// UI Providers
+import { PlotJsonEditorProvider } from './providers/editors/plotJsonEditor';
+import { TimeControllerProvider } from './providers/panels/timeControllerProvider';
+import { DebriefOutlineProvider } from './providers/panels/debriefOutlineProvider';
+import { PropertiesViewProvider } from './providers/panels/propertiesViewProvider';
+import { CustomOutlineTreeProvider } from './providers/outlines/customOutlineTreeProvider';
+
+// External services
+import { DebriefWebSocketServer } from './services/debriefWebSocketServer';
+
+// Legacy (to be removed)
+import { DebriefStateManager } from './legacy/debriefStateManager';
 
 class HelloWorldProvider implements vscode.TreeDataProvider<string> {
     getTreeItem(element: string): vscode.TreeItem {
