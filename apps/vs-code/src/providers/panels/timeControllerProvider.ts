@@ -1,13 +1,19 @@
 import * as vscode from 'vscode';
+import { GlobalController } from '../../core/globalController';
+import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
 
 export class TimeControllerProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'debrief.timeController';
 
     private _view?: vscode.WebviewView;
+    private _globalController: GlobalController;
+    private _disposables: vscode.Disposable[] = [];
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
-    ) { }
+    ) {
+        this._globalController = GlobalController.getInstance();
+    }
 
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
@@ -25,22 +31,110 @@ export class TimeControllerProvider implements vscode.WebviewViewProvider {
 
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
 
+        // Handle messages from webview
         webviewView.webview.onDidReceiveMessage(data => {
             switch (data.type) {
                 case 'timeChange':
-                    console.log('Time changed to:', data.value);
+                    this._handleTimeChange(data.value);
+                    break;
+                case 'play':
+                    // TODO: Handle play functionality
+                    break;
+                case 'pause':
+                    // TODO: Handle pause functionality  
+                    break;
+                case 'stop':
+                    this._handleStop();
                     break;
             }
         });
+
+        // Subscribe to GlobalController events
+        this._setupGlobalControllerSubscriptions();
+
+        // Initialize with current active editor state
+        this._updateFromActiveEditor();
     }
 
-    public updateState(state: { time?: number; [key: string]: unknown }) {
+    /**
+     * Setup subscriptions to GlobalController events
+     */
+    private _setupGlobalControllerSubscriptions(): void {
+        // Subscribe to time changes
+        const timeSubscription = this._globalController.on('timeChanged', (data) => {
+            this._updateTimeDisplay(data.state.timeState);
+        });
+        this._disposables.push(timeSubscription);
+
+        // Subscribe to active editor changes
+        const activeEditorSubscription = this._globalController.on('activeEditorChanged', (data) => {
+            if (data.currentEditorId) {
+                const state = this._globalController.getEditorState(data.currentEditorId);
+                this._updateTimeDisplay(state.timeState);
+            } else {
+                this._updateTimeDisplay(undefined);
+            }
+        });
+        this._disposables.push(activeEditorSubscription);
+    }
+
+    /**
+     * Update the webview with current time state
+     */
+    private _updateTimeDisplay(timeState?: TimeState): void {
         if (this._view) {
             this._view.webview.postMessage({
                 type: 'stateUpdate',
-                state: state
+                state: {
+                    time: timeState?.current ? new Date(timeState.current).getTime() / 1000 : undefined
+                }
             });
         }
+    }
+
+    /**
+     * Initialize with current active editor state
+     */
+    private _updateFromActiveEditor(): void {
+        const activeEditorId = this._globalController.activeEditorId;
+        if (activeEditorId) {
+            const timeState = this._globalController.getStateSlice(activeEditorId, 'timeState');
+            this._updateTimeDisplay(timeState);
+        }
+    }
+
+    /**
+     * Handle time change from webview
+     */
+    private _handleTimeChange(timeValue: number): void {
+        const activeEditorId = this._globalController.activeEditorId;
+        if (activeEditorId) {
+            const timeState: TimeState = {
+                current: new Date(timeValue * 1000).toISOString()
+            };
+            this._globalController.updateState(activeEditorId, 'timeState', timeState);
+        }
+    }
+
+    /**
+     * Handle stop action
+     */
+    private _handleStop(): void {
+        const activeEditorId = this._globalController.activeEditorId;
+        if (activeEditorId) {
+            const timeState: TimeState = {
+                current: new Date(0).toISOString() // Reset to epoch
+            };
+            this._globalController.updateState(activeEditorId, 'timeState', timeState);
+        }
+    }
+
+    /**
+     * Dispose of the provider
+     */
+    public dispose(): void {
+        this._disposables.forEach(disposable => disposable.dispose());
+        this._disposables = [];
     }
 
     private _getHtmlForWebview(webview: vscode.Webview) {
@@ -147,6 +241,11 @@ export class TimeControllerProvider implements vscode.WebviewViewProvider {
                                 if (message.state.time !== undefined) {
                                     currentTime = message.state.time;
                                     timeSlider.value = currentTime.toString();
+                                    updateTimeDisplay();
+                                } else {
+                                    // Reset to default if no time state
+                                    currentTime = 0;
+                                    timeSlider.value = '0';
                                     updateTimeDisplay();
                                 }
                                 break;

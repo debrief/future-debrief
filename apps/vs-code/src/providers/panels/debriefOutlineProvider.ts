@@ -1,24 +1,53 @@
 import * as vscode from 'vscode';
+import { GlobalController } from '../../core/globalController';
+import { SelectionState } from '@debrief/shared-types/derived/typescript/selectionstate';
 
 export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<OutlineItem | undefined | null | void> = new vscode.EventEmitter<OutlineItem | undefined | null | void>();
     readonly onDidChangeTreeData: vscode.Event<OutlineItem | undefined | null | void> = this._onDidChangeTreeData.event;
 
-    private currentDocument: vscode.TextDocument | undefined;
-    private currentState: { selection?: { featureIndex: number } } = {};
+    private _globalController: GlobalController;
+    private _disposables: vscode.Disposable[] = [];
+    private _currentEditorId?: string;
+
+    constructor() {
+        this._globalController = GlobalController.getInstance();
+        this._setupGlobalControllerSubscriptions();
+    }
+
+    /**
+     * Setup subscriptions to GlobalController events
+     */
+    private _setupGlobalControllerSubscriptions(): void {
+        // Subscribe to feature collection changes
+        const fcSubscription = this._globalController.on('fcChanged', (data) => {
+            if (data.editorId === this._currentEditorId) {
+                this.refresh();
+            }
+        });
+        this._disposables.push(fcSubscription);
+
+        // Subscribe to selection changes
+        const selectionSubscription = this._globalController.on('selectionChanged', (data) => {
+            if (data.editorId === this._currentEditorId) {
+                this.refresh();
+            }
+        });
+        this._disposables.push(selectionSubscription);
+
+        // Subscribe to active editor changes
+        const activeEditorSubscription = this._globalController.on('activeEditorChanged', (data) => {
+            this._currentEditorId = data.currentEditorId;
+            this.refresh();
+        });
+        this._disposables.push(activeEditorSubscription);
+
+        // Initialize with current active editor
+        this._currentEditorId = this._globalController.activeEditorId;
+    }
 
     refresh(): void {
         this._onDidChangeTreeData.fire();
-    }
-
-    updateDocument(document: vscode.TextDocument): void {
-        this.currentDocument = document;
-        this.refresh();
-    }
-
-    updateState(state: { selection?: { featureIndex: number } }): void {
-        this.currentState = { ...this.currentState, ...state };
-        this.refresh();
     }
 
     getTreeItem(element: OutlineItem): vscode.TreeItem {
@@ -49,39 +78,56 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
 
     getChildren(element?: OutlineItem): Thenable<OutlineItem[]> {
         if (!element) {
-            if (!this.currentDocument) {
+            if (!this._currentEditorId) {
                 return Promise.resolve([]);
             }
 
             try {
-                const text = this.currentDocument.getText();
-                if (text.trim().length === 0) {
-                    return Promise.resolve([]);
-                }
-
-                const geoJson = JSON.parse(text);
+                // Get feature collection from GlobalController
+                const featureCollection = this._globalController.getStateSlice(this._currentEditorId, 'featureCollection');
+                const selectionState = this._globalController.getStateSlice(this._currentEditorId, 'selectionState');
                 
-                // Validate GeoJSON FeatureCollection
-                if (geoJson.type !== 'FeatureCollection' || !Array.isArray(geoJson.features)) {
+                if (!featureCollection || !Array.isArray(featureCollection.features)) {
                     return Promise.resolve([]);
                 }
 
                 // Create outline items from features
-                const items: OutlineItem[] = geoJson.features.map((feature: { properties?: { name?: string }; geometry?: { type?: string } }, index: number) => {
-                    const featureName = feature.properties?.name || `Feature ${index}`;
-                    const featureType = feature.geometry?.type || 'Unknown';
-                    const isSelected = this.currentState.selection?.featureIndex === index;
+                const items: OutlineItem[] = featureCollection.features.map((feature: unknown, index: number) => {
+                    const f = feature as { properties?: { name?: string }; geometry?: { type?: string } };
+                    const featureName = f.properties?.name || `Feature ${index}`;
+                    const featureType = f.geometry?.type || 'Unknown';
+                    const isSelected = selectionState?.selectedIds?.includes(index.toString()) || false;
                     
                     return new OutlineItem(featureName, index, featureType, isSelected);
                 });
 
                 return Promise.resolve(items);
             } catch (error) {
-                console.error('Error parsing GeoJSON for debrief outline:', error);
+                console.error('Error creating debrief outline items:', error);
                 return Promise.resolve([]);
             }
         }
         return Promise.resolve([]);
+    }
+
+    /**
+     * Handle feature selection from the outline
+     */
+    public selectFeature(featureIndex: number): void {
+        if (this._currentEditorId) {
+            const selectionState: SelectionState = {
+                selectedIds: [featureIndex.toString()]
+            };
+            this._globalController.updateState(this._currentEditorId, 'selectionState', selectionState);
+        }
+    }
+
+    /**
+     * Dispose of the provider
+     */
+    public dispose(): void {
+        this._disposables.forEach(disposable => disposable.dispose());
+        this._disposables = [];
     }
 }
 
