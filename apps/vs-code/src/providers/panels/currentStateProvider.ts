@@ -79,7 +79,7 @@ export class CurrentStateProvider implements vscode.WebviewViewProvider {
         <meta charset="UTF-8">
         <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' ${this._view?.webview.cspSource}; script-src 'nonce-${nonce}';">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Current State</title>
+        <title>Current State (debug)</title>
         <style>
           body { font-family: var(--vscode-font-family, sans-serif); margin: 0; padding: 0; }
         </style>
