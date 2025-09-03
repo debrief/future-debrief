@@ -48,6 +48,55 @@
 - **UI**: Leaflet map + feature list with bidirectional selection
 - **File Association**: `.plot.json` files automatically open in custom editor
 - **Error Handling**: Detailed validation errors with feature-level diagnostics
+
+### Centralized State Management - Issue #33 ✅ (In Progress)
+**Decision**: Implement GlobalController singleton for centralized application state
+- **Problem**: State scattered across components (PlotJsonEditor static state, React component state, panel state)
+- **Solution**: Single source of truth with event-driven updates and editor lifecycle management
+
+#### Architecture Components:
+1. **GlobalController** (`apps/vs-code/src/globalController.ts`)
+   - Singleton pattern with `editorId → EditorState` mapping
+   - Event system: `fcChanged`, `timeChanged`, `viewportChanged`, `selectionChanged`, `activeEditorChanged`
+   - API: `getStateSlice()`, `updateState()`, `on()` subscription system
+   - Active editor tracking with panel attachment persistence
+
+2. **EditorIdManager** (`apps/vs-code/src/editorIdManager.ts`) 
+   - Maps VS Code TextDocument instances to stable editor IDs
+   - Pattern: `debrief-{fileName}-{incrementalId}`
+   - Handles document lifecycle and cleanup
+
+3. **EditorActivationHandler** (`apps/vs-code/src/editorActivationHandler.ts`)
+   - Sophisticated editor focus event handling
+   - Webview tab switching detection
+   - Panel attachment to last active Debrief editor
+   - Custom editor focus/blur events
+
+4. **StatePersistence** (`apps/vs-code/src/statePersistence.ts`)
+   - FeatureCollection metadata injection/extraction
+   - TimeState/ViewportState stored as invisible features
+   - Selection state remains ephemeral (not persisted)
+   - VS Code document lifecycle integration
+
+#### State Schema System:
+- **JSON Schemas**: `libs/shared-types/schemas/` (TimeState.json, ViewportState.json, SelectionState.json, EditorState.json)
+- **Generated Types**: TypeScript interfaces + Python dataclasses via existing build system
+- **Code Generation**: Extended existing `pnpm build:types` to include state schemas
+
+#### Migration Strategy:
+- **Phase 1**: ✅ Audit existing state management patterns
+- **Phase 2**: ✅ Schema definition and code generation setup
+- **Phase 3**: ✅ GlobalController implementation and activation handling  
+- **Phase 4**: ✅ State persistence with FeatureCollection integration
+- **Phase 5**: 🔄 Panel refactoring to use GlobalController
+- **Phase 6**: 📋 Legacy state management removal
+- **Phase 7**: 📋 Undo/redo integration
+
+#### Current Status:
+- Core architecture complete and tested (TypeScript compilation passes)
+- Ready for panel integration and legacy code removal
+- Maintains backward compatibility during migration
+- State persistence working with metadata feature injection
 - **Key Files**: 
   - `apps/vs-code/src/plotJsonEditor.ts`
   - `apps/vs-code/src/customOutlineTreeProvider.ts`

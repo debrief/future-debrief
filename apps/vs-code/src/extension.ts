@@ -6,6 +6,10 @@ import { TimeControllerProvider } from './timeControllerProvider';
 import { DebriefOutlineProvider } from './debriefOutlineProvider';
 import { PropertiesViewProvider } from './propertiesViewProvider';
 import { DebriefStateManager } from './debriefStateManager';
+import { GlobalController } from './globalController';
+import { EditorIdManager } from './editorIdManager';
+import { EditorActivationHandler } from './editorActivationHandler';
+import { StatePersistence } from './statePersistence';
 
 class HelloWorldProvider implements vscode.TreeDataProvider<string> {
     getTreeItem(element: string): vscode.TreeItem {
@@ -25,6 +29,9 @@ class HelloWorldProvider implements vscode.TreeDataProvider<string> {
 
 let webSocketServer: DebriefWebSocketServer | null = null;
 let stateManager: DebriefStateManager | null = null;
+let globalController: GlobalController | null = null;
+let activationHandler: EditorActivationHandler | null = null;
+let statePersistence: StatePersistence | null = null;
 
 // Store references to the Debrief activity panel providers
 let timeControllerProvider: TimeControllerProvider | null = null;
@@ -76,6 +83,7 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(outlineTreeView);
 
     // Update outline when active editor changes or document content changes
+    // Note: Active editor handling is now managed by EditorActivationHandler
     context.subscriptions.push(
         vscode.window.onDidChangeActiveTextEditor((editor) => {
             if (editor && editor.document.fileName.endsWith('.plot.json')) {
@@ -91,8 +99,21 @@ export function activate(context: vscode.ExtensionContext) {
             }
         })
     );
+    
+    // Handle document close events for GlobalController cleanup
+    context.subscriptions.push(
+        vscode.workspace.onDidCloseTextDocument((document) => {
+            if (EditorIdManager.isDebriefPlotFile(document)) {
+                const editorId = EditorIdManager.removeDocument(document);
+                if (editorId && globalController) {
+                    globalController.removeEditor(editorId);
+                }
+            }
+        })
+    );
 
     // Initialize with current active editor if it's a .plot.json file
+    // Note: Active editor initialization is now handled by EditorActivationHandler
     const activeEditor = vscode.window.activeTextEditor;
     if (activeEditor && activeEditor.document.fileName.endsWith('.plot.json')) {
         outlineTreeProvider.updateDocument(activeEditor.document);
@@ -122,7 +143,21 @@ export function activate(context: vscode.ExtensionContext) {
     );
     context.subscriptions.push(selectFeatureCommand);
 
-    // Initialize Debrief State Manager
+    // Initialize Global Controller (new centralized state management)
+    globalController = GlobalController.getInstance();
+    context.subscriptions.push(globalController);
+    
+    // Initialize Editor Activation Handler
+    activationHandler = new EditorActivationHandler(globalController);
+    activationHandler.initialize(context);
+    activationHandler.registerCommands(context);
+    context.subscriptions.push(activationHandler);
+    
+    // Initialize State Persistence
+    statePersistence = new StatePersistence(globalController);
+    statePersistence.initialize(context);
+
+    // Initialize Debrief State Manager (legacy - to be phased out)
     stateManager = new DebriefStateManager();
     context.subscriptions.push(stateManager);
 
@@ -203,6 +238,24 @@ export function deactivate() {
         stateManager.dispose();
         stateManager = null;
     }
+
+    // Cleanup state persistence
+    statePersistence = null;
+    
+    // Cleanup activation handler
+    if (activationHandler) {
+        activationHandler.dispose();
+        activationHandler = null;
+    }
+    
+    // Cleanup GlobalController
+    if (globalController) {
+        globalController.dispose();
+        globalController = null;
+    }
+    
+    // Clear editor ID manager
+    EditorIdManager.clear();
 
     // Clear provider references
     timeControllerProvider = null;
