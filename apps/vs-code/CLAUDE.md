@@ -68,11 +68,27 @@ Navigate to `workspace/tests/` and run:
 
 ```
 src/
-├── extension.ts                    # Main extension entry point
-├── debriefWebSocketServer.ts      # WebSocket bridge for Python integration
-├── plotJsonEditor.ts              # Custom editor for .plot.json files
-├── customOutlineTreeProvider.ts   # Tree view for GeoJSON features
-└── geoJsonOutlineProvider.ts      # Base outline provider
+├── core/                          # Core architecture
+│   ├── globalController.ts        # Centralized state management
+│   ├── editorIdManager.ts         # Document-to-ID mapping
+│   ├── editorActivationHandler.ts # Focus/activation handling
+│   ├── statePersistence.ts        # FeatureCollection persistence
+│   └── index.ts                   # Core module exports
+├── providers/                     # VS Code UI providers
+│   ├── editors/
+│   │   └── plotJsonEditor.ts      # Custom .plot.json editor
+│   ├── panels/
+│   │   ├── timeControllerProvider.ts
+│   │   ├── propertiesViewProvider.ts
+│   │   └── debriefOutlineProvider.ts
+│   └── outlines/
+│       ├── customOutlineTreeProvider.ts
+│       └── geoJsonOutlineProvider.ts
+├── services/                      # External integrations
+│   └── debriefWebSocketServer.ts  # WebSocket bridge for Python
+├── legacy/                        # Legacy code (to be removed)
+│   └── debriefStateManager.ts     # Old state system
+└── extension.ts                   # Main extension entry point
 ```
 
 ### WebSocket Protocol
