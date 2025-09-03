@@ -9,7 +9,7 @@ This extension provides comprehensive maritime analysis capabilities:
 - **Plot JSON Editor**: Custom webview editor for `.plot.json` files with interactive Leaflet map
 - **GeoJSON Outline View**: Tree view showing features from plot files with bidirectional selection
 - **WebSocket Bridge**: Python integration on localhost:60123 for external tool communication
-- **Debrief Activity Panel**: Dedicated activity bar with TimeController, Outline, and PropertiesView
+- **Debrief Activity Panel**: Dedicated activity bar with TimeController, Outline, and PropertiesView, and State Monitor
 - **Feature Validation**: Comprehensive validation using shared JSON Schema types
 
 ## Development Setup
