@@ -1,0 +1,20 @@
+.current-state-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+.current-state-table th, .current-state-table td {
+  border: 1px solid #ddd;
+  padding: 6px 10px;
+  text-align: left;
+}
+.current-state-table th {
+  background: #f4f4f4;
+}
+.current-state-table tr:nth-child(even) {
+  background: #fafafa;
+}
+.current-state-table .highlight {
+  background: #fff7c0 !important;
+  transition: background 0.2s;
+}
