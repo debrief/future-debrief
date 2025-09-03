@@ -7,12 +7,27 @@
             "command": "bash",
             "args": [
                 "-c",
-                "source $NVM_DIR/nvm.sh && nvm use && cd ../../ && pnpm run build:shared-types && pnpm run build:web-components && cd apps/vs-code && pnpm compile"
+                "cd '${workspaceFolder}' && source $NVM_DIR/nvm.sh && nvm use && cd ../../ && pnpm turbo run build"
             ],
             "group": "build",
             "presentation": {
                 "panel": "shared",
                 "reveal": "silent"
+            },
+            "problemMatcher": "$tsc"
+        },
+        {
+            "label": "extension-only-compile",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "cd '${workspaceFolder}' && source $NVM_DIR/nvm.sh && nvm use && pwd && echo 'Current directory contents:' && ls -la src/propertiesViewProvider.ts && echo 'Cleaning and compiling extension only...' && rm -rf dist/* && pnpm compile && echo 'Checking compiled file...' && grep -n GOLF dist/extension.js && echo 'Extension compiled successfully'"
+            ],
+            "group": "build",
+            "presentation": {
+                "panel": "shared",
+                "reveal": "always"
             },
             "problemMatcher": "$tsc"
         },

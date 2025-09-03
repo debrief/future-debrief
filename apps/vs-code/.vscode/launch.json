@@ -15,6 +15,19 @@
             ]
         },
         {
+            "name": "Develop VS Code Extension (extension only)",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}",
+                "--folder-uri=file://${workspaceFolder}/workspace"
+            ],
+            "preLaunchTask": "extension-only-compile",
+            "outFiles": [
+                "${workspaceFolder}/dist/**/*.js"
+            ]
+        },
+        {
             "name": "Extension Tests",
             "type": "extensionHost",
             "request": "launch",
