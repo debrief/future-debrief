@@ -104,11 +104,10 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
                 if (!featureCollection || !Array.isArray(featureCollection.features)) {
                     return Promise.resolve([]);
                 }
-
-                // Group features by geometry type as an example hierarchy
-                const groups: { [type: string]: OutlineItem[] } = {};
+                // Group features by properties.dataType
+                const groups: { [dataType: string]: OutlineItem[] } = {};
                 featureCollection.features.forEach((feature: unknown, index: number) => {
-                    const f = feature as { id?: string | number; properties?: { [key: string]: string }; geometry?: { type?: string } };
+                    const f = feature as { id?: string | number; properties?: { name?: string; dataType?: string }; geometry?: { type?: string } };
                     const featureName = f.properties?.name || `Feature ${index}`;
                     const dataType = f.properties?.dataType || 'Unknown';
                     const featureType = f.geometry?.type || 'Unknown';
@@ -119,8 +118,8 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
                     groups[dataType].push(item);
                 });
                 // Create group nodes
-                const groupNodes = Object.entries(groups).map(([type, children]) =>
-                    new OutlineItem(type, -1, type, false, undefined, children)
+                const groupNodes = Object.entries(groups).map(([dataType, children]) =>
+                    new OutlineItem(dataType, -1, undefined, false, undefined, children)
                 );
                 return Promise.resolve(groupNodes);
             } catch (error) {
