@@ -1,7 +1,5 @@
+
 import * as vscode from 'vscode';
-import * as React from 'react';
-import { renderToString } from 'react-dom/server';
-import { CurrentStateTable, EditorStateRow } from '@debrief/web-components';
 import { GlobalController } from '../../core/globalController';
 
 export class CurrentStateProvider implements vscode.WebviewViewProvider {
@@ -38,9 +36,8 @@ export class CurrentStateProvider implements vscode.WebviewViewProvider {
     this._view.webview.html = html;
   }
 
-  private _getEditorStates(): EditorStateRow[] {
-    // TODO: Replace with real state from globalController
-    const editors = this._globalController.getAllEditorIds();
+  private _getEditorStates() {
+    const editors = this._globalController.getEditorIds();
     return editors.map((editorId: string) => {
       const filename = this._globalController.getEditorFilename(editorId) || '';
       const timeState = this._globalController.getStateSlice(editorId, 'timeState') || '';
@@ -65,24 +62,58 @@ export class CurrentStateProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  private _renderTable(data: EditorStateRow[]): string {
-    // Render the React table to static HTML for the webview
-    const table = React.createElement(CurrentStateTable, { data });
-    const tableHtml = renderToString(table);
-    return `
-      <html>
-        <head>
-          <style>
-            body { font-family: var(--vscode-font-family, sans-serif); margin: 0; padding: 0; }
-            table { width: 100%; border-collapse: collapse; }
-            th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; }
-            th { background: #f4f4f4; }
-            tr:nth-child(even) { background: #fafafa; }
-            .highlight { background: #fff7c0 !important; transition: background 0.2s; }
-          </style>
-        </head>
-        <body>${tableHtml}</body>
-      </html>
-    `;
+  private _renderTable(data: any[]): string {
+    // Use the vanilla web-components bundle and custom element
+    const nonce = this._getNonce();
+    const extensionUri = (this._view as any)?.webview?.asWebviewUri
+      ? (this._view as any).webview.asWebviewUri
+      : (uri: any) => uri;
+    const webComponentsScriptUri = extensionUri(
+      vscode.Uri.joinPath(
+        (vscode.extensions.getExtension('ian.vs-code')?.extensionUri || vscode.Uri.file('.')),
+        'node_modules', '@debrief', 'web-components', 'dist', 'vanilla', 'index.js')
+    );
+    return `<!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' ${this._view?.webview.cspSource}; script-src 'nonce-${nonce}';">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Current State</title>
+        <style>
+          body { font-family: var(--vscode-font-family, sans-serif); margin: 0; padding: 0; }
+        </style>
+      </head>
+      <body>
+        <current-state-table id="current-state-table"></current-state-table>
+        <script nonce="${nonce}" src="${webComponentsScriptUri}"></script>
+        <script nonce="${nonce}">
+          const data = ${JSON.stringify(data)};
+          function setTableData() {
+            const table = document.getElementById('current-state-table');
+            if (table && typeof table.setData === 'function') {
+              table.setData(data);
+            } else if (table) {
+              table.data = data;
+            }
+          }
+          if (window.customElements && customElements.get('current-state-table')) {
+            setTableData();
+          } else {
+            customElements.whenDefined('current-state-table').then(setTableData);
+          }
+        </script>
+      </body>
+      </html>`;
   }
+
+  private _getNonce() {
+    let text = '';
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < 32; i++) {
+      text += possible.charAt(Math.floor(Math.random() * possible.length));
+    }
+    return text;
+  }
+}
 }
