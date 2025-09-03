@@ -138,12 +138,20 @@ export class StatePersistence {
             
             // Update GlobalController with all state
             // Note: If no viewport state exists, leave it undefined so map can fitBounds()
-            this.globalController.updateMultipleStates(editorId, {
+            const stateUpdates: Record<string, unknown> = {
                 featureCollection: cleanFeatureCollection,
-                timeState: extractedState.timeState,
-                viewportState: extractedState.viewportState, // undefined if no saved viewport
                 selectionState: { selectedIds: [] } // Selection is always empty on load
-            });
+            };
+            
+            // Only add timeState and viewportState if they're defined
+            if (extractedState.timeState) {
+                stateUpdates.timeState = extractedState.timeState;
+            }
+            if (extractedState.viewportState) {
+                stateUpdates.viewportState = extractedState.viewportState;
+            }
+            
+            this.globalController.updateMultipleStates(editorId, stateUpdates);
             
             console.log(`Loaded state for editor ${editorId}: ${dataFeatures.length} features, ` +
                        `${extractedState.timeState ? 'time' : 'no time'}, ` +

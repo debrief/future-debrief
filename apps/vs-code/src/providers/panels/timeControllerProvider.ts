@@ -8,6 +8,8 @@ export class TimeControllerProvider implements vscode.WebviewViewProvider {
     private _view?: vscode.WebviewView;
     private _globalController: GlobalController;
     private _disposables: vscode.Disposable[] = [];
+    private _lastTimeString?: string;
+    private _cachedTimestamp?: number;
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
@@ -83,10 +85,26 @@ export class TimeControllerProvider implements vscode.WebviewViewProvider {
      */
     private _updateTimeDisplay(timeState?: TimeState): void {
         if (this._view) {
+            let timestamp: number | undefined;
+            
+            if (timeState?.current) {
+                // Cache timestamp to avoid repeated Date parsing
+                if (this._lastTimeString !== timeState.current) {
+                    this._lastTimeString = timeState.current;
+                    this._cachedTimestamp = new Date(timeState.current).getTime() / 1000;
+                }
+                timestamp = this._cachedTimestamp;
+            } else {
+                // Clear cache when no time state
+                this._lastTimeString = undefined;
+                this._cachedTimestamp = undefined;
+                timestamp = undefined;
+            }
+            
             this._view.webview.postMessage({
                 type: 'stateUpdate',
                 state: {
-                    time: timeState?.current ? new Date(timeState.current).getTime() / 1000 : undefined
+                    time: timestamp
                 }
             });
         }

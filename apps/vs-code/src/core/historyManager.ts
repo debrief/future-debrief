@@ -237,7 +237,12 @@ export class HistoryManager {
      * Deep clone state to avoid reference issues
      */
     private deepCloneState(state: EditorState): EditorState {
-        return JSON.parse(JSON.stringify(state));
+        // Use structuredClone if available (Node 17+), otherwise fall back to JSON method
+        if (typeof structuredClone === 'function') {
+            return structuredClone(state);
+        } else {
+            return JSON.parse(JSON.stringify(state));
+        }
     }
     
     /**

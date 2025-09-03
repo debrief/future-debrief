@@ -84,7 +84,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         for (const editorId of editorIds) {
             const document = EditorIdManager.getDocument(editorId);
             if (document && document.fileName === filename) {
-                const viewportState = this.convertCenterZoomToBounds(center, zoom);
+                const viewportState = PlotJsonEditorProvider.convertCenterZoomToBounds(center, zoom);
                 globalController.updateState(editorId, 'viewportState', viewportState);
                 break;
             }
@@ -100,7 +100,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             const document = EditorIdManager.getDocument(editorId);
             if (document && document.fileName === filename) {
                 const viewportState = globalController.getStateSlice(editorId, 'viewportState');
-                const result = this.convertBoundsToMapState(viewportState?.bounds);
+                const result = PlotJsonEditorProvider.convertBoundsToMapState(viewportState?.bounds);
                 return result || undefined;
             }
         }

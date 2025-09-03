@@ -6,7 +6,7 @@
   "type": "object",
   "properties": {
     "featureCollection": {
-      "$ref": "../schema/featurecollection.schema.json",
+      "$ref": "./featurecollection.schema.json",
       "description": "The GeoJSON FeatureCollection data"
     },
     "timeState": {
