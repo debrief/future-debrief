@@ -102,8 +102,6 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             
             // Set this as the active editor
             globalController.setActiveEditor(editorId);
-            
-            console.log(`PlotJsonEditor: Forced state loading for ${editorId}`);
         } catch (error) {
             console.error('PlotJsonEditor: Error forcing state loading:', error);
         }

@@ -452,6 +452,58 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     }
   }, [currentData, selectedFeatureIndices, selectedFeatureIds]);
 
+  // Auto fit bounds when no initial viewport and data is loaded
+  useEffect(() => {
+    if (!initialMapState && currentData && currentData.features.length > 0 && mapRef.current) {
+      const bounds = L.latLngBounds([]);
+      let hasValidGeometry = false;
+
+      currentData.features.forEach(feature => {
+        if (!feature.geometry) return;
+
+        try {
+          switch (feature.geometry.type) {
+            case 'Point': {
+              const coords = feature.geometry.coordinates as [number, number];
+              bounds.extend([coords[1], coords[0]]);
+              hasValidGeometry = true;
+              break;
+            }
+            case 'LineString': {
+              const lineCoords = feature.geometry.coordinates as [number, number][];
+              lineCoords.forEach(coord => bounds.extend([coord[1], coord[0]]));
+              hasValidGeometry = true;
+              break;
+            }
+            case 'MultiLineString': {
+              const multiLineCoords = feature.geometry.coordinates as [number, number][][];
+              multiLineCoords.forEach(line => 
+                line.forEach(coord => bounds.extend([coord[1], coord[0]]))
+              );
+              hasValidGeometry = true;
+              break;
+            }
+            case 'Polygon': {
+              const polyCoords = feature.geometry.coordinates as [number, number][][];
+              if (polyCoords.length > 0) {
+                polyCoords[0].forEach(coord => bounds.extend([coord[1], coord[0]]));
+                hasValidGeometry = true;
+              }
+              break;
+            }
+            // Add more geometry types as needed
+          }
+        } catch (error) {
+          console.warn('Error processing feature geometry for bounds:', error);
+        }
+      });
+
+      if (hasValidGeometry && bounds.isValid()) {
+        mapRef.current.fitBounds(bounds, { padding: [20, 20] });
+      }
+    }
+  }, [currentData, initialMapState]);
+
   // Expose zoom to selection functionality through callback
   // TODO: Fix this pattern - currently disabled due to type incompatibility
   // useEffect(() => {

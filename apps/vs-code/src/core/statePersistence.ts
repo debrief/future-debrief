@@ -75,7 +75,6 @@ export class StatePersistence {
      */
     private handleDocumentOpen(document: vscode.TextDocument): void {
         if (EditorIdManager.isDebriefPlotFile(document)) {
-            console.log(`StatePersistence.handleDocumentOpen: ${document.fileName}`);
             this.loadStateFromDocument(document);
         }
     }
@@ -105,8 +104,6 @@ export class StatePersistence {
      */
     public loadStateFromDocument(document: vscode.TextDocument): void {
         const editorId = EditorIdManager.getEditorId(document);
-        
-        console.log(`StatePersistence.loadStateFromDocument: ${document.fileName} -> ${editorId}`);
         
         try {
             const text = document.getText().trim();
@@ -140,16 +137,17 @@ export class StatePersistence {
             };
             
             // Update GlobalController with all state
+            // Note: If no viewport state exists, leave it undefined so map can fitBounds()
             this.globalController.updateMultipleStates(editorId, {
                 featureCollection: cleanFeatureCollection,
                 timeState: extractedState.timeState,
-                viewportState: extractedState.viewportState,
+                viewportState: extractedState.viewportState, // undefined if no saved viewport
                 selectionState: { selectedIds: [] } // Selection is always empty on load
             });
             
             console.log(`Loaded state for editor ${editorId}: ${dataFeatures.length} features, ` +
                        `${extractedState.timeState ? 'time' : 'no time'}, ` +
-                       `${extractedState.viewportState ? 'viewport' : 'no viewport'}`);
+                       `${extractedState.viewportState ? 'saved viewport' : 'no viewport (will fitBounds)'}`);
             
         } catch (error) {
             console.error(`Error loading state from ${document.fileName}:`, error);
