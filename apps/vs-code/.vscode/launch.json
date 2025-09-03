@@ -9,20 +9,7 @@
                 "--extensionDevelopmentPath=${workspaceFolder}",
                 "--folder-uri=file://${workspaceFolder}/workspace"
             ],
-            "preLaunchTask": "turbo: build-deps-and-compile",
-            "outFiles": [
-                "${workspaceFolder}/dist/**/*.js"
-            ]
-        },
-        {
-            "name": "Develop VS Code Extension (extension only)",
-            "type": "extensionHost",
-            "request": "launch",
-            "args": [
-                "--extensionDevelopmentPath=${workspaceFolder}",
-                "--folder-uri=file://${workspaceFolder}/workspace"
-            ],
-            "preLaunchTask": "extension-only-compile",
+            "preLaunchTask": "dev:vs-code-extension",
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js"
             ]
@@ -35,7 +22,7 @@
                 "--extensionDevelopmentPath=${workspaceFolder}",
                 "--extensionTestsPath=${workspaceFolder}/out/test/suite/index"
             ],
-            "preLaunchTask": "turbo: build-deps-and-compile",
+            "preLaunchTask": "dev:vs-code-extension",
             "outFiles": [
                 "${workspaceFolder}/dist/test/**/*.js"
             ]

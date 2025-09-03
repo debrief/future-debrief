@@ -1,50 +1,45 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "turbo: build-deps-and-compile",
-            "type": "shell",
-            "command": "bash",
-            "args": [
-                "-c",
-                "cd '${workspaceFolder}' && source $NVM_DIR/nvm.sh && nvm use && cd ../../ && pnpm turbo run build"
-            ],
-            "group": "build",
-            "presentation": {
-                "panel": "shared",
-                "reveal": "silent"
-            },
-            "problemMatcher": "$tsc"
-        },
-        {
-            "label": "extension-only-compile",
-            "type": "shell",
-            "command": "bash",
-            "args": [
-                "-c",
-                "cd '${workspaceFolder}' && source $NVM_DIR/nvm.sh && nvm use && pwd && echo 'Current directory contents:' && ls -la src/propertiesViewProvider.ts && echo 'Cleaning and compiling extension only...' && rm -rf dist/* && pnpm compile && echo 'Checking compiled file...' && grep -n GOLF dist/extension.js && echo 'Extension compiled successfully'"
-            ],
-            "group": "build",
-            "presentation": {
-                "panel": "shared",
-                "reveal": "always"
-            },
-            "problemMatcher": "$tsc"
-        },
-        {
-            "label": "pnpm: lint",
-            "type": "shell",
-            "command": "bash",
-            "args": [
-                "-c",
-                "source $NVM_DIR/nvm.sh && nvm use && pnpm lint"
-            ],
-            "group": "test",
-            "presentation": {
-                "panel": "shared",
-                "reveal": "always"
-            },
-            "problemMatcher": "$tsc"
-        }
-    ]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev:vs-code-extension",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\" && nvm use 23 && pnpm turbo run dev --filter=vs-code..."
+      ],
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "build:vs-code-extension",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["turbo", "run", "build", "--filter=vs-code..."],
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "shared",
+        "reveal": "silent"
+      }
+    },
+    {
+      "label": "lint:vs-code-extension",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["turbo", "run", "lint", "--filter=vs-code..."],
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always"
+      }
+    }
+  ]
 }

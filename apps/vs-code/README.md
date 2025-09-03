@@ -16,8 +16,8 @@ This extension demonstrates three core VS Code extension capabilities:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-username/codespace-extension.git
-   cd codespace-extension
+   git clone https://github.com/your-username/vs-code.git
+   cd vs-code
    ```
 
 2. Install dependencies (from monorepo root):
@@ -28,7 +28,7 @@ This extension demonstrates three core VS Code extension capabilities:
 
 3. Compile TypeScript:
    ```bash
-   pnpm --filter codespace-extension compile
+   pnpm --filter vs-code compile
    # Or from vs-code directory:
    cd apps/vs-code && pnpm compile
    ```
@@ -64,7 +64,7 @@ Once the Extension Development Host launches:
 ## Project Structure
 
 ```
-codespace-extension/
+vs-code/
 ├── .devcontainer/
 │   └── devcontainer.json          # Codespace configuration
 ├── .github/
