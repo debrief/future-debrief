@@ -44,6 +44,11 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
 
         // Initialize with current active editor
         this._currentEditorId = this._globalController.activeEditorId;
+        
+        // Trigger initial refresh if we have an active editor
+        if (this._currentEditorId) {
+            this.refresh();
+        }
     }
 
     refresh(): void {
@@ -79,6 +84,7 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
     getChildren(element?: OutlineItem): Thenable<OutlineItem[]> {
         if (!element) {
             if (!this._currentEditorId) {
+                console.log('DebriefOutlineProvider.getChildren: No current editor ID');
                 return Promise.resolve([]);
             }
 
@@ -86,6 +92,8 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
                 // Get feature collection from GlobalController
                 const featureCollection = this._globalController.getStateSlice(this._currentEditorId, 'featureCollection');
                 const selectionState = this._globalController.getStateSlice(this._currentEditorId, 'selectionState');
+                
+                console.log(`DebriefOutlineProvider.getChildren: editorId=${this._currentEditorId}, featureCollection=${featureCollection ? 'exists' : 'null'}, features=${featureCollection?.features?.length || 0}`);
                 
                 if (!featureCollection || !Array.isArray(featureCollection.features)) {
                     return Promise.resolve([]);

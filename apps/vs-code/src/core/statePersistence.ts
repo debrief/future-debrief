@@ -75,6 +75,7 @@ export class StatePersistence {
      */
     private handleDocumentOpen(document: vscode.TextDocument): void {
         if (EditorIdManager.isDebriefPlotFile(document)) {
+            console.log(`StatePersistence.handleDocumentOpen: ${document.fileName}`);
             this.loadStateFromDocument(document);
         }
     }
@@ -104,6 +105,8 @@ export class StatePersistence {
      */
     public loadStateFromDocument(document: vscode.TextDocument): void {
         const editorId = EditorIdManager.getEditorId(document);
+        
+        console.log(`StatePersistence.loadStateFromDocument: ${document.fileName} -> ${editorId}`);
         
         try {
             const text = document.getText().trim();

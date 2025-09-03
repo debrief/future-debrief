@@ -5,6 +5,7 @@ import { GlobalController } from './core/globalController';
 import { EditorIdManager } from './core/editorIdManager';
 import { EditorActivationHandler } from './core/editorActivationHandler';
 import { StatePersistence } from './core/statePersistence';
+import { HistoryManager } from './core/historyManager';
 
 // UI Providers
 import { PlotJsonEditorProvider } from './providers/editors/plotJsonEditor';
@@ -16,8 +17,6 @@ import { CustomOutlineTreeProvider } from './providers/outlines/customOutlineTre
 // External services
 import { DebriefWebSocketServer } from './services/debriefWebSocketServer';
 
-// Legacy (to be removed)
-import { DebriefStateManager } from './legacy/debriefStateManager';
 
 class HelloWorldProvider implements vscode.TreeDataProvider<string> {
     getTreeItem(element: string): vscode.TreeItem {
@@ -36,10 +35,10 @@ class HelloWorldProvider implements vscode.TreeDataProvider<string> {
 }
 
 let webSocketServer: DebriefWebSocketServer | null = null;
-let stateManager: DebriefStateManager | null = null;
 let globalController: GlobalController | null = null;
 let activationHandler: EditorActivationHandler | null = null;
 let statePersistence: StatePersistence | null = null;
+let historyManager: HistoryManager | null = null;
 
 // Store references to the Debrief activity panel providers
 let timeControllerProvider: TimeControllerProvider | null = null;
@@ -165,9 +164,10 @@ export function activate(context: vscode.ExtensionContext) {
     statePersistence = new StatePersistence(globalController);
     statePersistence.initialize(context);
 
-    // Initialize Debrief State Manager (legacy - to be phased out)
-    stateManager = new DebriefStateManager();
-    context.subscriptions.push(stateManager);
+    // Initialize History Manager
+    historyManager = new HistoryManager(globalController);
+    historyManager.initialize(context);
+    context.subscriptions.push(historyManager);
 
     // Register Debrief Activity Panel providers
     timeControllerProvider = new TimeControllerProvider(context.extensionUri);
@@ -190,8 +190,7 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.registerWebviewViewProvider(PropertiesViewProvider.viewType, propertiesViewProvider)
     );
 
-    // Note: Panel connections are now handled automatically through GlobalController subscriptions
-    // Legacy state manager connections removed in favor of centralized state management
+    // Panel connections are handled automatically through GlobalController subscriptions
 
     // Register feature selection command to work with GlobalController
     const debriefSelectFeatureCommand = vscode.commands.registerCommand(
@@ -219,11 +218,6 @@ export function deactivate() {
         webSocketServer = null;
     }
 
-    // Cleanup state manager
-    if (stateManager) {
-        stateManager.dispose();
-        stateManager = null;
-    }
 
     // Cleanup panel providers
     if (timeControllerProvider) {
@@ -243,6 +237,12 @@ export function deactivate() {
 
     // Cleanup state persistence
     statePersistence = null;
+    
+    // Cleanup history manager
+    if (historyManager) {
+        historyManager.dispose();
+        historyManager = null;
+    }
     
     // Cleanup activation handler
     if (activationHandler) {

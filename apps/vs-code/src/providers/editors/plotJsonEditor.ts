@@ -1,5 +1,8 @@
 import * as vscode from 'vscode';
 import { validateFeatureCollectionComprehensive } from '@debrief/shared-types/validators/typescript';
+import { GlobalController } from '../../core/globalController';
+import { EditorIdManager } from '../../core/editorIdManager';
+import { StatePersistence } from '../../core/statePersistence';
 
 interface GeoJSONFeature {
     type: 'Feature';
@@ -87,12 +90,28 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             validationError = error instanceof Error ? error.message : String(error);
         }
         
-        // Note: Document Activation Trigger removed - it conflicts with custom editor display
+        // Force state loading and activation for GlobalController integration
+        try {
+            // Get the GlobalController and StatePersistence instances
+            const globalController = GlobalController.getInstance();
+            const editorId = EditorIdManager.getEditorId(document);
+            
+            // Force load state from document
+            const statePersistence = new StatePersistence(globalController);
+            statePersistence.loadStateFromDocument(document);
+            
+            // Set this as the active editor
+            globalController.setActiveEditor(editorId);
+            
+            console.log(`PlotJsonEditor: Forced state loading for ${editorId}`);
+        } catch (error) {
+            console.error('PlotJsonEditor: Error forcing state loading:', error);
+        }
 
         // Track this as the active webview panel
         PlotJsonEditorProvider.activeWebviewPanel = webviewPanel;
 
-        // Notify outline tree that this document is now active
+        // Notify outline tree that this document is now active (legacy)
         if (PlotJsonEditorProvider.outlineUpdateCallback) {
             PlotJsonEditorProvider.outlineUpdateCallback(document);
         }
