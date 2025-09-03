@@ -1,0 +1,20 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Develop Web Components (Storybook)",
+            "type": "node",
+            "request": "launch",
+            "runtimeExecutable": "open",
+            "runtimeArgs": [
+                "http://localhost:6006"
+            ],
+            "preLaunchTask": "turbo: build-deps-and-storybook",
+            "serverReadyAction": {
+                "pattern": "Local:.*http://localhost:6006",
+                "uriFormat": "http://localhost:6006",
+                "action": "openExternally"
+            }
+        }
+    ]
+}

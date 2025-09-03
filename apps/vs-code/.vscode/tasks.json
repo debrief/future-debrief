@@ -17,6 +17,21 @@
             "problemMatcher": "$tsc"
         },
         {
+            "label": "turbo: dev-deps-and-compile",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "source $NVM_DIR/nvm.sh && nvm use && cd ../../ && pnpm run build:shared-types && pnpm run build:web-components && cd apps/vs-code && pnpm compile"
+            ],
+            "group": "build",
+            "presentation": {
+                "panel": "shared",
+                "reveal": "silent"
+            },
+            "problemMatcher": "$tsc"
+        },
+        {
             "label": "pnpm: lint",
             "type": "shell",
             "command": "bash",

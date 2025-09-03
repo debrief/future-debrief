@@ -11,7 +11,9 @@
   "scripts": {
     "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
     "compile": "pnpm esbuild-base --sourcemap",
+    "build": "pnpm compile",
     "watch": "pnpm esbuild-base --sourcemap --watch",
+    "dev": "pnpm watch",
     "vscode:prepublish": "pnpm esbuild-base --minify",
     "typecheck": "tsc --noEmit",
     "eslint": "eslint . --ext .ts,.tsx",
