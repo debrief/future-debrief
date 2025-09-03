@@ -9,7 +9,6 @@
             "runtimeArgs": [
                 "http://localhost:6006"
             ],
-            "preLaunchTask": "turbo: build-deps-and-storybook",
             "serverReadyAction": {
                 "pattern": "Local:.*http://localhost:6006",
                 "uriFormat": "http://localhost:6006",

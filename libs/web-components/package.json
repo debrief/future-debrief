@@ -26,7 +26,8 @@
     "build:vanilla": "esbuild src/vanilla.ts --bundle --outfile=dist/vanilla/index.js --format=iife",
     "build:types": "tsc --emitDeclarationOnly --outDir dist/react && tsc --emitDeclarationOnly --outDir dist/vanilla",
     "build": "pnpm clean && pnpm lint && pnpm build:react && pnpm build:vanilla && pnpm build:types",
-    "dev": "storybook dev -p 6006",
+    "dev": "pnpm dev:watch",
+    "storybook": "storybook dev -p 6006",
     "dev:watch": "pnpx concurrently \"pnpx esbuild src/index.ts --bundle --outfile=dist/react/index.js --format=esm --external:react --external:react-dom --watch\" \"pnpx esbuild src/vanilla.ts --bundle --outfile=dist/vanilla/index.js --format=iife --watch\" \"pnpx tsc --emitDeclarationOnly --outDir dist/react --watch\" \"pnpx tsc --emitDeclarationOnly --outDir dist/vanilla --watch\" \"pnpx nodemon --watch ../shared-types/dist --ext 'js,d.ts' --exec echo 'Shared types updated, components need rebuild'\"",
     "build-storybook": "storybook build",
     "test": "jest",
@@ -34,8 +35,7 @@
     "typecheck": "tsc --noEmit",
     "eslint": "eslint . --ext .ts,.tsx",
     "eslint:fix": "eslint . --ext .ts,.tsx --fix",
-    "lint": "pnpm typecheck && pnpm eslint",
-    "storybook": "storybook dev -p 6006"
+    "lint": "pnpm typecheck && pnpm eslint"
   },
   "dependencies": {
     "@types/leaflet": "^1.9.20",
