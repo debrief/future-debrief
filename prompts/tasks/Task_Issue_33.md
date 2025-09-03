@@ -18,57 +18,77 @@
 
 **Current Development Context:**
 - The project uses a monorepo structure with pnpm workspaces
-- Web components library at `libs/web-components/` with React and vanilla JS builds
-- VS Code extension at `apps/vs-code/` that depends on the web components
+- Shared types library at `libs/shared-types/` that provides common type definitions
+- Web components library at `libs/web-components/` with React and vanilla JS builds (depends on shared-types)
+- VS Code extension at `apps/vs-code/` that depends on both shared-types and web-components
 - Existing Storybook setup for component development
 - Current build scripts: `build:shared-types`, `build:web-components`, `build:vs-code`
+- Project aims to use pnpm and turborepo for efficient dependency management and build orchestration
 
 **Detailed Action Steps:**
 
 1. **Analyze Current Development Workflow:**
    - Review existing build scripts in root `package.json` and component-specific scripts
    - Examine current VS Code launch configurations in `apps/vs-code/.vscode/launch.json`
-   - Understand the dependency chain: shared-types → web-components → vs-code extension
+   - Understand the full dependency chain: shared-types → web-components → vs-code extension
+   - Note that both web-components and vs-code depend on shared-types, requiring coordinated rebuilds
 
-2. **Update VS Code Development Launch Configuration:**
+2. **Implement Turborepo Configuration:**
+   - Set up `turbo.json` configuration file to define build pipelines (without explicit dependencies)
+   - Configure turborepo to automatically infer dependencies from package.json workspace relationships
+   - Configure turborepo tasks for `dev`, `build`, and `typecheck` that respect package.json dependencies
+   - Ensure shared-types changes trigger rebuilds of both web-components and vs-code through automatic dependency resolution
+   - Leverage turborepo's incremental builds and caching for efficient development
+
+3. **Update VS Code Development Launch Configuration:**
    - Update launch configuration specifically for web-components development within VS Code extension context
-   - Ensure this configuration triggers automatic rebuilding of web-components when changes are detected
-   - Configure the launch to then rebuild and reload the VS Code extension
-   - The workflow must ensure web-components rebuild first, then the VS Code extension updates
+   - Integrate with turborepo dev mode to handle dependency rebuilds automatically
+   - Configure the launch to rebuild shared-types → web-components → vs-code extension in proper sequence
+   - The workflow must ensure dependencies rebuild in correct order when any source changes
 
-3. **Enhance Storybook Development Experience:**
+4. **Enhance Storybook Development Experience:**
    - Create or enhance watch-mode scripts for Storybook development
    - Ensure Storybook can hot-reload when web-components source files change
    - Verify both React and vanilla JS builds are properly watched
 
-4. **Implement Watch Mode Scripts:**
-   - Create `dev:web-components` script that watches source files and rebuilds on changes
-   - Create `dev:vs-code` script that watches both web-components and VS Code extension files
+5. **Implement Turborepo-based Watch Mode Scripts:**
+   - Create `dev:shared-types` script using turborepo for shared types development
+   - Create `dev:web-components` script that uses turborepo to watch shared-types and web-components
+   - Create `dev:vs-code` script that orchestrates shared-types → web-components → vs-code rebuilds
+   - Leverage pnpm workspaces and turborepo's dependency graph for efficient rebuilds
    - Ensure proper file watching excludes `dist/`, `node_modules/`, and other build artifacts
 
-5. **Create Launch Configurations:**
+6. **Create Launch Configurations:**
    - Add VS Code tasks in `.vscode/tasks.json` (if needed) to support the launch configurations
    - Create specific launch configurations for:
      - "Develop Web Components (Storybook)" - launches Storybook with watch mode
      - "Develop VS Code Extension with Web Components" - launches extension with live rebuild
 
-6. **Test and Validate:**
+7. **Test and Validate:**
+   - Verify that changes to shared-types trigger rebuilds of both web-components and vs-code
    - Verify that changes to web-components automatically rebuild and update in Storybook
    - Verify that changes to web-components trigger VS Code extension reload
+   - Test turborepo's incremental builds and caching work correctly
    - Ensure no build artifacts are included in version control
-   - Test that the development experience is smooth and responsive
+   - Test that the development experience is smooth and responsive with minimal rebuild times
 
 **Technical Constraints:**
 - Must maintain existing build output structure (`dist/react/` and `dist/vanilla/`)
 - Must preserve current esbuild configuration for performance
 - VS Code extension uses esbuild bundling, ensure compatibility
-- Watch mode should be efficient and not cause excessive CPU usage
+- Watch mode should be efficient and leverage turborepo's caching to minimize rebuilds
+- Solution must use pnpm and turborepo as the primary build orchestration tools
+- Dependency graph should be automatically inferred from package.json dependencies, not manually defined in turbo.json
 
 **Provide Necessary Context/Assets:**
 - Current package.json scripts show sequential builds: `build:shared-types && build:web-components && build:vs-code`
+- Shared-types is a foundational dependency required by both web-components and vs-code
+- Package.json dependencies already define the workspace relationships (use `"workspace:^1.0.0"` format)
 - Web components use esbuild for both React and vanilla builds
 - VS Code extension has existing launch configuration with `preLaunchTask: "pnpm: compile"`
 - Storybook is configured to run on port 6006
+- Project should leverage pnpm workspaces and turborepo for optimal build performance
+- Turborepo should automatically respect existing package.json dependency declarations
 
 ## 3. Expected Output & Deliverables
 
@@ -79,11 +99,12 @@
 - No regression in existing build processes
 
 **Specify Deliverables:**
-1. Updated VS Code launch configurations for both development modes
-2. Enhanced package.json scripts with watch capabilities
-3. VS Code tasks configuration (if required)
-4. Updated documentation explaining the new development workflows
-5. Verification that both development modes work correctly
+1. New `turbo.json` configuration defining build pipelines (with automatic dependency inference)
+2. Updated VS Code launch configurations for both development modes
+3. Enhanced package.json scripts with turborepo-based watch capabilities
+4. VS Code tasks configuration (if required)
+5. Updated documentation explaining the new development workflows
+6. Verification that both development modes work correctly with proper dependency rebuilding
 
 **Format:** 
 - All configuration files should use proper JSON formatting
@@ -96,15 +117,18 @@ Upon successful completion of this task, you **must** log your work comprehensiv
 
 - A reference to this assigned task (GitHub Issue #33)
 - Clear description of all configuration changes made
+- Turborepo configuration and dependency graph setup
 - Any new scripts or launch configurations created
-- Key decisions made regarding file watching and build orchestration
-- Confirmation of successful testing for both development modes
-- Any challenges encountered and how they were resolved
+- Turborepo configuration leveraging automatic dependency inference from package.json
+- Key decisions made regarding pnpm/turborepo integration and build orchestration
+- Confirmation of successful testing for both development modes with proper dependency handling
+- Any challenges encountered with shared-types integration and how they were resolved
 
 ## 5. Clarification Instruction
 
 If any part of this task assignment is unclear, please state your specific questions before proceeding. Pay particular attention to:
 - The exact workflow desired for VS Code extension development
-- File watching scope and exclusions
+- Turborepo configuration with automatic dependency inference setup
+- How shared-types changes should propagate to dependent packages
 - Integration points between Storybook and VS Code development modes
-- Performance requirements for the watch processes
+- Performance requirements for the watch processes and turborepo caching strategy
