@@ -94,12 +94,20 @@
 
 #### Current Status:
 - Core architecture complete and tested (TypeScript compilation passes)
+- **VS Code directory structure refactored** for better organization:
+  - `src/core/` - State management architecture
+  - `src/providers/` - UI providers (panels, editors, outlines)  
+  - `src/services/` - External integrations (WebSocket)
+  - `src/legacy/` - Old code queued for removal
+- **Type safety improvements** - Eliminated `any` casts with proper switch statements
 - Ready for panel integration and legacy code removal
 - Maintains backward compatibility during migration
 - State persistence working with metadata feature injection
 - **Key Files**: 
-  - `apps/vs-code/src/plotJsonEditor.ts`
-  - `apps/vs-code/src/customOutlineTreeProvider.ts`
+  - `apps/vs-code/src/core/globalController.ts` - Main state management
+  - `apps/vs-code/src/core/statePersistence.ts` - FeatureCollection integration
+  - `apps/vs-code/src/providers/editors/plotJsonEditor.ts` - Custom editor
+  - `apps/vs-code/src/extension.ts` - Updated with new architecture
 
 ### JSON Schema Validation System ✅
 **Decision**: Comprehensive validation with discriminated feature types
