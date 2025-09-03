@@ -54,12 +54,12 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    const disposable = vscode.commands.registerCommand('codespace-extension.helloWorld', () => {
+    const disposable = vscode.commands.registerCommand('vs-code.helloWorld', () => {
         vscode.window.showInformationMessage('Hello World from Codespace Extension!');
     });
 
     const provider = new HelloWorldProvider();
-    vscode.window.createTreeView('codespace-extension.helloView', { treeDataProvider: provider });
+    vscode.window.createTreeView('vs-code.helloView', { treeDataProvider: provider });
 
     // Create custom outline tree view
     const outlineTreeProvider = new CustomOutlineTreeProvider();

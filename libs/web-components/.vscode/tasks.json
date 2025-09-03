@@ -1,0 +1,82 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build-shared-types",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "source $NVM_DIR/nvm.sh && nvm use && cd ../../ && pnpm run build:shared-types"
+            ],
+            "group": "build",
+            "presentation": {
+                "panel": "shared",
+                "reveal": "silent"
+            },
+            "problemMatcher": "$tsc"
+        },
+        {
+            "label": "turbo: dev-web-components-with-deps",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "source $NVM_DIR/nvm.sh && nvm use && cd ../../ && turbo run dev --filter=@debrief/web-components"
+            ],
+            "group": "build",
+            "presentation": {
+                "panel": "shared",
+                "reveal": "always"
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "typescript",
+                "fileLocation": "relative",
+                "pattern": {
+                    "regexp": "^(.*):(\\d+):(\\d+): (warning|error): (.*)$",
+                    "file": 1,
+                    "line": 2,
+                    "column": 3,
+                    "severity": 4,
+                    "message": 5
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^\\[.*\\] starting|^.*starting.*",
+                    "endsPattern": "^\\[.*\\] Local:.*|^.*Local.*"
+                }
+            }
+        },
+        {
+            "label": "turbo: build-deps-and-storybook",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "source $NVM_DIR/nvm.sh && nvm use && cd ../../ && pnpm run build:shared-types && cd libs/web-components && pnpm dev"
+            ],
+            "group": "build",
+            "presentation": {
+                "panel": "shared",
+                "reveal": "always"
+            },
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "storybook",
+                "fileLocation": "relative",
+                "pattern": {
+                    "regexp": ".*",
+                    "file": 1,
+                    "location": 2,
+                    "message": 3
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^.*starting.*",
+                    "endsPattern": "^.*Local:.*http://localhost:6006.*"
+                }
+            }
+        }
+    ]
+}

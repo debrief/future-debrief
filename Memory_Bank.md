@@ -704,7 +704,147 @@ export default [
 
 ---
 
-*Last Updated: 2025-09-02*  
-*Total Sections Compressed: 19 major implementations*  
+## Live Rebuild of Web Components - Issue #33
+
+**Task Reference:** GitHub Issue #33: "Live rebuild of web-components"  
+**Date:** 2025-09-03  
+**Assigned Task:** Implement live rebuild capabilities for web-components to support two distinct and independent development modes: Component-level development in Storybook and VS Code extension development.  
+**Implementation Agent:** Task execution completed  
+**Branch:** `issue-33-live-rebuild-web-components`
+
+### Final Implementation Updates (Post-Development)
+
+**Project Renaming Completed:** ✅ **FINALIZED**
+- Successfully renamed "codespace-extension" to "vs-code" throughout project structure
+- Updated package.json: `name: "vs-code"` with proper display name retention
+- Fixed repository URL and internal references across configuration files
+- Launch configurations and task definitions updated for consistency
+
+**VS Code Extension Development Mode:** ✅ **WORKING**  
+- **Current Status**: Extension successfully compiles and runs with live rebuild capability
+- **Launch Config**: "Develop VS Code Extension" launches Extension Development Host with proper dependency building
+- **Watch Mode**: File changes trigger automatic recompilation with sourcemap support for debugging
+- **Issue Resolution**: Live rebuild functionality now working correctly after project structure fixes
+
+### Core Architecture Implemented
+
+**Turborepo Integration:** ✅ **CONFIGURED**
+- Added `turbo.json` with automatic dependency inference from package.json workspace relationships
+- Configured tasks for `build`, `dev`, `typecheck`, `lint`, `test` with proper input/output caching
+- Established proper dependency chain: shared-types → web-components → vs-code extension
+- Added packageManager field to root package.json for turborepo workspace detection
+
+**Development Scripts Enhancement:** ✅ **IMPLEMENTED**
+- **Root level:** Added turborepo-based `dev:shared-types`, `dev:web-components`, `dev:vs-code` scripts
+- **Shared Types:** Added watch mode with `concurrently` for schema and TypeScript compilation
+- **Web Components:** Enhanced with parallel React/vanilla builds and type generation
+- **VS Code Extension:** Added `dev` script mapping to existing `watch` functionality
+
+### Dual Development Workflows
+
+**1. Storybook Development Mode** ✅ **CONFIGURED**
+- **Location:** `libs/web-components/.vscode/launch.json` and `tasks.json`  
+- **Launch Config:** "Develop Web Components (Storybook)" - builds shared-types dependencies and launches Storybook on port 6006
+- **Watch Tasks:** Automatic dependency rebuilding when shared-types change
+- **Independence:** Completely separate from VS Code extension development workflow
+
+**2. VS Code Extension Development Mode** ✅ **CONFIGURED**  
+- **Location:** `apps/vs-code/.vscode/launch.json` and `tasks.json`
+- **Launch Config:** "Develop VS Code Extension" - orchestrates full dependency chain and launches extension host
+- **Pre-launch:** `turbo: dev-deps-and-compile` ensures shared-types and web-components are built
+- **Post-launch:** `turbo: dev-vs-code` enables watch mode for development iteration
+- **Multi-root Support:** Configuration appears under "VS Code Extension" workspace folder
+
+### Technical Implementation Details
+
+**Turborepo Configuration (`turbo.json`):**
+- Tasks configured with proper outputs (`dist/**`) and inputs (`src/**`, `schema/**`, `derived/**`)
+- Cache disabled for `dev` tasks (persistent: true)
+- Automatic dependency resolution based on package.json workspace references
+- Build optimization with incremental caching
+
+**Watch Mode Implementation:**
+- **Shared Types:** Schema file watching + TypeScript compilation in parallel
+- **Web Components:** esbuild watch for React/vanilla builds + TypeScript type generation
+- **VS Code Extension:** Existing esbuild watch with sourcemaps for debugging
+
+**Launch Task Integration:**
+- **VS Code tasks:** Background processes with proper problem matchers for TypeScript
+- **Storybook tasks:** Automatic browser opening when development server ready
+- **Dependency orchestration:** Ensures proper build order for all development scenarios
+
+### Key File Locations
+
+**Configuration Files:**
+- `turbo.json` - Turborepo task and dependency configuration
+- `libs/web-components/.vscode/launch.json` - Storybook development launch configuration
+- `libs/web-components/.vscode/tasks.json` - Web components development tasks
+- `apps/vs-code/.vscode/launch.json` - VS Code extension development launch configuration (updated)
+- `apps/vs-code/.vscode/tasks.json` - VS Code extension development tasks (updated)
+
+**Enhanced Package Scripts:**
+- Root `package.json` - Added turborepo-based dev scripts and build orchestration
+- `libs/shared-types/package.json` - Added concurrent watch mode for schema + TypeScript
+- `libs/web-components/package.json` - Added parallel build watching with dependency monitoring
+- `apps/vs-code/package.json` - Added dev script mapping and build script for turbo compatibility
+
+### Development Workflow Usage
+
+**For Component Development (Storybook):**
+1. Open multi-root workspace: `future-debrief.code-workspace`
+2. In "Run and Debug" panel, select "Develop Web Components (Storybook)" from Web Components folder
+3. Launch - automatically builds shared-types, starts Storybook, opens browser
+4. Changes to shared-types or web-components trigger automatic recompilation and hot-reload
+
+**For VS Code Extension Development:**  
+1. Open multi-root workspace: `future-debrief.code-workspace`
+2. In "Run and Debug" panel, select "Develop VS Code Extension" from VS Code Extension folder
+3. Launch - builds full dependency chain, launches Extension Development Host, enables watch mode
+4. Changes to any dependency (shared-types → web-components → extension) trigger proper rebuilds
+
+**Root Development Commands:**
+- `pnpm turbo run build` - Build all packages with dependency orchestration and caching
+- `pnpm dev` - Watch mode for VS Code extension (includes all dependencies) - **most common workflow**
+- `pnpm dev:web-components` - Watch mode for web components (includes shared-types dependency)
+- `pnpm dev:vs-code` - Watch mode for VS Code extension (explicit, same as `pnpm dev`)
+
+### Validation & Testing Results
+
+**Build Pipeline Verification:** ✅ **SUCCESSFUL**
+- All packages build successfully with turborepo orchestration
+- Dependency inference working correctly (shared-types built first, then dependents)
+- Caching functionality verified and optimized for development speed
+
+**Development Workflow Testing:** ✅ **VERIFIED**
+- Storybook launch configuration properly builds dependencies and starts development server
+- VS Code extension launch configuration orchestrates full build chain and enables debugging
+- Watch modes function independently and can run simultaneously without conflicts
+- TypeScript compilation errors properly surfaced through problem matchers
+
+### Impact & Benefits
+
+**Developer Experience Improvements:**
+- **Independent Workflows:** Component and extension development can proceed simultaneously without interference
+- **Automatic Dependency Management:** Turborepo handles complex dependency rebuilding automatically
+- **Optimized Performance:** Incremental builds and caching reduce rebuild times significantly  
+- **Simplified Launch:** Single-click development environment setup for both scenarios
+
+**Build System Enhancement:**
+- **Consistent Orchestration:** Single turborepo configuration manages entire monorepo build complexity
+- **Scalable Architecture:** Framework supports adding more packages/apps with automatic dependency resolution
+- **Development/Production Parity:** Same build system used for development watch and production builds
+
+**Final Status:** ✅ **COMPLETED SUCCESSFULLY** - Live rebuild capabilities implemented with dual independent development workflows. Turborepo orchestrates shared-types → web-components → vs-code dependency chain with optimized caching. Storybook and VS Code extension development environments fully configured with automatic dependency rebuilding. Both workflows tested and verified to work independently and simultaneously without conflicts.
+
+**Post-Implementation Optimizations:**
+- Removed unused `dev:shared-types` command (no UI, always consumed by other packages)
+- Cleaned up unused `turbo: dev-vs-code` task from VS Code tasks.json (VS Code doesn't support postDebugTask)
+- Made root `dev` command a shortcut to most common workflow (`dev:vs-code`)
+- Simplified developer interface to focus on actual usage patterns while maintaining full functionality
+
+---
+
+*Last Updated: 2025-09-03*  
+*Total Sections Compressed: 20 major implementations*  
 
 *Focus: Key decisions, file locations, and navigation for future developers*

@@ -142,3 +142,4 @@ vs-code/media/
 # ephemeral TAP prompts
 _tasks/
 libs/web-components/storybook-static/
+.turbo/

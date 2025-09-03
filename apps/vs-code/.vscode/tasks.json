@@ -1,35 +1,45 @@
 {
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "pnpm: compile",
-            "type": "shell",
-            "command": "bash",
-            "args": [
-                "-c",
-                "source $NVM_DIR/nvm.sh && nvm use && pnpm compile"
-            ],
-            "group": "build",
-            "presentation": {
-                "panel": "shared",
-                "reveal": "silent"
-            },
-            "problemMatcher": "$tsc"
-        },
-        {
-            "label": "pnpm: lint",
-            "type": "shell",
-            "command": "bash",
-            "args": [
-                "-c",
-                "source $NVM_DIR/nvm.sh && nvm use && pnpm lint"
-            ],
-            "group": "test",
-            "presentation": {
-                "panel": "shared",
-                "reveal": "always"
-            },
-            "problemMatcher": "$tsc"
-        }
-    ]
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "dev:vs-code-extension",
+      "type": "shell",
+      "command": "bash",
+      "args": [
+        "-c",
+        "export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\" && nvm use && pnpm turbo run dev --filter=vs-code..."
+      ],
+      "group": "build",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always"
+      }
+    },
+    {
+      "label": "build:vs-code-extension",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["turbo", "run", "build", "--filter=vs-code..."],
+      "group": "build",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "shared",
+        "reveal": "silent"
+      }
+    },
+    {
+      "label": "lint:vs-code-extension",
+      "type": "shell",
+      "command": "pnpm",
+      "args": ["turbo", "run", "lint", "--filter=vs-code..."],
+      "group": "test",
+      "problemMatcher": [],
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always"
+      }
+    }
+  ]
 }

@@ -1,17 +1,19 @@
 {
-  "name": "codespace-extension",
+  "name": "vs-code",
   "displayName": "Codespace Extension",
   "description": "VS Code extension demonstrator for Codespace preview from PRs",
   "version": "0.0.1",
   "publisher": "ian",
   "repository": {
     "type": "git",
-    "url": "https://github.com/debrief/codespace-extension.git"
+    "url": "https://github.com/debrief/vs-code.git"
   },
   "scripts": {
     "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
     "compile": "pnpm esbuild-base --sourcemap",
+    "build": "pnpm compile",
     "watch": "pnpm esbuild-base --sourcemap --watch",
+    "dev": "pnpm watch",
     "vscode:prepublish": "pnpm esbuild-base --minify",
     "typecheck": "tsc --noEmit",
     "eslint": "eslint . --ext .ts,.tsx",
@@ -44,7 +46,7 @@
     ],
     "commands": [
       {
-        "command": "codespace-extension.helloWorld",
+        "command": "vs-code.helloWorld",
         "title": "Hello World"
       },
       {
@@ -68,7 +70,7 @@
     "views": {
       "explorer": [
         {
-          "id": "codespace-extension.helloView",
+          "id": "vs-code.helloView",
           "name": "Hello World",
           "when": "true"
         },

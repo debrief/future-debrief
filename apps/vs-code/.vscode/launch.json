@@ -2,17 +2,17 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run Extension",
+            "name": "Develop VS Code Extension",
             "type": "extensionHost",
             "request": "launch",
             "args": [
                 "--extensionDevelopmentPath=${workspaceFolder}",
                 "--folder-uri=file://${workspaceFolder}/workspace"
             ],
-            "preLaunchTask": "pnpm: compile",
+            "preLaunchTask": "dev:vs-code-extension",
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js"
-            ],
+            ]
         },
         {
             "name": "Extension Tests",
@@ -22,10 +22,10 @@
                 "--extensionDevelopmentPath=${workspaceFolder}",
                 "--extensionTestsPath=${workspaceFolder}/out/test/suite/index"
             ],
-            "preLaunchTask": "pnpm: compile",
+            "preLaunchTask": "dev:vs-code-extension",
             "outFiles": [
                 "${workspaceFolder}/dist/test/**/*.js"
-            ],
+            ]
         }
     ]
 }

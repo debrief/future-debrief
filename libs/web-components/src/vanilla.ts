@@ -11,7 +11,7 @@ declare global {
     createTimeController: typeof createTimeController;
     createPropertiesView: typeof createPropertiesView;
     createMapComponent: typeof createMapComponent;
-    DebriefWebComponents: {
+    DebriefWebComponents?: {
       createTimeController: typeof createTimeController;
       createPropertiesView: typeof createPropertiesView;
       createMapComponent: typeof createMapComponent;

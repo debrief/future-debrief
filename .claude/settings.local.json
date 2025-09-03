@@ -125,7 +125,9 @@
       "Bash(pnpm --filter @debrief/web-components build-storybook)",
       "Bash(pnpx tsc:*)",
       "Bash(pnpm --filter @debrief/shared-types build)",
-      "Bash(pnpm:*)"
+      "Bash(pnpm:*)",
+      "Bash(turbo run:*)",
+      "Bash(git log:*)"
     ]
   }
 }

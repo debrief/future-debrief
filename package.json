@@ -2,14 +2,21 @@
   "name": "future-debrief",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@10.14.0",
   "scripts": {
     "build:shared-types": "pnpm --filter @debrief/shared-types build",
     "build:web-components": "pnpm --filter @debrief/web-components build",
-    "build:vs-code": "pnpm --filter codespace-extension compile",
-    "build": "pnpm run build:shared-types && pnpm run build:web-components && pnpm run build:vs-code",
-    "dev": "code future-debrief.code-workspace"
+    "build:vs-code": "pnpm --filter vs-code compile",
+    "build": "turbo run build",
+    "dev": "turbo run dev --filter=vs-code",
+    "dev:web-components": "turbo run build --filter=@debrief/web-components",
+    "dev:vs-code": "turbo run dev --filter=vs-code",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "test": "turbo run test"
   },
   "devDependencies": {
+    "turbo": "^2.5.6",
     "typescript": "^5.0.0"
   }
 }
