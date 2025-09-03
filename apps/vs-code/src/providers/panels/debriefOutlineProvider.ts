@@ -98,21 +98,22 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
                 if (!featureCollection || !Array.isArray(featureCollection.features)) {
                     return Promise.resolve([]);
                 }
-                // Group features by geometry type as an example hierarchy
-                const groups: { [type: string]: OutlineItem[] } = {};
+                // Group features by properties.dataType
+                const groups: { [dataType: string]: OutlineItem[] } = {};
                 featureCollection.features.forEach((feature: unknown, index: number) => {
-                    const f = feature as { id?: string | number; properties?: { name?: string }; geometry?: { type?: string } };
+                    const f = feature as { id?: string | number; properties?: { name?: string; dataType?: string }; geometry?: { type?: string } };
                     const featureName = f.properties?.name || `Feature ${index}`;
+                    const dataType = f.properties?.dataType || 'Unknown';
                     const featureType = f.geometry?.type || 'Unknown';
                     const featureId = f.id !== undefined ? String(f.id) : index.toString();
                     const isSelected = selectionState?.selectedIds?.includes(featureId) || false;
                     const item = new OutlineItem(featureName, index, featureType, isSelected, featureId);
-                    if (!groups[featureType]) groups[featureType] = [];
-                    groups[featureType].push(item);
+                    if (!groups[dataType]) groups[dataType] = [];
+                    groups[dataType].push(item);
                 });
                 // Create group nodes
-                const groupNodes = Object.entries(groups).map(([type, children]) =>
-                    new OutlineItem(type, -1, type, false, undefined, children)
+                const groupNodes = Object.entries(groups).map(([dataType, children]) =>
+                    new OutlineItem(dataType, -1, undefined, false, undefined, children)
                 );
                 return Promise.resolve(groupNodes);
             } catch (error) {
