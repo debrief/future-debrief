@@ -126,7 +126,8 @@
       "Bash(pnpx tsc:*)",
       "Bash(pnpm --filter @debrief/shared-types build)",
       "Bash(pnpm:*)",
-      "Bash(turbo run:*)"
+      "Bash(turbo run:*)",
+      "Bash(git log:*)"
     ]
   }
 }
