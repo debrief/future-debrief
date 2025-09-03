@@ -89,9 +89,22 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
             treeItem.description = element.featureType;
         }
 
+
         // Support multi-select in the UI
-        treeItem.resourceUri = vscode.Uri.parse(`debrief-feature:${element.featureId ?? element.featureIndex}`);
-        treeItem.id = element.featureId ?? element.featureIndex.toString();
+        if (element.featureId) {
+            treeItem.resourceUri = vscode.Uri.parse(`debrief-feature:${element.featureId}`);
+            treeItem.id = element.featureId;
+        } else if (element.featureIndex === -1 && element.label.startsWith('Features hidden')) {
+            treeItem.resourceUri = vscode.Uri.parse('debrief-feature:hidden-placeholder');
+            treeItem.id = 'placeholder:hidden';
+        } else if (element.featureIndex === -1 && element.label) {
+            // Group node: use group: prefix and label for uniqueness
+            treeItem.resourceUri = vscode.Uri.parse(`debrief-feature:group-${element.label}`);
+            treeItem.id = `group:${element.label}`;
+        } else {
+            treeItem.resourceUri = vscode.Uri.parse(`debrief-feature:${element.featureIndex}`);
+            treeItem.id = element.featureIndex.toString();
+        }
 
         return treeItem;
     }
