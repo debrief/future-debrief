@@ -72,9 +72,9 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
         // Only add command if leaf node
         if (!element.hasChildren()) {
             treeItem.command = {
-                command: 'debrief.selectFeature',
-                title: 'Select Feature',
-                arguments: [element.featureIndex]
+                command: 'debrief.toggleFeatureSelection', // new command for multi-select
+                title: 'Toggle Feature Selection',
+                arguments: [element.featureIndex, element.featureId]
             };
         }
 
@@ -82,6 +82,10 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
         if (element.featureType) {
             treeItem.description = element.featureType;
         }
+
+        // Support multi-select in the UI
+        treeItem.resourceUri = vscode.Uri.parse(`debrief-feature:${element.featureId ?? element.featureIndex}`);
+        treeItem.id = element.featureId ?? element.featureIndex.toString();
 
         return treeItem;
     }
@@ -143,6 +147,23 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
                 this._globalController.updateState(this._currentEditorId, 'selectionState', selectionState);
             }
         }
+    }
+
+    // Add a new method to handle multi-select
+    public toggleFeatureSelection(featureIndex: number, featureId?: string): void {
+        if (!this._currentEditorId) return;
+        const featureCollection = this._globalController.getStateSlice(this._currentEditorId, 'featureCollection');
+        if (!featureCollection || !featureCollection.features) return;
+        const id = featureId ?? featureIndex.toString();
+        let selectionState = this._globalController.getStateSlice(this._currentEditorId, 'selectionState') || { selectedIds: [] };
+        let selectedIds: string[] = Array.isArray(selectionState.selectedIds) ? [...selectionState.selectedIds] : [];
+        const idx = selectedIds.indexOf(id);
+        if (idx === -1) {
+            selectedIds.push(id);
+        } else {
+            selectedIds.splice(idx, 1);
+        }
+        this._globalController.updateState(this._currentEditorId, 'selectionState', { selectedIds });
     }
 
     /**
