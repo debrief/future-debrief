@@ -108,6 +108,12 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
                 if (!featureCollection || !Array.isArray(featureCollection.features)) {
                     return Promise.resolve([]);
                 }
+                if (!this._featuresVisible) {
+                    // If features are hidden, show a single node as a placeholder
+                    return Promise.resolve([
+                        new OutlineItem('Features hidden (toggle to show)', -1, undefined, false, undefined, [])
+                    ]);
+                }
                 // Group features by properties.dataType
                 const groups: { [dataType: string]: OutlineItem[] } = {};
                 featureCollection.features.forEach((feature: unknown, index: number) => {
