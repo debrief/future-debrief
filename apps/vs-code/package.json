@@ -50,6 +50,7 @@
         "title": "Toggle Feature Visibility",
         "category": "Debrief"
       },
+      {
         "command": "vs-code.helloWorld",
         "title": "Hello World"
       },
