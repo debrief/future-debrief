@@ -78,9 +78,9 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
         // Only add command if leaf node
         if (!element.hasChildren()) {
             treeItem.command = {
-                command: 'debrief.selectFeature',
-                title: 'Select Feature',
-                arguments: [element.featureIndex]
+                command: 'debrief.toggleFeatureSelection', // new command for multi-select
+                title: 'Toggle Feature Selection',
+                arguments: [element.featureIndex, element.featureId]
             };
         }
 
@@ -88,6 +88,10 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
         if (element.featureType) {
             treeItem.description = element.featureType;
         }
+
+        // Support multi-select in the UI
+        treeItem.resourceUri = vscode.Uri.parse(`debrief-feature:${element.featureId ?? element.featureIndex}`);
+        treeItem.id = element.featureId ?? element.featureIndex.toString();
 
         return treeItem;
     }
