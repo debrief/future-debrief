@@ -49,6 +49,23 @@
 - **File Association**: `.plot.json` files automatically open in custom editor
 - **Error Handling**: Detailed validation errors with feature-level diagnostics
 
+### PropertiesView Web Component Integration - Issue #45 ✅
+**Decision**: Replace custom HTML properties viewer with standardized PropertiesView React component
+- **Problem**: Custom HTML template in `propertiesViewProvider.ts` was difficult to maintain and inconsistent with other components
+- **Solution**: Integrated PropertiesView React component from `@debrief/web-components` library
+- **Implementation**: 
+  - Replaced custom HTML template with React root container
+  - Added data transformation layer to convert feature objects to `Property[]` format
+  - Integrated web-components bundle files (`media/web-components.js` & `media/web-components.css`)
+  - Maintained backward compatibility with existing message protocols (`featureSelected`)
+  - Added graceful fallback when PropertiesView component is not found
+- **Key Changes**: 
+  - Modified `_getHtmlForWebview()` method in `propertiesViewProvider.ts:180-336`
+  - Added React initialization with retry logic for bundle loading
+  - Preserved VS Code theming integration and existing functionality
+- **Data Flow**: Feature objects → Property[] transformation → PropertiesView component
+- **Bundle Files**: Uses existing `media/web-components.*` files built from `libs/web-components`
+
 ### Centralized State Management - Issue #33 ✅ (In Progress)
 **Decision**: Implement GlobalController singleton for centralized application state
 - **Problem**: State scattered across components (PlotJsonEditor static state, React component state, panel state)
