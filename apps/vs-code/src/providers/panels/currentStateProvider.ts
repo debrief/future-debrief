@@ -7,7 +7,7 @@ export class CurrentStateProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'debrief.currentState';
   private _view?: vscode.WebviewView;
   private _globalController: GlobalController;
-  private _interval?: NodeJS.Timeout;
+  private _subscriptions: vscode.Disposable[] = [];
 
   constructor() {
     this._globalController = GlobalController.getInstance();
@@ -23,10 +23,9 @@ export class CurrentStateProvider implements vscode.WebviewViewProvider {
       enableScripts: true,
     };
     this._update();
-    // Poll for state changes every 500ms
-    this._interval = setInterval(() => this._update(), 500);
+    this._setupEventSubscriptions();
     webviewView.onDidDispose(() => {
-      if (this._interval) clearInterval(this._interval);
+      this._cleanup();
     });
   }
 
@@ -131,5 +130,37 @@ export class CurrentStateProvider implements vscode.WebviewViewProvider {
       text += possible.charAt(Math.floor(Math.random() * possible.length));
     }
     return text;
+  }
+
+  private _setupEventSubscriptions(): void {
+    // Subscribe to all state changes that affect the current state display
+    const fcSubscription = this._globalController.on('fcChanged', () => {
+      this._update();
+    });
+    
+    const timeSubscription = this._globalController.on('timeChanged', () => {
+      this._update();
+    });
+    
+    const viewportSubscription = this._globalController.on('viewportChanged', () => {
+      this._update();
+    });
+    
+    const selectionSubscription = this._globalController.on('selectionChanged', () => {
+      this._update();
+    });
+    
+    const activeEditorSubscription = this._globalController.on('activeEditorChanged', () => {
+      this._update();
+    });
+
+    // Store disposables for cleanup
+    this._subscriptions.push(fcSubscription, timeSubscription, viewportSubscription, selectionSubscription, activeEditorSubscription);
+  }
+
+  private _cleanup(): void {
+    // Dispose all event subscriptions
+    this._subscriptions.forEach(disposable => disposable.dispose());
+    this._subscriptions = [];
   }
 }
