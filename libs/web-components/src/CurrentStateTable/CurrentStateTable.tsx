@@ -7,25 +7,11 @@ export interface StateFieldRow {
 	value: string;
 }
 
-// Keep the old interface for backwards compatibility
-export interface EditorStateRow {
-	editorId: string;
-	filename: string;
-	timeState: string;
-	viewportState: string;
-	selectedIds: string[];
-	fcSummary: string;
-	fcCount: number;
-	historyCount: number;
-}
-
 interface HighlightMap {
 	[key: string]: boolean;
 }
 
 interface Props {
-	// Support both old and new API
-	data?: StateFieldRow[];
 	currentState?: CurrentState;
 }
 
@@ -34,7 +20,6 @@ const highlightDuration = 500;
 // Helper function to convert CurrentState to StateFieldRow array
 const convertCurrentStateToRows = (currentState: CurrentState): StateFieldRow[] => {
 	const rows: StateFieldRow[] = [
-		{ field: 'Editor ID', value: currentState.editorId },
 		{ field: 'Filename', value: currentState.filename },
 	];
 
@@ -44,7 +29,8 @@ const convertCurrentStateToRows = (currentState: CurrentState): StateFieldRow[] 
 
 	if (currentState.editorState.viewportState) {
 		const bounds = currentState.editorState.viewportState.bounds;
-		rows.push({ field: 'Viewport State', value: `[${bounds.join(', ')}]` });
+		const formattedBounds = bounds.map(num => num.toFixed(3)).join(', ');
+		rows.push({ field: 'Viewport State', value: `[${formattedBounds}]` });
 	}
 
 	if (currentState.editorState.selectionState) {
@@ -64,14 +50,14 @@ const convertCurrentStateToRows = (currentState: CurrentState): StateFieldRow[] 
 	return rows;
 };
 
-export const CurrentStateTable: React.FC<Props> = ({ data, currentState }) => {
+export const CurrentStateTable: React.FC<Props> = ({ currentState }) => {
 	const [highlighted, setHighlighted] = useState<HighlightMap>({});
 	const prevData = useRef<StateFieldRow[]>([]);
 
 	// Use currentState if provided, otherwise fall back to data
 	const displayData = useMemo(() => 
-		currentState ? convertCurrentStateToRows(currentState) : (data || []),
-		[currentState, data]
+		currentState ? convertCurrentStateToRows(currentState) : [],
+		[currentState]
 	);
 
 	useEffect(() => {
