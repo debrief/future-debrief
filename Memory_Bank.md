@@ -96,7 +96,48 @@
 - Core architecture complete and tested (TypeScript compilation passes)
 - **VS Code directory structure refactored** for better organization:
   - `src/core/` - State management architecture
-  - `src/providers/` - UI providers (panels, editors, outlines)  
+  - `src/providers/` - UI providers (panels, editors, outlines)
+
+### Automated Vanilla Build System - Issue #44 ✅
+**Decision**: Replace manual vanilla.ts with automated React-to-vanilla transformation using esbuild
+- **Problem**: Hand-written vanilla.ts (800+ lines) difficult to maintain and prone to API drift from React components
+- **Solution**: Automated build process using ReactDOM wrapper pattern with identical API surface
+
+#### Implementation Architecture:
+1. **Component Wrapper Strategy** (`libs/web-components/src/vanilla-generated.tsx`)
+   - `ReactComponentWrapper<TProps>` base class handling React lifecycle via `createRoot()`
+   - Component-specific wrappers: `VanillaMapComponentWrapper`, `VanillaCurrentStateTableWrapper`, etc.
+   - Factory functions maintain exact API compatibility: `createMapComponent()`, `createCurrentStateTable()`, etc.
+
+2. **Build Configuration** (`libs/web-components/package.json`)
+   - **Vanilla Build**: `esbuild src/vanilla-generated.tsx --format=iife --jsx=automatic` → 343KB bundle
+   - **Type Generation**: `tsc --project tsconfig.vanilla.json` → proper `.d.ts` files
+   - **Package Exports**: `./vanilla` points to `dist/vanilla/vanilla-generated.d.ts` and `index.js`
+
+3. **VS Code Webview Compatibility**
+   - IIFE format with `window.DebriefWebComponents` global exposure
+   - No React dependencies in consuming code
+   - Custom element registration (`<current-state-table>`) preserved
+   - CSP-compliant bundle structure
+
+#### Key Benefits:
+- **Maintainability**: Single source of truth - React components generate vanilla equivalents
+- **API Consistency**: Automated generation prevents manual vanilla.ts from diverging  
+- **Performance**: esbuild compilation ~40ms, bundle size 343KB (comparable to manual version)
+- **Type Safety**: Full TypeScript declarations generated automatically
+
+#### Files Modified:
+- **Removed**: `src/vanilla.ts` (manual 800-line implementation)
+- **Added**: `src/vanilla-generated.tsx` (automated wrapper system)
+- **Added**: `tsconfig.vanilla.json` (build configuration for vanilla types)
+- **Updated**: `package.json` exports and build scripts
+
+#### Architecture Decision:
+Chose ReactDOM wrapper approach over build-time transformation because:
+- Maintains React component functionality (state, lifecycle, effects)
+- Simpler than custom React→vanilla transpilation
+- Leverages existing React optimizations
+- Compatible with complex components like MapComponent with Leaflet integration  
   - `src/services/` - External integrations (WebSocket)
 - **Type safety improvements** - Eliminated `any` casts with proper switch statements
 - **Panel integration completed** - All three Debrief Activity panels now use GlobalController
