@@ -15,3 +15,6 @@ Memory_Bank.md
 prompts/**
 # Preserve workspace/tests/ - essential Python integration examples
 # Preserve sample .rep and .plot.json files for testing
+
+# Preserve required node_modules for webviews
+!node_modules/@debrief/web-components/dist/vanilla/**
