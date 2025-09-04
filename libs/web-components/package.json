@@ -3,13 +3,12 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Reusable web components for Debrief ecosystem with dual consumption support (React + Vanilla JS)",
-  "main": "dist/react/index.js",
-  "types": "dist/react/index.d.ts",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "exports": {
     ".": {
-      "types": "./dist/react/index.d.ts",
-      "import": "./dist/react/index.js",
-      "require": "./dist/react/index.js"
+      "types": "./src/index.ts",
+      "import": "./src/index.ts"
     },
     "./vanilla": {
       "types": "./dist/vanilla/index.d.ts",
@@ -18,22 +17,16 @@
     }
   },
   "files": [
+    "src/",
     "dist/"
   ],
   "scripts": {
     "clean": "rm -rf dist/*",
-    "build:react": "esbuild src/index.ts --bundle --outfile=dist/react/index.js --format=esm --external:react --external:react-dom",
-    "build:vanilla": "esbuild src/vanilla.ts --bundle --outfile=dist/vanilla/index.js --format=iife",
-    "build:types": "tsc --emitDeclarationOnly --outDir dist/react && tsc --emitDeclarationOnly --outDir dist/vanilla",
-    "build": "pnpm clean && pnpm lint && pnpm build:react && pnpm build:vanilla && pnpm build:types",
-    "dev": "pnpm dev:watch",
+    "build:vanilla": "esbuild src/vanilla.ts --bundle --outfile=dist/vanilla/index.js --format=iife --minify --external:react --external:react-dom",
+    "build:types:vanilla": "tsc --project tsconfig.build.json --emitDeclarationOnly --outDir dist/vanilla",
+    "build": "pnpm clean && pnpm lint && pnpm build:vanilla && pnpm build:types:vanilla",
+    "dev": "pnpm storybook",
     "storybook": "storybook dev -p 6006",
-    "watch:react": "esbuild src/index.ts --bundle --outfile=dist/react/index.js --format=esm --external:react --external:react-dom --watch",
-    "watch:vanilla": "esbuild src/vanilla.ts --bundle --outfile=dist/vanilla/index.js --format=iife --watch",
-    "watch:types:react": "tsc --emitDeclarationOnly --outDir dist/react --watch",
-    "watch:types:vanilla": "tsc --emitDeclarationOnly --outDir dist/vanilla --watch",
-    "watch:shared-types": "nodemon --watch ../shared-types/dist --ext 'js,d.ts' --exec echo 'Shared types updated, components need rebuild'",
-    "dev:watch": "concurrently \"pnpm watch:react\" \"pnpm watch:vanilla\" \"pnpm watch:types:react\" \"pnpm watch:types:vanilla\" \"pnpm watch:shared-types\"",
     "build-storybook": "storybook build",
     "test": "jest",
     "test:watch": "jest --watch",
