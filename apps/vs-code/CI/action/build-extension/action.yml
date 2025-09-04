@@ -31,13 +31,11 @@ runs:
     
     - name: Install dependencies
       shell: bash
-      working-directory: apps/vs-code
       run: pnpm install --frozen-lockfile
     
-    - name: Compile TypeScript
+    - name: Build VS Code extension and dependencies
       shell: bash
-      working-directory: apps/vs-code
-      run: pnpm compile
+      run: pnpm build:vs-code
     
     - name: Install vsce
       shell: bash
