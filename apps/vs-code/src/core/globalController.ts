@@ -1,3 +1,4 @@
+
 import * as vscode from 'vscode';
 import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
 import { ViewportState } from '@debrief/shared-types/derived/typescript/viewportstate';
@@ -239,6 +240,22 @@ export class GlobalController {
      */
     public getEditorIds(): string[] {
         return Array.from(this.editorStates.keys());
+    }
+
+    /**
+     * Get the filename for an editorId (stub for now, should be implemented with real mapping)
+     */
+    public getEditorFilename(editorId: string): string | undefined {
+        // TODO: Implement real filename lookup if available
+        return editorId;
+    }
+
+    /**
+     * Get the history for an editorId (stub, to be implemented by integrating with HistoryManager)
+     */
+    public getHistory(editorId: string): unknown[] {
+        // TODO: Integrate with HistoryManager for real history
+        return [];
     }
     
     /**

@@ -42,6 +42,14 @@ interface PropertiesViewProps {
   [key: string]: unknown;
 }
 
+interface StateFieldRow {
+  field: string;
+  value: string;
+}
+
+interface CurrentStateTableProps {
+  data: StateFieldRow[];
+}
 // Configure default Leaflet marker icons
 const DefaultIcon = L.icon({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
@@ -559,19 +567,232 @@ export function createPropertiesView(container: HTMLElement, _props: PropertiesV
   };
 }
 
+class VanillaCurrentStateTable {
+  private container: HTMLElement;
+  private data: StateFieldRow[] = [];
+  private highlighted: { [key: string]: boolean } = {};
+  private prevData: StateFieldRow[] = [];
+
+  constructor(container: HTMLElement, props: CurrentStateTableProps) {
+    this.container = container;
+    this.data = props.data || [];
+    this.render();
+  }
+
+  private render(): void {
+    // Check for changes and highlight them
+    const newHighlights: { [key: string]: boolean } = {};
+    this.data.forEach((row, idx) => {
+      const prevRow = this.prevData[idx];
+      if (prevRow && prevRow.field === row.field) {
+        if (prevRow.value !== row.value) {
+          newHighlights[`${idx}-value`] = true;
+          setTimeout(() => {
+            delete this.highlighted[`${idx}-value`];
+            this.updateHighlightClass();
+          }, 500);
+        }
+      }
+    });
+    
+    this.highlighted = { ...this.highlighted, ...newHighlights };
+    this.prevData = [...this.data];
+
+    const table = document.createElement('table');
+    table.className = 'current-state-table';
+    
+    // Create header
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    
+    const headers = ['Field', 'Value'];
+    headers.forEach(headerText => {
+      const th = document.createElement('th');
+      th.textContent = headerText;
+      headerRow.appendChild(th);
+    });
+    
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+    
+    // Create body
+    const tbody = document.createElement('tbody');
+    this.data.forEach((row, idx) => {
+      const tr = document.createElement('tr');
+      tr.setAttribute('data-field', row.field);
+      
+      // Field name cell
+      const fieldTd = document.createElement('td');
+      fieldTd.textContent = row.field;
+      fieldTd.className = 'field-name';
+      tr.appendChild(fieldTd);
+      
+      // Value cell with highlighting
+      const valueTd = document.createElement('td');
+      valueTd.textContent = row.value;
+      tr.appendChild(valueTd);
+      valueTd.className = this.highlighted[`${idx}-value`] ? 'highlight' : '';
+      
+      tbody.appendChild(tr);
+    });
+    
+    table.appendChild(tbody);
+    
+    // Add CSS styles
+    const style = document.createElement('style');
+    style.textContent = `
+      .current-state-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: var(--vscode-font-family, monospace);
+        font-size: var(--vscode-font-size, 13px);
+        background: var(--vscode-editor-background, #1e1e1e);
+        color: var(--vscode-editor-foreground, #d4d4d4);
+      }
+      
+      .current-state-table th,
+      .current-state-table td {
+        border: 1px solid var(--vscode-widget-border, #3e3e3e);
+        padding: 4px 8px;
+        text-align: left;
+        vertical-align: top;
+        word-break: break-all;
+        font-size: 11px;
+      }
+      
+      .current-state-table th {
+        background: var(--vscode-editor-lineHighlightBackground, #2a2a2a);
+        font-weight: bold;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+      
+      .current-state-table .highlight {
+        background: var(--vscode-editor-findMatchHighlightBackground, #515c6a) !important;
+        animation: highlightFade 500ms ease-out;
+      }
+      
+      @keyframes highlightFade {
+        0% { background: var(--vscode-editor-findMatchBackground, #613214) !important; }
+        100% { background: var(--vscode-editor-findMatchHighlightBackground, #515c6a) !important; }
+      }
+      
+      .current-state-table tr:nth-child(even) {
+        background: var(--vscode-editor-lineHighlightBackground, rgba(255, 255, 255, 0.04));
+      }
+      
+      .current-state-table tr:hover {
+        background: var(--vscode-list-hoverBackground, #2a2d2e);
+      }
+      
+      .current-state-table .field-name {
+        font-weight: bold;
+        background: var(--vscode-editor-lineHighlightBackground, rgba(255, 255, 255, 0.02));
+        min-width: 120px;
+      }
+    `;
+    
+    // Clear container and add new content
+    this.container.innerHTML = '';
+    this.container.appendChild(style);
+    this.container.appendChild(table);
+  }
+
+  private updateHighlightClass(): void {
+    const table = this.container.querySelector('table');
+    if (!table) return;
+    
+    const valueCells = table.querySelectorAll('td:nth-child(2)'); // Second column (value cells)
+    valueCells.forEach((td, rowIdx) => {
+      if (this.highlighted[`${rowIdx}-value`]) {
+        td.className = 'highlight';
+      } else {
+        td.className = '';
+      }
+    });
+  }
+
+  public setData(data: StateFieldRow[]): void {
+    this.data = data || [];
+    this.render();
+  }
+
+  public updateProps(newProps: Partial<CurrentStateTableProps>): void {
+    if (newProps.data !== undefined) {
+      this.setData(newProps.data);
+    }
+  }
+
+  public destroy(): void {
+    this.container.innerHTML = '';
+  }
+}
+
+export function createCurrentStateTable(container: HTMLElement, props: CurrentStateTableProps): { 
+  destroy: () => void;
+  updateProps: (newProps: Partial<CurrentStateTableProps>) => void;
+  setData: (data: StateFieldRow[]) => void;
+} {
+  const component = new VanillaCurrentStateTable(container, props);
+  
+  return {
+    destroy: () => component.destroy(),
+    updateProps: (newProps: Partial<CurrentStateTableProps>) => component.updateProps(newProps),
+    setData: (data: StateFieldRow[]) => component.setData(data)
+  };
+}
+
+// Custom element for CurrentStateTable
+class CurrentStateTableElement extends HTMLElement {
+  private component: { destroy: () => void; setData: (data: StateFieldRow[]) => void } | null = null;
+
+  connectedCallback() {
+    const props: CurrentStateTableProps = {
+      data: []
+    };
+    this.component = createCurrentStateTable(this, props);
+  }
+
+  disconnectedCallback() {
+    if (this.component) {
+      this.component.destroy();
+      this.component = null;
+    }
+  }
+
+  setData(data: StateFieldRow[]) {
+    if (this.component) {
+      this.component.setData(data);
+    }
+  }
+
+  set data(value: StateFieldRow[]) {
+    this.setData(value);
+  }
+}
+
+// Register custom element
+if (typeof window !== 'undefined' && window.customElements) {
+  if (!window.customElements.get('current-state-table')) {
+    window.customElements.define('current-state-table', CurrentStateTableElement);
+  }
+}
 // Global exposure for VS Code webviews
 if (typeof window !== 'undefined') {
   if (!window.DebriefWebComponents) {
     window.DebriefWebComponents = {
       createTimeController,
       createPropertiesView,
-      createMapComponent
+      createMapComponent,
+      createCurrentStateTable
     };
   } else {
     Object.assign(window.DebriefWebComponents, {
       createTimeController,
       createPropertiesView,
-      createMapComponent
+      createMapComponent,
+      createCurrentStateTable
     });
   }
 }
@@ -583,6 +804,7 @@ declare global {
       createTimeController: typeof createTimeController;
       createPropertiesView: typeof createPropertiesView;
       createMapComponent: typeof createMapComponent;
+      createCurrentStateTable: typeof createCurrentStateTable;
     };
   }
 }

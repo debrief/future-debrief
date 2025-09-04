@@ -113,6 +113,39 @@
           "name": "Properties View",
           "type": "webview",
           "when": "true"
+        },
+        {
+          "id": "debrief.currentState",
+          "name": "Current State",
+          "type": "webview",
+          "when": "true"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "debrief.toggleFeatureVisibility",
+          "when": "view == debrief.outline",
+          "group": "navigation@1"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "debrief.toggleFeatureVisibility",
+          "when": "view == debrief.outline",
+          "group": "navigation@1"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "debrief.toggleFeatureVisibility",
+          "when": "view == debrief.outline",
+          "group": "navigation@1"
         }
       ]
     },
