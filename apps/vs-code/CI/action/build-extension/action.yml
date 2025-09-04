@@ -31,7 +31,7 @@ runs:
     
     - name: Install dependencies
       shell: bash
-      run: pnpm install --no-frozen-lockfile
+      run: pnpm install --frozen-lockfile
     
     - name: Build VS Code extension and dependencies
       shell: bash
