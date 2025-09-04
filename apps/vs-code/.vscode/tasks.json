@@ -2,16 +2,26 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "dev:vs-code-extension",
+      "label": "dev:vs-code",
       "type": "shell",
       "command": "bash",
       "args": [
         "-c",
-        "export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\" && nvm use && pnpm turbo run dev --filter=vs-code..."
+        "export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\" && nvm use && pnpm run dev:vs-code"
       ],
+      "options": {
+        "cwd": "${workspaceFolder}/../.."
+      },
       "group": "build",
       "isBackground": true,
-      "problemMatcher": "$tsc-watch",
+      "problemMatcher": {
+        "base": "$tsc-watch",
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "pnpm run dev:vs-code",
+          "endsPattern": "^.*watching for changes.*$"
+        }
+      },
       "presentation": {
         "panel": "shared",
         "reveal": "always"
