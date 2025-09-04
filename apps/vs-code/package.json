@@ -149,6 +149,15 @@
         }
       ]
     },
+    "menus": {
+      "view/title": [
+        {
+          "command": "debrief.toggleFeatureVisibility",
+          "when": "view == debrief.outline",
+          "group": "navigation@1"
+        }
+      ]
+    },
     "customEditors": [
       {
         "viewType": "plotJsonEditor",

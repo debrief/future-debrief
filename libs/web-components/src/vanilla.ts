@@ -50,7 +50,6 @@ interface StateFieldRow {
 interface CurrentStateTableProps {
   data: StateFieldRow[];
 }
-
 // Configure default Leaflet marker icons
 const DefaultIcon = L.icon({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
@@ -779,7 +778,6 @@ if (typeof window !== 'undefined' && window.customElements) {
     window.customElements.define('current-state-table', CurrentStateTableElement);
   }
 }
-
 // Global exposure for VS Code webviews
 if (typeof window !== 'undefined') {
   if (!window.DebriefWebComponents) {

@@ -9,7 +9,7 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
     private _globalController: GlobalController;
     private _disposables: vscode.Disposable[] = [];
     private _currentEditorId?: string;
-    private _featuresVisible = true;
+    private _featuresVisible: boolean = true;
 
     constructor() {
         this._globalController = GlobalController.getInstance();
@@ -180,8 +180,8 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
         const featureCollection = this._globalController.getStateSlice(this._currentEditorId, 'featureCollection');
         if (!featureCollection || !featureCollection.features) return;
         const id = featureId ?? featureIndex.toString();
-        const selectionState = this._globalController.getStateSlice(this._currentEditorId, 'selectionState') || { selectedIds: [] };
-        const selectedIds: Array<string | number> = Array.isArray(selectionState.selectedIds) ? [...selectionState.selectedIds] : [];
+        let selectionState = this._globalController.getStateSlice(this._currentEditorId, 'selectionState') || { selectedIds: [] };
+        let selectedIds: string[] = Array.isArray(selectionState.selectedIds) ? [...selectionState.selectedIds] : [];
         const idx = selectedIds.indexOf(id);
         if (idx === -1) {
             selectedIds.push(id);
