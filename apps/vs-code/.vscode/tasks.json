@@ -14,7 +14,14 @@
       },
       "group": "build",
       "isBackground": true,
-      "problemMatcher": "$tsc-watch",
+      "problemMatcher": {
+        "base": "$tsc-watch",
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "pnpm run dev:vs-code",
+          "endsPattern": "^.*watching for changes.*$"
+        }
+      },
       "presentation": {
         "panel": "shared",
         "reveal": "always"
