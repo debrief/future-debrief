@@ -1,0 +1,25 @@
+{
+  "name": "Future Debrief Development",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "nodeGypDependencies": true,
+      "version": "20"
+    }
+  },
+  "onCreateCommand": "npm install -g pnpm@10.14.0",
+  "postCreateCommand": "pnpm install",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.vscode-typescript-next",
+        "esbenp.prettier-vscode"
+      ],
+      "settings": {
+        "typescript.preferences.npmLocation": "pnpm"
+      }
+    }
+  },
+  "forwardPorts": [3000, 5173, 8080],
+  "postAttachCommand": "echo 'Codespace ready! Use pnpm commands for package management.'"
+}
