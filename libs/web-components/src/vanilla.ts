@@ -2,6 +2,7 @@
 // This creates actual vanilla JavaScript components without any React dependencies
 
 import L from 'leaflet';
+import './vanilla.css';
 
 // Define interfaces for type safety
 interface GeoJSONFeature extends GeoJSON.Feature {
