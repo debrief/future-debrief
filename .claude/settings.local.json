@@ -141,7 +141,8 @@
       "Bash(export NODE_NO_WARNINGS=1)",
       "Bash(npm --version)",
       "Bash(time pnpm --filter @debrief/web-components build)",
-      "Bash(time pnpm --filter @debrief/web-components build:fast)"
+      "Bash(time pnpm --filter @debrief/web-components build:fast)",
+      "WebFetch(domain:code.visualstudio.com)"
     ]
   }
 }
