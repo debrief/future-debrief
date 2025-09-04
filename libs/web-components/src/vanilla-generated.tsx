@@ -7,6 +7,7 @@ import { MapComponent, MapComponentProps, GeoJSONFeature, MapState } from './Map
 import { TimeController, TimeControllerProps } from './TimeController/TimeController';
 import { PropertiesView, PropertiesViewProps } from './PropertiesView/PropertiesView';
 import { CurrentStateTable, StateFieldRow } from './CurrentStateTable/CurrentStateTable';
+import { CurrentState } from '@debrief/shared-types/derived/typescript/currentstate';
 import './vanilla.css';
 
 // Re-export types for compatibility
@@ -32,7 +33,8 @@ export interface VanillaMapComponentProps {
 }
 
 export interface VanillaCurrentStateTableProps {
-  data: StateFieldRow[];
+  data?: StateFieldRow[];
+  currentState?: CurrentState;
 }
 
 // Base wrapper class for React component lifecycle management
@@ -97,23 +99,23 @@ class VanillaPropertiesViewWrapper extends ReactComponentWrapper<PropertiesViewP
 
 // CurrentStateTable wrapper
 class VanillaCurrentStateTableWrapper extends ReactComponentWrapper<VanillaCurrentStateTableProps> {
-  private customSetData?: (data: StateFieldRow[]) => void;
-
   constructor(container: HTMLElement, props: VanillaCurrentStateTableProps) {
     super(container, props);
-    
-    // Expose setData method for compatibility
-    this.customSetData = (data: StateFieldRow[]) => {
-      this.updateProps({ data });
-    };
   }
 
   protected renderComponent(): React.ReactElement {
-    return React.createElement(CurrentStateTable, { data: this.currentProps.data });
+    return React.createElement(CurrentStateTable, {
+      data: this.currentProps.data,
+      currentState: this.currentProps.currentState
+    });
   }
 
   public setData(data: StateFieldRow[]): void {
-    this.updateProps({ data });
+    this.updateProps({ data, currentState: undefined });
+  }
+
+  public setCurrentState(currentState: CurrentState): void {
+    this.updateProps({ currentState, data: undefined });
   }
 }
 
@@ -158,13 +160,15 @@ export function createCurrentStateTable(container: HTMLElement, props: VanillaCu
   destroy: () => void;
   updateProps: (newProps: Partial<VanillaCurrentStateTableProps>) => void;
   setData: (data: StateFieldRow[]) => void;
+  setCurrentState: (currentState: CurrentState) => void;
 } {
   const wrapper = new VanillaCurrentStateTableWrapper(container, props);
   
   return {
     destroy: () => wrapper.destroy(),
     updateProps: (newProps: Partial<VanillaCurrentStateTableProps>) => wrapper.updateProps(newProps),
-    setData: (data: StateFieldRow[]) => wrapper.setData(data)
+    setData: (data: StateFieldRow[]) => wrapper.setData(data),
+    setCurrentState: (currentState: CurrentState) => wrapper.setCurrentState(currentState)
   };
 }
 
@@ -173,9 +177,7 @@ class CurrentStateTableElement extends HTMLElement {
   private wrapper: VanillaCurrentStateTableWrapper | null = null;
 
   connectedCallback() {
-    const props: VanillaCurrentStateTableProps = {
-      data: []
-    };
+    const props: VanillaCurrentStateTableProps = {};
     this.wrapper = new VanillaCurrentStateTableWrapper(this, props);
   }
 
@@ -192,8 +194,18 @@ class CurrentStateTableElement extends HTMLElement {
     }
   }
 
+  setCurrentState(currentState: CurrentState) {
+    if (this.wrapper) {
+      this.wrapper.setCurrentState(currentState);
+    }
+  }
+
   set data(value: StateFieldRow[]) {
     this.setData(value);
+  }
+
+  set currentState(value: CurrentState) {
+    this.setCurrentState(value);
   }
 }
 
