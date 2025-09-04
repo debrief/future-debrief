@@ -118,9 +118,32 @@ runs:
           ---
           *The deployment will retry automatically when you push new commits to this PR.*`;
           
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: prNumber,
+          });
+          
+          // Remove all existing failure comments
+          const failureComments = comments.filter(comment => 
+            comment.user.login === 'github-actions[bot]' && 
+            comment.body.includes('❌ VS Code Extension PR Preview Deployment Failed')
+          );
+          
+          for (const comment of failureComments) {
+            await github.rest.issues.deleteComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: comment.id
+            });
+            console.log(`Deleted previous failure comment: ${comment.id}`);
+          }
+          
+          // Create new failure comment
           await github.rest.issues.createComment({
             owner: context.repo.owner,
             repo: context.repo.repo,
             issue_number: prNumber,
             body: errorComment
           });
+          console.log('Created new failure comment');
