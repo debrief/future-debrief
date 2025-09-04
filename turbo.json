@@ -24,6 +24,9 @@
       "cache": false,
       "persistent": true,
       "inputs": ["src/**", ".storybook/**", "stories/**"]
+    },
+    "clean": {
+      "cache": false
     }
   }
 }
