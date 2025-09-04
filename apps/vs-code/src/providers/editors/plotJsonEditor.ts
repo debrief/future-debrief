@@ -48,7 +48,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             const document = EditorIdManager.getDocument(editorId);
             if (document && document.fileName === filename) {
                 const selectionState = globalController.getStateSlice(editorId, 'selectionState');
-                return selectionState?.selectedIds?.map(id => String(id)) || [];
+                return selectionState?.selectedIds?.map((id: string | number) => String(id)) || [];
             }
         }
         return [];
@@ -678,7 +678,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             // Show success message with feature counts for valid collections
             const counts = validation.featureCounts;
             const summary = `Valid FeatureCollection loaded: ${counts.total} features (${counts.tracks} tracks, ${counts.points} points, ${counts.annotations} annotations)`;
-            console.log('Debrief FeatureCollection:', summary);
+            console.warn('Debrief FeatureCollection:', summary);
         }
         
         return json;
