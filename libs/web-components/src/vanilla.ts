@@ -631,8 +631,8 @@ class VanillaCurrentStateTable {
       // Value cell with highlighting
       const valueTd = document.createElement('td');
       valueTd.textContent = row.value;
-      valueTd.className = this.highlighted[`${idx}-value`] ? 'highlight' : '';
       tr.appendChild(valueTd);
+      valueTd.className = this.highlighted[`${idx}-value`] ? 'highlight' : '';
       
       tbody.appendChild(tr);
     });
