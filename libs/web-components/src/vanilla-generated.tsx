@@ -33,7 +33,6 @@ export interface VanillaMapComponentProps {
 }
 
 export interface VanillaCurrentStateTableProps {
-  data?: StateFieldRow[];
   currentState?: CurrentState;
 }
 
@@ -105,17 +104,18 @@ class VanillaCurrentStateTableWrapper extends ReactComponentWrapper<VanillaCurre
 
   protected renderComponent(): React.ReactElement {
     return React.createElement(CurrentStateTable, {
-      data: this.currentProps.data,
       currentState: this.currentProps.currentState
     });
   }
 
-  public setData(data: StateFieldRow[]): void {
-    this.updateProps({ data, currentState: undefined });
+  public setData(_data: StateFieldRow[]): void {
+    // Legacy method - convert data to currentState format if needed
+    // For now, this is a no-op as the new API expects CurrentState objects
+    console.warn('setData is deprecated. Use setCurrentState with CurrentState objects instead.');
   }
 
   public setCurrentState(currentState: CurrentState): void {
-    this.updateProps({ currentState, data: undefined });
+    this.updateProps({ currentState });
   }
 }
 

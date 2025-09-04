@@ -4,7 +4,6 @@ export { PropertiesView } from './PropertiesView/PropertiesView';
 export { MapComponent } from './MapComponent/MapComponent';
 
 export { CurrentStateTable } from './CurrentStateTable/CurrentStateTable';
-export type { EditorStateRow } from './CurrentStateTable/CurrentStateTable';
 
 // Type exports
 export type { TimeControllerProps } from './TimeController/TimeController';
