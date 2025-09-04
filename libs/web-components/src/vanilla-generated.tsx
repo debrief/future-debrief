@@ -6,7 +6,7 @@ import { createRoot, Root } from 'react-dom/client';
 import { MapComponent, MapComponentProps, GeoJSONFeature, MapState } from './MapComponent/MapComponent';
 import { TimeController, TimeControllerProps } from './TimeController/TimeController';
 import { PropertiesView, PropertiesViewProps } from './PropertiesView/PropertiesView';
-import { CurrentStateTable, StateFieldRow } from './CurrentStateTable';
+import { CurrentStateTable, StateFieldRow } from './CurrentStateTable/CurrentStateTable';
 import './vanilla.css';
 
 // Re-export types for compatibility
