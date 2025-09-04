@@ -54,7 +54,7 @@
             "command": "bash",
             "args": [
                 "-c",
-                "source $NVM_DIR/nvm.sh && nvm use && cd ../../ && pnpm run build:shared-types && cd libs/web-components && pnpm dev"
+                "source $NVM_DIR/nvm.sh && nvm use && cd ../../ && pnpm run build:shared-types && cd libs/web-components && pnpm storybook"
             ],
             "group": "build",
             "presentation": {
@@ -73,8 +73,8 @@
                 },
                 "background": {
                     "activeOnStart": true,
-                    "beginsPattern": "^.*starting.*",
-                    "endsPattern": "^.*Local:.*http://localhost:6006.*"
+                    "beginsPattern": "^.*Starting.*",
+                    "endsPattern": "On your network:"
                 }
             }
         }
