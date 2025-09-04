@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { GlobalController } from '../../core/globalController';
 import { SelectionState } from '@debrief/shared-types/derived/typescript/selectionstate';
+import { DebriefFeature } from '@debrief/shared-types/derived/typescript/featurecollection';
 
 export class PropertiesViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'debrief.propertiesView';
@@ -112,7 +113,7 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
             }
 
             // Find all selected features by id (string match)
-            const selectedFeatures = featureCollection.features.filter((feature: any) => {
+            const selectedFeatures = featureCollection.features.filter((feature: DebriefFeature) => {
                 const id = feature.id !== undefined ? String(feature.id) : undefined;
                 return id && selectionState.selectedIds.includes(id);
             });
@@ -180,6 +181,8 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
     private _getHtmlForWebview(webview: vscode.Webview) {
         const styleResetUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css'));
         const styleVSCodeUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode.css'));
+        const webComponentsCssUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'web-components.css'));
+        const webComponentsJsUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'web-components.js'));
 
         const nonce = getNonce();
 
@@ -191,45 +194,11 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <link href="${styleResetUri}" rel="stylesheet">
                 <link href="${styleVSCodeUri}" rel="stylesheet">
+                <link href="${webComponentsCssUri}" rel="stylesheet">
                 <title>Properties View</title>
                 <style>
                     .properties-container {
                         padding: 10px;
-                    }
-                    .property-group {
-                        margin-bottom: 15px;
-                    }
-                    .property-group h3 {
-                        font-size: 14px;
-                        margin-bottom: 8px;
-                        color: var(--vscode-editor-foreground);
-                        border-bottom: 1px solid var(--vscode-widget-border);
-                        padding-bottom: 4px;
-                    }
-                    .property-item {
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        margin-bottom: 6px;
-                        padding: 4px;
-                        border-radius: 3px;
-                    }
-                    .property-item:hover {
-                        background-color: var(--vscode-list-hoverBackground);
-                    }
-                    .property-label {
-                        font-weight: 500;
-                        font-size: 12px;
-                        min-width: 80px;
-                    }
-                    .property-value {
-                        font-size: 11px;
-                        font-family: monospace;
-                        color: var(--vscode-debugConsole-infoForeground);
-                        word-break: break-all;
-                        text-align: right;
-                        flex: 1;
-                        margin-left: 8px;
                     }
                     .no-selection {
                         text-align: center;
@@ -237,105 +206,118 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
                         font-style: italic;
                         padding: 20px;
                     }
-                    .geometry-info {
-                        background-color: var(--vscode-editor-inactiveSelectionBackground);
-                        padding: 8px;
-                        border-radius: 4px;
-                        margin-bottom: 10px;
-                    }
-                    .coordinates {
-                        max-height: 150px;
-                        overflow-y: auto;
-                        font-size: 10px;
-                        background-color: var(--vscode-textCodeBlock-background);
-                        padding: 6px;
-                        border-radius: 3px;
-                    }
                 </style>
             </head>
             <body>
-                <div class="properties-container" id="propertiesContainer">
+                <div id="root" class="properties-container">
                     <div class="no-selection">
                         Select a feature to view its properties
                     </div>
                 </div>
+                <script nonce="${nonce}" src="${webComponentsJsUri}"></script>
                 <script nonce="${nonce}">
                     const vscode = acquireVsCodeApi();
-                    const container = document.getElementById('propertiesContainer');
+                    let currentFeature = null;
+                    let root = null;
 
-                    function displayFeatureProperties(feature) {
-                        if (!feature) {
-                            container.innerHTML = '<div class="no-selection">Select a feature to view its properties</div>';
+                    // Wait for React to be available
+                    function initializeReact() {
+                        if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
+                            setTimeout(initializeReact, 100);
                             return;
                         }
 
-                        let html = '';
-
-                        // Feature Properties
-                        if (feature.properties && Object.keys(feature.properties).length > 0) {
-                            html += '<div class="property-group">';
-                            html += '<h3>Properties</h3>';
-                            for (const [key, value] of Object.entries(feature.properties)) {
-                                html += '<div class="property-item">';
-                                html += '<div class="property-label">' + escapeHtml(key) + ':</div>';
-                                html += '<div class="property-value">' + escapeHtml(String(value)) + '</div>';
-                                html += '</div>';
-                            }
-                            html += '</div>';
-                        }
-
-                        // Geometry Information
-                        if (feature.geometry) {
-                            html += '<div class="property-group">';
-                            html += '<h3>Geometry</h3>';
-                            html += '<div class="geometry-info">';
-                            html += '<div class="property-item">';
-                            html += '<div class="property-label">Type:</div>';
-                            html += '<div class="property-value">' + escapeHtml(feature.geometry.type) + '</div>';
-                            html += '</div>';
-                            
-                            if (feature.geometry.coordinates) {
-                                html += '<div class="property-item">';
-                                html += '<div class="property-label">Coordinates:</div>';
-                                html += '</div>';
-                                html += '<div class="coordinates">';
-                                html += '<pre>' + JSON.stringify(feature.geometry.coordinates, null, 2) + '</pre>';
-                                html += '</div>';
-                            }
-                            html += '</div>';
-                            html += '</div>';
-                        }
-
-                        // Feature ID if present
-                        if (feature.id !== undefined) {
-                            html += '<div class="property-group">';
-                            html += '<h3>Feature ID</h3>';
-                            html += '<div class="property-item">';
-                            html += '<div class="property-label">ID:</div>';
-                            html += '<div class="property-value">' + escapeHtml(String(feature.id)) + '</div>';
-                            html += '</div>';
-                            html += '</div>';
-                        }
-
-                        container.innerHTML = html;
+                        // Create React root
+                        const container = document.getElementById('root');
+                        root = ReactDOM.createRoot(container);
+                        
+                        // Initial render
+                        renderPropertiesView(null);
                     }
 
-                    function escapeHtml(text) {
-                        const map = {
-                            '&': '&amp;',
-                            '<': '&lt;',
-                            '>': '&gt;',
-                            '"': '&quot;',
-                            "'": '&#039;'
-                        };
-                        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+                    function transformFeatureToProperties(feature) {
+                        if (!feature) return [];
+                        
+                        const properties = [];
+                        
+                        // Add feature ID if present
+                        if (feature.id !== undefined) {
+                            properties.push({
+                                key: 'ID',
+                                value: String(feature.id),
+                                type: 'string'
+                            });
+                        }
+                        
+                        // Add feature properties
+                        if (feature.properties && Object.keys(feature.properties).length > 0) {
+                            Object.entries(feature.properties).forEach(([key, value]) => {
+                                properties.push({
+                                    key,
+                                    value: value,
+                                    type: typeof value
+                                });
+                            });
+                        }
+                        
+                        // Add geometry information
+                        if (feature.geometry) {
+                            properties.push({
+                                key: 'Geometry Type',
+                                value: feature.geometry.type,
+                                type: 'string'
+                            });
+                            
+                            if (feature.geometry.coordinates) {
+                                properties.push({
+                                    key: 'Coordinates',
+                                    value: JSON.stringify(feature.geometry.coordinates),
+                                    type: 'string'
+                                });
+                            }
+                        }
+                        
+                        return properties;
+                    }
+
+                    function renderPropertiesView(feature) {
+                        if (!root) return;
+                        
+                        currentFeature = feature;
+                        const properties = transformFeatureToProperties(feature);
+                        
+                        if (properties.length === 0) {
+                            root.render(React.createElement('div', {
+                                className: 'no-selection'
+                            }, 'Select a feature to view its properties'));
+                        } else {
+                            // Use the PropertiesView component from the web-components bundle
+                            // Assuming it's available as window.DebriefWebComponents.PropertiesView or similar
+                            const PropertiesView = window.DebriefWebComponents?.PropertiesView || 
+                                                 window.PropertiesView ||
+                                                 (() => React.createElement('div', null, 'PropertiesView component not found'));
+                            
+                            root.render(React.createElement(PropertiesView, {
+                                properties: properties,
+                                title: 'Feature Properties',
+                                readonly: true,
+                                onPropertyChange: (key, value) => {
+                                    // Handle property changes
+                                    vscode.postMessage({
+                                        type: 'propertyChange',
+                                        property: key,
+                                        value: value
+                                    });
+                                }
+                            }));
+                        }
                     }
 
                     window.addEventListener('message', event => {
                         const message = event.data;
                         switch (message.type) {
                             case 'featureSelected':
-                                displayFeatureProperties(message.feature);
+                                renderPropertiesView(message.feature);
                                 break;
                             case 'stateUpdate':
                                 // Handle general state updates if needed
@@ -343,8 +325,12 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
                         }
                     });
 
-                    // Initial state
-                    displayFeatureProperties(null);
+                    // Initialize React when DOM is ready
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', initializeReact);
+                    } else {
+                        initializeReact();
+                    }
                 </script>
             </body>
             </html>`;

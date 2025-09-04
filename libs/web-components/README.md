@@ -149,6 +149,33 @@ dist/
     └── ...
 ```
 
+### Vanilla Bundle Integration with VS Code Extension
+
+The vanilla bundles in `dist/vanilla/` are specifically designed for VS Code webview integration. These files are copied to the VS Code extension's `media/` directory as:
+- `apps/vs-code/media/web-components.js`
+- `apps/vs-code/media/web-components.css`
+
+**When to Update Vanilla Bundles:**
+
+1. **Component Interface Changes**: When PropertiesView or other exported components change their props interface
+2. **New Components Added**: When new components are added that need to be available in VS Code webviews  
+3. **Bug Fixes**: When component implementations are fixed
+4. **Dependency Updates**: When React or other bundled dependencies are updated
+
+**How to Update Vanilla Bundles:**
+
+1. Make your changes to components in the `src/` directory
+2. Build the library: `pnpm build`
+3. The updated bundles are automatically available to the VS Code extension
+4. Test the integration by running the VS Code extension in development mode
+5. Verify the PropertiesView component works correctly in the properties panel
+
+**Current Integration Status:**
+- ✅ PropertiesView component integrated into VS Code properties panel (Issue #45)
+- ✅ Automatic fallback when component is not found
+- ✅ Data transformation layer for feature objects → Property[] format
+- ✅ Backward compatibility with existing message protocols
+
 ## Development
 
 ### Setup
