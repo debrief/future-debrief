@@ -331,6 +331,9 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(
             this.context.extensionUri, 'media', 'plotJsonEditor.css'));
 
+        const webComponentsStyleUri = webview.asWebviewUri(vscode.Uri.joinPath(
+            this.context.extensionUri, 'node_modules', '@debrief', 'web-components', 'dist', 'vanilla', 'index.css'));
+
         const nonce = getNonce();
 
         // If there's a validation error, show error page instead of map
@@ -428,6 +431,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 				<link href="${styleResetUri}" rel="stylesheet">
 				<link href="${styleVSCodeUri}" rel="stylesheet">
 				<link href="${styleMainUri}" rel="stylesheet">
+				<link href="${webComponentsStyleUri}" rel="stylesheet">
 				<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
 					integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 				<title>Plot JSON Editor</title>
