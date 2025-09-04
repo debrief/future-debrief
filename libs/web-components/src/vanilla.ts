@@ -1,82 +1,565 @@
-// Vanilla JS widget wrappers for VS Code webviews and non-React environments
-import { createElement } from 'react';
-import { createRoot } from 'react-dom/client';
-import { TimeController, TimeControllerProps } from './TimeController/TimeController';
-import { PropertiesView, PropertiesViewProps } from './PropertiesView/PropertiesView';
-import { MapComponent, MapComponentProps } from './MapComponent/MapComponent';
+// Pure vanilla JS implementation for VS Code webviews and non-React environments
+// This creates actual vanilla JavaScript components without any React dependencies
 
-// Window interface extensions
-declare global {
-  interface Window {
-    createTimeController: typeof createTimeController;
-    createPropertiesView: typeof createPropertiesView;
-    createMapComponent: typeof createMapComponent;
-    DebriefWebComponents?: {
-      createTimeController: typeof createTimeController;
-      createPropertiesView: typeof createPropertiesView;
-      createMapComponent: typeof createMapComponent;
+import L from 'leaflet';
+
+// Define interfaces for type safety
+interface GeoJSONFeature extends GeoJSON.Feature {
+  id?: string | number;
+}
+
+interface GeoJSONFeatureCollection {
+  type: 'FeatureCollection';
+  features: GeoJSONFeature[];
+}
+
+interface MapState {
+  center: [number, number];
+  zoom: number;
+}
+
+interface MapComponentProps {
+  geoJsonData?: string | GeoJSONFeatureCollection;
+  onSelectionChange?: (selectedFeatures: GeoJSONFeature[], selectedIndices: number[]) => void;
+  onMapClick?: (lat: number, lng: number) => void;
+  highlightFeatureIndex?: number;
+  selectedFeatureIndices?: number[];
+  selectedFeatureIds?: (string | number)[];
+  showAddButton?: boolean;
+  onAddClick?: () => void;
+  onMapStateChange?: (state: MapState) => void;
+  initialMapState?: MapState;
+}
+
+interface TimeControllerProps {
+  // Placeholder - implement when needed
+  [key: string]: any;
+}
+
+interface PropertiesViewProps {
+  // Placeholder - implement when needed
+  [key: string]: any;
+}
+
+// Configure default Leaflet marker icons
+const DefaultIcon = L.icon({
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+L.Marker.prototype.options.icon = DefaultIcon;
+
+/**
+ * Calculate bounds from GeoJSON features
+ */
+function calculateFeatureBounds(features: GeoJSONFeature[]): { bounds: L.LatLngBounds; hasValidGeometry: boolean } {
+  const bounds = L.latLngBounds([]);
+  let hasValidGeometry = false;
+
+  features.forEach(feature => {
+    if (!feature.geometry) return;
+
+    try {
+      switch (feature.geometry.type) {
+        case 'Point': {
+          const coords = feature.geometry.coordinates as [number, number];
+          bounds.extend([coords[1], coords[0]]);
+          hasValidGeometry = true;
+          break;
+        }
+        case 'LineString': {
+          const lineCoords = feature.geometry.coordinates as [number, number][];
+          lineCoords.forEach(coord => bounds.extend([coord[1], coord[0]]));
+          hasValidGeometry = true;
+          break;
+        }
+        case 'MultiLineString': {
+          const multiLineCoords = feature.geometry.coordinates as [number, number][][];
+          multiLineCoords.forEach(line => 
+            line.forEach(coord => bounds.extend([coord[1], coord[0]]))
+          );
+          hasValidGeometry = true;
+          break;
+        }
+        case 'Polygon': {
+          const polyCoords = feature.geometry.coordinates as [number, number][][];
+          if (polyCoords.length > 0) {
+            polyCoords[0].forEach(coord => bounds.extend([coord[1], coord[0]]));
+            hasValidGeometry = true;
+          }
+          break;
+        }
+        case 'MultiPolygon': {
+          const multiPolyCoords = feature.geometry.coordinates as [number, number][][][];
+          multiPolyCoords.forEach(polygon => {
+            if (polygon.length > 0) {
+              polygon[0].forEach(coord => bounds.extend([coord[1], coord[0]]));
+            }
+          });
+          hasValidGeometry = true;
+          break;
+        }
+        case 'MultiPoint': {
+          const multiPointCoords = feature.geometry.coordinates as [number, number][];
+          multiPointCoords.forEach(coord => bounds.extend([coord[1], coord[0]]));
+          hasValidGeometry = true;
+          break;
+        }
+      }
+    } catch (error) {
+      console.warn('Error processing feature geometry for bounds:', error);
+    }
+  });
+
+  return { bounds, hasValidGeometry };
+}
+
+class VanillaMapComponent {
+  private map: L.Map;
+  private container: HTMLElement;
+  private props: MapComponentProps;
+  private currentData: GeoJSONFeatureCollection | null = null;
+  private selectedFeatures: Set<number> = new Set();
+  private featureLayers: Map<number, L.Layer> = new Map();
+  private geoJsonLayer: L.GeoJSON | null = null;
+  private highlightLayer: L.Layer | null = null;
+
+  constructor(container: HTMLElement, props: MapComponentProps) {
+    this.container = container;
+    this.props = props;
+
+    // Create map container structure
+    this.createMapStructure();
+
+    // Initialize Leaflet map
+    const center: [number, number] = props.initialMapState?.center || [51.505, -0.09];
+    const zoom = props.initialMapState?.zoom || 13;
+
+    this.map = L.map(this.container.querySelector('.map-instance') as HTMLElement, {
+      center,
+      zoom
+    });
+
+    // Add tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      maxZoom: 19
+    }).addTo(this.map);
+
+    // Set up event handlers
+    this.setupEventHandlers();
+
+    // Load initial data
+    if (props.geoJsonData) {
+      this.updateGeoJsonData(props.geoJsonData);
+    }
+  }
+
+  private createMapStructure(): void {
+    this.container.innerHTML = '';
+    this.container.className = 'plot-editor';
+
+    if (this.props.showAddButton) {
+      const controls = document.createElement('div');
+      controls.className = 'controls';
+      
+      const addButton = document.createElement('button');
+      addButton.className = 'add-button';
+      addButton.textContent = 'Add Feature';
+      addButton.onclick = () => {
+        if (this.props.onAddClick) {
+          this.props.onAddClick();
+        }
+      };
+      
+      controls.appendChild(addButton);
+      this.container.appendChild(controls);
+    }
+
+    const mapDiv = document.createElement('div');
+    mapDiv.className = 'map-instance';
+    mapDiv.style.flex = '1';
+    mapDiv.style.minHeight = '400px';
+    this.container.appendChild(mapDiv);
+  }
+
+  private setupEventHandlers(): void {
+    // Map click handler
+    this.map.on('click', (e: L.LeafletMouseEvent) => {
+      if (this.props.onMapClick) {
+        this.props.onMapClick(e.latlng.lat, e.latlng.lng);
+      }
+    });
+
+    // Map state change handlers
+    const handleMapStateChange = () => {
+      if (this.props.onMapStateChange) {
+        const center = this.map.getCenter();
+        this.props.onMapStateChange({
+          center: [center.lat, center.lng],
+          zoom: this.map.getZoom()
+        });
+      }
     };
+
+    this.map.on('moveend', handleMapStateChange);
+    this.map.on('zoomend', handleMapStateChange);
+  }
+
+  private parseGeoJsonData(data: string | GeoJSONFeatureCollection | undefined): GeoJSONFeatureCollection | null {
+    if (!data) return null;
+
+    try {
+      const parsed = typeof data === 'string' ? JSON.parse(data) : data;
+      if (parsed.type === 'FeatureCollection' && Array.isArray(parsed.features)) {
+        return parsed;
+      }
+    } catch (error) {
+      console.error('Error parsing GeoJSON data:', error);
+    }
+    return null;
+  }
+
+  private updateGeoJsonData(geoJsonData: string | GeoJSONFeatureCollection | undefined): void {
+    const parsedData = this.parseGeoJsonData(geoJsonData);
+    if (parsedData) {
+      // Filter out features with properties.visible === false
+      const visibleFeatures = parsedData.features.filter(feature => {
+        const visible = feature.properties?.visible;
+        return visible !== false;
+      });
+      
+      this.currentData = {
+        ...parsedData,
+        features: visibleFeatures
+      };
+      
+      this.renderGeoJson();
+    } else {
+      this.currentData = null;
+      this.clearGeoJson();
+    }
+  }
+
+  private clearGeoJson(): void {
+    if (this.geoJsonLayer) {
+      this.map.removeLayer(this.geoJsonLayer);
+      this.geoJsonLayer = null;
+    }
+    this.featureLayers.clear();
+    this.selectedFeatures.clear();
+  }
+
+  private renderGeoJson(): void {
+    if (!this.currentData) return;
+
+    this.clearGeoJson();
+
+    this.geoJsonLayer = L.geoJSON(this.currentData, {
+      style: (feature) => this.getFeatureStyle(feature),
+      pointToLayer: (feature, latlng) => this.createPointLayer(feature, latlng),
+      onEachFeature: (feature, layer) => this.setupFeatureLayer(feature, layer)
+    }).addTo(this.map);
+
+    // Auto fit bounds if no initial state provided
+    if (!this.props.initialMapState && this.currentData.features.length > 0) {
+      const { bounds, hasValidGeometry } = calculateFeatureBounds(this.currentData.features);
+      if (hasValidGeometry && bounds.isValid()) {
+        this.map.fitBounds(bounds, { padding: [20, 20] });
+      }
+    }
+  }
+
+  private getFeatureStyle(feature?: GeoJSON.Feature): L.PathOptions {
+    if (!feature?.properties) {
+      return {
+        color: '#3388ff',
+        weight: 3,
+        opacity: 0.8,
+        fillOpacity: 0.2
+      };
+    }
+
+    const props = feature.properties;
+    const style: L.PathOptions = {};
+
+    if (props.stroke) {
+      style.color = props.stroke;
+    } else {
+      style.color = '#3388ff';
+    }
+
+    if (props.fill) {
+      style.fillColor = props.fill;
+    }
+    
+    if (props['fill-opacity'] !== undefined) {
+      style.fillOpacity = props['fill-opacity'];
+    } else {
+      style.fillOpacity = 0.2;
+    }
+
+    style.weight = 3;
+    style.opacity = 0.8;
+
+    return style;
+  }
+
+  private createPointLayer(feature: GeoJSON.Feature, latlng: L.LatLng): L.CircleMarker {
+    const props = feature.properties;
+    const markerColor = props?.['marker-color'] || props?.color || '#00F';
+    
+    const isBuoyfield = props?.type === 'buoyfield' || props?.name?.toLowerCase().includes('buoy');
+    const radius = isBuoyfield ? 5 : 8;
+    
+    return L.circleMarker(latlng, {
+      radius: radius,
+      fillColor: markerColor,
+      color: markerColor,
+      weight: 2,
+      opacity: 0.8,
+      fillOpacity: 0.7
+    });
+  }
+
+  private setupFeatureLayer(feature: GeoJSON.Feature, layer: L.Layer): void {
+    if (!this.currentData) return;
+
+    const index = this.currentData.features.indexOf(feature as GeoJSONFeature);
+    if (index >= 0) {
+      this.featureLayers.set(index, layer);
+    }
+
+    // Bind popup
+    if (feature.properties?.name) {
+      layer.bindPopup(feature.properties.name);
+    }
+
+    // Add click handler
+    layer.on('click', (e: L.LeafletMouseEvent) => {
+      e.originalEvent.preventDefault();
+      this.handleFeatureClick(index);
+    });
+  }
+
+  private handleFeatureClick(featureIndex: number): void {
+    if (!this.currentData) return;
+
+    if (this.selectedFeatures.has(featureIndex)) {
+      this.selectedFeatures.delete(featureIndex);
+      this.updateFeatureStyle(featureIndex, false);
+    } else {
+      this.selectedFeatures.add(featureIndex);
+      this.updateFeatureStyle(featureIndex, true);
+    }
+
+    if (this.props.onSelectionChange) {
+      const selectedFeatureData = Array.from(this.selectedFeatures)
+        .map(index => this.currentData!.features[index]);
+      this.props.onSelectionChange(selectedFeatureData, Array.from(this.selectedFeatures));
+    }
+  }
+
+  private updateFeatureStyle(featureIndex: number, isSelected: boolean): void {
+    if (!this.currentData) return;
+    
+    const layer = this.featureLayers.get(featureIndex);
+    const feature = this.currentData.features[featureIndex];
+    
+    if (!layer || !feature) return;
+
+    if (feature.geometry.type === 'Point') {
+      const baseColor = feature.properties?.['marker-color'] || feature.properties?.color || '#00F';
+      const isBuoyfield = feature.properties?.type === 'buoyfield' || feature.properties?.name?.toLowerCase().includes('buoy');
+      const baseRadius = isBuoyfield ? 5 : 8;
+      
+      if (isSelected) {
+        (layer as L.CircleMarker).setStyle({
+          radius: baseRadius + 2,
+          fillColor: baseColor,
+          color: '#ffffff',
+          weight: 5,
+          opacity: 1,
+          fillOpacity: 0.9
+        });
+      } else {
+        (layer as L.CircleMarker).setStyle({
+          radius: baseRadius,
+          fillColor: baseColor,
+          color: baseColor,
+          weight: 2,
+          opacity: 0.8,
+          fillOpacity: 0.7
+        });
+      }
+    } else {
+      const props = feature.properties || {};
+      const strokeColor = props.stroke || '#3388ff';
+      const fillColor = props.fill || strokeColor;
+      const fillOpacity = props['fill-opacity'] !== undefined ? props['fill-opacity'] : 0.2;
+      
+      const selectedStyle = {
+        color: '#ffffff',
+        weight: 5,
+        opacity: 1,
+        fillColor: fillColor,
+        fillOpacity: Math.min(fillOpacity + 0.2, 0.8)
+      };
+      
+      const defaultStyle = {
+        color: strokeColor,
+        weight: 3,
+        opacity: 0.8,
+        fillColor: fillColor,
+        fillOpacity: fillOpacity
+      };
+      
+      (layer as L.Path).setStyle(isSelected ? selectedStyle : defaultStyle);
+    }
+  }
+
+  private updateSelection(selectedFeatureIds: (string | number)[], selectedFeatureIndices: number[]): void {
+    if (!this.currentData) return;
+
+    // Clear previous selection
+    this.selectedFeatures.forEach(index => {
+      this.updateFeatureStyle(index, false);
+    });
+    this.selectedFeatures.clear();
+    
+    // Add indices
+    selectedFeatureIndices.forEach(index => {
+      if (index >= 0 && index < this.currentData!.features.length) {
+        this.selectedFeatures.add(index);
+        this.updateFeatureStyle(index, true);
+      }
+    });
+
+    // Add selections by ID
+    selectedFeatureIds.forEach(id => {
+      const index = this.currentData!.features.findIndex(feature => feature.id === id);
+      if (index >= 0) {
+        this.selectedFeatures.add(index);
+        this.updateFeatureStyle(index, true);
+      }
+    });
+  }
+
+  private updateHighlight(highlightFeatureIndex?: number): void {
+    if (!this.currentData) return;
+
+    // Remove previous highlight
+    if (this.highlightLayer) {
+      this.map.removeLayer(this.highlightLayer);
+      this.highlightLayer = null;
+    }
+
+    if (highlightFeatureIndex !== undefined && highlightFeatureIndex < this.currentData.features.length) {
+      const feature = this.currentData.features[highlightFeatureIndex];
+      
+      this.highlightLayer = L.geoJSON(feature, {
+        pointToLayer: (_geoJsonFeature: GeoJSON.Feature, latlng: L.LatLng) => {
+          const isBuoyfield = feature.properties?.type === 'buoyfield' || feature.properties?.name?.toLowerCase().includes('buoy');
+          const radius = isBuoyfield ? 7 : 12;
+          
+          return L.circleMarker(latlng, {
+            radius: radius,
+            fillColor: '#ff7f00',
+            color: '#ff4500',
+            weight: 4,
+            opacity: 0.9,
+            fillOpacity: 0.6
+          });
+        },
+        style: () => ({
+          color: '#ff4500',
+          weight: 4,
+          opacity: 0.9,
+          fillColor: '#ff7f00',
+          fillOpacity: 0.6
+        })
+      }).addTo(this.map);
+
+      // Pan to highlighted feature
+      if (feature.geometry.type === 'Point') {
+        const coords = feature.geometry.coordinates as [number, number];
+        this.map.panTo([coords[1], coords[0]]);
+      }
+    }
+  }
+
+  private updateMapState(mapState?: MapState): void {
+    if (mapState) {
+      this.map.setView(mapState.center, mapState.zoom);
+    }
+  }
+
+  public updateProps(newProps: Partial<MapComponentProps>): void {
+    this.props = { ...this.props, ...newProps };
+
+    if (newProps.geoJsonData !== undefined) {
+      this.updateGeoJsonData(newProps.geoJsonData);
+    }
+
+    if (newProps.selectedFeatureIds !== undefined || newProps.selectedFeatureIndices !== undefined) {
+      this.updateSelection(
+        newProps.selectedFeatureIds || this.props.selectedFeatureIds || [],
+        newProps.selectedFeatureIndices || this.props.selectedFeatureIndices || []
+      );
+    }
+
+    if (newProps.highlightFeatureIndex !== undefined) {
+      this.updateHighlight(newProps.highlightFeatureIndex);
+    }
+
+    if (newProps.initialMapState !== undefined) {
+      this.updateMapState(newProps.initialMapState);
+    }
+  }
+
+  public destroy(): void {
+    if (this.map) {
+      this.map.remove();
+    }
+    this.container.innerHTML = '';
   }
 }
 
-// TimeController vanilla wrapper
-export function createTimeController(container: HTMLElement, props: TimeControllerProps): { destroy: () => void } {
-  const root = createRoot(container);
-  root.render(createElement(TimeController, props));
-  
-  return {
-    destroy: () => root.unmount()
-  };
-}
-
-// PropertiesView vanilla wrapper
-export function createPropertiesView(container: HTMLElement, props: PropertiesViewProps): { destroy: () => void } {
-  const root = createRoot(container);
-  root.render(createElement(PropertiesView, props));
-  
-  return {
-    destroy: () => root.unmount()
-  };
-}
-
-// MapComponent vanilla wrapper
+// Vanilla wrapper functions
 export function createMapComponent(container: HTMLElement, props: MapComponentProps): { 
   destroy: () => void;
   updateProps: (newProps: Partial<MapComponentProps>) => void;
 } {
-  const root = createRoot(container);
-  let currentProps = { ...props };
-  
-  const renderComponent = (componentProps: MapComponentProps) => {
-    root.render(createElement(MapComponent, componentProps));
-  };
-  
-  renderComponent(currentProps);
+  const component = new VanillaMapComponent(container, props);
   
   return {
-    destroy: () => root.unmount(),
-    updateProps: (newProps: Partial<MapComponentProps>) => {
-      currentProps = { ...currentProps, ...newProps };
-      renderComponent(currentProps);
-    }
+    destroy: () => component.destroy(),
+    updateProps: (newProps: Partial<MapComponentProps>) => component.updateProps(newProps)
   };
 }
 
-
-// Define the namespace interface for type safety
-declare global {
-  interface Window {
-    DebriefWebComponents?: {
-      createTimeController: typeof createTimeController;
-      createPropertiesView: typeof createPropertiesView;
-      createMapComponent: typeof createMapComponent;
-    };
-  }
+// Placeholder functions for other components (implement when needed)
+export function createTimeController(container: HTMLElement, props: TimeControllerProps): { destroy: () => void } {
+  container.innerHTML = '<div>Time Controller - Not implemented in vanilla version</div>';
+  return {
+    destroy: () => { container.innerHTML = ''; }
+  };
 }
 
-// Expose functions globally for VS Code webviews and other environments
+export function createPropertiesView(container: HTMLElement, props: PropertiesViewProps): { destroy: () => void } {
+  container.innerHTML = '<div>Properties View - Not implemented in vanilla version</div>';
+  return {
+    destroy: () => { container.innerHTML = ''; }
+  };
+}
+
+// Global exposure for VS Code webviews
 if (typeof window !== 'undefined') {
-  // Use a single namespace to avoid conflicts - avoid direct global assignments
   if (!window.DebriefWebComponents) {
     window.DebriefWebComponents = {
       createTimeController,
@@ -84,11 +567,21 @@ if (typeof window !== 'undefined') {
       createMapComponent
     };
   } else {
-    // If namespace already exists, merge functions safely
     Object.assign(window.DebriefWebComponents, {
       createTimeController,
       createPropertiesView,
       createMapComponent
     });
+  }
+}
+
+// Window interface extensions
+declare global {
+  interface Window {
+    DebriefWebComponents?: {
+      createTimeController: typeof createTimeController;
+      createPropertiesView: typeof createPropertiesView;
+      createMapComponent: typeof createMapComponent;
+    };
   }
 }
