@@ -65,6 +65,6 @@ export const Interactive: Story = {
       { key: 'priority', value: 5 },
       { key: 'visible', value: true },
     ],
-    onPropertyChange: (key, value) => console.log('Property changed:', key, '=', value),
+    onPropertyChange: (key, value) => console.warn('Property changed:', key, '=', value),
   },
 };
