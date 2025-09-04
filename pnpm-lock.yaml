@@ -102,6 +102,9 @@ importers:
 
   libs/web-components:
     dependencies:
+      '@debrief/shared-types':
+        specifier: workspace:^1.0.0
+        version: link:../shared-types
       '@types/leaflet':
         specifier: ^1.9.20
         version: 1.9.20
