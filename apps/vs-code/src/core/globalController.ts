@@ -3,12 +3,13 @@ import * as vscode from 'vscode';
 import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
 import { ViewportState } from '@debrief/shared-types/derived/typescript/viewportstate';
 import { SelectionState } from '@debrief/shared-types/derived/typescript/selectionstate';
+import { DebriefFeature } from '@debrief/shared-types/derived/typescript/featurecollection';
 
 // Define the complete EditorState interface manually for now
 export interface EditorState {
     featureCollection?: {
         type: 'FeatureCollection';
-        features: unknown[];
+        features: DebriefFeature[];
         bbox?: number[];
     };
     timeState?: TimeState;
@@ -253,7 +254,7 @@ export class GlobalController {
     /**
      * Get the history for an editorId (stub, to be implemented by integrating with HistoryManager)
      */
-    public getHistory(editorId: string): unknown[] {
+    public getHistory(_editorId: string): unknown[] {
         // TODO: Integrate with HistoryManager for real history
         return [];
     }
