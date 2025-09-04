@@ -11,7 +11,7 @@
     "build": "turbo run build",
     "dev": "turbo run dev --filter=vs-code",
     "dev:web-components": "turbo run build --filter=@debrief/web-components",
-    "dev:vs-code": "turbo run dev --filter=vs-code",
+    "dev:vs-code": "turbo run build --filter=vs-code^... && turbo run dev --filter=vs-code",
     "typecheck": "turbo run typecheck",
     "lint": "turbo run lint",
     "test": "turbo run test"

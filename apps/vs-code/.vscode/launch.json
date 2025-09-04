@@ -9,7 +9,7 @@
                 "--extensionDevelopmentPath=${workspaceFolder}",
                 "--folder-uri=file://${workspaceFolder}/workspace"
             ],
-            "preLaunchTask": "dev:vs-code-extension",
+            "preLaunchTask": "dev:vs-code",
             "outFiles": [
                 "${workspaceFolder}/dist/**/*.js"
             ]
