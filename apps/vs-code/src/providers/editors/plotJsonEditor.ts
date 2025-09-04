@@ -320,7 +320,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 
     private getHtmlForWebview(webview: vscode.Webview, _document: vscode.TextDocument, validationError?: string | null): string {
         const webComponentsScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(
-            this.context.extensionUri, 'node_modules', '@debrief', 'web-components', 'dist', 'vanilla', 'index.js'));
+            this.context.extensionUri, 'media', 'web-components.js'));
 
         const styleResetUri = webview.asWebviewUri(vscode.Uri.joinPath(
             this.context.extensionUri, 'media', 'reset.css'));
@@ -332,7 +332,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             this.context.extensionUri, 'media', 'plotJsonEditor.css'));
 
         const webComponentsStyleUri = webview.asWebviewUri(vscode.Uri.joinPath(
-            this.context.extensionUri, 'node_modules', '@debrief', 'web-components', 'dist', 'vanilla', 'index.css'));
+            this.context.extensionUri, 'media', 'web-components.css'));
 
         const nonce = getNonce();
 
