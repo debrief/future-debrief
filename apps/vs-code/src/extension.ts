@@ -48,9 +48,9 @@ let propertiesViewProvider: PropertiesViewProvider | null = null;
 let currentStateProvider: CurrentStateProvider | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
-    console.warn('Codespace Extension is now active!');
-    
-    vscode.window.showInformationMessage('Codespace Extension has been activated successfully!');
+    console.warn('Debrief Extension is now active!');
+
+    vscode.window.showInformationMessage('Debrief Extension has been activated successfully!');
 
     // Start WebSocket server
     webSocketServer = new DebriefWebSocketServer();
@@ -71,7 +71,7 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     const disposable = vscode.commands.registerCommand('vs-code.helloWorld', () => {
-        vscode.window.showInformationMessage('Hello World from Codespace Extension!');
+        vscode.window.showInformationMessage('Hello World from Debrief Extension!');
     });
 
     const provider = new HelloWorldProvider();
@@ -239,7 +239,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-    console.warn('Codespace Extension is now deactivated');
+    console.warn('Debrief Extension is now deactivated');
     
     // Stop WebSocket server
     if (webSocketServer) {

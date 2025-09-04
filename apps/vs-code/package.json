@@ -1,12 +1,12 @@
 {
   "name": "vs-code",
-  "displayName": "Codespace Extension",
-  "description": "VS Code extension demonstrator for Codespace preview from PRs",
+  "displayName": "Debrief Extension",
+  "description": "VS Code extension facilitating Debrief capabilities.",
   "version": "0.0.1",
   "publisher": "ian",
   "repository": {
     "type": "git",
-    "url": "https://github.com/debrief/vs-code.git"
+    "url": "https://github.com/debrief/future-debrief/apps/vs-code.git"
   },
   "scripts": {
     "clean": "rm -rf dist/* media/web-components.js media/web-components.css",
@@ -15,7 +15,7 @@
     "compile": "pnpm esbuild-base --sourcemap && pnpm copy-webcomponents",
     "build": "pnpm compile",
     "watch": "pnpm esbuild-base --sourcemap --watch",
-    "dev": "pnpm watch",
+    "dev": "pnpm copy-webcomponents && pnpm watch",
     "vscode:prepublish": "pnpm esbuild-base --minify && pnpm copy-webcomponents",
     "typecheck": "tsc --noEmit",
     "eslint": "eslint . --ext .ts,.tsx",
