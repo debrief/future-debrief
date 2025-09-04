@@ -160,3 +160,7 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+# Generated web-components files (copied during build)
+media/web-components.js
+media/web-components.css
