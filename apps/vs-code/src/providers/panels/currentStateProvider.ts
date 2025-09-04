@@ -14,7 +14,7 @@ export class CurrentStateProvider implements vscode.WebviewViewProvider {
 
   resolveWebviewView(
     webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
+    _context: vscode.WebviewViewResolveContext,
     _token: vscode.CancellationToken
   ) {
     this._view = webviewView;
@@ -31,47 +31,56 @@ export class CurrentStateProvider implements vscode.WebviewViewProvider {
 
   private _update() {
     if (!this._view) return;
-    const editorStates = this._getEditorStates();
+    const editorStates = this._getCurrentEditorState();
     const html = this._renderTable(editorStates);
     this._view.webview.html = html;
   }
 
-  private _getEditorStates() {
-    const editors = this._globalController.getEditorIds();
-    return editors.map((editorId: string) => {
-      const filename = this._globalController.getEditorFilename(editorId) || '';
-      const timeState = this._globalController.getStateSlice(editorId, 'timeState') || '';
-      const viewportState = this._globalController.getStateSlice(editorId, 'viewportState') || '';
-      const selectedState = this._globalController.getStateSlice(editorId, 'selectionState');
-      const selectedIds = selectedState?.selectedIds || [];
-      const fc = this._globalController.getStateSlice(editorId, 'featureCollection');
-      const fcSummary = fc ? `${fc.name || 'FC'} (${fc.features?.length || 0} features)` : '';
-      const fcCount = fc?.features?.length || 0;
-      const history = this._globalController.getHistory(editorId);
-      const historyCount = Array.isArray(history) ? history.length : 0;
-      return {
-        editorId,
-        filename,
-        timeState: String(timeState),
-        viewportState: String(viewportState),
-        selectedIds,
-        fcSummary,
-        fcCount,
-        historyCount,
-      };
-    });
+  private _getCurrentEditorState() {
+    // Get the current active editor ID
+    const currentEditorId = this._globalController.activeEditorId || this._globalController.getEditorIds()[0];
+    
+    if (!currentEditorId) {
+      return [];
+    }
+
+    const filename = this._globalController.getEditorFilename(currentEditorId) || '';
+    const timeState = this._globalController.getStateSlice(currentEditorId, 'timeState') || '';
+    const viewportState = this._globalController.getStateSlice(currentEditorId, 'viewportState') || '';
+    const selectedState = this._globalController.getStateSlice(currentEditorId, 'selectionState');
+    const selectedIds = selectedState?.selectedIds || [];
+    const fc = this._globalController.getStateSlice(currentEditorId, 'featureCollection');
+    const fcSummary = fc ? `FC (${fc.features?.length || 0} features)` : '';
+    const fcCount = fc?.features?.length || 0;
+    const history = this._globalController.getHistory(currentEditorId);
+    const historyCount = Array.isArray(history) ? history.length : 0;
+
+    // Return each field as its own row with field name and value
+    return [
+      { field: 'Editor ID', value: currentEditorId },
+      { field: 'Filename', value: filename },
+      { field: 'Time State', value: String(timeState) },
+      { field: 'Viewport State', value: String(viewportState) },
+      { field: 'Selected IDs', value: selectedIds.join(', ') },
+      { field: 'FC Summary', value: fcSummary },
+      { field: 'FC Count', value: fcCount.toString() },
+      { field: 'History Count', value: historyCount.toString() },
+    ];
   }
 
-  private _renderTable(data: any[]): string {
+  private _renderTable(data: { field: string; value: string }[]): string {
     // Use the vanilla web-components bundle and custom element
     const nonce = this._getNonce();
-    const extensionUri = (this._view as any)?.webview?.asWebviewUri
-      ? (this._view as any).webview.asWebviewUri
-      : (uri: any) => uri;
-    const webComponentsScriptUri = extensionUri(
-      vscode.Uri.joinPath(
-        (vscode.extensions.getExtension('ian.vs-code')?.extensionUri || vscode.Uri.file('.')),
-        'node_modules', '@debrief', 'web-components', 'dist', 'vanilla', 'index.js')
+    if (!this._view) {
+      return '<div>Error: View not initialized</div>';
+    }
+    
+    const extensionUri = vscode.extensions.getExtension('ian.vs-code')?.extensionUri || vscode.Uri.file('.');
+    const webComponentsScriptUri = this._view.webview.asWebviewUri(
+      vscode.Uri.joinPath(extensionUri, 'media', 'web-components.js')
+    );
+    const webComponentsCssUri = this._view.webview.asWebviewUri(
+      vscode.Uri.joinPath(extensionUri, 'media', 'web-components.css')
     );
     return `<!DOCTYPE html>
       <html lang="en">
@@ -80,6 +89,7 @@ export class CurrentStateProvider implements vscode.WebviewViewProvider {
         <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' ${this._view?.webview.cspSource}; script-src 'nonce-${nonce}';">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Current State (debug)</title>
+        <link rel="stylesheet" href="${webComponentsCssUri}">
         <style>
           body { font-family: var(--vscode-font-family, sans-serif); margin: 0; padding: 0; }
         </style>

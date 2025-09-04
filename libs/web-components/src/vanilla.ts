@@ -42,19 +42,13 @@ interface PropertiesViewProps {
   [key: string]: unknown;
 }
 
-interface EditorStateRow {
-  editorId: string;
-  filename: string;
-  timeState: string;
-  viewportState: string;
-  selectedIds: string[];
-  fcSummary: string;
-  fcCount: number;
-  historyCount: number;
+interface StateFieldRow {
+  field: string;
+  value: string;
 }
 
 interface CurrentStateTableProps {
-  data: EditorStateRow[];
+  data: StateFieldRow[];
 }
 
 // Configure default Leaflet marker icons
@@ -576,9 +570,9 @@ export function createPropertiesView(container: HTMLElement, _props: PropertiesV
 
 class VanillaCurrentStateTable {
   private container: HTMLElement;
-  private data: EditorStateRow[] = [];
+  private data: StateFieldRow[] = [];
   private highlighted: { [key: string]: boolean } = {};
-  private prevData: EditorStateRow[] = [];
+  private prevData: StateFieldRow[] = [];
 
   constructor(container: HTMLElement, props: CurrentStateTableProps) {
     this.container = container;
@@ -591,24 +585,14 @@ class VanillaCurrentStateTable {
     const newHighlights: { [key: string]: boolean } = {};
     this.data.forEach((row, idx) => {
       const prevRow = this.prevData[idx];
-      if (prevRow) {
-        Object.keys(row).forEach((key) => {
-          const currentValue = row[key as keyof EditorStateRow];
-          const prevValue = prevRow[key as keyof EditorStateRow];
-          
-          // Compare values (handle array comparison for selectedIds)
-          const hasChanged = Array.isArray(currentValue) && Array.isArray(prevValue)
-            ? JSON.stringify(currentValue) !== JSON.stringify(prevValue)
-            : currentValue !== prevValue;
-            
-          if (hasChanged) {
-            newHighlights[`${idx}-${key}`] = true;
-            setTimeout(() => {
-              delete this.highlighted[`${idx}-${key}`];
-              this.updateHighlightClass();
-            }, 500);
-          }
-        });
+      if (prevRow && prevRow.field === row.field) {
+        if (prevRow.value !== row.value) {
+          newHighlights[`${idx}-value`] = true;
+          setTimeout(() => {
+            delete this.highlighted[`${idx}-value`];
+            this.updateHighlightClass();
+          }, 500);
+        }
       }
     });
     
@@ -622,7 +606,7 @@ class VanillaCurrentStateTable {
     const thead = document.createElement('thead');
     const headerRow = document.createElement('tr');
     
-    const headers = ['Editor ID', 'Filename', 'Time State', 'Viewport', 'Selected IDs', 'FC Summary', 'FC Count', 'History Count'];
+    const headers = ['Field', 'Value'];
     headers.forEach(headerText => {
       const th = document.createElement('th');
       th.textContent = headerText;
@@ -636,26 +620,19 @@ class VanillaCurrentStateTable {
     const tbody = document.createElement('tbody');
     this.data.forEach((row, idx) => {
       const tr = document.createElement('tr');
-      tr.setAttribute('data-editor-id', row.editorId);
+      tr.setAttribute('data-field', row.field);
       
-      // Create cells
-      const cells = [
-        { key: 'editorId', value: row.editorId },
-        { key: 'filename', value: row.filename },
-        { key: 'timeState', value: row.timeState },
-        { key: 'viewportState', value: row.viewportState },
-        { key: 'selectedIds', value: row.selectedIds.join(', ') },
-        { key: 'fcSummary', value: row.fcSummary },
-        { key: 'fcCount', value: row.fcCount.toString() },
-        { key: 'historyCount', value: row.historyCount.toString() }
-      ];
+      // Field name cell
+      const fieldTd = document.createElement('td');
+      fieldTd.textContent = row.field;
+      fieldTd.className = 'field-name';
+      tr.appendChild(fieldTd);
       
-      cells.forEach(cell => {
-        const td = document.createElement('td');
-        td.textContent = cell.value;
-        td.className = this.highlighted[`${idx}-${cell.key}`] ? 'highlight' : '';
-        tr.appendChild(td);
-      });
+      // Value cell with highlighting
+      const valueTd = document.createElement('td');
+      valueTd.textContent = row.value;
+      valueTd.className = this.highlighted[`${idx}-value`] ? 'highlight' : '';
+      tr.appendChild(valueTd);
       
       tbody.appendChild(tr);
     });
@@ -709,6 +686,12 @@ class VanillaCurrentStateTable {
       .current-state-table tr:hover {
         background: var(--vscode-list-hoverBackground, #2a2d2e);
       }
+      
+      .current-state-table .field-name {
+        font-weight: bold;
+        background: var(--vscode-editor-lineHighlightBackground, rgba(255, 255, 255, 0.02));
+        min-width: 120px;
+      }
     `;
     
     // Clear container and add new content
@@ -721,13 +704,9 @@ class VanillaCurrentStateTable {
     const table = this.container.querySelector('table');
     if (!table) return;
     
-    table.querySelectorAll('td').forEach((td, cellIdx) => {
-      const rowIdx = Math.floor(cellIdx / 8); // 8 columns per row
-      const colIdx = cellIdx % 8;
-      const keys = ['editorId', 'filename', 'timeState', 'viewportState', 'selectedIds', 'fcSummary', 'fcCount', 'historyCount'];
-      const key = keys[colIdx];
-      
-      if (key && this.highlighted[`${rowIdx}-${key}`]) {
+    const valueCells = table.querySelectorAll('td:nth-child(2)'); // Second column (value cells)
+    valueCells.forEach((td, rowIdx) => {
+      if (this.highlighted[`${rowIdx}-value`]) {
         td.className = 'highlight';
       } else {
         td.className = '';
@@ -735,7 +714,7 @@ class VanillaCurrentStateTable {
     });
   }
 
-  public setData(data: EditorStateRow[]): void {
+  public setData(data: StateFieldRow[]): void {
     this.data = data || [];
     this.render();
   }
@@ -754,20 +733,20 @@ class VanillaCurrentStateTable {
 export function createCurrentStateTable(container: HTMLElement, props: CurrentStateTableProps): { 
   destroy: () => void;
   updateProps: (newProps: Partial<CurrentStateTableProps>) => void;
-  setData: (data: EditorStateRow[]) => void;
+  setData: (data: StateFieldRow[]) => void;
 } {
   const component = new VanillaCurrentStateTable(container, props);
   
   return {
     destroy: () => component.destroy(),
     updateProps: (newProps: Partial<CurrentStateTableProps>) => component.updateProps(newProps),
-    setData: (data: EditorStateRow[]) => component.setData(data)
+    setData: (data: StateFieldRow[]) => component.setData(data)
   };
 }
 
 // Custom element for CurrentStateTable
 class CurrentStateTableElement extends HTMLElement {
-  private component: { destroy: () => void; setData: (data: EditorStateRow[]) => void } | null = null;
+  private component: { destroy: () => void; setData: (data: StateFieldRow[]) => void } | null = null;
 
   connectedCallback() {
     const props: CurrentStateTableProps = {
@@ -783,13 +762,13 @@ class CurrentStateTableElement extends HTMLElement {
     }
   }
 
-  setData(data: EditorStateRow[]) {
+  setData(data: StateFieldRow[]) {
     if (this.component) {
       this.component.setData(data);
     }
   }
 
-  set data(value: EditorStateRow[]) {
+  set data(value: StateFieldRow[]) {
     this.setData(value);
   }
 }

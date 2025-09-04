@@ -1,32 +1,34 @@
 import * as React from 'react';
-import { CurrentStateTable, EditorStateRow } from './CurrentStateTable';
+import { CurrentStateTable, StateFieldRow } from './CurrentStateTable';
 
 export default {
   title: 'CurrentStateTable',
   component: CurrentStateTable,
 };
 
-const sampleData: EditorStateRow[] = [
-  {
-    editorId: 'editor-1',
-    filename: 'file1.plot.json',
-    timeState: '12:00',
-    viewportState: 'zoom: 1.0',
-    selectedIds: ['a', 'b'],
-    fcSummary: 'Map (3 features)',
-    fcCount: 3,
-    historyCount: 5,
-  },
-  {
-    editorId: 'editor-2',
-    filename: 'file2.plot.json',
-    timeState: '12:01',
-    viewportState: 'zoom: 2.0',
-    selectedIds: ['c'],
-    fcSummary: 'Chart (2 features)',
-    fcCount: 2,
-    historyCount: 2,
-  },
+const sampleData: StateFieldRow[] = [
+  { field: 'Editor ID', value: 'editor-1' },
+  { field: 'Filename', value: 'file1.plot.json' },
+  { field: 'Time State', value: '12:00' },
+  { field: 'Viewport State', value: 'zoom: 1.0, center: [51.5, -0.1]' },
+  { field: 'Selected IDs', value: 'feature-1, feature-2' },
+  { field: 'FC Summary', value: 'Map (5 features)' },
+  { field: 'FC Count', value: '5' },
+  { field: 'History Count', value: '8' },
 ];
 
 export const Default = () => <CurrentStateTable data={sampleData} />;
+
+export const EmptyState = () => <CurrentStateTable data={[]} />;
+
+export const WithManyFields = () => {
+  const extendedData: StateFieldRow[] = [
+    ...sampleData,
+    { field: 'Last Modified', value: '2024-09-04 14:30:22' },
+    { field: 'Unsaved Changes', value: 'true' },
+    { field: 'Zoom Level', value: '15' },
+    { field: 'Map Center', value: '[51.5074, -0.1278]' },
+  ];
+  
+  return <CurrentStateTable data={extendedData} />;
+};
