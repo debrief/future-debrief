@@ -33,12 +33,12 @@ interface MapComponentProps {
 
 interface TimeControllerProps {
   // Placeholder - implement when needed
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface PropertiesViewProps {
   // Placeholder - implement when needed
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Configure default Leaflet marker icons
@@ -544,14 +544,14 @@ export function createMapComponent(container: HTMLElement, props: MapComponentPr
 }
 
 // Placeholder functions for other components (implement when needed)
-export function createTimeController(container: HTMLElement, props: TimeControllerProps): { destroy: () => void } {
+export function createTimeController(container: HTMLElement, _props: TimeControllerProps): { destroy: () => void } {
   container.innerHTML = '<div>Time Controller - Not implemented in vanilla version</div>';
   return {
     destroy: () => { container.innerHTML = ''; }
   };
 }
 
-export function createPropertiesView(container: HTMLElement, props: PropertiesViewProps): { destroy: () => void } {
+export function createPropertiesView(container: HTMLElement, _props: PropertiesViewProps): { destroy: () => void } {
   container.innerHTML = '<div>Properties View - Not implemented in vanilla version</div>';
   return {
     destroy: () => { container.innerHTML = ''; }
