@@ -48,7 +48,7 @@ export const Interactive: Story = {
   args: {
     currentTime: new Date(),
     isPlaying: false,
-    onTimeChange: (time) => console.log('Time changed to:', time),
-    onPlayPause: () => console.log('Play/Pause clicked'),
+    onTimeChange: (time) => console.warn('Time changed to:', time),
+    onPlayPause: () => console.warn('Play/Pause clicked'),
   },
 };

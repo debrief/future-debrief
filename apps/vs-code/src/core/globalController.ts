@@ -3,19 +3,9 @@ import * as vscode from 'vscode';
 import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
 import { ViewportState } from '@debrief/shared-types/derived/typescript/viewportstate';
 import { SelectionState } from '@debrief/shared-types/derived/typescript/selectionstate';
-import { DebriefFeature } from '@debrief/shared-types/derived/typescript/featurecollection';
+import { DebriefFeatureCollection } from '@debrief/shared-types/derived/typescript/featurecollection';
+import { EditorState } from '@debrief/shared-types/derived/typescript/editorstate';
 
-// Define the complete EditorState interface manually for now
-export interface EditorState {
-    featureCollection?: {
-        type: 'FeatureCollection';
-        features: DebriefFeature[];
-        bbox?: number[];
-    };
-    timeState?: TimeState;
-    viewportState?: ViewportState;
-    selectionState?: SelectionState;
-}
 
 // Event types for the GlobalController
 export type StateEventType = 'fcChanged' | 'timeChanged' | 'viewportChanged' | 'selectionChanged' | 'activeEditorChanged';
@@ -27,7 +17,7 @@ export type StateEventHandler = (data: { editorId: string; state: EditorState })
 export type ActiveEditorChangedHandler = (data: { previousEditorId?: string; currentEditorId?: string }) => void;
 
 export interface StateUpdatePayload {
-    featureCollection?: EditorState['featureCollection'];
+    featureCollection?: DebriefFeatureCollection;
     timeState?: TimeState;
     viewportState?: ViewportState;  
     selectionState?: SelectionState;
@@ -139,7 +129,7 @@ export class GlobalController {
         // Update the specific slice
         switch (sliceType) {
             case 'featureCollection':
-                currentState.featureCollection = payload as EditorState['featureCollection'];
+                currentState.featureCollection = payload as DebriefFeatureCollection;
                 break;
             case 'timeState':
                 currentState.timeState = payload as TimeState;
@@ -179,7 +169,7 @@ export class GlobalController {
                 const sliceKey = sliceType as StateSliceType;
                 switch (sliceKey) {
                     case 'featureCollection':
-                        currentState.featureCollection = payload as EditorState['featureCollection'];
+                        currentState.featureCollection = payload as DebriefFeatureCollection;
                         break;
                     case 'timeState':
                         currentState.timeState = payload as TimeState;

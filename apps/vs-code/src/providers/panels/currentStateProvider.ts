@@ -1,12 +1,13 @@
 
 import * as vscode from 'vscode';
 import { GlobalController } from '../../core/globalController';
+import { CurrentState } from '@debrief/shared-types/derived/typescript/currentstate';
 
 export class CurrentStateProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'debrief.currentState';
   private _view?: vscode.WebviewView;
   private _globalController: GlobalController;
-  private _interval?: NodeJS.Timeout;
+  private _subscriptions: vscode.Disposable[] = [];
 
   constructor() {
     this._globalController = GlobalController.getInstance();
@@ -22,57 +23,62 @@ export class CurrentStateProvider implements vscode.WebviewViewProvider {
       enableScripts: true,
     };
     this._update();
-    // Poll for state changes every 500ms
-    this._interval = setInterval(() => this._update(), 500);
+    this._setupEventSubscriptions();
     webviewView.onDidDispose(() => {
-      if (this._interval) clearInterval(this._interval);
+      this._cleanup();
     });
   }
 
   private _update() {
     if (!this._view) return;
-    const editorStates = this._getCurrentEditorState();
-    const html = this._renderTable(editorStates);
+    const currentState = this._getCurrentEditorState();
+    const html = this._renderTable(currentState);
     this._view.webview.html = html;
   }
 
-  private _getCurrentEditorState() {
+  private _getCurrentEditorState(): CurrentState | null {
     // Get the current active editor ID
     const currentEditorId = this._globalController.activeEditorId || this._globalController.getEditorIds()[0];
     
     if (!currentEditorId) {
-      return [];
+      return null;
     }
 
     const filename = this._globalController.getEditorFilename(currentEditorId) || '';
-    const timeState = this._globalController.getStateSlice(currentEditorId, 'timeState') || '';
-    const viewportState = this._globalController.getStateSlice(currentEditorId, 'viewportState') || '';
-    const selectedState = this._globalController.getStateSlice(currentEditorId, 'selectionState');
-    const selectedIds = selectedState?.selectedIds || [];
-    const fc = this._globalController.getStateSlice(currentEditorId, 'featureCollection');
-    const fcSummary = fc ? `FC (${fc.features?.length || 0} features)` : '';
-    const fcCount = fc?.features?.length || 0;
+    const editorState = this._globalController.getEditorState(currentEditorId);
     const history = this._globalController.getHistory(currentEditorId);
     const historyCount = Array.isArray(history) ? history.length : 0;
 
-    // Return each field as its own row with field name and value
-    return [
-      { field: 'Editor ID', value: currentEditorId },
-      { field: 'Filename', value: filename },
-      { field: 'Time State', value: String(timeState) },
-      { field: 'Viewport State', value: String(viewportState) },
-      { field: 'Selected IDs', value: selectedIds.join(', ') },
-      { field: 'FC Summary', value: fcSummary },
-      { field: 'FC Count', value: fcCount.toString() },
-      { field: 'History Count', value: historyCount.toString() },
-    ];
+    return {
+      editorId: currentEditorId,
+      filename,
+      editorState,
+      historyCount
+    };
   }
 
-  private _renderTable(data: { field: string; value: string }[]): string {
+  private _renderTable(currentState: CurrentState | null): string {
     // Use the vanilla web-components bundle and custom element
     const nonce = this._getNonce();
     if (!this._view) {
       return '<div>Error: View not initialized</div>';
+    }
+    
+    if (!currentState) {
+      return `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Current State (debug)</title>
+          <style>
+            body { font-family: var(--vscode-font-family, sans-serif); margin: 0; padding: 20px; }
+          </style>
+        </head>
+        <body>
+          <div>No active editor</div>
+        </body>
+        </html>`;
     }
     
     const extensionUri = vscode.extensions.getExtension('ian.vs-code')?.extensionUri || vscode.Uri.file('.');
@@ -98,13 +104,13 @@ export class CurrentStateProvider implements vscode.WebviewViewProvider {
         <current-state-table id="current-state-table"></current-state-table>
         <script nonce="${nonce}" src="${webComponentsScriptUri}"></script>
         <script nonce="${nonce}">
-          const data = ${JSON.stringify(data)};
+          const currentState = ${JSON.stringify(currentState)};
           function setTableData() {
             const table = document.getElementById('current-state-table');
-            if (table && typeof table.setData === 'function') {
-              table.setData(data);
+            if (table && typeof table.setCurrentState === 'function') {
+              table.setCurrentState(currentState);
             } else if (table) {
-              table.data = data;
+              table.currentState = currentState;
             }
           }
           if (window.customElements && customElements.get('current-state-table')) {
@@ -124,5 +130,37 @@ export class CurrentStateProvider implements vscode.WebviewViewProvider {
       text += possible.charAt(Math.floor(Math.random() * possible.length));
     }
     return text;
+  }
+
+  private _setupEventSubscriptions(): void {
+    // Subscribe to all state changes that affect the current state display
+    const fcSubscription = this._globalController.on('fcChanged', () => {
+      this._update();
+    });
+    
+    const timeSubscription = this._globalController.on('timeChanged', () => {
+      this._update();
+    });
+    
+    const viewportSubscription = this._globalController.on('viewportChanged', () => {
+      this._update();
+    });
+    
+    const selectionSubscription = this._globalController.on('selectionChanged', () => {
+      this._update();
+    });
+    
+    const activeEditorSubscription = this._globalController.on('activeEditorChanged', () => {
+      this._update();
+    });
+
+    // Store disposables for cleanup
+    this._subscriptions.push(fcSubscription, timeSubscription, viewportSubscription, selectionSubscription, activeEditorSubscription);
+  }
+
+  private _cleanup(): void {
+    // Dispose all event subscriptions
+    this._subscriptions.forEach(disposable => disposable.dispose());
+    this._subscriptions = [];
   }
 }
