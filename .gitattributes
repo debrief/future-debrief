@@ -1,0 +1,2 @@
+# Ensure GitHub recognizes this as a pnpm project
+pnpm-lock.yaml linguist-generated=false
