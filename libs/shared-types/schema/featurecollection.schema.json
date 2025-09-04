@@ -5,6 +5,26 @@
   "description": "A GeoJSON FeatureCollection containing mixed feature types for maritime analysis",
   "type": "object",
   "required": ["type", "features"],
+  "$defs": {
+    "DebriefFeature": {
+      "title": "Debrief Feature",
+      "description": "Union type representing any valid Debrief feature (track, point, or annotation)",
+      "oneOf": [
+        {
+          "$ref": "track.schema.json"
+        },
+        {
+          "$ref": "point.schema.json"
+        },
+        {
+          "$ref": "annotation.schema.json"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "properties/dataType"
+      }
+    }
+  },
   "properties": {
     "type": {
       "type": "string",
@@ -13,20 +33,7 @@
     "features": {
       "type": "array",
       "items": {
-        "oneOf": [
-          {
-            "$ref": "track.schema.json"
-          },
-          {
-            "$ref": "point.schema.json"
-          },
-          {
-            "$ref": "annotation.schema.json"
-          }
-        ],
-        "discriminator": {
-          "propertyName": "properties/dataType"
-        }
+        "$ref": "#/$defs/DebriefFeature"
       }
     },
     "bbox": {
