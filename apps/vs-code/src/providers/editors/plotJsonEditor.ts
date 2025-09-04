@@ -332,7 +332,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             this.context.extensionUri, 'media', 'plotJsonEditor.css'));
 
         const webComponentsStyleUri = webview.asWebviewUri(vscode.Uri.joinPath(
-            this.context.extensionUri, 'media', 'web-components.css'));
+            this.context.extensionUri, 'node_modules', '@debrief', 'web-components', 'dist', 'vanilla', 'index.css'));
 
         const nonce = getNonce();
 
