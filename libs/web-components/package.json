@@ -25,7 +25,7 @@
     "build:vanilla": "esbuild src/vanilla.ts --bundle --outfile=dist/vanilla/index.js --format=iife --minify --external:react --external:react-dom",
     "build:types:vanilla": "tsc --project tsconfig.build.json --emitDeclarationOnly --outDir dist/vanilla",
     "build": "pnpm clean && pnpm lint && pnpm build:vanilla && pnpm build:types:vanilla",
-    "dev": "pnpm storybook",
+    "dev": "pnpm build",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "test": "jest",
