@@ -139,7 +139,9 @@
       "Bash(time pnpm build:ts:post-process)",
       "Bash(NODE_NO_WARNINGS=1 time pnpm build:types)",
       "Bash(export NODE_NO_WARNINGS=1)",
-      "Bash(npm --version)"
+      "Bash(npm --version)",
+      "Bash(time pnpm --filter @debrief/web-components build)",
+      "Bash(time pnpm --filter @debrief/web-components build:fast)"
     ]
   }
 }
