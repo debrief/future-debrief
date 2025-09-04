@@ -9,10 +9,16 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
     private _globalController: GlobalController;
     private _disposables: vscode.Disposable[] = [];
     private _currentEditorId?: string;
+    private _featuresVisible: boolean = true;
 
     constructor() {
         this._globalController = GlobalController.getInstance();
         this._setupGlobalControllerSubscriptions();
+    }
+
+    public toggleFeatureVisibility(): void {
+        this._featuresVisible = !this._featuresVisible;
+        this.refresh();
     }
 
     /**
@@ -56,64 +62,97 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
     }
 
     getTreeItem(element: OutlineItem): vscode.TreeItem {
-        const treeItem = new vscode.TreeItem(element.label, vscode.TreeItemCollapsibleState.None);
+        const collapsibleState = element.hasChildren()
+            ? vscode.TreeItemCollapsibleState.Collapsed
+            : vscode.TreeItemCollapsibleState.None;
+        const treeItem = new vscode.TreeItem(element.label, collapsibleState);
         treeItem.contextValue = 'debriefFeature';
-        
+
         // Set icon based on feature type or state
         if (element.isSelected) {
             treeItem.iconPath = new vscode.ThemeIcon('location', new vscode.ThemeColor('charts.yellow'));
         } else {
             treeItem.iconPath = new vscode.ThemeIcon('location');
         }
-        
-        // Add command to select feature when clicked
-        treeItem.command = {
-            command: 'debrief.selectFeature',
-            title: 'Select Feature',
-            arguments: [element.featureIndex]
-        };
+
+        // Only add command if leaf node
+        if (!element.hasChildren()) {
+            treeItem.command = {
+                command: 'debrief.toggleFeatureSelection', // new command for multi-select
+                title: 'Toggle Feature Selection',
+                arguments: [element.featureIndex, element.featureId]
+            };
+        }
 
         // Add description with feature details
         if (element.featureType) {
             treeItem.description = element.featureType;
         }
-        
+
+
+        // Support multi-select in the UI
+        if (element.featureId) {
+            treeItem.resourceUri = vscode.Uri.parse(`debrief-feature:${element.featureId}`);
+            treeItem.id = element.featureId;
+        } else if (element.featureIndex === -1 && element.label.startsWith('Features hidden')) {
+            treeItem.resourceUri = vscode.Uri.parse('debrief-feature:hidden-placeholder');
+            treeItem.id = 'placeholder:hidden';
+        } else if (element.featureIndex === -1 && element.label) {
+            // Group node: use group: prefix and label for uniqueness
+            treeItem.resourceUri = vscode.Uri.parse(`debrief-feature:group-${element.label}`);
+            treeItem.id = `group:${element.label}`;
+        } else {
+            treeItem.resourceUri = vscode.Uri.parse(`debrief-feature:${element.featureIndex}`);
+            treeItem.id = element.featureIndex.toString();
+        }
+
         return treeItem;
     }
 
-    getChildren(element?: OutlineItem): Thenable<OutlineItem[]> {
+    getChildren(element?: OutlineItem): Promise<OutlineItem[]> {
         if (!element) {
             if (!this._currentEditorId) {
                 return Promise.resolve([]);
             }
-
             try {
                 // Get feature collection from GlobalController
                 const featureCollection = this._globalController.getStateSlice(this._currentEditorId, 'featureCollection');
                 const selectionState = this._globalController.getStateSlice(this._currentEditorId, 'selectionState');
-                
                 if (!featureCollection || !Array.isArray(featureCollection.features)) {
                     return Promise.resolve([]);
                 }
-
-                // Create outline items from features
-                const items: OutlineItem[] = featureCollection.features.map((feature: unknown, index: number) => {
-                    const f = feature as { id?: string | number; properties?: { name?: string }; geometry?: { type?: string } };
+                if (!this._featuresVisible) {
+                    // If features are hidden, show a single node as a placeholder
+                    return Promise.resolve([
+                        new OutlineItem('Features hidden (toggle to show)', -1, undefined, false, undefined, [])
+                    ]);
+                }
+                // Group features by properties.dataType
+                const groups: { [dataType: string]: OutlineItem[] } = {};
+                featureCollection.features.forEach((feature: unknown, index: number) => {
+                    const f = feature as { id?: string | number; properties?: { name?: string; dataType?: string }; geometry?: { type?: string } };
                     const featureName = f.properties?.name || `Feature ${index}`;
+                    const dataType = f.properties?.dataType || 'Unknown';
                     const featureType = f.geometry?.type || 'Unknown';
                     const featureId = f.id !== undefined ? String(f.id) : index.toString();
                     const isSelected = selectionState?.selectedIds?.includes(featureId) || false;
-                    
-                    return new OutlineItem(featureName, index, featureType, isSelected, featureId);
+                    const item = new OutlineItem(featureName, index, featureType, isSelected, featureId);
+                    if (!groups[dataType]) groups[dataType] = [];
+                    groups[dataType].push(item);
                 });
-
-                return Promise.resolve(items);
+                // Create group nodes
+                const groupNodes = Object.entries(groups).map(([dataType, children]) =>
+                    new OutlineItem(dataType, -1, undefined, false, undefined, children)
+                );
+                return Promise.resolve(groupNodes);
             } catch (error) {
                 console.error('Error creating debrief outline items:', error);
                 return Promise.resolve([]);
             }
+        } else {
+            // Return children for a group node
+            return Promise.resolve(element.children || []);
         }
-        return Promise.resolve([]);
     }
 
     /**
@@ -135,6 +174,23 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
         }
     }
 
+    // Add a new method to handle multi-select
+    public toggleFeatureSelection(featureIndex: number, featureId?: string): void {
+        if (!this._currentEditorId) return;
+        const featureCollection = this._globalController.getStateSlice(this._currentEditorId, 'featureCollection');
+        if (!featureCollection || !featureCollection.features) return;
+        const id = featureId ?? featureIndex.toString();
+        let selectionState = this._globalController.getStateSlice(this._currentEditorId, 'selectionState') || { selectedIds: [] };
+        let selectedIds: string[] = Array.isArray(selectionState.selectedIds) ? [...selectionState.selectedIds] : [];
+        const idx = selectedIds.indexOf(id);
+        if (idx === -1) {
+            selectedIds.push(id);
+        } else {
+            selectedIds.splice(idx, 1);
+        }
+        this._globalController.updateState(this._currentEditorId, 'selectionState', { selectedIds });
+    }
+
     /**
      * Dispose of the provider
      */
@@ -150,6 +206,10 @@ class OutlineItem {
         public readonly featureIndex: number,
         public readonly featureType?: string,
         public readonly isSelected = false,
-        public readonly featureId?: string
+        public readonly featureId?: string,
+        public readonly children: OutlineItem[] = []
     ) {}
+    hasChildren(): boolean {
+        return this.children && this.children.length > 0;
+    }
 }

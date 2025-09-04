@@ -11,7 +11,7 @@
       ],
       "group": "build",
       "isBackground": true,
-      "problemMatcher": [],
+      "problemMatcher": "$tsc-watch",
       "presentation": {
         "panel": "shared",
         "reveal": "always"

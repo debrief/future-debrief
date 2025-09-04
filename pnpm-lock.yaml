@@ -17,6 +17,9 @@ importers:
 
   apps/vs-code:
     dependencies:
+      '@debrief/web-components':
+        specifier: workspace:^1.0.0
+        version: link:../../libs/web-components
       leaflet:
         specifier: ^1.9.4
         version: 1.9.4
@@ -27,9 +30,6 @@ importers:
       '@debrief/shared-types':
         specifier: workspace:^1.0.0
         version: link:../../libs/shared-types
-      '@debrief/web-components':
-        specifier: workspace:^1.0.0
-        version: link:../../libs/web-components
       '@eslint/js':
         specifier: ^9.34.0
         version: 9.34.0
@@ -102,6 +102,9 @@ importers:
 
   libs/web-components:
     dependencies:
+      '@debrief/shared-types':
+        specifier: workspace:^1.0.0
+        version: link:../shared-types
       '@types/leaflet':
         specifier: ^1.9.20
         version: 1.9.20

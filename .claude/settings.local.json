@@ -128,7 +128,20 @@
       "Bash(pnpm:*)",
       "Bash(turbo run:*)",
       "Bash(git log:*)",
-      "Bash(python test_plot_api.py:*)"
+      "Bash(python test_plot_api.py:*)",
+      "Bash(time pnpm build)",
+      "Bash(time pnpm build:types)",
+      "Bash(time pnpm build:ts)",
+      "Bash(time pnpm build:python)",
+      "Bash(time npx tsc)",
+      "Bash(time npx json-schema-to-typescript --version)",
+      "Bash(time quicktype:*)",
+      "Bash(time pnpm build:ts:post-process)",
+      "Bash(NODE_NO_WARNINGS=1 time pnpm build:types)",
+      "Bash(export NODE_NO_WARNINGS=1)",
+      "Bash(npm --version)",
+      "Bash(time pnpm --filter @debrief/web-components build)",
+      "Bash(time pnpm --filter @debrief/web-components build:fast)"
     ]
   }
 }

@@ -5,15 +5,17 @@
             "name": "Develop Web Components (Storybook)",
             "type": "node",
             "request": "launch",
-            "runtimeExecutable": "open",
-            "runtimeArgs": [
-                "http://localhost:6006"
-            ],
+            "runtimeExecutable": "pnpm",
+            "runtimeArgs": ["storybook", "--no-open"],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "build-shared-types",
             "serverReadyAction": {
                 "pattern": "Local:.*http://localhost:6006",
                 "uriFormat": "http://localhost:6006",
                 "action": "openExternally"
-            }
+            },
+            "console": "integratedTerminal",
+            "outputCapture": "console"
         }
     ]
 }

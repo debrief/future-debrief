@@ -48,7 +48,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             const document = EditorIdManager.getDocument(editorId);
             if (document && document.fileName === filename) {
                 const selectionState = globalController.getStateSlice(editorId, 'selectionState');
-                return selectionState?.selectedIds?.map(id => String(id)) || [];
+                return selectionState?.selectedIds?.map((id: string | number) => String(id)) || [];
             }
         }
         return [];
@@ -320,7 +320,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 
     private getHtmlForWebview(webview: vscode.Webview, _document: vscode.TextDocument, validationError?: string | null): string {
         const webComponentsScriptUri = webview.asWebviewUri(vscode.Uri.joinPath(
-            this.context.extensionUri, 'node_modules', '@debrief', 'web-components', 'dist', 'vanilla', 'index.js'));
+            this.context.extensionUri, 'media', 'web-components.js'));
 
         const styleResetUri = webview.asWebviewUri(vscode.Uri.joinPath(
             this.context.extensionUri, 'media', 'reset.css'));
@@ -330,6 +330,9 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 
         const styleMainUri = webview.asWebviewUri(vscode.Uri.joinPath(
             this.context.extensionUri, 'media', 'plotJsonEditor.css'));
+
+        const webComponentsStyleUri = webview.asWebviewUri(vscode.Uri.joinPath(
+            this.context.extensionUri, 'media', 'web-components.css'));
 
         const nonce = getNonce();
 
@@ -428,6 +431,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 				<link href="${styleResetUri}" rel="stylesheet">
 				<link href="${styleVSCodeUri}" rel="stylesheet">
 				<link href="${styleMainUri}" rel="stylesheet">
+				<link href="${webComponentsStyleUri}" rel="stylesheet">
 				<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
 					integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 				<title>Plot JSON Editor</title>
@@ -674,7 +678,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             // Show success message with feature counts for valid collections
             const counts = validation.featureCounts;
             const summary = `Valid FeatureCollection loaded: ${counts.total} features (${counts.tracks} tracks, ${counts.points} points, ${counts.annotations} annotations)`;
-            console.log('Debrief FeatureCollection:', summary);
+            console.warn('Debrief FeatureCollection:', summary);
         }
         
         return json;

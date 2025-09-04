@@ -111,20 +111,25 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
                 return;
             }
 
-            // Get first selected feature (for now, handle single selection)
-            const selectedIndex = typeof selectionState.selectedIds[0] === 'string' 
-                ? parseInt(selectionState.selectedIds[0], 10)
-                : selectionState.selectedIds[0];
-            const rawFeature = featureCollection.features[selectedIndex];
+            // Find all selected features by id (string match)
+            const selectedFeatures = featureCollection.features.filter((feature: any) => {
+                const id = feature.id !== undefined ? String(feature.id) : undefined;
+                return id && selectionState.selectedIds.includes(id);
+            });
 
-            if (rawFeature) {
-                // Type assert the feature to access its properties
-                const selectedFeature = rawFeature as { 
-                    id?: string | number; 
-                    properties?: Record<string, unknown>; 
-                    geometry?: { type: string; coordinates: unknown } 
-                };
-                
+            // Fallback: if no id match, try index match (legacy)
+            if (selectedFeatures.length === 0) {
+                for (const selId of selectionState.selectedIds) {
+                    const idx = typeof selId === 'string' ? parseInt(selId, 10) : selId;
+                    if (!isNaN(idx) && featureCollection.features[idx]) {
+                        selectedFeatures.push(featureCollection.features[idx]);
+                    }
+                }
+            }
+
+            if (selectedFeatures.length > 0) {
+                // For now, show the first selected feature (could be extended to show all)
+                const selectedFeature = selectedFeatures[0];
                 this._view.webview.postMessage({
                     type: 'featureSelected',
                     feature: {
