@@ -146,7 +146,7 @@ export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineIt
                 );
                 return Promise.resolve(groupNodes);
             } catch (error) {
-                console.error('Error creating debrief outline items(s):', error);
+                console.error('Error creating debrief outline items:', error);
                 return Promise.resolve([]);
             }
         } else {
