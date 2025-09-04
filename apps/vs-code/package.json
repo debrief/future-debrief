@@ -9,6 +9,7 @@
     "url": "https://github.com/debrief/vs-code.git"
   },
   "scripts": {
+    "clean": "rm -rf dist/* media/web-components.js media/web-components.css",
     "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
     "copy-webcomponents": "cp ../../libs/web-components/dist/vanilla/index.js media/web-components.js && cp ../../libs/web-components/dist/vanilla/index.css media/web-components.css",
     "compile": "pnpm esbuild-base --sourcemap && pnpm copy-webcomponents",

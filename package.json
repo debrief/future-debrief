@@ -4,9 +4,10 @@
   "private": true,
   "packageManager": "pnpm@10.14.0",
   "scripts": {
+    "clean": "rm -rf .turbo && turbo run clean",
     "build:shared-types": "pnpm --filter @debrief/shared-types build",
     "build:web-components": "pnpm --filter @debrief/web-components build",
-    "build:vs-code": "pnpm --filter vs-code compile",
+    "build:vs-code": "turbo run build --filter=vs-code",
     "build": "turbo run build",
     "dev": "turbo run dev --filter=vs-code",
     "dev:web-components": "turbo run build --filter=@debrief/web-components",
