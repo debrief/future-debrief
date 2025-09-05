@@ -24,10 +24,10 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   args: {
     timeState: {
-      current: new Date(Date.now() - 60 * 60 * 1000).toISOString(), // Start at beginning of range
+      current: '2024-01-15T10:00:00Z', // Fixed time at start of range
       range: [
-        new Date(Date.now() - 60 * 60 * 1000).toISOString(), // 1 hour ago
-        new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour from now
+        '2024-01-15T10:00:00Z', // Fixed start time
+        '2024-01-15T12:00:00Z', // Fixed end time
       ],
     },
     isPlaying: false,
@@ -37,10 +37,10 @@ export const Default: Story = {
 export const Playing: Story = {
   args: {
     timeState: {
-      current: new Date(Date.now() - 60 * 60 * 1000).toISOString(), // Start at beginning of range
+      current: '2024-01-15T10:00:00Z', // Fixed time at start of range
       range: [
-        new Date(Date.now() - 60 * 60 * 1000).toISOString(), // 1 hour ago
-        new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour from now
+        '2024-01-15T10:00:00Z', // Fixed start time
+        '2024-01-15T12:00:00Z', // Fixed end time
       ],
     },
     isPlaying: true,
@@ -49,7 +49,7 @@ export const Playing: Story = {
 
 const WithTimeRangeWrapper = () => {
   const initialTimeState: TimeState = {
-    current: '2024-01-15T10:00:00Z', // Start at beginning of range
+    current: '2024-01-15T12:00:00Z', // Fixed time in middle of range
     range: ['2024-01-15T10:00:00Z', '2024-01-15T14:00:00Z'],
   };
 
@@ -80,10 +80,10 @@ export const WithTimeRange: Story = {
 
 const InteractiveWrapper = () => {
   const initialTimeState: TimeState = {
-    current: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // Start at beginning of range
+    current: '2024-01-15T08:00:00Z', // Fixed time at start of range
     range: [
-      new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-      new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
+      '2024-01-15T08:00:00Z', // Fixed start time
+      '2024-01-15T16:00:00Z', // Fixed end time (8 hour range)
     ],
   };
 
