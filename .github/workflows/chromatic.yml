@@ -1,0 +1,36 @@
+name: Web Components Chromatic Visual Testing
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths:
+      - 'libs/web-components/**'
+      - 'libs/shared-types/**'
+  push:
+    branches: [main]
+    paths:
+      - 'libs/web-components/**'
+      - 'libs/shared-types/**'
+
+concurrency:
+  group: chromatic-${{ github.event.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  chromatic:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository || github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0 # Required for Chromatic to work properly
+
+    - name: Run Web Components Chromatic
+      uses: ./libs/web-components/CI/action/chromatic
+      with:
+        project_token: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+        pr_number: ${{ github.event.number }}
+        pr_sha: ${{ github.event.pull_request.head.sha || github.sha }}

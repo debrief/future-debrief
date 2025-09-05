@@ -1,0 +1,108 @@
+name: 'Web Components Chromatic Visual Testing'
+description: 'Run Chromatic visual testing for web components Storybook'
+inputs:
+  project_token:
+    description: 'Chromatic project token'
+    required: true
+  pr_number:
+    description: 'Pull request number'
+    required: false
+  pr_sha:
+    description: 'Pull request SHA'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 10.14.0
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --no-frozen-lockfile
+
+    - name: Build shared types
+      shell: bash
+      run: pnpm --filter @debrief/shared-types build
+
+    - name: Run Chromatic for Web Components
+      id: chromatic
+      uses: chromaui/action@latest
+      with:
+        projectToken: ${{ inputs.project_token }}
+        workingDir: libs/web-components
+        buildScriptName: build-storybook
+        exitZeroOnChanges: true
+        onlyChanged: true
+
+    - name: Post Chromatic preview comment
+      if: inputs.pr_number && (success() || failure())
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const prNumber = ${{ inputs.pr_number }};
+          const chromaticUrl = "${{ steps.chromatic.outputs.url }}";
+          const buildUrl = "${{ steps.chromatic.outputs.buildUrl }}";
+          const storybookUrl = "${{ steps.chromatic.outputs.storybookUrl }}";
+          const buildStatus = "${{ steps.chromatic.outcome }}";
+          
+          let commentBody = `## 🎨 Web Components Visual Testing Results\n\n`;
+          
+          if (buildStatus === 'success') {
+            commentBody += `✅ **Visual testing completed successfully!**\n\n`;
+            if (chromaticUrl) {
+              commentBody += `**🔍 Visual Review:** [View visual changes](${chromaticUrl})\n`;
+            }
+            if (storybookUrl) {
+              commentBody += `**📚 Storybook Preview:** [Browse components](${storybookUrl})\n`;
+            }
+            if (buildUrl) {
+              commentBody += `**🔧 Build Details:** [Chromatic build](${buildUrl})\n`;
+            }
+          } else {
+            commentBody += `❌ **Visual testing failed**\n\n`;
+            commentBody += `**🔧 Build Details:** [View logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})\n`;
+          }
+          
+          commentBody += `\n**📋 Details:**\n`;
+          commentBody += `- **PR:** #${prNumber}\n`;
+          commentBody += `- **Commit:** \`${{ inputs.pr_sha }}\`\n`;
+          commentBody += `- **Package:** \`@debrief/web-components\`\n\n`;
+          commentBody += `---\n`;
+          commentBody += `*Visual testing runs automatically when web components are modified.*`;
+          
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: prNumber,
+          });
+          
+          const existingComment = comments.find(comment => 
+            comment.user.login === 'github-actions[bot]' && 
+            comment.body.includes('🎨 Web Components Visual Testing Results')
+          );
+          
+          if (existingComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: existingComment.id,
+              body: commentBody
+            });
+            console.log('Updated existing Chromatic comment');
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: commentBody
+            });
+            console.log('Created new Chromatic comment');
+          }

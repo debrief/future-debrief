@@ -7,6 +7,9 @@ const meta: Meta<typeof MapComponent> = {
   component: MapComponent,
   parameters: {
     layout: 'fullscreen',
+    // Exclude all MapComponent stories from Chromatic visual testing
+    // Maps are prone to rendering inconsistencies due to tile loading timing
+    chromatic: { disable: true },
   },
   argTypes: {
     onSelectionChange: { action: 'selection-changed' },
