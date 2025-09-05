@@ -173,38 +173,6 @@ const MapEventsHandler: React.FC<MapEventsHandlerProps> = ({ onMapClick, onMapSt
   return null;
 };
 
-interface InteractiveGeoJSONProps {
-  geoJsonData: GeoJSONFeatureCollection;
-  selectedFeatureIndices: number[];
-  selectedFeatureIds: (string | number)[];
-  highlightFeatureIndex?: number;
-  onSelectionChange?: (selectedFeatures: GeoJSONFeature[], selectedIndices: number[]) => void;
-}
-
-const InteractiveGeoJSON: React.FC<InteractiveGeoJSONProps> = ({
-  geoJsonData,
-  selectedFeatureIndices,
-  selectedFeatureIds,
-  highlightFeatureIndex,
-  onSelectionChange
-}) => {
-  return (
-    <>
-      {geoJsonData.features.map((feature, index) => (
-        <FeatureRendererFactory
-          key={feature.id || index}
-          feature={feature}
-          featureIndex={index}
-          selectedFeatureIndices={selectedFeatureIndices}
-          selectedFeatureIds={selectedFeatureIds}
-          highlightFeatureIndex={highlightFeatureIndex}
-          onSelectionChange={onSelectionChange}
-          geoJsonData={geoJsonData}
-        />
-      ))}
-    </>
-  );
-};
 
 export const MapComponent: React.FC<MapComponentProps> = ({
   geoJsonData,
@@ -338,15 +306,18 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           mapRef={mapRef}
         />
         
-        {currentData && (
-          <InteractiveGeoJSON
-            geoJsonData={currentData}
+        {currentData && currentData.features.map((feature, index) => (
+          <FeatureRendererFactory
+            key={feature.id || index}
+            feature={feature}
+            featureIndex={index}
             selectedFeatureIndices={selectedFeatureIndices}
             selectedFeatureIds={selectedFeatureIds}
             highlightFeatureIndex={highlightFeatureIndex}
             onSelectionChange={onSelectionChange}
+            geoJsonData={currentData}
           />
-        )}
+        ))}
       </MapContainer>
     </div>
   );
