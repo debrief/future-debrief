@@ -114,8 +114,6 @@ export class HistoryManager {
             historyStack.shift();
             this.historyPositions.set(editorId, historyStack.length - 1);
         }
-        
-        console.log(`Recorded history for ${editorId}: ${eventType} (${historyStack.length} entries)`);
     }
     
     /**
@@ -230,7 +228,6 @@ export class HistoryManager {
     private clearEditorHistory(editorId: string): void {
         this.historyStacks.delete(editorId);
         this.historyPositions.delete(editorId);
-        console.log(`Cleared history for editor ${editorId}`);
     }
     
     /**
@@ -293,7 +290,6 @@ export class HistoryManager {
     public clearAllHistory(): void {
         this.historyStacks.clear();
         this.historyPositions.clear();
-        console.log('Cleared all history');
     }
     
     /**
