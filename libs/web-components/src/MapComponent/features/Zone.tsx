@@ -5,36 +5,41 @@ import { GeoJSONFeature } from '../MapComponent';
 import { getFeatureStyle } from '../utils/featureUtils';
 import { useFeatureSelection } from '../hooks/useFeatureSelection';
 import { useFeatureHighlight } from '../hooks/useFeatureHighlight';
-import { TrackPolyline } from './TrackPolyline';
-import { PointMarker } from './PointMarker';
+import { Track } from './Track';
+import { Point } from './Point';
 
-interface ZonePolygonProps {
+interface ZoneProps {
   feature: GeoJSONFeature;
   featureIndex: number;
-  selectedFeatureIndices: number[];
   selectedFeatureIds: (string | number)[];
-  highlightFeatureIndex?: number;
+  revealFeatureIndex?: number;
   onSelectionChange?: (selectedFeatures: GeoJSONFeature[], selectedIndices: number[]) => void;
   geoJsonData: { features: GeoJSONFeature[] };
 }
 
-export const ZonePolygon: React.FC<ZonePolygonProps> = (props) => {
-  const { feature, featureIndex, selectedFeatureIndices, onSelectionChange, geoJsonData, highlightFeatureIndex } = props;
+export const Zone: React.FC<ZoneProps> = (props) => {
+  const { feature, featureIndex, selectedFeatureIds, onSelectionChange, geoJsonData, revealFeatureIndex } = props;
+  
+  // Convert selectedFeatureIds to selectedIndices for backward compatibility
+  const selectedFeatureIndices = selectedFeatureIds.map(id => 
+    geoJsonData.features.findIndex(f => f.id === id)
+  ).filter(index => index !== -1);
+  
   const { isSelected, bindEventHandlers } = useFeatureSelection(
     feature, featureIndex, selectedFeatureIndices, onSelectionChange, geoJsonData
   );
   
-  useFeatureHighlight(feature, featureIndex, highlightFeatureIndex);
+  useFeatureHighlight(feature, featureIndex, revealFeatureIndex);
 
   const style = getFeatureStyle(feature, isSelected);
 
   // Handle different geometry types for zones
   if (feature.geometry.type === 'Point' || feature.geometry.type === 'MultiPoint') {
-    return <PointMarker {...props} />;
+    return <Point {...props} />;
   }
   
   if (feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString') {
-    return <TrackPolyline {...props} />;
+    return <Track {...props} />;
   }
 
   // Type guard and handle Polygon/MultiPolygon

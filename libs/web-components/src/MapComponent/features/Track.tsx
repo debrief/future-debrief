@@ -6,23 +6,27 @@ import { getFeatureStyle } from '../utils/featureUtils';
 import { useFeatureSelection } from '../hooks/useFeatureSelection';
 import { useFeatureHighlight } from '../hooks/useFeatureHighlight';
 
-interface TrackPolylineProps {
+interface TrackProps {
   feature: GeoJSONFeature;
   featureIndex: number;
-  selectedFeatureIndices: number[];
   selectedFeatureIds: (string | number)[];
-  highlightFeatureIndex?: number;
+  revealFeatureIndex?: number;
   onSelectionChange?: (selectedFeatures: GeoJSONFeature[], selectedIndices: number[]) => void;
   geoJsonData: { features: GeoJSONFeature[] };
 }
 
-export const TrackPolyline: React.FC<TrackPolylineProps> = (props) => {
-  const { feature, featureIndex, selectedFeatureIndices, onSelectionChange, geoJsonData, highlightFeatureIndex } = props;
+export const Track: React.FC<TrackProps> = (props) => {
+  const { feature, featureIndex, selectedFeatureIds, onSelectionChange, geoJsonData, revealFeatureIndex } = props;
+  // Convert selectedFeatureIds to selectedIndices for backward compatibility
+  const selectedFeatureIndices = selectedFeatureIds.map(id => 
+    geoJsonData.features.findIndex(f => f.id === id)
+  ).filter(index => index !== -1);
+  
   const { isSelected, bindEventHandlers } = useFeatureSelection(
     feature, featureIndex, selectedFeatureIndices, onSelectionChange, geoJsonData
   );
   
-  useFeatureHighlight(feature, featureIndex, highlightFeatureIndex);
+  useFeatureHighlight(feature, featureIndex, revealFeatureIndex);
 
   const style = getFeatureStyle(feature, isSelected);
   

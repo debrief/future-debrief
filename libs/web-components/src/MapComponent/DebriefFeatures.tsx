@@ -1,19 +1,17 @@
 import React from 'react';
 import { GeoJSONFeature, GeoJSONFeatureCollection } from './MapComponent';
-import { TrackPolyline } from './renderers/TrackPolyline';
-import { PointMarker } from './renderers/PointMarker';
-import { ZonePolygon } from './renderers/ZonePolygon';
-import { StandardGeoJSON } from './renderers/StandardGeoJSON';
+import { Track } from './features/Track';
+import { Point } from './features/Point';
+import { Zone } from './features/Zone';
+import { StandardGeoJSON } from './features/StandardGeoJSON';
 
 interface DebriefFeaturesProps {
   /** GeoJSON feature collection data */
   geoJsonData: GeoJSONFeatureCollection;
-  /** Array of feature indices to select */
-  selectedFeatureIndices: number[];
   /** Array of feature IDs to select */
   selectedFeatureIds: (string | number)[];
-  /** Feature index to highlight */
-  highlightFeatureIndex?: number;
+  /** Feature index to reveal/highlight */
+  revealFeatureIndex?: number;
   /** Callback when feature is selected/deselected */
   onSelectionChange?: (selectedFeatures: GeoJSONFeature[], selectedIndices: number[]) => void;
 }
@@ -25,9 +23,8 @@ interface DebriefFeaturesProps {
  */
 export const DebriefFeatures: React.FC<DebriefFeaturesProps> = ({
   geoJsonData,
-  selectedFeatureIndices,
   selectedFeatureIds,
-  highlightFeatureIndex,
+  revealFeatureIndex,
   onSelectionChange
 }) => {
   return (
@@ -37,9 +34,8 @@ export const DebriefFeatures: React.FC<DebriefFeaturesProps> = ({
         const commonProps = {
           feature,
           featureIndex: index,
-          selectedFeatureIndices,
           selectedFeatureIds,
-          highlightFeatureIndex,
+          revealFeatureIndex,
           onSelectionChange,
           geoJsonData
         };
@@ -47,15 +43,15 @@ export const DebriefFeatures: React.FC<DebriefFeaturesProps> = ({
 
         // Route features to appropriate specialized renderers
         if (dataType === 'track' && (feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString')) {
-          return <TrackPolyline key={key} {...commonProps} />;
+          return <Track key={key} {...commonProps} />;
         }
         
         if (dataType === 'reference-point' && (feature.geometry.type === 'Point' || feature.geometry.type === 'MultiPoint')) {
-          return <PointMarker key={key} {...commonProps} />;
+          return <Point key={key} {...commonProps} />;
         }
         
         if (dataType === 'zone') {
-          return <ZonePolygon key={key} {...commonProps} />;
+          return <Zone key={key} {...commonProps} />;
         }
         
         // Fallback to standard GeoJSON rendering for unrecognized types

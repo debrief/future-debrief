@@ -7,9 +7,8 @@ import { bindFeaturePopup } from '../utils/featureUtils';
 interface StandardGeoJSONProps {
   feature: GeoJSONFeature;
   featureIndex: number;
-  selectedFeatureIndices: number[];
   selectedFeatureIds: (string | number)[];
-  highlightFeatureIndex?: number;
+  revealFeatureIndex?: number;
   onSelectionChange?: (selectedFeatures: GeoJSONFeature[], selectedIndices: number[]) => void;
   geoJsonData: { features: GeoJSONFeature[] };
 }

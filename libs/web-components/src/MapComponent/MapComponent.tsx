@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { DebriefFeatures } from './DebriefFeatures';
 import { isFeatureVisible } from './utils/featureUtils';
+import { calculateFeatureBounds } from './utils/boundsUtils';
 import './MapComponent.css';
 // Note: Consumer applications need to import 'leaflet/dist/leaflet.css' separately
 
@@ -19,71 +20,6 @@ const DefaultIcon = L.icon({
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
-
-/**
- * Helper function to calculate bounds from GeoJSON features
- */
-const calculateFeatureBounds = (features: GeoJSONFeature[]): { bounds: L.LatLngBounds; hasValidGeometry: boolean } => {
-  const bounds = L.latLngBounds([]);
-  let hasValidGeometry = false;
-
-  features.forEach(feature => {
-    if (!feature.geometry) return;
-
-    try {
-      switch (feature.geometry.type) {
-        case 'Point': {
-          const coords = feature.geometry.coordinates as [number, number];
-          bounds.extend([coords[1], coords[0]]);
-          hasValidGeometry = true;
-          break;
-        }
-        case 'LineString': {
-          const lineCoords = feature.geometry.coordinates as [number, number][];
-          lineCoords.forEach(coord => bounds.extend([coord[1], coord[0]]));
-          hasValidGeometry = true;
-          break;
-        }
-        case 'MultiLineString': {
-          const multiLineCoords = feature.geometry.coordinates as [number, number][][];
-          multiLineCoords.forEach(line => 
-            line.forEach(coord => bounds.extend([coord[1], coord[0]]))
-          );
-          hasValidGeometry = true;
-          break;
-        }
-        case 'Polygon': {
-          const polyCoords = feature.geometry.coordinates as [number, number][][];
-          if (polyCoords.length > 0) {
-            polyCoords[0].forEach(coord => bounds.extend([coord[1], coord[0]]));
-            hasValidGeometry = true;
-          }
-          break;
-        }
-        case 'MultiPolygon': {
-          const multiPolyCoords = feature.geometry.coordinates as [number, number][][][];
-          multiPolyCoords.forEach(polygon => {
-            if (polygon.length > 0) {
-              polygon[0].forEach(coord => bounds.extend([coord[1], coord[0]]));
-            }
-          });
-          hasValidGeometry = true;
-          break;
-        }
-        case 'MultiPoint': {
-          const multiPointCoords = feature.geometry.coordinates as [number, number][];
-          multiPointCoords.forEach(coord => bounds.extend([coord[1], coord[0]]));
-          hasValidGeometry = true;
-          break;
-        }
-      }
-    } catch (error) {
-      console.warn('Error processing feature geometry for bounds:', error);
-    }
-  });
-
-  return { bounds, hasValidGeometry };
-};
 
 export interface GeoJSONFeature extends GeoJSON.Feature {
   id?: string | number;
@@ -106,10 +42,8 @@ export interface MapComponentProps {
   onSelectionChange?: (selectedFeatures: GeoJSONFeature[], selectedIndices: number[]) => void;
   /** Callback when map is clicked for adding new points */
   onMapClick?: (lat: number, lng: number) => void;
-  /** Feature index to highlight */
-  highlightFeatureIndex?: number;
-  /** Array of feature indices to select */
-  selectedFeatureIndices?: number[];
+  /** Feature index to reveal/highlight */
+  revealFeatureIndex?: number;
   /** Array of feature IDs to select */
   selectedFeatureIds?: (string | number)[];
   /** Whether to show the add button */
@@ -179,8 +113,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   geoJsonData,
   onSelectionChange,
   onMapClick,
-  highlightFeatureIndex,
-  selectedFeatureIndices = [],
+  revealFeatureIndex,
   selectedFeatureIds = [],
   showAddButton = false,
   onAddClick,
@@ -229,7 +162,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   const handleZoomToSelection = useCallback(() => {
     if (!currentData || !mapRef.current) return;
     
-    const selectedIndices = [...selectedFeatureIndices];
+    const selectedIndices: number[] = [];
     selectedFeatureIds.forEach(id => {
       const index = currentData.features.findIndex(feature => feature.id === id);
       if (index >= 0) {
@@ -249,7 +182,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     if (hasValidGeometry && bounds.isValid()) {
       mapRef.current.fitBounds(bounds, { padding: [20, 20] });
     }
-  }, [currentData, selectedFeatureIndices, selectedFeatureIds]);
+  }, [currentData, selectedFeatureIds]);
 
   // Auto fit bounds when no initial viewport and data is loaded
   useEffect(() => {
@@ -306,9 +239,8 @@ export const MapComponent: React.FC<MapComponentProps> = ({
         {currentData && (
           <DebriefFeatures
             geoJsonData={currentData}
-            selectedFeatureIndices={selectedFeatureIndices}
             selectedFeatureIds={selectedFeatureIds}
-            highlightFeatureIndex={highlightFeatureIndex}
+            revealFeatureIndex={revealFeatureIndex}
             onSelectionChange={onSelectionChange}
           />
         )}

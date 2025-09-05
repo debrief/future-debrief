@@ -23,8 +23,7 @@ export interface VanillaMapComponentProps {
   geoJsonData?: string | GeoJSONFeatureCollection;
   onSelectionChange?: (selectedFeatures: GeoJSONFeature[], selectedIndices: number[]) => void;
   onMapClick?: (lat: number, lng: number) => void;
-  highlightFeatureIndex?: number;
-  selectedFeatureIndices?: number[];
+  revealFeatureIndex?: number;
   selectedFeatureIds?: (string | number)[];
   showAddButton?: boolean;
   onAddClick?: () => void;
