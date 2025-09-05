@@ -1,5 +1,5 @@
 import React from 'react';
-import { GeoJSONFeature, GeoJSONFeatureCollection } from './MapComponent';
+import { GeoJSONFeatureCollection } from './MapComponent';
 import { Track } from './features/Track';
 import { Point } from './features/Point';
 import { Zone } from './features/Zone';
@@ -10,10 +10,8 @@ interface DebriefFeaturesProps {
   geoJsonData: GeoJSONFeatureCollection;
   /** Array of feature IDs to select */
   selectedFeatureIds: (string | number)[];
-  /** Feature index to reveal/highlight */
-  revealFeatureIndex?: number;
   /** Callback when feature is selected/deselected */
-  onSelectionChange?: (selectedFeatures: GeoJSONFeature[], selectedIndices: number[]) => void;
+  onSelectionChange?: (selectedFeatureIds: (string | number)[]) => void;
 }
 
 /**
@@ -24,7 +22,6 @@ interface DebriefFeaturesProps {
 export const DebriefFeatures: React.FC<DebriefFeaturesProps> = ({
   geoJsonData,
   selectedFeatureIds,
-  revealFeatureIndex,
   onSelectionChange
 }) => {
   return (
@@ -33,11 +30,8 @@ export const DebriefFeatures: React.FC<DebriefFeaturesProps> = ({
         const dataType = feature.properties?.dataType;
         const commonProps = {
           feature,
-          featureIndex: index,
           selectedFeatureIds,
-          revealFeatureIndex,
-          onSelectionChange,
-          geoJsonData
+          onSelectionChange
         };
         const key = feature.id || index;
 

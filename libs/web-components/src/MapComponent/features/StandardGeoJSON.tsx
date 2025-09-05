@@ -6,11 +6,8 @@ import { bindFeaturePopup } from '../utils/featureUtils';
 
 interface StandardGeoJSONProps {
   feature: GeoJSONFeature;
-  featureIndex: number;
   selectedFeatureIds: (string | number)[];
-  revealFeatureIndex?: number;
-  onSelectionChange?: (selectedFeatures: GeoJSONFeature[], selectedIndices: number[]) => void;
-  geoJsonData: { features: GeoJSONFeature[] };
+  onSelectionChange?: (selectedFeatureIds: (string | number)[]) => void;
 }
 
 export const StandardGeoJSON: React.FC<StandardGeoJSONProps> = ({ feature }) => {

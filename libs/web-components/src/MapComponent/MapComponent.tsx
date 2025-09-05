@@ -38,12 +38,10 @@ export interface MapState {
 export interface MapComponentProps {
   /** GeoJSON data as string or parsed object */
   geoJsonData?: string | GeoJSONFeatureCollection;
-  /** Callback when feature is selected/deselected */
-  onSelectionChange?: (selectedFeatures: GeoJSONFeature[], selectedIndices: number[]) => void;
+  /** Callback when feature selection changes */
+  onSelectionChange?: (selectedFeatureIds: (string | number)[]) => void;
   /** Callback when map is clicked for adding new points */
   onMapClick?: (lat: number, lng: number) => void;
-  /** Feature index to reveal/highlight */
-  revealFeatureIndex?: number;
   /** Array of feature IDs to select */
   selectedFeatureIds?: (string | number)[];
   /** Whether to show the add button */
@@ -113,7 +111,6 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   geoJsonData,
   onSelectionChange,
   onMapClick,
-  revealFeatureIndex,
   selectedFeatureIds = [],
   showAddButton = false,
   onAddClick,
@@ -240,7 +237,6 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           <DebriefFeatures
             geoJsonData={currentData}
             selectedFeatureIds={selectedFeatureIds}
-            revealFeatureIndex={revealFeatureIndex}
             onSelectionChange={onSelectionChange}
           />
         )}

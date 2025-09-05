@@ -3,33 +3,48 @@ import { Polygon } from 'react-leaflet';
 import L from 'leaflet';
 import { GeoJSONFeature } from '../MapComponent';
 import { getFeatureStyle } from '../utils/featureUtils';
-import { useFeatureSelection } from '../hooks/useFeatureSelection';
-import { useFeatureHighlight } from '../hooks/useFeatureHighlight';
 import { Track } from './Track';
 import { Point } from './Point';
 
 interface ZoneProps {
   feature: GeoJSONFeature;
-  featureIndex: number;
   selectedFeatureIds: (string | number)[];
-  revealFeatureIndex?: number;
-  onSelectionChange?: (selectedFeatures: GeoJSONFeature[], selectedIndices: number[]) => void;
-  geoJsonData: { features: GeoJSONFeature[] };
+  onSelectionChange?: (selectedFeatureIds: (string | number)[]) => void;
 }
 
 export const Zone: React.FC<ZoneProps> = (props) => {
-  const { feature, featureIndex, selectedFeatureIds, onSelectionChange, geoJsonData, revealFeatureIndex } = props;
+  const { feature, selectedFeatureIds, onSelectionChange } = props;
   
-  // Convert selectedFeatureIds to selectedIndices for backward compatibility
-  const selectedFeatureIndices = selectedFeatureIds.map(id => 
-    geoJsonData.features.findIndex(f => f.id === id)
-  ).filter(index => index !== -1);
+  // Check if this feature is selected by ID
+  const isSelected = selectedFeatureIds.some(id => feature.id === id);
   
-  const { isSelected, bindEventHandlers } = useFeatureSelection(
-    feature, featureIndex, selectedFeatureIndices, onSelectionChange, geoJsonData
-  );
-  
-  useFeatureHighlight(feature, featureIndex, revealFeatureIndex);
+  // Simple event handler for selection
+  const bindEventHandlers = (layer: L.Layer) => {
+    // Bind popup if feature has name
+    if (feature.properties?.name) {
+      layer.bindPopup(feature.properties.name);
+    }
+    
+    // Add click handler for selection
+    layer.on('click', (e: L.LeafletMouseEvent) => {
+      e.originalEvent.preventDefault();
+      
+      if (!onSelectionChange) return;
+      
+      const featureId = feature.id !== undefined ? feature.id : Math.random();
+      let newSelectedIds: (string | number)[];
+      
+      if (isSelected) {
+        // Remove from selection
+        newSelectedIds = selectedFeatureIds.filter(id => id !== feature.id);
+      } else {
+        // Add to selection
+        newSelectedIds = [...selectedFeatureIds, featureId];
+      }
+      
+      onSelectionChange(newSelectedIds);
+    });
+  };
 
   const style = getFeatureStyle(feature, isSelected);
 
