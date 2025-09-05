@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { MapContainer, TileLayer, useMapEvents, useMap } from 'react-leaflet';
-import L from 'leaflet';
+import * as L from 'leaflet';
 import { DebriefFeatures } from './DebriefFeatures';
 import { isFeatureVisible } from './utils/featureUtils';
 import { calculateFeatureBounds } from './utils/boundsUtils';
+import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
 import './MapComponent.css';
 // Note: Consumer applications need to import 'leaflet/dist/leaflet.css' separately
 
@@ -58,6 +59,8 @@ export interface MapComponentProps {
   className?: string;
   /** Container ID for the map */
   mapId?: string;
+  /** Current time state */
+  timeState?: TimeState;
 }
 
 // Helper components for React Leaflet integration
@@ -118,7 +121,8 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   onMapStateChange,
   initialMapState,
   className = '',
-  mapId: _mapId = 'map'
+  mapId: _mapId = 'map',
+  timeState,
 }) => {
   const [currentData, setCurrentData] = useState<GeoJSONFeatureCollection | null>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -238,6 +242,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
             geoJsonData={currentData}
             selectedFeatureIds={selectedFeatureIds}
             onSelectionChange={onSelectionChange}
+            timeState={timeState}
           />
         )}
       </MapContainer>

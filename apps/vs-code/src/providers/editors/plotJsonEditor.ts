@@ -215,6 +215,17 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         });
         stateSubscriptions.push(viewportSubscription);
 
+        // Subscribe to time changes
+        const timeSubscription = globalController.on('timeChanged', (data) => {
+            if (data.editorId === editorId && webviewPanel.visible) {
+                webviewPanel.webview.postMessage({
+                    type: 'setTimeState',
+                    timeState: data.state.timeState
+                });
+            }
+        });
+        stateSubscriptions.push(timeSubscription);
+
         // Listen for when this webview panel becomes visible (tab switching)
         webviewPanel.onDidChangeViewState(() => {
             const editorId = EditorIdManager.getEditorId(document);
@@ -524,6 +535,14 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 								if (mapComponentInstance) {
 									mapComponentInstance.updateProps({
 										selectedFeatureIds: message.featureIds || []
+									});
+								}
+								break;
+
+							case 'setTimeState':
+								if (mapComponentInstance) {
+									mapComponentInstance.updateProps({
+										timeState: message.timeState
 									});
 								}
 								break;

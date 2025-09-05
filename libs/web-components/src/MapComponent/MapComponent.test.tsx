@@ -4,33 +4,55 @@ import { MapComponent } from './MapComponent';
 import type { GeoJSONFeatureCollection } from './MapComponent';
 
 // Mock Leaflet since it requires DOM and canvas
+const mapInstance = {
+  setView: jest.fn(),
+  on: jest.fn(),
+  off: jest.fn(),
+  remove: jest.fn(),
+  addLayer: jest.fn(),
+  removeLayer: jest.fn(),
+  fitBounds: jest.fn(),
+  panTo: jest.fn(),
+  getCenter: jest.fn(() => ({ lat: 51.505, lng: -0.09 })),
+  getZoom: jest.fn(() => 13),
+  invalidateSize: jest.fn(),
+};
+
+const tileLayerInstance = {
+  addTo: jest.fn(),
+};
+
+const geoJSONInstance = {
+  addTo: jest.fn(),
+  getBounds: jest.fn(),
+};
+
+const circleMarkerInstance = {
+  setStyle: jest.fn(),
+};
+
 jest.mock('leaflet', () => ({
-  map: jest.fn(() => ({
-    setView: jest.fn(),
-    on: jest.fn(),
-    remove: jest.fn(),
-    addLayer: jest.fn(),
-    removeLayer: jest.fn(),
-    fitBounds: jest.fn(),
-    panTo: jest.fn(),
-    getCenter: jest.fn(() => ({ lat: 51.505, lng: -0.09 })),
-    getZoom: jest.fn(() => 13),
-    invalidateSize: jest.fn(),
-  })),
-  tileLayer: jest.fn(() => ({
-    addTo: jest.fn(),
-  })),
-  geoJSON: jest.fn(() => ({
-    addTo: jest.fn(),
-    getBounds: jest.fn(),
-  })),
-  circleMarker: jest.fn(() => ({
-    setStyle: jest.fn(),
-  })),
+  Map: jest.fn(() => mapInstance),
+  map: jest.fn(() => mapInstance),
+  TileLayer: jest.fn(() => tileLayerInstance),
+  tileLayer: jest.fn(() => tileLayerInstance),
+  GeoJSON: jest.fn(() => geoJSONInstance),
+  geoJSON: jest.fn(() => geoJSONInstance),
+  CircleMarker: jest.fn(() => circleMarkerInstance),
+  circleMarker: jest.fn(() => circleMarkerInstance),
   latLngBounds: jest.fn(() => ({
     extend: jest.fn(),
     isValid: jest.fn(() => true),
   })),
+  icon: jest.fn(() => ({})),
+  divIcon: jest.fn(() => ({})),
+  Marker: {
+    prototype: {
+      options: {
+        icon: {},
+      },
+    },
+  },
 }));
 
 const sampleGeoJSON: GeoJSONFeatureCollection = {

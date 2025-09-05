@@ -1,5 +1,6 @@
 import React from 'react';
 import { GeoJSONFeatureCollection } from './MapComponent';
+import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
 import { Track } from './features/Track';
 import { Point } from './features/Point';
 import { Zone } from './features/Zone';
@@ -12,6 +13,8 @@ interface DebriefFeaturesProps {
   selectedFeatureIds: (string | number)[];
   /** Callback when feature is selected/deselected */
   onSelectionChange?: (selectedFeatureIds: (string | number)[]) => void;
+  /** Current time state */
+  timeState?: TimeState;
 }
 
 /**
@@ -22,7 +25,8 @@ interface DebriefFeaturesProps {
 export const DebriefFeatures: React.FC<DebriefFeaturesProps> = ({
   geoJsonData,
   selectedFeatureIds,
-  onSelectionChange
+  onSelectionChange,
+  timeState
 }) => {
   return (
     <>
@@ -31,7 +35,8 @@ export const DebriefFeatures: React.FC<DebriefFeaturesProps> = ({
         const commonProps = {
           feature,
           selectedFeatureIds,
-          onSelectionChange
+          onSelectionChange,
+          timeState
         };
         const key = feature.id || index;
 
