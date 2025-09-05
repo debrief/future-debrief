@@ -6,6 +6,9 @@ import { SelectionState } from '@debrief/shared-types/derived/typescript/selecti
 import { DebriefFeatureCollection } from '@debrief/shared-types/derived/typescript/featurecollection';
 import { EditorState } from '@debrief/shared-types/derived/typescript/editorstate';
 
+// Re-export EditorState so other modules can import it from here
+export { EditorState };
+
 
 // Event types for the GlobalController
 export type StateEventType = 'fcChanged' | 'timeChanged' | 'viewportChanged' | 'selectionChanged' | 'activeEditorChanged';
