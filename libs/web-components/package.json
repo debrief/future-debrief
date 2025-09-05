@@ -34,7 +34,7 @@
     "eslint": "eslint . --ext .ts,.tsx",
     "eslint:fix": "eslint . --ext .ts,.tsx --fix",
     "lint": "pnpm typecheck && pnpm eslint",
-    "chromatic": "pnpm chromatic"
+    "chromatic": "npx chromatic --exit-zero-on-changes"
   },
   "dependencies": {
     "@debrief/shared-types": "workspace:^1.0.0",
