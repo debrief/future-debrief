@@ -4,6 +4,7 @@ import * as L from 'leaflet';
 import { GeoJSONFeature } from '../MapComponent';
 import { getFeatureStyle } from '../utils/featureUtils';
 import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
+import '../MapComponent.css';
 
 interface TrackProps {
   feature: GeoJSONFeature;
@@ -37,28 +38,43 @@ export const Track: React.FC<TrackProps> = (props) => {
 
   const timeMarkerIcon = L.divIcon({
     className: 'time-marker',
-    html: '<div />',
+    html: '<div></div>',
     iconSize: [12, 12],
+    iconAnchor: [6, 6],
   });
 
   let markerPosition: [number, number] | null = null;
-  if (timeState?.current && feature.properties?.timestamps && Array.isArray(feature.properties.timestamps)) {
-    const timestamps = feature.properties.timestamps as string[];
+  if (timeState?.current && feature.properties?.times && Array.isArray(feature.properties.times)) {
+    const timestamps = feature.properties.times as string[];
     const closestIndex = findClosestTimeIndex(timeState.current, timestamps);
     if (closestIndex !== -1) {
       if (feature.geometry.type === 'LineString') {
-        const coords = (feature.geometry.coordinates as number[][])[closestIndex] as [number, number];
+        const coordinates = feature.geometry.coordinates as number[][];
+        // Handle case where timestamps and coordinates arrays have different lengths
+        // Map timestamp index to coordinate index proportionally
+        const coordIndex = Math.min(
+          Math.round((closestIndex / (timestamps.length - 1)) * (coordinates.length - 1)),
+          coordinates.length - 1
+        );
+        const coords = coordinates[coordIndex] as [number, number];
         markerPosition = [coords[1], coords[0]];
+        console.warn('Time marker position:', {
+          coordIndex,
+          coords,
+          markerPosition
+        });
       } else if (feature.geometry.type === 'MultiLineString') {
-        let pointCounter = 0;
+        // For MultiLineString, we need to handle the mapping differently
+        const allCoords: number[][] = [];
         for (const line of (feature.geometry.coordinates as number[][][])) {
-          if (closestIndex < pointCounter + line.length) {
-            const coords = line[closestIndex - pointCounter] as [number, number];
-            markerPosition = [coords[1], coords[0]];
-            break;
-          }
-          pointCounter += line.length;
+          allCoords.push(...line);
         }
+        const coordIndex = Math.min(
+          Math.round((closestIndex / (timestamps.length - 1)) * (allCoords.length - 1)),
+          allCoords.length - 1
+        );
+        const coords = allCoords[coordIndex] as [number, number];
+        markerPosition = [coords[1], coords[0]];
       }
     }
   }
