@@ -1,7 +1,11 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
-import { MapContainer, TileLayer, GeoJSON, useMapEvents, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { FeatureRendererFactory } from './renderers/FeatureRendererFactory';
+import { TrackPolyline } from './renderers/TrackPolyline';
+import { PointMarker } from './renderers/PointMarker';
+import { ZonePolygon } from './renderers/ZonePolygon';
+import { StandardGeoJSON } from './renderers/StandardGeoJSON';
+import { isFeatureVisible } from './utils/featureUtils';
 import './MapComponent.css';
 // Note: Consumer applications need to import 'leaflet/dist/leaflet.css' separately
 
@@ -212,11 +216,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     const parsedData = parseGeoJsonData(geoJsonData);
     if (parsedData) {
       // Filter out features with properties.visible === false
-      const visibleFeatures = parsedData.features.filter(feature => {
-        const visible = feature.properties?.visible;
-        // Only plot features if visible is not explicitly false
-        return visible !== false;
-      });
+      const visibleFeatures = parsedData.features.filter(isFeatureVisible);
       
       setCurrentData({
         ...parsedData,
@@ -306,18 +306,35 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           mapRef={mapRef}
         />
         
-        {currentData && currentData.features.map((feature, index) => (
-          <FeatureRendererFactory
-            key={feature.id || index}
-            feature={feature}
-            featureIndex={index}
-            selectedFeatureIndices={selectedFeatureIndices}
-            selectedFeatureIds={selectedFeatureIds}
-            highlightFeatureIndex={highlightFeatureIndex}
-            onSelectionChange={onSelectionChange}
-            geoJsonData={currentData}
-          />
-        ))}
+        {currentData && currentData.features.map((feature, index) => {
+          const dataType = feature.properties?.dataType;
+          const commonProps = {
+            feature,
+            featureIndex: index,
+            selectedFeatureIndices,
+            selectedFeatureIds,
+            highlightFeatureIndex,
+            onSelectionChange,
+            geoJsonData: currentData
+          };
+          const key = feature.id || index;
+
+          // Simple conditional rendering instead of factory pattern
+          if (dataType === 'track' && (feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString')) {
+            return <TrackPolyline key={key} {...commonProps} />;
+          }
+          
+          if (dataType === 'reference-point' && (feature.geometry.type === 'Point' || feature.geometry.type === 'MultiPoint')) {
+            return <PointMarker key={key} {...commonProps} />;
+          }
+          
+          if (dataType === 'zone') {
+            return <ZonePolygon key={key} {...commonProps} />;
+          }
+          
+          // Fallback to standard GeoJSON rendering
+          return <StandardGeoJSON key={key} {...commonProps} />;
+        })}
       </MapContainer>
     </div>
   );

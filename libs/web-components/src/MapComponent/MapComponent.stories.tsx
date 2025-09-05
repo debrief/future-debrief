@@ -157,14 +157,6 @@ export const WithHighlight: Story = {
   },
 };
 
-export const WithSelection: Story = {
-  args: {
-    geoJsonData: sampleGeoJSON,
-    selectedFeatureIndices: [0, 2],
-    showAddButton: true,
-  },
-};
-
 export const WithSelectedIds: Story = {
   args: {
     geoJsonData: sampleGeoJSON,
