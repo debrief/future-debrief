@@ -16,7 +16,8 @@ export const TimeController: React.FC<TimeControllerProps> = ({
   onPlayPause,
   className = '',
 }) => {
-  if (!timeState || !timeState.range) {
+  if (!timeState || !timeState.range || !timeState.current || 
+      !timeState.range[0] || !timeState.range[1]) {
     return (
       <div className={`time-controller ${className}`} data-testid="time-controller">
         <div>TimeController: No time range available</div>
