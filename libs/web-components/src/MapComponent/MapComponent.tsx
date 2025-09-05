@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
-import { MapContainer, TileLayer, GeoJSON, useMapEvents, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import { DebriefFeatures } from './DebriefFeatures';
+import { isFeatureVisible } from './utils/featureUtils';
+import { calculateFeatureBounds } from './utils/boundsUtils';
 import './MapComponent.css';
 // Note: Consumer applications need to import 'leaflet/dist/leaflet.css' separately
 
@@ -17,71 +20,6 @@ const DefaultIcon = L.icon({
 });
 
 L.Marker.prototype.options.icon = DefaultIcon;
-
-/**
- * Helper function to calculate bounds from GeoJSON features
- */
-const calculateFeatureBounds = (features: GeoJSONFeature[]): { bounds: L.LatLngBounds; hasValidGeometry: boolean } => {
-  const bounds = L.latLngBounds([]);
-  let hasValidGeometry = false;
-
-  features.forEach(feature => {
-    if (!feature.geometry) return;
-
-    try {
-      switch (feature.geometry.type) {
-        case 'Point': {
-          const coords = feature.geometry.coordinates as [number, number];
-          bounds.extend([coords[1], coords[0]]);
-          hasValidGeometry = true;
-          break;
-        }
-        case 'LineString': {
-          const lineCoords = feature.geometry.coordinates as [number, number][];
-          lineCoords.forEach(coord => bounds.extend([coord[1], coord[0]]));
-          hasValidGeometry = true;
-          break;
-        }
-        case 'MultiLineString': {
-          const multiLineCoords = feature.geometry.coordinates as [number, number][][];
-          multiLineCoords.forEach(line => 
-            line.forEach(coord => bounds.extend([coord[1], coord[0]]))
-          );
-          hasValidGeometry = true;
-          break;
-        }
-        case 'Polygon': {
-          const polyCoords = feature.geometry.coordinates as [number, number][][];
-          if (polyCoords.length > 0) {
-            polyCoords[0].forEach(coord => bounds.extend([coord[1], coord[0]]));
-            hasValidGeometry = true;
-          }
-          break;
-        }
-        case 'MultiPolygon': {
-          const multiPolyCoords = feature.geometry.coordinates as [number, number][][][];
-          multiPolyCoords.forEach(polygon => {
-            if (polygon.length > 0) {
-              polygon[0].forEach(coord => bounds.extend([coord[1], coord[0]]));
-            }
-          });
-          hasValidGeometry = true;
-          break;
-        }
-        case 'MultiPoint': {
-          const multiPointCoords = feature.geometry.coordinates as [number, number][];
-          multiPointCoords.forEach(coord => bounds.extend([coord[1], coord[0]]));
-          hasValidGeometry = true;
-          break;
-        }
-      }
-    } catch (error) {
-      console.warn('Error processing feature geometry for bounds:', error);
-    }
-  });
-
-  return { bounds, hasValidGeometry };
-};
 
 export interface GeoJSONFeature extends GeoJSON.Feature {
   id?: string | number;
@@ -100,14 +38,10 @@ export interface MapState {
 export interface MapComponentProps {
   /** GeoJSON data as string or parsed object */
   geoJsonData?: string | GeoJSONFeatureCollection;
-  /** Callback when feature is selected/deselected */
-  onSelectionChange?: (selectedFeatures: GeoJSONFeature[], selectedIndices: number[]) => void;
+  /** Callback when feature selection changes */
+  onSelectionChange?: (selectedFeatureIds: (string | number)[]) => void;
   /** Callback when map is clicked for adding new points */
   onMapClick?: (lat: number, lng: number) => void;
-  /** Feature index to highlight */
-  highlightFeatureIndex?: number;
-  /** Array of feature indices to select */
-  selectedFeatureIndices?: number[];
   /** Array of feature IDs to select */
   selectedFeatureIds?: (string | number)[];
   /** Whether to show the add button */
@@ -172,275 +106,11 @@ const MapEventsHandler: React.FC<MapEventsHandlerProps> = ({ onMapClick, onMapSt
   return null;
 };
 
-interface InteractiveGeoJSONProps {
-  geoJsonData: GeoJSONFeatureCollection;
-  selectedFeatureIndices: number[];
-  selectedFeatureIds: (string | number)[];
-  highlightFeatureIndex?: number;
-  onSelectionChange?: (selectedFeatures: GeoJSONFeature[], selectedIndices: number[]) => void;
-}
-
-const InteractiveGeoJSON: React.FC<InteractiveGeoJSONProps> = ({
-  geoJsonData,
-  selectedFeatureIndices,
-  selectedFeatureIds,
-  highlightFeatureIndex,
-  onSelectionChange
-}) => {
-  const map = useMap();
-  const selectedFeaturesRef = useRef<Set<number>>(new Set());
-  const featureLayersRef = useRef<Map<number, L.Layer>>(new Map());
-  const highlightLayerRef = useRef<L.Layer | null>(null);
-
-  // Parse selected indices from IDs
-  const getSelectedIndices = useCallback(() => {
-    const indices = new Set(selectedFeatureIndices);
-    
-    selectedFeatureIds.forEach(id => {
-      const index = geoJsonData.features.findIndex(feature => feature.id === id);
-      if (index >= 0) {
-        indices.add(index);
-      }
-    });
-    
-    return Array.from(indices);
-  }, [selectedFeatureIndices, selectedFeatureIds, geoJsonData]);
-
-  // Update selection visual state
-  const updateFeatureStyle = useCallback((featureIndex: number, isSelected: boolean) => {
-    const layer = featureLayersRef.current.get(featureIndex);
-    const feature = geoJsonData.features[featureIndex];
-    
-    if (!layer || !feature) return;
-
-    if (feature.geometry.type === 'Point') {
-      const baseColor = feature.properties?.['marker-color'] || feature.properties?.color || '#00F';
-      const isBuoyfield = feature.properties?.type === 'buoyfield' || feature.properties?.name?.toLowerCase().includes('buoy');
-      const baseRadius = isBuoyfield ? 5 : 8;
-      
-      if (isSelected) {
-        // Create white highlight effect with thick white border
-        (layer as L.CircleMarker).setStyle({
-          radius: baseRadius + 2,
-          fillColor: baseColor,
-          color: '#ffffff',
-          weight: 5,
-          opacity: 1,
-          fillOpacity: 0.9,
-          className: 'selected-feature' // Add CSS class for additional styling
-        });
-      } else {
-        (layer as L.CircleMarker).setStyle({
-          radius: baseRadius,
-          fillColor: baseColor,
-          color: baseColor,
-          weight: 2,
-          opacity: 0.8,
-          fillOpacity: 0.7,
-          className: ''
-        });
-      }
-    } else {
-      // Non-point features (lines, polygons) - use properties for colors
-      const props = feature.properties || {};
-      const strokeColor = props.stroke || '#3388ff';
-      const fillColor = props.fill || strokeColor;
-      const fillOpacity = props['fill-opacity'] !== undefined ? props['fill-opacity'] : 0.2;
-      
-      const selectedStyle = {
-        color: '#ffffff',
-        weight: 5,
-        opacity: 1,
-        fillColor: fillColor,
-        fillOpacity: Math.min(fillOpacity + 0.2, 0.8),
-        className: 'selected-feature' // Add CSS class for additional styling
-      };
-      
-      const defaultStyle = {
-        color: strokeColor,
-        weight: 3,
-        opacity: 0.8,
-        fillColor: fillColor,
-        fillOpacity: fillOpacity
-      };
-      
-      (layer as L.Path).setStyle(isSelected ? selectedStyle : defaultStyle);
-    }
-  }, [geoJsonData]);
-
-  // Handle feature click for selection toggle
-  const handleFeatureClick = useCallback((featureIndex: number) => {
-    const selectedFeatures = selectedFeaturesRef.current;
-    
-    if (selectedFeatures.has(featureIndex)) {
-      selectedFeatures.delete(featureIndex);
-      updateFeatureStyle(featureIndex, false);
-    } else {
-      selectedFeatures.add(featureIndex);
-      updateFeatureStyle(featureIndex, true);
-    }
-
-    if (onSelectionChange) {
-      const selectedFeatureData = Array.from(selectedFeatures).map(index => geoJsonData.features[index]);
-      onSelectionChange(selectedFeatureData, Array.from(selectedFeatures));
-    }
-  }, [geoJsonData, onSelectionChange, updateFeatureStyle]);
-
-  // GeoJSON styling functions with dynamic properties
-  const geoJsonStyle = useCallback((feature?: GeoJSON.Feature) => {
-    if (!feature?.properties) {
-      return {
-        color: '#3388ff',
-        weight: 3,
-        opacity: 0.8,
-        fillOpacity: 0.2
-      };
-    }
-
-    const props = feature.properties;
-    const style: Record<string, unknown> = {};
-
-    // Track lines - use stroke color
-    if (props.stroke) {
-      style.color = props.stroke;
-    } else {
-      style.color = '#3388ff';
-    }
-
-    // Zone shapes - handle stroke, fill, and fill-opacity
-    if (props.fill) {
-      style.fillColor = props.fill;
-    }
-    if (props['fill-opacity'] !== undefined) {
-      style.fillOpacity = props['fill-opacity'];
-    } else {
-      style.fillOpacity = 0.2;
-    }
-
-    // Default weight and opacity
-    style.weight = 3;
-    style.opacity = 0.8;
-
-    return style;
-  }, []);
-
-  const pointToLayer = useCallback((feature: GeoJSON.Feature, latlng: L.LatLng) => {
-    const props = feature.properties;
-    const markerColor = props?.['marker-color'] || props?.color || '#00F';
-    
-    // Check if this is a buoyfield - use smaller 5px radius markers
-    const isBuoyfield = props?.type === 'buoyfield' || props?.name?.toLowerCase().includes('buoy');
-    const radius = isBuoyfield ? 5 : 8;
-    
-    return L.circleMarker(latlng, {
-      radius: radius,
-      fillColor: markerColor,
-      color: markerColor,
-      weight: 2,
-      opacity: 0.8,
-      fillOpacity: 0.7
-    });
-  }, []);
-
-  const onEachFeature = useCallback((feature: GeoJSON.Feature, layer: L.Layer) => {
-    // Store layer reference
-    const index = geoJsonData.features.indexOf(feature as GeoJSONFeature);
-    if (index >= 0) {
-      featureLayersRef.current.set(index, layer);
-    }
-
-    // Bind popup with feature info
-    if (feature.properties?.name) {
-      layer.bindPopup(feature.properties.name);
-    }
-
-    // Add click handler for feature selection
-    layer.on('click', (e: L.LeafletMouseEvent) => {
-      e.originalEvent.preventDefault();
-      handleFeatureClick(index);
-    });
-  }, [geoJsonData, handleFeatureClick]);
-
-  // Update selection when props change
-  useEffect(() => {
-    const newIndices = getSelectedIndices();
-    
-    // Clear previous selection
-    selectedFeaturesRef.current.forEach(index => {
-      updateFeatureStyle(index, false);
-    });
-    selectedFeaturesRef.current.clear();
-    
-    // Apply new selection
-    newIndices.forEach(index => {
-      if (index >= 0 && index < geoJsonData.features.length) {
-        selectedFeaturesRef.current.add(index);
-        updateFeatureStyle(index, true);
-      }
-    });
-  }, [selectedFeatureIndices, selectedFeatureIds, geoJsonData, getSelectedIndices, updateFeatureStyle]);
-
-  // Handle highlight
-  useEffect(() => {
-    // Remove previous highlight
-    if (highlightLayerRef.current) {
-      map.removeLayer(highlightLayerRef.current);
-      highlightLayerRef.current = null;
-    }
-
-    if (highlightFeatureIndex !== undefined && highlightFeatureIndex < geoJsonData.features.length) {
-      const feature = geoJsonData.features[highlightFeatureIndex];
-      
-      const highlightedLayer = L.geoJSON(feature, {
-        pointToLayer: (_geoJsonFeature: GeoJSON.Feature, latlng: L.LatLng) => {
-          const isBuoyfield = feature.properties?.type === 'buoyfield' || feature.properties?.name?.toLowerCase().includes('buoy');
-          const radius = isBuoyfield ? 7 : 12; // Slightly larger for highlight
-          
-          return L.circleMarker(latlng, {
-            radius: radius,
-            fillColor: '#ff7f00',
-            color: '#ff4500',
-            weight: 4,
-            opacity: 0.9,
-            fillOpacity: 0.6
-          });
-        },
-        style: () => ({
-          color: '#ff4500',
-          weight: 4,
-          opacity: 0.9,
-          fillColor: '#ff7f00',
-          fillOpacity: 0.6
-        })
-      }).addTo(map);
-
-      highlightLayerRef.current = highlightedLayer;
-
-      // Pan to highlighted feature
-      if (feature.geometry.type === 'Point') {
-        const coords = feature.geometry.coordinates;
-        map.panTo([coords[1], coords[0]]);
-      }
-    }
-  }, [highlightFeatureIndex, geoJsonData, map]);
-
-  return (
-    <GeoJSON
-      key={JSON.stringify(geoJsonData)}
-      data={geoJsonData}
-      style={geoJsonStyle}
-      pointToLayer={pointToLayer}
-      onEachFeature={onEachFeature}
-    />
-  );
-};
 
 export const MapComponent: React.FC<MapComponentProps> = ({
   geoJsonData,
   onSelectionChange,
   onMapClick,
-  highlightFeatureIndex,
-  selectedFeatureIndices = [],
   selectedFeatureIds = [],
   showAddButton = false,
   onAddClick,
@@ -473,11 +143,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     const parsedData = parseGeoJsonData(geoJsonData);
     if (parsedData) {
       // Filter out features with properties.visible === false
-      const visibleFeatures = parsedData.features.filter(feature => {
-        const visible = feature.properties?.visible;
-        // Only plot features if visible is not explicitly false
-        return visible !== false;
-      });
+      const visibleFeatures = parsedData.features.filter(isFeatureVisible);
       
       setCurrentData({
         ...parsedData,
@@ -493,7 +159,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   const handleZoomToSelection = useCallback(() => {
     if (!currentData || !mapRef.current) return;
     
-    const selectedIndices = [...selectedFeatureIndices];
+    const selectedIndices: number[] = [];
     selectedFeatureIds.forEach(id => {
       const index = currentData.features.findIndex(feature => feature.id === id);
       if (index >= 0) {
@@ -513,7 +179,7 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     if (hasValidGeometry && bounds.isValid()) {
       mapRef.current.fitBounds(bounds, { padding: [20, 20] });
     }
-  }, [currentData, selectedFeatureIndices, selectedFeatureIds]);
+  }, [currentData, selectedFeatureIds]);
 
   // Auto fit bounds when no initial viewport and data is loaded
   useEffect(() => {
@@ -568,11 +234,9 @@ export const MapComponent: React.FC<MapComponentProps> = ({
         />
         
         {currentData && (
-          <InteractiveGeoJSON
+          <DebriefFeatures
             geoJsonData={currentData}
-            selectedFeatureIndices={selectedFeatureIndices}
             selectedFeatureIds={selectedFeatureIds}
-            highlightFeatureIndex={highlightFeatureIndex}
             onSelectionChange={onSelectionChange}
           />
         )}
