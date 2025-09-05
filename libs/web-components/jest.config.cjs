@@ -1,5 +1,4 @@
 /** @type {import('jest').Config} */
-/* eslint-env node */
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',

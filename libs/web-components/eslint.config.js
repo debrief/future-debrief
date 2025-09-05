@@ -50,7 +50,7 @@ export default [
   },
   {
     // Configuration for files outside the main TypeScript project (stories, tests, config files)
-    files: ['**/*.stories.tsx', '**/*.stories.ts', '**/*.test.tsx', '**/*.test.ts', 'tests/**/*.ts', '*.js', '*.ts'],
+    files: ['**/*.stories.tsx', '**/*.stories.ts', '**/*.test.tsx', '**/*.test.ts', 'tests/**/*.ts', '*.js', '*.ts', '*.cjs'],
     ...tseslint.configs.disableTypeChecked,
     rules: {
       // Allow any types in Storybook stories and test files for demonstration purposes
