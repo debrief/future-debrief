@@ -1,4 +1,3 @@
-import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { Track } from './Track';
 import { MapContainer, TileLayer } from 'react-leaflet';
@@ -30,6 +29,15 @@ const trackFeature = plot.features.find(
 ) as GeoJSONFeature;
 
 const timestamps = trackFeature.properties?.times as string[];
+const startTime = new Date(timestamps[0]).getTime();
+const endTime = new Date(timestamps[timestamps.length - 1]).getTime();
+const timeRange = endTime - startTime; // Total duration in milliseconds
+
+// Create a continuous time control with reasonable granularity
+const timeStepMinutes = 1; // 1 minute steps
+const timeStepMs = timeStepMinutes * 60 * 1000;
+const totalSteps = Math.floor(timeRange / timeStepMs);
+
 const timeState: TimeState = {
   current: timestamps[0],
 };
@@ -43,71 +51,77 @@ export const Default: Story = {
   },
 };
 
-const InteractiveTimeTrack: React.FC = () => {
-  const [timeIndex, setTimeIndex] = useState(0);
-  
-  const currentTimeState: TimeState = {
-    current: timestamps[timeIndex],
-  };
+interface TimeControlArgs {
+  feature: GeoJSONFeature;
+  selectedFeatureIds: (string | number)[];
+  onSelectionChange?: (selectedFeatureIds: (string | number)[]) => void;
+  timeState?: TimeState;
+  'Current time'?: number; // This will be the step index (0 to totalSteps)
+}
 
-  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTimeIndex(parseInt(e.target.value, 10));
-  };
+export const WithTimeControl: StoryObj<TimeControlArgs> = {
+  args: {
+    feature: trackFeature,
+    selectedFeatureIds: [],
+    onSelectionChange: (ids: (string | number)[]) => console.warn('Selection changed:', ids),
+    'Current time': 0,
+  },
+  argTypes: {
+    'Current time': {
+      control: { 
+        type: 'range',
+        min: 0,
+        max: totalSteps,
+        step: 1
+      },
+      description: `Current time (${new Date(startTime).toISOString().replace('T', ' ').replace('Z', '')} to ${new Date(endTime).toISOString().replace('T', ' ').replace('Z', '')} in ${timeStepMinutes}-minute steps)`,
+    },
+    timeState: {
+      table: { disable: true },
+    },
+  },
+  render: (args) => {
+    // Convert step index to continuous timestamp
+    const stepIndex = args['Current time'] || 0;
+    const currentTimestamp = startTime + (stepIndex * timeStepMs);
+    const currentTimeState: TimeState = {
+      current: new Date(currentTimestamp).toISOString(),
+    };
 
-  return (
-    <div style={{ position: 'relative' }}>
-      <MapContainer center={[36.0, -5.0]} zoom={8} style={{ height: '500px', width: '100%' }}>
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
+    return (
+      <div style={{ position: 'relative' }}>
         <Track
-          feature={trackFeature}
-          selectedFeatureIds={[]}
-          onSelectionChange={(ids: (string | number)[]) => console.warn('Selection changed:', ids)}
+          feature={args.feature}
+          selectedFeatureIds={args.selectedFeatureIds}
+          onSelectionChange={args.onSelectionChange}
           timeState={currentTimeState}
         />
-      </MapContainer>
-      <div style={{
-        position: 'absolute',
-        bottom: '20px',
-        left: '20px',
-        right: '20px',
-        zIndex: 1000,
-        background: 'white',
-        padding: '15px',
-        borderRadius: '8px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
-      }}>
-        <div style={{ marginBottom: '10px', fontWeight: 'bold' }}>
-          Time Control
-        </div>
-        <input
-          type="range"
-          min="0"
-          max={timestamps.length - 1}
-          value={timeIndex}
-          onChange={handleTimeChange}
-          style={{ width: '100%', marginBottom: '10px' }}
-        />
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: '#666' }}>
-          <div>Index: {timeIndex} / {timestamps.length - 1}</div>
-          <div>Time: {new Date(currentTimeState.current).toLocaleTimeString()}</div>
-        </div>
-        <div style={{ marginTop: '5px', fontSize: '11px', color: '#999' }}>
-          {new Date(currentTimeState.current).toLocaleDateString()}
+        <div style={{
+          position: 'absolute',
+          bottom: '20px',
+          left: '20px',
+          right: '20px',
+          zIndex: 1000,
+          background: 'white',
+          padding: '15px',
+          borderRadius: '8px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          pointerEvents: 'none'
+        }}>
+          <div style={{ fontSize: '12px', color: '#666', textAlign: 'center' }}>
+            <div><strong>Current Time:</strong> {currentTimeState.current.replace('T', ' ').replace('Z', '')}</div>
+            <div style={{ marginTop: '5px', fontSize: '10px' }}>
+              Step: {stepIndex} / {totalSteps} | Offset: +{Math.round((currentTimestamp - startTime) / 60000)} min
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
-};
-
-export const InteractiveTimeControl: Story = {
-  render: () => <InteractiveTimeTrack />,
+    );
+  },
   parameters: {
     docs: {
       description: {
-        story: 'Interactive story with time slider control to see the marker move along the track over time. Use the slider in the story to control the time and watch the marker move along the track.',
+        story: 'Interactive story with time-based control. Use the "Time Offset" slider in the Controls panel to move the marker along the track over time. The slider uses an offset from the start time to handle large timestamp values.',
       },
     },
   },
