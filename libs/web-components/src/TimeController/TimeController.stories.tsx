@@ -113,3 +113,40 @@ const InteractiveWrapper = () => {
 export const Interactive: Story = {
   render: () => <InteractiveWrapper />,
 };
+
+export const NoTimeRange: Story = {
+  args: {
+    timeState: undefined,
+    isPlaying: false,
+  },
+};
+
+export const MissingCurrentTime: Story = {
+  args: {
+    timeState: {
+      current: '',
+      range: ['2024-01-15T10:00:00Z', '2024-01-15T14:00:00Z'],
+    },
+    isPlaying: false,
+  },
+};
+
+export const MissingRangeStart: Story = {
+  args: {
+    timeState: {
+      current: '2024-01-15T12:00:00Z',
+      range: ['', '2024-01-15T14:00:00Z'],
+    },
+    isPlaying: false,
+  },
+};
+
+export const MissingRangeEnd: Story = {
+  args: {
+    timeState: {
+      current: '2024-01-15T12:00:00Z',
+      range: ['2024-01-15T10:00:00Z', ''],
+    },
+    isPlaying: false,
+  },
+};
