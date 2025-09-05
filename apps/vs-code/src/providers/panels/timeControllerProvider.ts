@@ -81,13 +81,17 @@ export class TimeControllerProvider implements vscode.WebviewViewProvider {
      * Update the webview with current time state
      */
     private _updateTimeDisplay(timeState?: TimeState): void {
+        console.warn('TimeControllerProvider: _updateTimeDisplay called with timeState:', timeState);
         if (this._view) {
+            console.warn('TimeControllerProvider: Posting message to webview with timeState:', timeState);
             this._view.webview.postMessage({
                 type: 'stateUpdate',
                 state: {
                     timeState: timeState
                 }
             });
+        } else {
+            console.warn('TimeControllerProvider: No webview available to update');
         }
     }
 
@@ -177,44 +181,64 @@ export class TimeControllerProvider implements vscode.WebviewViewProvider {
                 <div id="timeController"></div>
                 <script nonce="${nonce}" src="${webComponentsJsUri}"></script>
                 <script nonce="${nonce}">
+                    console.warn('TimeControllerProvider webview: Script starting');
                     const vscode = acquireVsCodeApi();
                     let timeControllerElement = null;
+                    console.warn('TimeControllerProvider webview: vscode API acquired');
 
-                    // Initialize TimeController when web components are loaded
+                    // Initialize TimeController with shared web component
                     function initializeTimeController(timeState) {
-                        if (timeControllerElement) {
-                            timeControllerElement.remove();
-                        }
-
-                        if (!timeState || !timeState.range || !timeState.current) {
-                            document.getElementById('timeController').innerHTML = 
-                                '<div style="padding: 10px; text-align: center;">TimeController: No time range available right now</div>';
+                        console.warn('TimeControllerProvider: initializeTimeController called with:', JSON.stringify(timeState));
+                        
+                        const container = document.getElementById('timeController');
+                        
+                        if (!timeState || !timeState.range || !timeState.current || 
+                            !timeState.range[0] || !timeState.range[1]) {
+                            console.warn('TimeControllerProvider: Validation failed - timeState:', JSON.stringify(timeState));
+                            container.innerHTML = 
+                                '<div style="padding: 10px; text-align: center;">TimeController: No time range available</div>';
                             return;
                         }
 
-                        timeControllerElement = DebriefWebComponents.createTimeController({
-                            timeState: timeState,
-                            isPlaying: false,
-                            onTimeChange: (newTimeISO) => {
-                                vscode.postMessage({
-                                    type: 'timeChange',
-                                    value: newTimeISO
-                                });
-                            },
-                            onPlayPause: () => {
-                                vscode.postMessage({ type: 'play' });
-                            }
+                        // Create debrief-time-controller web component
+                        container.innerHTML = '<debrief-time-controller id="timeControllerComponent"></debrief-time-controller>';
+                        
+                        const timeController = container.querySelector('#timeControllerComponent');
+                        
+                        if (!timeController) {
+                            console.error('TimeControllerProvider: Failed to create debrief-time-controller element');
+                            container.innerHTML = 
+                                '<div style="padding: 10px; text-align: center; color: red;">Error: Could not create time controller element</div>';
+                            return;
+                        }
+
+                        // Set properties on the web component
+                        timeController.timeState = timeState;
+                        timeController.isPlaying = false;
+                        
+                        // Set up event listeners
+                        timeController.addEventListener('timeChange', (event) => {
+                            console.warn('TimeController: Time changed to', event.detail);
+                            vscode.postMessage({
+                                type: 'timeChange',
+                                value: event.detail
+                            });
+                        });
+                        
+                        timeController.addEventListener('playPause', () => {
+                            console.warn('TimeController: Play/pause clicked');
+                            vscode.postMessage({ type: 'play' });
                         });
 
-                        const container = document.getElementById('timeController');
-                        container.innerHTML = '';
-                        container.appendChild(timeControllerElement);
+                        console.warn('TimeControllerProvider: Web component TimeController created successfully');
                     }
 
                     window.addEventListener('message', event => {
                         const message = event.data;
+                        console.warn('TimeControllerProvider webview: Received message', message);
                         switch (message.type) {
                             case 'stateUpdate':
+                                console.warn('TimeControllerProvider webview: Processing stateUpdate with timeState:', message.state.timeState);
                                 initializeTimeController(message.state.timeState || null);
                                 break;
                         }

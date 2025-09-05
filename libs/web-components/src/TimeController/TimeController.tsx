@@ -21,6 +21,7 @@ export const TimeController: React.FC<TimeControllerProps> = ({
     return (
       <div className={`time-controller ${className}`} data-testid="time-controller">
         <div>TimeController: No time range available</div>
+        {JSON.stringify(timeState)}
       </div>
     );
   }
