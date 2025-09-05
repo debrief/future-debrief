@@ -1,10 +1,7 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { MapContainer, TileLayer, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { TrackPolyline } from './renderers/TrackPolyline';
-import { PointMarker } from './renderers/PointMarker';
-import { ZonePolygon } from './renderers/ZonePolygon';
-import { StandardGeoJSON } from './renderers/StandardGeoJSON';
+import { DebriefFeatures } from './DebriefFeatures';
 import { isFeatureVisible } from './utils/featureUtils';
 import './MapComponent.css';
 // Note: Consumer applications need to import 'leaflet/dist/leaflet.css' separately
@@ -306,35 +303,15 @@ export const MapComponent: React.FC<MapComponentProps> = ({
           mapRef={mapRef}
         />
         
-        {currentData && currentData.features.map((feature, index) => {
-          const dataType = feature.properties?.dataType;
-          const commonProps = {
-            feature,
-            featureIndex: index,
-            selectedFeatureIndices,
-            selectedFeatureIds,
-            highlightFeatureIndex,
-            onSelectionChange,
-            geoJsonData: currentData
-          };
-          const key = feature.id || index;
-
-          // Simple conditional rendering instead of factory pattern
-          if (dataType === 'track' && (feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString')) {
-            return <TrackPolyline key={key} {...commonProps} />;
-          }
-          
-          if (dataType === 'reference-point' && (feature.geometry.type === 'Point' || feature.geometry.type === 'MultiPoint')) {
-            return <PointMarker key={key} {...commonProps} />;
-          }
-          
-          if (dataType === 'zone') {
-            return <ZonePolygon key={key} {...commonProps} />;
-          }
-          
-          // Fallback to standard GeoJSON rendering
-          return <StandardGeoJSON key={key} {...commonProps} />;
-        })}
+        {currentData && (
+          <DebriefFeatures
+            geoJsonData={currentData}
+            selectedFeatureIndices={selectedFeatureIndices}
+            selectedFeatureIds={selectedFeatureIds}
+            highlightFeatureIndex={highlightFeatureIndex}
+            onSelectionChange={onSelectionChange}
+          />
+        )}
       </MapContainer>
     </div>
   );
