@@ -57,7 +57,17 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn', // Downgrade from error to warning
       'react/display-name': 'off', // Storybook components often don't need display names
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }], // Downgrade for test files
-      'no-undef': 'off', // Disable for config files that might use Node.js globals
+    },
+  },
+  {
+    // Special config for CJS files like jest.config.cjs
+    files: ['jest.config.cjs'],
+    languageOptions: {
+      globals: {
+        module: 'readonly',
+        require: 'readonly',
+        __dirname: 'readonly',
+      },
     },
   },
   {

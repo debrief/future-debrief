@@ -28,9 +28,7 @@ module.exports = {
       },
     }],
   },
-  transformIgnorePatterns: [
-    'node_modules/(?!(@testing-library/.*|@storybook/.*|react-leaflet))'
-  ],
+  transformIgnorePatterns: [],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   collectCoverageFrom: [
