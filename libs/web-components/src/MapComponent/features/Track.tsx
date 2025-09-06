@@ -14,7 +14,6 @@ interface TrackProps {
 }
 
 export const Track: React.FC<TrackProps> = (props) => {
-  console.warn('Track component received timeState:', JSON.stringify(props.timeState, null, 2));
   const { feature, selectedFeatureIds, onSelectionChange, timeState } = props;
   
   // Check if this feature is selected by ID
@@ -41,7 +40,7 @@ export const Track: React.FC<TrackProps> = (props) => {
   
   const timeMarkerIcon = L.divIcon({
     className: 'time-marker',
-    html: `<div style="background-color: ${trackColor}; border: 1px solid ${trackColor}; border-radius: 5px; width: 100%; height: 100%; opacity: 0.8;"></div>`,
+    html: `<div style="background-color: ${trackColor}; border: 1px solid ${trackColor}; opacity: 0.8;"></div>`,
     iconSize: [12, 12],
     iconAnchor: [6, 6],
   });
