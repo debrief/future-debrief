@@ -64,3 +64,9 @@
 .selected-feature.animate {
   animation: whiteGlow 2s ease-in-out infinite;
 }
+
+/* Time marker styles */
+.time-marker div {
+  width: 100%;
+  height: 100%;
+}

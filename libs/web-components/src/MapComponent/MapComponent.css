@@ -32,9 +32,4 @@
   animation: whiteGlow 2s ease-in-out infinite;
 }
 
-/* Time marker styles */
-.time-marker div {
-  border-radius: 5px;
-  width: 100%;
-  height: 100%;
-}
+/* Time marker styles are now handled dynamically in Track.tsx */
