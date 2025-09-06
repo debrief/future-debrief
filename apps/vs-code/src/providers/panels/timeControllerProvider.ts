@@ -8,13 +8,12 @@ export class TimeControllerProvider implements vscode.WebviewViewProvider {
     private _view?: vscode.WebviewView;
     private _globalController: GlobalController;
     private _disposables: vscode.Disposable[] = [];
-    private _lastTimeString?: string;
-    private _cachedTimestamp?: number;
-
+    private _isUserDragging = false;
     constructor(
         private readonly _extensionUri: vscode.Uri,
     ) {
         this._globalController = GlobalController.getInstance();
+
     }
 
     public resolveWebviewView(
@@ -31,13 +30,23 @@ export class TimeControllerProvider implements vscode.WebviewViewProvider {
             ]
         };
 
-        webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
+        this._updateView();
+
 
         // Handle messages from webview
         webviewView.webview.onDidReceiveMessage(data => {
             switch (data.type) {
                 case 'timeChange':
+                    // data.value is now an ISO string, not a timestamp
                     this._handleTimeChange(data.value);
+                    break;
+                case 'dragStart':
+                    this._isUserDragging = true;
+                    break;
+                case 'dragEnd':
+                    this._isUserDragging = false;
+                    // Force update after dragging ends to sync with any missed state changes
+                    setTimeout(() => this._updateView(), 100);
                     break;
                 case 'play':
                     // TODO: Handle play functionality
@@ -54,83 +63,87 @@ export class TimeControllerProvider implements vscode.WebviewViewProvider {
         // Subscribe to GlobalController events
         this._setupGlobalControllerSubscriptions();
 
-        // Initialize with current active editor state
-        this._updateFromActiveEditor();
+        // Initialize with current state immediately
+        this._updateFromCurrentEditor();
     }
 
     /**
      * Setup subscriptions to GlobalController events
      */
     private _setupGlobalControllerSubscriptions(): void {
-        // Subscribe to time changes
-        const timeSubscription = this._globalController.on('timeChanged', (data) => {
-            this._updateTimeDisplay(data.state.timeState);
+        // Subscribe to time changes - regenerate HTML
+        const timeSubscription = this._globalController.on('timeChanged', () => {
+            this._updateView();
         });
         this._disposables.push(timeSubscription);
 
-        // Subscribe to active editor changes
-        const activeEditorSubscription = this._globalController.on('activeEditorChanged', (data) => {
-            if (data.currentEditorId) {
-                const state = this._globalController.getEditorState(data.currentEditorId);
-                this._updateTimeDisplay(state.timeState);
-            } else {
-                this._updateTimeDisplay(undefined);
-            }
+        // Subscribe to active editor changes - regenerate HTML
+        const activeEditorSubscription = this._globalController.on('activeEditorChanged', () => {
+            this._updateView();
         });
         this._disposables.push(activeEditorSubscription);
     }
 
     /**
-     * Update the webview with current time state
+     * Update the webview by regenerating HTML (like currentStateProvider)
      */
-    private _updateTimeDisplay(timeState?: TimeState): void {
-        if (this._view) {
-            let timestamp: number | undefined;
-            
-            if (timeState?.current) {
-                // Cache timestamp to avoid repeated Date parsing
-                if (this._lastTimeString !== timeState.current) {
-                    this._lastTimeString = timeState.current;
-                    this._cachedTimestamp = new Date(timeState.current).getTime() / 1000;
-                }
-                timestamp = this._cachedTimestamp;
-            } else {
-                // Clear cache when no time state
-                this._lastTimeString = undefined;
-                this._cachedTimestamp = undefined;
-                timestamp = undefined;
-            }
-            
+    private _updateView(): void {
+        if (!this._view) return;
+        
+        const timeState = this._getCurrentTimeState();
+        
+        // If user is dragging, try to update component props instead of full HTML regeneration
+        if (this._isUserDragging) {
             this._view.webview.postMessage({
-                type: 'stateUpdate',
-                state: {
-                    time: timestamp
-                }
+                type: 'updateTimeState',
+                timeState: timeState
             });
+            return;
         }
+        
+        // Full HTML regeneration (first load or when not dragging)
+        const html = this._getHtmlForWebview(this._view.webview, timeState);
+        this._view.webview.html = html;
     }
 
     /**
-     * Initialize with current active editor state
+     * Get current time state (like currentStateProvider)
      */
-    private _updateFromActiveEditor(): void {
-        const activeEditorId = this._globalController.activeEditorId;
-        if (activeEditorId) {
-            const timeState = this._globalController.getStateSlice(activeEditorId, 'timeState');
-            this._updateTimeDisplay(timeState);
+    private _getCurrentTimeState(): TimeState | null {
+        const currentEditorId = this._globalController.activeEditorId || this._globalController.getEditorIds()[0];
+        
+        if (!currentEditorId) {
+            return null;
         }
+
+        const editorState = this._globalController.getEditorState(currentEditorId);
+        const timeState = editorState?.timeState || null;
+        return timeState;
+    }
+
+    /**
+     * Initialize with current editor state (with fallback like currentStateProvider)
+     */
+    private _updateFromCurrentEditor(): void {
+        this._updateView();
     }
 
     /**
      * Handle time change from webview
      */
-    private _handleTimeChange(timeValue: number): void {
+    private _handleTimeChange(newTimeISO: string): void {
         const activeEditorId = this._globalController.activeEditorId;
         if (activeEditorId) {
-            const timeState: TimeState = {
-                current: new Date(timeValue * 1000).toISOString()
+            // Get current time state to preserve the range
+            const currentTimeState = this._globalController.getStateSlice(activeEditorId, 'timeState');
+            const updatedTimeState: TimeState = {
+                current: newTimeISO,
+                range: currentTimeState?.range || [
+                    new Date(new Date(newTimeISO).getTime() - 3600000).toISOString(), // 1 hour before
+                    new Date(new Date(newTimeISO).getTime() + 3600000).toISOString()   // 1 hour after
+                ]
             };
-            this._globalController.updateState(activeEditorId, 'timeState', timeState);
+            this._globalController.updateState(activeEditorId, 'timeState', updatedTimeState);
         }
     }
 
@@ -140,10 +153,15 @@ export class TimeControllerProvider implements vscode.WebviewViewProvider {
     private _handleStop(): void {
         const activeEditorId = this._globalController.activeEditorId;
         if (activeEditorId) {
-            const timeState: TimeState = {
-                current: new Date(0).toISOString() // Reset to epoch
-            };
-            this._globalController.updateState(activeEditorId, 'timeState', timeState);
+            // Get current time state to preserve the range
+            const currentTimeState = this._globalController.getStateSlice(activeEditorId, 'timeState');
+            if (currentTimeState && currentTimeState.range) {
+                const updatedTimeState: TimeState = {
+                    current: currentTimeState.range[0], // Reset to start of range
+                    range: currentTimeState.range
+                };
+                this._globalController.updateState(activeEditorId, 'timeState', updatedTimeState);
+            }
         }
     }
 
@@ -155,9 +173,11 @@ export class TimeControllerProvider implements vscode.WebviewViewProvider {
         this._disposables = [];
     }
 
-    private _getHtmlForWebview(webview: vscode.Webview) {
+    private _getHtmlForWebview(webview: vscode.Webview, timeState: TimeState | null) {
         const styleResetUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css'));
         const styleVSCodeUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode.css'));
+        const webComponentsJsUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'web-components.js'));
+        const webComponentsCssUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'web-components.css'));
 
         const nonce = getNonce();
 
@@ -165,112 +185,144 @@ export class TimeControllerProvider implements vscode.WebviewViewProvider {
             <html lang="en">
             <head>
                 <meta charset="UTF-8">
-                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
+                <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' ${webview.cspSource}; script-src 'nonce-${nonce}';">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <link href="${styleResetUri}" rel="stylesheet">
                 <link href="${styleVSCodeUri}" rel="stylesheet">
+                <link href="${webComponentsCssUri}" rel="stylesheet">
                 <title>Time Controller</title>
                 <style>
-                    .time-controller {
+                    body { 
+                        font-family: var(--vscode-font-family, sans-serif); 
+                        margin: 0; 
                         padding: 10px;
-                        height: 100px;
-                        box-sizing: border-box;
-                    }
-                    .time-slider {
-                        width: 100%;
-                        margin-bottom: 10px;
-                    }
-                    .time-display {
-                        text-align: center;
-                        font-family: monospace;
                         font-size: 12px;
                     }
-                    .controls {
-                        display: flex;
-                        justify-content: center;
-                        gap: 5px;
-                        margin-top: 10px;
+                    .diagnostic {
+                        background: #f0f0f0;
+                        padding: 10px;
+                        margin: 5px 0;
+                        border-radius: 3px;
+                        font-family: monospace;
                     }
-                    button {
-                        padding: 4px 8px;
-                        font-size: 11px;
+                    .label {
+                        font-weight: bold;
+                        color: #0066cc;
                     }
                 </style>
             </head>
             <body>
-                <div class="time-controller">
-                    <div class="time-display" id="timeDisplay">00:00:00</div>
-                    <input type="range" class="time-slider" id="timeSlider" min="0" max="100" value="0">
-                    <div class="controls">
-                        <button id="playBtn">▶</button>
-                        <button id="pauseBtn">⏸</button>
-                        <button id="stopBtn">⏹</button>
-                    </div>
-                </div>
+                <div id="time-controller-container"></div>
+                
+                <script nonce="${nonce}" src="${webComponentsJsUri}"></script>
                 <script nonce="${nonce}">
-                    const vscode = acquireVsCodeApi();
-                    const timeSlider = document.getElementById('timeSlider');
-                    const timeDisplay = document.getElementById('timeDisplay');
-                    const playBtn = document.getElementById('playBtn');
-                    const pauseBtn = document.getElementById('pauseBtn');
-                    const stopBtn = document.getElementById('stopBtn');
-
-                    let isPlaying = false;
-                    let currentTime = 0;
-
-                    timeSlider.addEventListener('input', (e) => {
-                        currentTime = parseInt(e.target.value);
-                        updateTimeDisplay();
-                        vscode.postMessage({
-                            type: 'timeChange',
-                            value: currentTime
-                        });
-                    });
-
-                    playBtn.addEventListener('click', () => {
-                        isPlaying = true;
-                        vscode.postMessage({ type: 'play' });
-                    });
-
-                    pauseBtn.addEventListener('click', () => {
-                        isPlaying = false;
-                        vscode.postMessage({ type: 'pause' });
-                    });
-
-                    stopBtn.addEventListener('click', () => {
-                        isPlaying = false;
-                        currentTime = 0;
-                        timeSlider.value = '0';
-                        updateTimeDisplay();
-                        vscode.postMessage({ type: 'stop' });
-                    });
-
-                    function updateTimeDisplay() {
-                        const hours = Math.floor(currentTime / 3600).toString().padStart(2, '0');
-                        const minutes = Math.floor((currentTime % 3600) / 60).toString().padStart(2, '0');
-                        const seconds = (currentTime % 60).toString().padStart(2, '0');
-                        timeDisplay.textContent = hours + ':' + minutes + ':' + seconds;
-                    }
-
-                    window.addEventListener('message', event => {
-                        const message = event.data;
-                        switch (message.type) {
-                            case 'stateUpdate':
-                                if (message.state.time !== undefined) {
-                                    currentTime = message.state.time;
-                                    timeSlider.value = currentTime.toString();
-                                    updateTimeDisplay();
-                                } else {
-                                    // Reset to default if no time state
-                                    currentTime = 0;
-                                    timeSlider.value = '0';
-                                    updateTimeDisplay();
-                                }
-                                break;
+                    const timeState = ${JSON.stringify(timeState)};
+                    
+                    function initializeTimeController() {
+                        const container = document.getElementById('time-controller-container');
+                        if (!container || !window.DebriefWebComponents || !window.DebriefWebComponents.createTimeController) {
+                            return;
                         }
-                    });
-
-                    updateTimeDisplay();
+                        
+                        try {
+                            const vscode = acquireVsCodeApi();
+                            let timeControllerInstance = null;
+                            
+                            let isDragging = false;
+                            let lastUpdateTime = 0;
+                            const UPDATE_THROTTLE = 50; // Limit updates to 20fps during drag
+                            
+                            timeControllerInstance = window.DebriefWebComponents.createTimeController(container, {
+                                timeState: timeState,
+                                isPlaying: false,
+                                onTimeChange: (time) => {
+                                    const now = Date.now();
+                                    
+                                    // If dragging, throttle updates to reduce lag
+                                    if (isDragging && now - lastUpdateTime < UPDATE_THROTTLE) {
+                                        return;
+                                    }
+                                    
+                                    lastUpdateTime = now;
+                                    vscode.postMessage({
+                                        type: 'timeChange',
+                                        value: time
+                                    });
+                                },
+                                onPlayPause: () => {
+                                    vscode.postMessage({ type: 'play' });
+                                }
+                            });
+                            
+                            // Listen for state update messages from VS Code
+                            window.addEventListener('message', (event) => {
+                                const message = event.data;
+                                if (message.type === 'updateTimeState' && timeControllerInstance) {
+                                    timeControllerInstance.updateProps({
+                                        timeState: message.timeState
+                                    });
+                                }
+                            });
+                            
+                            // Add drag detection to the slider
+                            setTimeout(() => {
+                                const slider = container.querySelector('input[type="range"]');
+                                if (slider) {
+                                    slider.addEventListener('mousedown', () => {
+                                        isDragging = true;
+                                        vscode.postMessage({ type: 'dragStart' });
+                                    });
+                                    
+                                    slider.addEventListener('mouseup', () => {
+                                        isDragging = false;
+                                        vscode.postMessage({ type: 'dragEnd' });
+                                    });
+                                    
+                                    // Also handle touch events for mobile
+                                    slider.addEventListener('touchstart', () => {
+                                        isDragging = true;
+                                        vscode.postMessage({ type: 'dragStart' });
+                                    });
+                                    
+                                    slider.addEventListener('touchend', () => {
+                                        isDragging = false;
+                                        vscode.postMessage({ type: 'dragEnd' });
+                                    });
+                                    
+                                    // Handle case where mouse/touch leaves the slider during drag
+                                    document.addEventListener('mouseup', () => {
+                                        isDragging = false;
+                                        vscode.postMessage({ type: 'dragEnd' });
+                                    });
+                                    
+                                    document.addEventListener('touchend', () => {
+                                        isDragging = false;
+                                        vscode.postMessage({ type: 'dragEnd' });
+                                    });
+                                }
+                            }, 100);
+                                
+                        } catch (error) {
+                            console.error('TimeController initialization error:', error);
+                        }
+                    }
+                    
+                    // Wait for DebriefWebComponents to be available
+                    if (window.DebriefWebComponents) {
+                        initializeTimeController();
+                    } else {
+                        let attempts = 0;
+                        const checkInterval = setInterval(() => {
+                            attempts++;
+                            if (window.DebriefWebComponents) {
+                                clearInterval(checkInterval);
+                                initializeTimeController();
+                            } else if (attempts > 50) { // 5 seconds max
+                                clearInterval(checkInterval);
+                                console.error('TimeController: DebriefWebComponents not loaded within timeout');
+                            }
+                        }, 100);
+                    }
                 </script>
             </body>
             </html>`;

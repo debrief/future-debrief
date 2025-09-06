@@ -83,6 +83,7 @@ class VanillaMapComponentWrapper extends ReactComponentWrapper<VanillaMapCompone
 // TimeController wrapper
 class VanillaTimeControllerWrapper extends ReactComponentWrapper<TimeControllerProps> {
   protected renderComponent(): React.ReactElement {
+    console.warn('VanillaTimeControllerWrapper: Rendering with props:', this.currentProps);
     return React.createElement(TimeController, this.currentProps);
   }
 }
@@ -134,6 +135,7 @@ export function createTimeController(container: HTMLElement, props: TimeControll
   destroy: () => void;
   updateProps: (newProps: Partial<TimeControllerProps>) => void;
 } {
+  console.warn('createTimeController called with props:', props);
   const wrapper = new VanillaTimeControllerWrapper(container, props);
   
   return {

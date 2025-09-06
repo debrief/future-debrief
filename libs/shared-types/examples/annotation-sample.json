@@ -6,6 +6,7 @@
     "coordinates": [[[-1.0, 51.0], [-0.5, 51.0], [-0.5, 51.5], [-1.0, 51.5], [-1.0, 51.0]]]
   },
   "properties": {
+    "dataType": "annotation",
     "annotationType": "area",
     "text": "Important area",
     "color": "#FF0000",

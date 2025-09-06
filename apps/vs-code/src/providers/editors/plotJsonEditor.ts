@@ -3,16 +3,8 @@ import { validateFeatureCollectionComprehensive } from '@debrief/shared-types/va
 import { GlobalController } from '../../core/globalController';
 import { EditorIdManager } from '../../core/editorIdManager';
 import { StatePersistence } from '../../core/statePersistence';
-
-interface GeoJSONFeature {
-    type: 'Feature';
-    id?: string | number;
-    geometry: {
-        type: string;
-        coordinates: unknown;
-    };
-    properties: Record<string, unknown>;
-}
+import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
+import { calculateTimeRange, GeoJSONFeature } from '../../common/time-helpers';
 
 interface GeoJSONFeatureCollection {
     type: 'FeatureCollection';
@@ -168,6 +160,17 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             // Force load state from document
             const statePersistence = new StatePersistence(globalController);
             statePersistence.loadStateFromDocument(document);
+
+            // Calculate time range and update time state
+            const json = this.getDocumentAsJson(document, false);
+            const timeRange = calculateTimeRange(json.features);
+            if (timeRange) {
+                const timeState: TimeState = {
+                    current: timeRange[0],
+                    range: timeRange,
+                };
+                globalController.updateState(editorId, 'timeState', timeState);
+            }
             
             // Set this as the active editor
             globalController.setActiveEditor(editorId);
