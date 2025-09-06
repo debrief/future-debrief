@@ -40,6 +40,7 @@ const totalSteps = Math.floor(timeRange / timeStepMs);
 
 const timeState: TimeState = {
   current: timestamps[0],
+  range: [new Date(startTime).toISOString(), new Date(endTime).toISOString()],
 };
 
 export const Default: Story = {
@@ -86,6 +87,7 @@ export const WithTimeControl: StoryObj<TimeControlArgs> = {
     const currentTimestamp = startTime + (stepIndex * timeStepMs);
     const currentTimeState: TimeState = {
       current: new Date(currentTimestamp).toISOString(),
+      range: [new Date(startTime).toISOString(), new Date(endTime).toISOString()],
     };
 
     return (
