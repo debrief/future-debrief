@@ -3,6 +3,7 @@ import { GlobalController, EditorState } from './globalController';
 import { EditorIdManager } from './editorIdManager';
 import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
 import { ViewportState } from '@debrief/shared-types/derived/typescript/viewportstate';
+import { calculateTimeRange } from '../common/time-helpers';
 // Note: SelectionState imported in case needed for future enhancements
 // import { SelectionState } from '@debrief/shared-types/derived/typescript/selectionstate';
 
@@ -120,7 +121,6 @@ export class StatePersistence {
             const geoJson: GeoJSONFeatureCollection = JSON.parse(text);
             
             if (geoJson.type !== 'FeatureCollection' || !Array.isArray(geoJson.features)) {
-                console.warn(`Invalid FeatureCollection in ${document.fileName}`);
                 return;
             }
             
@@ -128,7 +128,19 @@ export class StatePersistence {
             const { metadataFeatures, dataFeatures } = this.separateFeatures(geoJson.features);
             
             // Parse metadata features into state objects
-            const extractedState = this.extractMetadataState(metadataFeatures);
+            let extractedState = this.extractMetadataState(metadataFeatures);
+            
+            // If no timeState from metadata, try to generate one from data features
+            if (!extractedState.timeState && dataFeatures.length > 0) {
+                const timeRange = calculateTimeRange(dataFeatures as any);
+                if (timeRange) {
+                    extractedState.timeState = {
+                        current: timeRange[0], // Start at beginning of time range
+                        range: timeRange
+                    };
+                } else {
+                }
+            }
             
             // Create clean FeatureCollection for data features only
             const cleanFeatureCollection: GeoJSONFeatureCollection = {
@@ -152,10 +164,6 @@ export class StatePersistence {
             }
             
             this.globalController.updateMultipleStates(editorId, stateUpdates);
-            
-            console.log(`Loaded state for editor ${editorId}: ${dataFeatures.length} features, ` +
-                       `${extractedState.timeState ? 'time' : 'no time'}, ` +
-                       `${extractedState.viewportState ? 'saved viewport' : 'no viewport (will fitBounds)'}`);
             
         } catch (error) {
             console.error(`Error loading state from ${document.fileName}:`, error);
@@ -202,7 +210,6 @@ export class StatePersistence {
             edit.replace(document.uri, fullRange, jsonContent);
             vscode.workspace.applyEdit(edit);
             
-            console.log(`Saved state for editor ${editorId} with ${metadataFeatures.length} metadata features`);
             
         } catch (error) {
             console.error(`Error saving state to ${document.fileName}:`, error);

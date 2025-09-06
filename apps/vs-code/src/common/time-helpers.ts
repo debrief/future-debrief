@@ -26,6 +26,7 @@ export const calculateTimeRange = (features: GeoJSONFeature[]): [string, string]
             }
         } catch (e) {
             // Ignore invalid date strings
+            console.error(`Invalid date string: ${timeStr}` + e);
         }
     };
 
@@ -47,6 +48,15 @@ export const calculateTimeRange = (features: GeoJSONFeature[]): [string, string]
                 for (const timestamp of feature.properties.timestamps) {
                     if (typeof timestamp === 'string') {
                         updateMinMax(timestamp);
+                    }
+                }
+            }
+            
+            // Handle track features with times array (like in large-sample.plot.json)
+            if (Array.isArray(feature.properties.times)) {
+                for (const time of feature.properties.times) {
+                    if (typeof time === 'string') {
+                        updateMinMax(time);
                     }
                 }
             }

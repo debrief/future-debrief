@@ -21,7 +21,6 @@ export const TimeController: React.FC<TimeControllerProps> = ({
     return (
       <div className={`time-controller ${className}`} data-testid="time-controller">
         <div>TimeController: No time range available</div>
-        {JSON.stringify(timeState)}
       </div>
     );
   }
@@ -40,9 +39,21 @@ export const TimeController: React.FC<TimeControllerProps> = ({
 
   return (
     <div className={`time-controller ${className}`} data-testid="time-controller">
-      <div className="time-label" data-testid="time-label">
-        {new Date(currentTime).toLocaleString()}
+      <div style={{ marginBottom: '10px' }}>
+        <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
+          Current Time: {new Date(currentTime).toLocaleString()}
+        </div>
+        
+        <div style={{ marginBottom: '5px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#333' }}>
+            Start Time: {new Date(startTime).toLocaleString()}
+          </div>
+          <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#333' }}>
+            End Time: {new Date(endTime).toLocaleString()}
+          </div>
+        </div>
       </div>
+      
       <input
         type="range"
         min={startTime}
@@ -51,7 +62,9 @@ export const TimeController: React.FC<TimeControllerProps> = ({
         onChange={handleTimeChange}
         className="time-slider"
         data-testid="time-slider"
+        style={{ width: '100%', marginBottom: '10px' }}
       />
+      
       {onPlayPause && (
         <button onClick={onPlayPause} data-testid="play-pause-button">
           {isPlaying ? 'Pause' : 'Play'}
