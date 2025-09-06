@@ -2,7 +2,7 @@ import React from 'react';
 import { Polyline, Marker } from 'react-leaflet';
 import * as L from 'leaflet';
 import { GeoJSONFeature } from '../MapComponent';
-import { getFeatureStyle } from '../utils/featureUtils';
+import { getFeatureStyle, getFeatureColor } from '../utils/featureUtils';
 import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
 import '../MapComponent.css';
 
@@ -36,9 +36,11 @@ export const Track: React.FC<TrackProps> = (props) => {
     return closestIndex;
   };
 
+  const trackColor = getFeatureColor(feature);
+  
   const timeMarkerIcon = L.divIcon({
     className: 'time-marker',
-    html: '<div></div>',
+    html: `<div style="background-color: ${trackColor}; border: 1px solid ${trackColor}; border-radius: 2px; width: 100%; height: 100%; opacity: 0.8;"></div>`,
     iconSize: [12, 12],
     iconAnchor: [6, 6],
   });
