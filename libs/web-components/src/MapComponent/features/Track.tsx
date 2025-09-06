@@ -14,6 +14,7 @@ interface TrackProps {
 }
 
 export const Track: React.FC<TrackProps> = (props) => {
+  console.warn('Track component received timeState:', JSON.stringify(props.timeState, null, 2));
   const { feature, selectedFeatureIds, onSelectionChange, timeState } = props;
   
   // Check if this feature is selected by ID
