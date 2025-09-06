@@ -41,15 +41,12 @@ export const TimeController: React.FC<TimeControllerProps> = ({
     <div className={`time-controller ${className}`} data-testid="time-controller">
       <div style={{ marginBottom: '10px' }}>
         <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
-          Current Time: {new Date(currentTime).toLocaleString()}
+          {new Date(currentTime).toLocaleString()}
         </div>
         
         <div style={{ marginBottom: '5px' }}>
           <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#333' }}>
-            Start Time: {new Date(startTime).toLocaleString()}
-          </div>
-          <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#333' }}>
-            End Time: {new Date(endTime).toLocaleString()}
+            {new Date(startTime).toLocaleString()} - {new Date(endTime).toLocaleString()}
           </div>
         </div>
       </div>
