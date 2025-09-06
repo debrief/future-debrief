@@ -440,7 +440,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 			<html lang="en">
 			<head>
 				<meta charset="UTF-8">
-				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} https://unpkg.com https://cdnjs.cloudflare.com; script-src 'nonce-${nonce}' https://unpkg.com; img-src ${webview.cspSource} https://*.tile.openstreetmap.org data: https://cdnjs.cloudflare.com; connect-src https://*.tile.openstreetmap.org;">
+				<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com; script-src 'nonce-${nonce}' https://unpkg.com; img-src ${webview.cspSource} https://*.tile.openstreetmap.org data: https://cdnjs.cloudflare.com; connect-src https://*.tile.openstreetmap.org;">
 				<meta name="viewport" content="width=device-width, initial-scale=1.0">
 				<link href="${styleResetUri}" rel="stylesheet">
 				<link href="${styleVSCodeUri}" rel="stylesheet">

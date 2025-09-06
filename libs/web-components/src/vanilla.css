@@ -64,8 +64,3 @@
 .selected-feature.animate {
   animation: whiteGlow 2s ease-in-out infinite;
 }
-
-.time-marker {
-  background-color: blue;
-  border: 1px solid blue;
-}
