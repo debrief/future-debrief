@@ -40,7 +40,7 @@ export const TimeController: React.FC<TimeControllerProps> = ({
   return (
     <div className={`time-controller ${className}`} data-testid="time-controller">
       <div style={{ marginBottom: '10px' }}>
-        <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
+        <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }} data-testid="time-label">
           {new Date(currentTime).toLocaleString()}
         </div>
         

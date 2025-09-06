@@ -37,7 +37,7 @@ export const Track: React.FC<TrackProps> = (props) => {
   };
 
   const trackColor = getFeatureColor(feature);
-  
+
   const timeMarkerIcon = L.divIcon({
     className: 'time-marker',
     html: `<div style="background-color: ${trackColor}; border: 1px solid ${trackColor}; border-radius: 5px; width: 100%; height: 100%; opacity: 0.8;"></div>`,
