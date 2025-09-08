@@ -24,7 +24,7 @@ export function InfoTab({ tool, toolIndex, loading }: InfoTabProps) {
     setGitLoading(true);
     try {
       const history = await mcpService.loadGitHistory(toolIndex.files.git_history.path);
-      setGitHistory(history);
+      setGitHistory(history as GitHistory);
     } catch (err) {
       console.warn('Could not load git history:', err);
       setGitHistory(null);

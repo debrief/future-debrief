@@ -11,7 +11,7 @@ interface ExecuteTabProps {
 export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
   const [input, setInput] = useState('{}');
   const [selectedSample, setSelectedSample] = useState<string>('');
-  const [samples, setSamples] = useState<Array<{name: string, content: any}>>([]);
+  const [samples, setSamples] = useState<Array<{name: string, content: Record<string, unknown>}>>([]);
   const [executing, setExecuting] = useState(false);
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [samplesLoading, setSamplesLoading] = useState(false);
@@ -40,7 +40,7 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
       });
 
       const loadedSamples = (await Promise.all(samplePromises))
-        .filter(sample => sample !== null) as Array<{name: string, content: any}>;
+        .filter(sample => sample !== null) as Array<{name: string, content: Record<string, unknown>}>;
       
       setSamples(loadedSamples);
       
@@ -72,10 +72,10 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
     setResult(null);
     
     try {
-      let parsedInput;
+      let parsedInput: Record<string, unknown>;
       try {
-        parsedInput = JSON.parse(input);
-      } catch (err) {
+        parsedInput = JSON.parse(input) as Record<string, unknown>;
+      } catch {
         throw new Error('Invalid JSON input');
       }
 
@@ -155,14 +155,14 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
             <div className={`result-container ${result.success ? 'success' : 'error'}`}>
               {result.success ? (
                 <pre className="result-content">
-                  {JSON.stringify(result.result, null, 2)}
+                  {typeof result.result === 'string' ? result.result : JSON.stringify(result.result, null, 2)}
                 </pre>
               ) : (
                 <div className="error-content">
                   <strong>Error:</strong> {result.error}
-                  {result.result && (
+                  {result.result != null && (
                     <pre className="error-details">
-                      {JSON.stringify(result.result, null, 2)}
+                      {typeof result.result === 'string' ? result.result : JSON.stringify(result.result, null, 2)}
                     </pre>
                   )}
                 </div>

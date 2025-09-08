@@ -1,8 +1,27 @@
+interface JSONSchemaProperty {
+  type?: string;
+  description?: string;
+  enum?: unknown[];
+  items?: JSONSchemaProperty;
+  properties?: Record<string, JSONSchemaProperty>;
+  required?: string[];
+  additionalProperties?: boolean | JSONSchemaProperty;
+  default?: unknown;
+}
+
+interface JSONSchema {
+  type?: string;
+  properties?: Record<string, JSONSchemaProperty>;
+  required?: string[];
+  additionalProperties?: boolean;
+  description?: string;
+}
+
 export interface MCPTool {
   name: string;
   description: string;
-  inputSchema: any;
-  outputSchema?: any;
+  inputSchema: JSONSchema;
+  outputSchema?: JSONSchema;
 }
 
 export interface MCPToolListResponse {
@@ -11,11 +30,17 @@ export interface MCPToolListResponse {
 
 export interface MCPToolCallRequest {
   name: string;
-  arguments: any;
+  arguments: Record<string, unknown>;
+}
+
+interface MCPContentBlock {
+  type: string;
+  text?: string;
+  data?: unknown;
 }
 
 export interface MCPToolCallResponse {
-  content: any[];
+  content: MCPContentBlock[];
   isError?: boolean;
 }
 
@@ -86,7 +111,7 @@ export interface LoadingState {
 
 export interface ExecutionResult {
   success: boolean;
-  result: any;
+  result: unknown;
   error?: string;
   timestamp: number;
 }

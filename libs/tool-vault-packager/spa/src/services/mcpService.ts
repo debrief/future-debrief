@@ -56,7 +56,7 @@ export class MCPService {
     }
   }
 
-  async loadSampleInput(inputPath: string): Promise<any> {
+  async loadSampleInput(inputPath: string): Promise<Record<string, unknown>> {
     try {
       const response = await fetch(inputPath);
       if (!response.ok) {
@@ -82,7 +82,7 @@ export class MCPService {
     }
   }
 
-  async loadGitHistory(historyPath: string): Promise<any> {
+  async loadGitHistory(historyPath: string): Promise<unknown> {
     try {
       const response = await fetch(historyPath);
       if (!response.ok) {
