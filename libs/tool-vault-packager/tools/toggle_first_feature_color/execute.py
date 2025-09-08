@@ -1,5 +1,6 @@
 """Feature color toggling tool for GeoJSON FeatureCollections."""
 
+import copy
 from typing import Dict, Any
 
 
@@ -34,7 +35,6 @@ def toggle_first_feature_color(feature_collection: Dict[str, Any]) -> Dict[str, 
         'blue'
     """
     # Create a deep copy to avoid modifying the original
-    import copy
     result = copy.deepcopy(feature_collection)
     
     # Check if the collection has features

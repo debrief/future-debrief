@@ -17,7 +17,11 @@ except ImportError:
     BaseModel = None
     ValidationError = None
 
-from .discovery import discover_tools, generate_index_json, ToolMetadata
+try:
+    from .discovery import discover_tools, generate_index_json, ToolMetadata
+except ImportError:
+    # Handle case when running as script
+    from discovery import discover_tools, generate_index_json, ToolMetadata
 
 
 class ToolCallRequest(BaseModel):

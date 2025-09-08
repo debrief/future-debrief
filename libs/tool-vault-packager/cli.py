@@ -6,8 +6,13 @@ import sys
 from pathlib import Path
 from typing import Dict, Any
 
-from .discovery import discover_tools, generate_index_json
-from .server import create_app
+try:
+    from .discovery import discover_tools, generate_index_json
+    from .server import create_app
+except ImportError:
+    # Handle case when running as script
+    from discovery import discover_tools, generate_index_json
+    from server import create_app
 
 
 def list_tools_command(tools_path: str):

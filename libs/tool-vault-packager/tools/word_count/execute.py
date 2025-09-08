@@ -1,7 +1,5 @@
 """Word counting tool for text analysis."""
 
-from typing import Dict, Any
-
 
 def word_count(text: str) -> int:
     """

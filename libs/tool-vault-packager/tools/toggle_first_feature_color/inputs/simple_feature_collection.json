@@ -1,0 +1,18 @@
+{
+  "feature_collection": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "color": "red",
+          "name": "Test Point"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [0, 0]
+        }
+      }
+    ]
+  }
+}

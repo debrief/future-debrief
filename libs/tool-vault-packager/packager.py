@@ -1,6 +1,6 @@
 """Packaging system for creating ToolVault .pyz deployables."""
 
-import os
+import sys
 import shutil
 import json
 import zipapp
@@ -8,7 +8,11 @@ import tempfile
 from pathlib import Path
 from typing import Dict, Any, List
 
-from .discovery import discover_tools, generate_index_json
+try:
+    from .discovery import discover_tools, generate_index_json
+except ImportError:
+    # Handle case when running as script
+    from discovery import discover_tools, generate_index_json
 
 
 class PackagerError(Exception):
@@ -16,9 +20,9 @@ class PackagerError(Exception):
     pass
 
 
-def create_main_module(tools_path: str) -> str:
+def create_main_module() -> str:
     """Create the __main__.py content for the .pyz package."""
-    return f'''#!/usr/bin/env python3
+    return '''#!/usr/bin/env python3
 """ToolVault packaged application entry point."""
 
 import sys
@@ -108,7 +112,7 @@ def package_toolvault(
                 else:
                     print(f"Warning: Core module not found: {module}")
             
-            # Copy tools directory
+            # Copy tools directory with new structure
             tools_dest = package_dir / "tools"
             shutil.copytree(tools_path, tools_dest)
             
@@ -120,7 +124,7 @@ def package_toolvault(
             # Create __main__.py entry point
             main_path = package_dir / "__main__.py"
             with open(main_path, 'w') as f:
-                f.write(create_main_module(str(tools_path)))
+                f.write(create_main_module())
             
             # Create requirements.txt for documentation
             req_path = package_dir / "requirements.txt"

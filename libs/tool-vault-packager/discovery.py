@@ -1,10 +1,9 @@
 """Tool discovery system for ToolVault packager."""
 
-import os
 import importlib.util
 import inspect
-import ast
-from typing import Dict, Any, List, Optional, Callable, get_type_hints
+import json
+from typing import Dict, Any, List, Callable, get_type_hints
 from pathlib import Path
 
 
@@ -23,7 +22,9 @@ class ToolMetadata:
         description: str,
         parameters: Dict[str, Any],
         return_type: str,
-        module_path: str
+        module_path: str,
+        tool_dir: str,
+        sample_inputs: List[Dict[str, Any]] = None
     ):
         self.name = name
         self.function = function
@@ -31,6 +32,8 @@ class ToolMetadata:
         self.parameters = parameters
         self.return_type = return_type
         self.module_path = module_path
+        self.tool_dir = tool_dir
+        self.sample_inputs = sample_inputs or []
 
 
 def extract_function_docstring(func: Callable) -> str:
@@ -106,9 +109,35 @@ def convert_python_type_to_json_schema(type_str: str) -> Dict[str, Any]:
     return {"type": "object"}
 
 
+def load_sample_inputs(inputs_dir: Path) -> List[Dict[str, Any]]:
+    """Load sample input JSON files from a tool's inputs directory."""
+    sample_inputs = []
+    
+    if not inputs_dir.exists():
+        return sample_inputs
+    
+    for json_file in inputs_dir.glob("*.json"):
+        try:
+            with open(json_file, 'r') as f:
+                sample_data = json.load(f)
+                sample_inputs.append({
+                    "name": json_file.stem,
+                    "file": json_file.name,
+                    "data": sample_data
+                })
+        except Exception as e:
+            print(f"Warning: Failed to load sample input {json_file}: {e}")
+    
+    return sample_inputs
+
+
 def discover_tools(tools_path: str) -> List[ToolMetadata]:
     """
-    Discover tools in the specified directory.
+    Discover tools in the specified directory using the new folder structure.
+    
+    Each tool should be in its own folder containing:
+    - execute.py: The tool implementation with exactly one public function
+    - inputs/: Directory with sample JSON input files
     
     Args:
         tools_path: Path to the tools directory
@@ -125,14 +154,20 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
     if not tools_dir.exists():
         raise ToolDiscoveryError(f"Tools directory does not exist: {tools_path}")
     
-    # Find all Python files in the tools directory
-    for py_file in tools_dir.glob("*.py"):
-        if py_file.name.startswith("__"):
-            continue  # Skip __init__.py and other special files
-            
-        # Load the module
-        module_name = py_file.stem
-        spec = importlib.util.spec_from_file_location(module_name, py_file)
+    # Find all subdirectories that contain execute.py
+    for tool_dir in tools_dir.iterdir():
+        if not tool_dir.is_dir() or tool_dir.name.startswith("__"):
+            continue
+        
+        execute_file = tool_dir / "execute.py"
+        if not execute_file.exists():
+            continue
+        
+        tool_name = tool_dir.name
+        
+        # Load the execute.py module
+        module_name = f"{tool_name}_execute"
+        spec = importlib.util.spec_from_file_location(module_name, execute_file)
         if spec is None or spec.loader is None:
             continue
             
@@ -140,7 +175,7 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
         except Exception as e:
-            raise ToolDiscoveryError(f"Failed to load module '{module_name}': {e}")
+            raise ToolDiscoveryError(f"Failed to load tool '{tool_name}': {e}")
         
         # Find public functions in the module
         public_functions = [
@@ -149,11 +184,11 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
         ]
         
         if len(public_functions) == 0:
-            raise ToolDiscoveryError(f"Module '{module_name}' has no public functions")
+            raise ToolDiscoveryError(f"Tool '{tool_name}' has no public functions in execute.py")
         elif len(public_functions) > 1:
             func_names = [name for name, _ in public_functions]
             raise ToolDiscoveryError(
-                f"Module '{module_name}' has multiple public functions: {func_names}. "
+                f"Tool '{tool_name}' has multiple public functions: {func_names}. "
                 f"Each tool module must have exactly one public function."
             )
         
@@ -175,13 +210,19 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
         # Get return type
         return_type = type_annotations.get('return', 'object')
         
+        # Load sample inputs
+        inputs_dir = tool_dir / "inputs"
+        sample_inputs = load_sample_inputs(inputs_dir)
+        
         tools.append(ToolMetadata(
             name=func_name,
             function=func,
             description=description,
             parameters=parameters,
             return_type=return_type,
-            module_path=str(py_file)
+            module_path=str(execute_file),
+            tool_dir=str(tool_dir),
+            sample_inputs=sample_inputs
         ))
     
     if not tools:
@@ -213,6 +254,11 @@ def generate_index_json(tools: List[ToolMetadata]) -> Dict[str, Any]:
                 "additionalProperties": False
             }
         }
+        
+        # Include sample inputs if available
+        if tool.sample_inputs:
+            tool_schema["sampleInputs"] = tool.sample_inputs
+        
         tools_list.append(tool_schema)
     
     return {
