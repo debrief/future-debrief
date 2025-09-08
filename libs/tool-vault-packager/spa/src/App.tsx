@@ -24,12 +24,30 @@ function App() {
     setState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
+      // First discover the endpoints and get root info
+      const rootInfo = await mcpService.discoverEndpoints();
+      console.log('ToolVault Root Info:', rootInfo);
+      
+      // Then load the tools using the discovered endpoint
       const toolsResponse = await mcpService.listTools();
+      
+      // Create a pseudo-global index from root info and tools
+      const globalIndex = {
+        tools: toolsResponse.tools,
+        version: rootInfo.version || toolsResponse.version || 'Unknown',
+        description: rootInfo.name || 'ToolVault',
+        packageInfo: {
+          buildDate: new Date().toISOString(),
+          commit: 'unknown',
+          author: 'ToolVault'
+        }
+      };
       
       setState(prev => ({
         ...prev,
         loading: false,
         tools: toolsResponse.tools,
+        globalIndex: globalIndex,
         error: null
       }));
     } catch (error) {
@@ -37,7 +55,7 @@ function App() {
       setState(prev => ({
         ...prev,
         loading: false,
-        error: error instanceof Error ? error.message : 'Failed to load tools'
+        error: error instanceof Error ? error.message : 'Failed to load ToolVault'
       }));
     }
   };

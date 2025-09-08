@@ -26,6 +26,8 @@ export interface MCPTool {
 
 export interface MCPToolListResponse {
   tools: MCPTool[];
+  version?: string;
+  description?: string;
 }
 
 export interface MCPToolCallRequest {
@@ -33,15 +35,20 @@ export interface MCPToolCallRequest {
   arguments: Record<string, unknown>;
 }
 
-interface MCPContentBlock {
-  type: string;
-  text?: string;
-  data?: unknown;
+export interface MCPToolCallResponse {
+  result: unknown;
+  isError?: boolean;
 }
 
-export interface MCPToolCallResponse {
-  content: MCPContentBlock[];
-  isError?: boolean;
+export interface ToolVaultRootResponse {
+  name: string;
+  version: string;
+  status: string;
+  tools_count: number;
+  endpoints?: {
+    tools?: string;
+    call?: string;
+  };
 }
 
 export interface GlobalIndex {

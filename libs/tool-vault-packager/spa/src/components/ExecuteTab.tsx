@@ -86,7 +86,7 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
 
       setResult({
         success: !response.isError,
-        result: response.content,
+        result: response.result,
         error: response.isError ? 'Tool execution failed' : undefined,
         timestamp: Date.now()
       });

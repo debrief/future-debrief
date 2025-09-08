@@ -72,12 +72,17 @@ class ToolVaultServer:
         
         @self.app.get("/")
         async def root():
-            """Root endpoint providing basic server information."""
+            """Root endpoint providing basic server information and API discovery."""
             return {
                 "name": "ToolVault Server",
                 "version": "1.0.0",
                 "status": "running",
-                "tools_count": len(self.tools)
+                "tools_count": len(self.tools),
+                "endpoints": {
+                    "tools": "/tools/list",
+                    "call": "/tools/call",
+                    "health": "/health"
+                }
             }
         
         @self.app.get("/tools/list")
