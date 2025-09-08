@@ -8,12 +8,14 @@ from pathlib import Path
 try:
     from fastapi import FastAPI, HTTPException
     from fastapi.responses import JSONResponse, HTMLResponse, PlainTextResponse
+    from fastapi.middleware.cors import CORSMiddleware
     from pydantic import BaseModel, ValidationError
 except ImportError:
     # Handle case where dependencies might not be available yet
     FastAPI = None
     HTTPException = None
     JSONResponse = None
+    CORSMiddleware = None
     BaseModel = None
     ValidationError = None
 
@@ -55,6 +57,16 @@ class ToolVaultServer:
             description="MCP-compatible tool execution server",
             version="1.0.0"
         )
+        
+        # Add CORS middleware to allow cross-origin requests from SPA
+        if CORSMiddleware:
+            self.app.add_middleware(
+                CORSMiddleware,
+                allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],  # Vite dev server
+                allow_credentials=True,
+                allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                allow_headers=["*"],
+            )
         
         # Discover tools
         try:
