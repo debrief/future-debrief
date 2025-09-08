@@ -129,14 +129,20 @@ def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
         description="ToolVault - Tool discovery and packaging system",
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python toolvault.pyz list-tools              # List all available tools
+  python toolvault.pyz call-tool <tool> <args> # Execute a specific tool
+  python toolvault.pyz serve --port 8000       # Start MCP-compatible server
+        """
     )
     
     # Global arguments
     parser.add_argument(
         "--tools-path",
         default="tools",
-        help="Path to tools directory (default: tools)"
+        help="Path to tools directory (default: bundled tools for .pyz packages)"
     )
     
     # Subcommands
@@ -147,8 +153,8 @@ def main():
     
     # Call tool command
     call_parser = subparsers.add_parser("call-tool", help="Call a specific tool")
-    call_parser.add_argument("tool_name", help="Name of the tool to call")
-    call_parser.add_argument("arguments", help="Tool arguments as JSON string")
+    call_parser.add_argument("tool_name", help="Name of the tool to call (use list-tools to see available tools)")
+    call_parser.add_argument("arguments", help="Tool arguments as JSON string (e.g., '{\"text\": \"hello world\"}')")
     
     # Serve command
     serve_parser = subparsers.add_parser("serve", help="Start the ToolVault server")
