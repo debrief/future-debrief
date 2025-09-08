@@ -147,7 +147,12 @@
       "Bash(gh pr edit:*)",
       "Bash(gh repo view:*)",
       "Bash(gh issue:*)",
-      "Bash(gh pr list:*)"
+      "Bash(gh pr list:*)",
+      "Bash(python -m cli list-tools:*)",
+      "Bash(python cli.py list-tools:*)",
+      "Bash(python packager.py:*)",
+      "Bash(python -m packager:*)",
+      "WebFetch(domain:spec.modelcontextprotocol.io)"
     ]
   }
 }

@@ -15,6 +15,9 @@
     {
       "name": "Web Components",
       "path": "libs/web-components"
+    },
+    {
+      "path": "libs/tool-vault-packager"
     }
   ],
   "settings": {
