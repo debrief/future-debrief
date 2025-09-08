@@ -152,7 +152,10 @@
       "Bash(python cli.py list-tools:*)",
       "Bash(python packager.py:*)",
       "Bash(python -m packager:*)",
-      "WebFetch(domain:spec.modelcontextprotocol.io)"
+      "WebFetch(domain:spec.modelcontextprotocol.io)",
+      "WebFetch(domain:localhost)",
+      "Bash(python -m cli:*)",
+      "Bash(kill:*)"
     ]
   }
 }
