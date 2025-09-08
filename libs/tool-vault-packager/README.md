@@ -86,7 +86,7 @@ def word_count(text: str) -> int:
 
 ## MCP Endpoints
 
-### POST /tools/list
+### GET /tools/list
 
 Returns available tools with their schemas:
 
@@ -149,10 +149,6 @@ python -m cli --tools-path tools call-tool word_count '{"text": "Hello world"}'
 python -m cli --tools-path tools serve --port 8000 --host 0.0.0.0
 ```
 
-### Generate Index
-```bash
-python -m cli --tools-path tools generate --output index.json
-```
 
 ## Architecture
 
@@ -231,7 +227,7 @@ Server can be tested with curl:
 
 ```bash
 # List tools
-curl -X POST http://localhost:8000/tools/list
+curl -X GET http://localhost:8000/tools/list
 
 # Call tool
 curl -X POST http://localhost:8000/tools/call \

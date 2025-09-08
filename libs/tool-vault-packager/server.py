@@ -80,7 +80,7 @@ class ToolVaultServer:
                 "tools_count": len(self.tools)
             }
         
-        @self.app.post("/tools/list")
+        @self.app.get("/tools/list")
         async def list_tools():
             """MCP-compatible tools list endpoint."""
             try:

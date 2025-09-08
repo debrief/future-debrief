@@ -94,7 +94,7 @@ def serve_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
         print(f"Starting ToolVault server on {host}:{port}")
         print(f"Tools directory: {tools_path}")
         print(f"API endpoints:")
-        print(f"  - POST http://{host}:{port}/tools/list")
+        print(f"  - GET  http://{host}:{port}/tools/list")
         print(f"  - POST http://{host}:{port}/tools/call")
         print(f"  - GET  http://{host}:{port}/health")
         
@@ -106,23 +106,6 @@ def serve_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
         sys.exit(1)
 
 
-def generate_command(tools_path: str, output_path: str = None):
-    """Generate index.json file from discovered tools."""
-    try:
-        tools = discover_tools(tools_path)
-        index_data = generate_index_json(tools)
-        
-        if output_path is None:
-            output_path = "index.json"
-        
-        with open(output_path, 'w') as f:
-            json.dump(index_data, f, indent=2)
-        
-        print(f"Generated index.json with {len(tools)} tools: {output_path}")
-        
-    except Exception as e:
-        print(f"Error generating index.json: {e}", file=sys.stderr)
-        sys.exit(1)
 
 
 def main():
@@ -161,9 +144,6 @@ Examples:
     serve_parser.add_argument("--port", type=int, default=8000, help="Server port (default: 8000)")
     serve_parser.add_argument("--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)")
     
-    # Generate command
-    generate_parser = subparsers.add_parser("generate", help="Generate index.json file")
-    generate_parser.add_argument("--output", help="Output path for index.json (default: index.json)")
     
     # Parse arguments
     args = parser.parse_args()
@@ -194,8 +174,6 @@ Examples:
         call_tool_command(tools_path_str, args.tool_name, arguments)
     elif args.command == "serve":
         serve_command(tools_path_str, args.port, args.host)
-    elif args.command == "generate":
-        generate_command(tools_path_str, args.output)
 
 
 if __name__ == "__main__":
