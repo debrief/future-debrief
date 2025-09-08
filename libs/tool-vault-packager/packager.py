@@ -209,21 +209,50 @@ def package_toolvault(
                     with open(source_file, 'w') as f:
                         f.write(html_content)
                 
-                # Save complete metadata
-                metadata = {
-                    "name": tool.name,
+                
+                # Create tool-specific index.json for SPA navigation
+                tool_index = {
+                    "tool_name": tool.name,
                     "description": tool.description,
-                    "parameters": tool.parameters,
-                    "return_type": tool.return_type,
-                    "module_path": tool.module_path,
-                    "tool_dir": tool.tool_dir,
-                    "sample_inputs_count": len(tool.sample_inputs),
-                    "git_commits_count": len(tool.git_history),
-                    "source_code_length": len(tool.source_code) if tool.source_code else 0
+                    "files": {
+                        "execute": {
+                            "path": "execute.py",
+                            "description": "Main tool implementation",
+                            "type": "python"
+                        },
+                        "source_code": {
+                            "path": "metadata/source_code.html",
+                            "description": "Pretty-printed source code",
+                            "type": "html"
+                        },
+                        "git_history": {
+                            "path": "metadata/git_history.json",
+                            "description": "Git commit history",
+                            "type": "json"
+                        },
+                        "inputs": []
+                    },
+                    "stats": {
+                        "sample_inputs_count": len(tool.sample_inputs),
+                        "git_commits_count": len(tool.git_history),
+                        "source_code_length": len(tool.source_code) if tool.source_code else 0
+                    }
                 }
-                metadata_file = tool_metadata_dir / "metadata.json"
-                with open(metadata_file, 'w') as f:
-                    json.dump(metadata, f, indent=2)
+                
+                # Add sample input files to index
+                for sample_input in tool.sample_inputs:
+                    tool_index["files"]["inputs"].append({
+                        "name": sample_input["name"],
+                        "path": f"inputs/{sample_input['file']}",
+                        "description": f"Sample input: {sample_input['name']}",
+                        "type": "json"
+                    })
+                
+                # Save tool index in the tool's root directory
+                tool_dir_path = debug_dir / "tools" / Path(tool.tool_dir).name
+                tool_index_file = tool_dir_path / "index.json"
+                with open(tool_index_file, 'w') as f:
+                    json.dump(tool_index, f, indent=2)
             
             print(f"Debug: Package contents preserved in {debug_dir}")
             print(f"Debug: Tool metadata saved in metadata/ subdirectories")
