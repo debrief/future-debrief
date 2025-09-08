@@ -1,16 +1,15 @@
 # Software Requirements Document (SRD)
-## ToolVault Packaging and Deployment
+## ToolVault Packaging and Deployment (MCP-Compatible)
 
 ### 1. Scope
-ToolVault is a self-contained module that packages Python tools, reference data, metadata, and a REST wrapper into a single deployable unit. The aim is to provide analysts and developers with a portable tool server that can be run locally or in constrained environments.
+ToolVault is a self-contained module that packages Python tools, reference data, metadata, and an MCP-compatible REST/WebSocket wrapper into a single deployable unit. The deployable provides both a human-facing SPA and an MCP-standard interface for AI supervisors.
 
 ### 2. Context
-ToolVault instances will be used in the Future Debrief ecosystem. Each instance:
+ToolVault instances will be used in the Future Debrief ecosystem and may also be consumed by external AI supervisors via the **Model Context Protocol (MCP)**. Each instance:
 - Contains Python tools with consistent interfaces.
-- Provides metadata (`index.json`) for discovery and execution.
-- Serves static SPA pages for browsing and running tools.
-- Exposes a REST API for programmatic execution.
-- Ensures input/output validation through schemas.
+- Provides discovery metadata (`tools/list`) per MCP.
+- Exposes a uniform execution method (`tools/call`) per MCP.
+- Validates inputs/outputs against shared JSON Schemas.
 
 ### 3. Functional Requirements
 
@@ -19,72 +18,79 @@ ToolVault instances will be used in the Future Debrief ecosystem. Each instance:
 - [F2] Each function must include type annotations for all parameters and return values.
 - [F3] Missing annotations must cause the build to fail.
 
-#### 3.2 Metadata (`index.json`)
-- [F4] Build process must generate an `index.json` file containing:
-  - ToolVault package name and version.
-  - Tool name, description, parameters, return type.
-  - `$ref` to shared-types schemas for complex types.
-- [F5] Parameters and returns must be expressed in schema-compliant format.
+#### 3.2 Discovery (`tools/list`)
+- [F4] ToolVault must expose a `tools/list` endpoint, per MCP spec.
+- [F5] Response must enumerate all tools with:
+  - Name
+  - Description
+  - Input schema (inline or `$ref` to shared-types)
+  - Output schema (inline or `$ref` to shared-types)
 
-#### 3.3 Validation Models
-- [F6] Build process must generate `toolvault/metadata/models.py` containing Pydantic models for input and output of each tool.
-- [F7] Pydantic models must be derived from shared-types schemas where applicable.
-- [F8] All tool outputs must be wrapped in `{"result": ...}` for uniformity.
+#### 3.3 Execution (`tools/call`)
+- [F6] ToolVault must expose a `tools/call` endpoint, per MCP spec.
+- [F7] Request body must specify tool `name` and `arguments` (validated JSON object).
+- [F8] Response must include `result`, validated against declared output schema.
+- [F9] Error responses must follow MCP error structure.
 
-#### 3.4 Packaging
-- [F9] Build process must bundle:
+#### 3.4 Validation Models
+- [F10] Build process must generate `toolvault/metadata/models.py` containing Pydantic models for input and output of each tool.
+- [F11] Pydantic models must be derived from shared-types schemas where applicable.
+- [F12] All tool outputs must be wrapped in `{"result": ...}` for uniformity.
+
+#### 3.5 Packaging
+- [F13] Build process must bundle:
   - Python tools (`toolvault/tools/`).
   - Metadata (`toolvault/metadata/index.json`, `toolvault/metadata/models.py`).
   - Static SPA (`toolvault/static/`).
-  - REST wrapper (`toolvault/rest.py`).
-- [F10] Final deployable unit must be a `.pyz` (zipapp) file.
+  - MCP-compatible REST/WebSocket wrapper (`toolvault/rest.py`).
+- [F14] Final deployable unit must be a `.pyz` (zipapp) file.
 
-#### 3.5 Runtime
-- [F11] Invoking `python toolvault.pyz serve --port <n>` must start a FastAPI server on the specified port.
-- [F12] REST API endpoints:
-  - `/api/index.json`: returns metadata.
-  - `/api/run/{tool}`: validates input/output and executes tool.
-- [F13] SPA must render welcome page and allow navigation through tools based on `index.json`.
-- [F14] SPA must build tool forms dynamically from `$ref` schemas.
+#### 3.6 Runtime
+- [F15] Invoking `python toolvault.pyz serve --port <n>` must start a FastAPI/uvicorn server on the specified port.
+- [F16] Endpoints exposed:
+  - `POST /tools/list` — returns discovery metadata.
+  - `POST /tools/call` — validates input/output and executes tool.
+- [F17] SPA must render welcome page and allow navigation through tools based on `tools/list` response.
+- [F18] SPA may call `tools/call` to execute tools.
 
 ### 4. Non-Functional Requirements
 - [N1] Must run with Python 3.9+ without external dependencies beyond declared requirements.
 - [N2] Must function in offline/air-gapped environments (no internet required).
 - [N3] Startup must complete in under 2 seconds on a modern laptop.
 - [N4] REST responses must validate against Pydantic models before being returned.
-- [N5] Index.json and metadata must remain backward-compatible across minor releases.
+- [N5] Discovery and execution formats must remain MCP-compliant for compatibility with AI supervisors.
 
 ### 5. Packaging and Build Process
 
 #### 5.1 Objective
-Ensure that ToolVault can be distributed as a single deployable unit with reliable metadata and validation.
+Ensure ToolVault deployables are MCP-compatible from the outset, serving both human-facing SPA and MCP consumers.
 
 #### 5.2 Inputs
 - Python tools source tree.
 - Shared-types schemas (`libs/shared-types/`), maintained as JSON Schema master.
 
 #### 5.3 Build Steps
-1. Discover tools by scanning `toolvault/tools/`.
+1. Discover tools in `toolvault/tools/`.
 2. Extract signatures, docstrings, and type annotations.
-3. Map annotations to JSON Schema types or `$ref` to shared-types.
-4. Generate `index.json` describing all tools.
-5. Generate Pydantic models (`models.py`) using shared-types for validation.
-6. Package into `toolvault.pyz` containing tools, metadata, static SPA, and REST wrapper.
+3. Map annotations to JSON Schema primitives or `$ref` to shared-types schemas.
+4. Generate MCP-compatible discovery JSON (used by `tools/list`).
+5. Generate Pydantic validation models (`models.py`) using shared-types where applicable.
+6. Package into `toolvault.pyz` containing tools, metadata, static SPA, and MCP wrapper.
 
 #### 5.4 Runtime
-- REST wrapper auto-wires endpoints based on `index.json` and generated models.
-- CLI runner allows direct invocation of tools with validation.
-- SPA loads `index.json` and uses schemas for dynamic forms.
+- REST/WebSocket wrapper must serve MCP methods `tools/list` and `tools/call`.
+- SPA must rely on these same methods for tool discovery and execution.
+- CLI runner must provide equivalent functionality.
 
 #### 5.5 Requirements
 - [R1] Tools without type annotations must be rejected at build.
 - [R2] Input/output validation must use generated Pydantic models.
-- [R3] `index.json` must reference shared-types schemas wherever possible.
-- [R4] Every tool response must be wrapped in `{"result": ...}`.
-- [R5] Deployable must immediately serve welcome page when run with `serve` command.
+- [R3] Discovery must follow MCP’s `tools/list` response schema.
+- [R4] Execution must follow MCP’s `tools/call` request/response schema.
+- [R5] Deployable must immediately serve welcome page and MCP endpoints when run with `serve` command.
 
 ### 6. Benefits
-- Single-file deployment for portability.
-- Schema-driven validation ensures analyst confidence.
+- MCP-compliance ensures ToolVault can be immediately consumed by AI supervisors without adapters.
+- Single-file deployment (`.pyz`) for portability.
 - Shared-types guarantees cross-language consistency (Python, TS, REST).
-- SPA and REST wrapper auto-adapt to new tools without manual changes.
+- SPA and MCP clients share the same discovery and execution interface, avoiding divergence.
