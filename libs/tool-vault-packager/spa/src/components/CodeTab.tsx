@@ -25,7 +25,7 @@ export function CodeTab({ tool, toolIndex, loading }: CodeTabProps) {
     setCodeLoading(true);
     setError(null);
     try {
-      const code = await mcpService.loadSourceCode(toolIndex.files.source_code.path);
+      const code = await mcpService.loadSourceCode(toolIndex.files.source_code.path, tool.name);
       setSourceCode(code);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load source code');

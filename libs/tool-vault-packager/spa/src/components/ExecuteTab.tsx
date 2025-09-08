@@ -31,7 +31,7 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
     try {
       const samplePromises = toolIndex.files.inputs.map(async (inputFile) => {
         try {
-          const content = await mcpService.loadSampleInput(inputFile.path);
+          const content = await mcpService.loadSampleInput(inputFile.path, tool.name);
           return { name: inputFile.name || inputFile.description, content };
         } catch (err) {
           console.warn(`Could not load sample ${inputFile.name}:`, err);

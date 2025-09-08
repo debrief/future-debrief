@@ -23,8 +23,9 @@ export function InfoTab({ tool, toolIndex, loading }: InfoTabProps) {
     
     setGitLoading(true);
     try {
-      const history = await mcpService.loadGitHistory(toolIndex.files.git_history.path);
-      setGitHistory(history as GitHistory);
+      const history = await mcpService.loadGitHistory(toolIndex.files.git_history.path, tool.name);
+      // Backend returns array directly, wrap it in GitHistory format
+      setGitHistory({ commits: history as any[] });
     } catch (err) {
       console.warn('Could not load git history:', err);
       setGitHistory(null);
@@ -77,7 +78,7 @@ export function InfoTab({ tool, toolIndex, loading }: InfoTabProps) {
                   <div className="commit-info">
                     <div className="commit-message">{commit.message}</div>
                     <div className="commit-meta">
-                      {commit.author} • {new Date(commit.date).toLocaleDateString()}
+                      {typeof commit.author === 'string' ? commit.author : commit.author.name} • {new Date(commit.date).toLocaleDateString()}
                     </div>
                   </div>
                 </div>

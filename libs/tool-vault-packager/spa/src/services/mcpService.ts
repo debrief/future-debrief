@@ -1,6 +1,6 @@
 import type { MCPToolListResponse, MCPToolCallRequest, MCPToolCallResponse, ToolIndex, ToolVaultRootResponse } from '../types';
 
-const MCP_BASE_URL = import.meta.env.VITE_MCP_BASE_URL || '/tools';
+const MCP_BASE_URL = import.meta.env.VITE_MCP_BASE_URL || 'http://localhost:8000/tools';
 
 export class MCPService {
   private baseUrl: string;
@@ -13,8 +13,7 @@ export class MCPService {
   async discoverEndpoints(): Promise<ToolVaultRootResponse> {
     try {
       // Get root endpoint to discover available endpoints
-      // Use /api proxy to reach the Python server root endpoint
-      const rootUrl = '/api';
+      const rootUrl = 'http://localhost:8000/';
       
       console.log('Attempting to discover endpoints at:', rootUrl);
       const response = await fetch(rootUrl);
@@ -33,7 +32,7 @@ export class MCPService {
       
       // Extract tools list URL from discovery
       if (rootInfo.endpoints?.tools) {
-        this.toolsListUrl = rootInfo.endpoints.tools;
+        this.toolsListUrl = `http://localhost:8000${rootInfo.endpoints.tools}`;
       } else {
         // Fallback to default if not provided
         this.toolsListUrl = `${this.baseUrl}/list`;
@@ -89,7 +88,7 @@ export class MCPService {
   }
 
   async loadToolIndex(toolName: string, indexPath?: string): Promise<ToolIndex> {
-    const path = indexPath || `/tools/${toolName}/index.json`;
+    const path = indexPath || `http://localhost:8000/api/tools/${toolName}/tool.json`;
     try {
       const response = await fetch(path);
       if (!response.ok) {
@@ -102,41 +101,44 @@ export class MCPService {
     }
   }
 
-  async loadSampleInput(inputPath: string): Promise<Record<string, unknown>> {
+  async loadSampleInput(inputPath: string, toolName?: string): Promise<Record<string, unknown>> {
+    const url = inputPath.startsWith('http') ? inputPath : (toolName ? `http://localhost:8000/api/tools/${toolName}/${inputPath}` : inputPath);
     try {
-      const response = await fetch(inputPath);
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Failed to load sample input: ${response.statusText}`);
       }
       return await response.json();
     } catch (error) {
-      console.error(`Error loading sample input from ${inputPath}:`, error);
+      console.error(`Error loading sample input from ${url}:`, error);
       throw error;
     }
   }
 
-  async loadSourceCode(sourcePath: string): Promise<string> {
+  async loadSourceCode(sourcePath: string, toolName?: string): Promise<string> {
+    const url = sourcePath.startsWith('http') ? sourcePath : (toolName ? `http://localhost:8000/api/tools/${toolName}/${sourcePath}` : sourcePath);
     try {
-      const response = await fetch(sourcePath);
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Failed to load source code: ${response.statusText}`);
       }
       return await response.text();
     } catch (error) {
-      console.error(`Error loading source code from ${sourcePath}:`, error);
+      console.error(`Error loading source code from ${url}:`, error);
       throw error;
     }
   }
 
-  async loadGitHistory(historyPath: string): Promise<unknown> {
+  async loadGitHistory(historyPath: string, toolName?: string): Promise<unknown> {
+    const url = historyPath.startsWith('http') ? historyPath : (toolName ? `http://localhost:8000/api/tools/${toolName}/${historyPath}` : historyPath);
     try {
-      const response = await fetch(historyPath);
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`Failed to load git history: ${response.statusText}`);
       }
       return await response.json();
     } catch (error) {
-      console.error(`Error loading git history from ${historyPath}:`, error);
+      console.error(`Error loading git history from ${url}:`, error);
       throw error;
     }
   }

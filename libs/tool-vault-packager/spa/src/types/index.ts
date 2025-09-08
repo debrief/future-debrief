@@ -90,7 +90,7 @@ export interface ToolIndex {
 
 export interface GitCommit {
   hash: string;
-  author: string;
+  author: string | { name: string; email: string };
   date: string;
   message: string;
 }
