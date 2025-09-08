@@ -9,10 +9,12 @@ from typing import Dict, Any
 try:
     from .discovery import discover_tools, generate_index_json
     from .server import create_app
+    from .packager import output_tool_details
 except ImportError:
     # Handle case when running as script
     from discovery import discover_tools, generate_index_json
     from server import create_app
+    from packager import output_tool_details
 
 
 def list_tools_command(tools_path: str):
@@ -118,6 +120,7 @@ Examples:
   python toolvault.pyz list-tools              # List all available tools
   python toolvault.pyz call-tool <tool> <args> # Execute a specific tool
   python toolvault.pyz serve --port 8000       # Start MCP-compatible server
+  python toolvault.pyz show-details            # Show detailed tool info with source code and git history
         """
     )
     
@@ -143,6 +146,9 @@ Examples:
     serve_parser = subparsers.add_parser("serve", help="Start the ToolVault server")
     serve_parser.add_argument("--port", type=int, default=8000, help="Server port (default: 8000)")
     serve_parser.add_argument("--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)")
+    
+    # Show details command
+    details_parser = subparsers.add_parser("show-details", help="Show detailed tool information including source code and git history")
     
     
     # Parse arguments
@@ -174,6 +180,8 @@ Examples:
         call_tool_command(tools_path_str, args.tool_name, arguments)
     elif args.command == "serve":
         serve_command(tools_path_str, args.port, args.host)
+    elif args.command == "show-details":
+        output_tool_details(tools_path_str)
 
 
 if __name__ == "__main__":

@@ -107,7 +107,8 @@ def package_toolvault(
                 "__init__.py",
                 "discovery.py",
                 "server.py",
-                "cli.py"
+                "cli.py",
+                "packager.py"
             ]
             
             for module in core_modules:
@@ -136,6 +137,97 @@ def package_toolvault(
             with open(req_path, 'w') as f:
                 f.write(create_requirements_content())
             
+            # Create debug folder to preserve pre-zip contents for debugging
+            debug_dir = Path("debug-package-contents")
+            if debug_dir.exists():
+                shutil.rmtree(debug_dir)
+            shutil.copytree(package_dir, debug_dir)
+            
+            # Save detailed tool metadata to metadata folder
+            for tool in tools:
+                tool_metadata_dir = debug_dir / "tools" / Path(tool.tool_dir).name / "metadata"
+                tool_metadata_dir.mkdir(exist_ok=True)
+                
+                # Save git history
+                if tool.git_history:
+                    git_history_file = tool_metadata_dir / "git_history.json"
+                    with open(git_history_file, 'w') as f:
+                        json.dump(tool.git_history, f, indent=2)
+                
+                # Save source code as HTML
+                if tool.source_code:
+                    source_file = tool_metadata_dir / "source_code.html"
+                    html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{tool.name} - Source Code</title>
+    <style>
+        body {{ 
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
+            margin: 20px; 
+            background-color: #f8f9fa;
+            line-height: 1.4;
+        }}
+        .container {{ 
+            background-color: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        .header {{ 
+            border-bottom: 2px solid #e9ecef; 
+            padding-bottom: 10px; 
+            margin-bottom: 20px; 
+        }}
+        .tool-name {{ 
+            font-size: 24px; 
+            font-weight: bold; 
+            color: #333; 
+        }}
+        .source-code {{ 
+            background-color: #f8f9fa; 
+            border: 1px solid #e9ecef; 
+            border-radius: 4px; 
+            padding: 15px; 
+            white-space: pre-wrap; 
+            font-size: 14px;
+            overflow-x: auto;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="tool-name">{tool.name}</div>
+        </div>
+        <div class="source-code">{tool.source_code}</div>
+    </div>
+</body>
+</html>"""
+                    with open(source_file, 'w') as f:
+                        f.write(html_content)
+                
+                # Save complete metadata
+                metadata = {
+                    "name": tool.name,
+                    "description": tool.description,
+                    "parameters": tool.parameters,
+                    "return_type": tool.return_type,
+                    "module_path": tool.module_path,
+                    "tool_dir": tool.tool_dir,
+                    "sample_inputs_count": len(tool.sample_inputs),
+                    "git_commits_count": len(tool.git_history),
+                    "source_code_length": len(tool.source_code) if tool.source_code else 0
+                }
+                metadata_file = tool_metadata_dir / "metadata.json"
+                with open(metadata_file, 'w') as f:
+                    json.dump(metadata, f, indent=2)
+            
+            print(f"Debug: Package contents preserved in {debug_dir}")
+            print(f"Debug: Tool metadata saved in metadata/ subdirectories")
+            
             # Create the .pyz package
             print(f"Creating .pyz package: {output_path}")
             zipapp.create_archive(
@@ -162,6 +254,47 @@ def package_toolvault(
             raise PackagerError(f"Failed to create package: {e}")
 
 
+def output_tool_details(tools_path: str) -> None:
+    """Output detailed information about tools including source code and git history."""
+    try:
+        tools = discover_tools(tools_path)
+        
+        print(f"Found {len(tools)} tools in {tools_path}")
+        print("=" * 80)
+        
+        for tool in tools:
+            print(f"\nTool: {tool.name}")
+            print(f"Description: {tool.description}")
+            print(f"Module Path: {tool.module_path}")
+            print(f"Parameters: {list(tool.parameters.keys())}")
+            print(f"Return Type: {tool.return_type}")
+            print(f"Sample Inputs: {len(tool.sample_inputs)} files")
+            
+            if tool.git_history:
+                print(f"\nGit History ({len(tool.git_history)} commits):")
+                for i, commit in enumerate(tool.git_history[:5]):  # Show first 5 commits
+                    print(f"  {i+1}. {commit['hash'][:8]} - {commit['message']} ({commit['date'][:10]})")
+                if len(tool.git_history) > 5:
+                    print(f"  ... and {len(tool.git_history) - 5} more commits")
+            
+            if tool.source_code:
+                print(f"\nSource Code ({len(tool.source_code)} characters):")
+                print("-" * 40)
+                # Show first 10 lines of source code
+                lines = tool.source_code.split('\n')
+                for i, line in enumerate(lines[:10]):
+                    print(f"{i+1:3d}: {line}")
+                if len(lines) > 10:
+                    print(f"    ... and {len(lines) - 10} more lines")
+                print("-" * 40)
+            
+            print("=" * 80)
+            
+    except Exception as e:
+        print(f"Error analyzing tools: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
 def main():
     """CLI entry point for the packager."""
     import argparse
@@ -183,8 +316,18 @@ def main():
         default="/usr/bin/env python3",
         help="Python executable for shebang (default: /usr/bin/env python3)"
     )
+    parser.add_argument(
+        "--show-details",
+        action="store_true",
+        help="Show detailed tool information including source code and git history (no packaging)"
+    )
     
     args = parser.parse_args()
+    
+    # If show-details is requested, output details and exit
+    if args.show_details:
+        output_tool_details(args.tools_path)
+        return
     
     try:
         package_toolvault(
