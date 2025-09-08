@@ -49,6 +49,26 @@ def extract_function_docstring(func: Callable) -> str:
     return doc.strip()
 
 
+def extract_first_sentence(text: str) -> str:
+    """Extract the first sentence from a text description."""
+    if not text:
+        return text
+    
+    # Find the first sentence ending with a period, exclamation, or question mark
+    import re
+    
+    # Look for sentence endings followed by whitespace or end of string
+    sentence_endings = r'[.!?](?:\s+|$)'
+    match = re.search(sentence_endings, text)
+    
+    if match:
+        # Return everything up to and including the sentence ending punctuation
+        return text[:match.end()].rstrip()
+    
+    # If no sentence ending found, return the entire text (fallback)
+    return text
+
+
 def extract_type_annotations(func: Callable) -> Dict[str, str]:
     """Extract type annotations from a function."""
     try:
@@ -427,6 +447,8 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
 def generate_index_json(tools: List[ToolMetadata]) -> Dict[str, Any]:
     """
     Generate MCP-compatible index.json from discovered tools.
+    Uses only the first sentence of tool descriptions for brevity.
+    Includes URLs for each tool.json file for SPA navigation.
     
     Args:
         tools: List of discovered tool metadata
@@ -437,16 +459,23 @@ def generate_index_json(tools: List[ToolMetadata]) -> Dict[str, Any]:
     tools_list = []
     
     for tool in tools:
+        # Use only the first sentence for the main index
+        short_description = extract_first_sentence(tool.description)
+        
+        # Get tool directory name from tool_dir path
+        tool_dir_name = Path(tool.tool_dir).name
+        
         tool_schema = {
             "name": tool.name,
-            "description": tool.description,
+            "description": short_description,
             "inputSchema": {
                 "type": "object",
                 "properties": tool.parameters,
                 "required": list(tool.parameters.keys()),
                 "additionalProperties": False
             },
-            "outputSchema": convert_python_type_to_json_schema(tool.return_type)
+            "outputSchema": convert_python_type_to_json_schema(tool.return_type),
+            "tool_url": f"tools/{tool_dir_name}/tool.json"
         }
         
         tools_list.append(tool_schema)

@@ -157,7 +157,7 @@ toolvault.pyz (when extracted):
 └── tools/                  # Packaged tools with metadata
     ├── word_count/
     │   ├── execute.py          # Tool implementation
-    │   ├── index.json          # Tool-specific navigation index
+    │   ├── tool.json           # Tool-specific navigation index
     │   ├── inputs/             # Sample input files
     │   │   ├── empty_text.json
     │   │   ├── simple_text.json
@@ -187,7 +187,8 @@ The root `index.json` provides MCP-compatible tool schemas:
         "required": ["text"],
         "additionalProperties": false
       },
-      "outputSchema": {"type": "integer"}
+      "outputSchema": {"type": "integer"},
+      "tool_url": "tools/word_count/tool.json"
     }
   ],
   "version": "1.0.0",
@@ -195,7 +196,7 @@ The root `index.json` provides MCP-compatible tool schemas:
 }
 ```
 
-### Tool-Specific Index (`tools/{tool}/index.json`)
+### Tool-Specific Index (`tools/{tool}/tool.json`)
 
 Each tool directory contains a navigation index for SPA/analysis integration:
 
@@ -296,9 +297,9 @@ Test cases and examples for each tool:
 - **Test Data**: Examine `inputs/*.json` for usage patterns
 
 #### For SPA Integration
-- **Navigation**: Use tool-specific `index.json` files as API endpoints
+- **Navigation**: Use tool-specific `tool.json` files as API endpoints via `tool_url` from global index
 - **Content Display**: Load HTML source code directly into web interfaces
-- **Data Fetching**: Use relative paths from index files for dynamic loading
+- **Data Fetching**: Use relative paths from tool.json files for dynamic loading
 - **Statistics**: Access file counts and metrics from tool stats
 
 #### For CLI Integration

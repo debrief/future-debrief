@@ -210,7 +210,7 @@ def package_toolvault(
                         f.write(html_content)
                 
                 
-                # Create tool-specific index.json for SPA navigation
+                # Create tool-specific tool.json for SPA navigation
                 tool_index = {
                     "tool_name": tool.name,
                     "description": tool.description,
@@ -248,9 +248,9 @@ def package_toolvault(
                         "type": "json"
                     })
                 
-                # Save tool index in the tool's root directory
+                # Save tool index in the tool's root directory as tool.json
                 tool_dir_path = debug_dir / "tools" / Path(tool.tool_dir).name
-                tool_index_file = tool_dir_path / "index.json"
+                tool_index_file = tool_dir_path / "tool.json"
                 with open(tool_index_file, 'w') as f:
                     json.dump(tool_index, f, indent=2)
             
