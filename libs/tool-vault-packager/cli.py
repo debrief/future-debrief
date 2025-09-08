@@ -166,26 +166,30 @@ def main():
         parser.print_help()
         sys.exit(1)
     
-    # Resolve tools path
-    tools_path = Path(args.tools_path).resolve()
-    if not tools_path.exists():
-        print(f"Error: Tools directory does not exist: {tools_path}", file=sys.stderr)
-        sys.exit(1)
+    # Resolve tools path (handle special bundled case)
+    if args.tools_path == "__bundled__":
+        tools_path_str = "__bundled__"
+    else:
+        tools_path = Path(args.tools_path).resolve()
+        if not tools_path.exists():
+            print(f"Error: Tools directory does not exist: {tools_path}", file=sys.stderr)
+            sys.exit(1)
+        tools_path_str = str(tools_path)
     
     # Execute command
     if args.command == "list-tools":
-        list_tools_command(str(tools_path))
+        list_tools_command(tools_path_str)
     elif args.command == "call-tool":
         try:
             arguments = json.loads(args.arguments)
         except json.JSONDecodeError as e:
             print(f"Error: Invalid JSON arguments: {e}", file=sys.stderr)
             sys.exit(1)
-        call_tool_command(str(tools_path), args.tool_name, arguments)
+        call_tool_command(tools_path_str, args.tool_name, arguments)
     elif args.command == "serve":
-        serve_command(str(tools_path), args.port, args.host)
+        serve_command(tools_path_str, args.port, args.host)
     elif args.command == "generate":
-        generate_command(str(tools_path), args.output)
+        generate_command(tools_path_str, args.output)
 
 
 if __name__ == "__main__":

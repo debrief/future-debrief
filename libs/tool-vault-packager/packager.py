@@ -29,18 +29,23 @@ import sys
 import os
 from pathlib import Path
 
-# Add the current package to Python path
-package_dir = Path(__file__).parent
-sys.path.insert(0, str(package_dir))
+# Get the .pyz file path from sys.argv[0] (more reliable than __file__ in zipapps)
+pyz_path = sys.argv[0]
+
+# Add the .pyz to Python path so we can import modules from it
+sys.path.insert(0, pyz_path)
 
 # Import CLI after path setup
 from cli import main
 
 if __name__ == "__main__":
-    # Set default tools path to the packaged tools directory
-    if not any(arg.startswith("--tools-path") for arg in sys.argv[1:]):
-        tools_dir = package_dir / "tools"
-        sys.argv.insert(1, f"--tools-path={tools_dir}")
+    # Always use bundled tools for .pyz execution
+    # Only add --tools-path if not already provided by user
+    tools_path_provided = any(arg.startswith("--tools-path") for arg in sys.argv[1:])
+    
+    if not tools_path_provided:
+        # Use special bundled tools path that the discovery system will recognize
+        sys.argv.insert(1, "--tools-path=__bundled__")
     
     main()
 '''

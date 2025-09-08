@@ -44,8 +44,17 @@ python -m packager tools --output toolvault.pyz
 ### 5. Run Packaged Version
 
 ```bash
-./toolvault.pyz serve --port 8000
+# List tools from packaged version
+python toolvault.pyz list-tools
+
+# Call a tool from packaged version  
+python toolvault.pyz call-tool word_count '{"text": "Hello world"}'
+
+# Start server from packaged version
+python toolvault.pyz serve --port 8000
 ```
+
+**Note**: The .pyz package is fully self-contained and doesn't require the external `tools` directory.
 
 ## Tool Requirements
 

@@ -131,6 +131,111 @@ def load_sample_inputs(inputs_dir: Path) -> List[Dict[str, Any]]:
     return sample_inputs
 
 
+def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
+    """Discover tools from within a .pyz zipfile."""
+    import zipfile
+    import tempfile
+    import os
+    
+    tools = []
+    
+    with zipfile.ZipFile(zip_path, 'r') as zf:
+        # Find all tool directories (directories containing execute.py)
+        tool_dirs = set()
+        for file_info in zf.namelist():
+            if file_info.startswith('tools/') and file_info.endswith('/execute.py'):
+                # Extract tool directory name
+                parts = file_info.split('/')
+                if len(parts) >= 3:  # tools/toolname/execute.py
+                    tool_dir = parts[1]
+                    tool_dirs.add(tool_dir)
+        
+        # Process each tool directory
+        for tool_name in tool_dirs:
+            execute_path = f'tools/{tool_name}/execute.py'
+            
+            if execute_path not in zf.namelist():
+                continue
+                
+            # Extract and load the execute.py module
+            with tempfile.NamedTemporaryFile(mode='w+', suffix='.py', delete=False) as temp_file:
+                try:
+                    # Extract and write the module content
+                    module_content = zf.read(execute_path).decode('utf-8')
+                    temp_file.write(module_content)
+                    temp_file.flush()
+                    
+                    # Load the module
+                    module_name = f"{tool_name}_execute"
+                    spec = importlib.util.spec_from_file_location(module_name, temp_file.name)
+                    if spec is None or spec.loader is None:
+                        continue
+                        
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
+                    
+                    # Find public functions
+                    public_functions = [
+                        (name, obj) for name, obj in inspect.getmembers(module, inspect.isfunction)
+                        if not name.startswith("_") and obj.__module__ == module_name
+                    ]
+                    
+                    if len(public_functions) != 1:
+                        continue
+                    
+                    func_name, func = public_functions[0]
+                    
+                    # Extract metadata
+                    description = extract_function_docstring(func)
+                    type_annotations = extract_type_annotations(func)
+                    
+                    # Build parameters schema
+                    sig = inspect.signature(func)
+                    parameters = {}
+                    for param_name, param in sig.parameters.items():
+                        param_type = type_annotations.get(param_name, "object")
+                        param_schema = convert_python_type_to_json_schema(param_type)
+                        param_schema["description"] = f"Parameter {param_name}"
+                        parameters[param_name] = param_schema
+                    
+                    # Load sample inputs from zip
+                    sample_inputs = []
+                    inputs_prefix = f'tools/{tool_name}/inputs/'
+                    for file_info in zf.namelist():
+                        if file_info.startswith(inputs_prefix) and file_info.endswith('.json'):
+                            try:
+                                json_content = zf.read(file_info).decode('utf-8')
+                                sample_data = json.loads(json_content)
+                                file_name = file_info.split('/')[-1]
+                                sample_inputs.append({
+                                    "name": file_name.replace('.json', ''),
+                                    "file": file_name,
+                                    "data": sample_data
+                                })
+                            except Exception:
+                                pass  # Skip invalid JSON files
+                    
+                    # Get return type
+                    return_type = type_annotations.get('return', 'object')
+                    
+                    tools.append(ToolMetadata(
+                        name=func_name,
+                        function=func,
+                        description=description,
+                        parameters=parameters,
+                        return_type=return_type,
+                        module_path=execute_path,
+                        tool_dir=f'tools/{tool_name}',
+                        sample_inputs=sample_inputs
+                    ))
+                    
+                finally:
+                    # Clean up temp file
+                    os.unlink(temp_file.name)
+    
+    return tools
+
+
 def discover_tools(tools_path: str) -> List[ToolMetadata]:
     """
     Discover tools in the specified directory using the new folder structure.
@@ -140,7 +245,7 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
     - inputs/: Directory with sample JSON input files
     
     Args:
-        tools_path: Path to the tools directory
+        tools_path: Path to the tools directory or "__bundled__" for .pyz files
         
     Returns:
         List of ToolMetadata objects for discovered tools
@@ -148,6 +253,13 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
     Raises:
         ToolDiscoveryError: If discovery fails or validation errors occur
     """
+    # Handle special case for bundled tools in .pyz files
+    if tools_path == "__bundled__":
+        # We're running from a .pyz file - get the path to the current .pyz
+        import sys
+        pyz_path = sys.argv[0]  # This will be the .pyz file path
+        return discover_tools_from_zip(pyz_path)
+    
     tools = []
     tools_dir = Path(tools_path)
     
