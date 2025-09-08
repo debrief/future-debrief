@@ -3,7 +3,7 @@
 import importlib.util
 import inspect
 import json
-from typing import Dict, Any, List, Callable, get_type_hints
+from typing import Dict, Any, List, Callable, get_type_hints, Optional
 from pathlib import Path
 
 
@@ -24,7 +24,7 @@ class ToolMetadata:
         return_type: str,
         module_path: str,
         tool_dir: str,
-        sample_inputs: List[Dict[str, Any]] = None
+        sample_inputs: Optional[List[Dict[str, Any]]] = None
     ):
         self.name = name
         self.function = function
@@ -364,12 +364,9 @@ def generate_index_json(tools: List[ToolMetadata]) -> Dict[str, Any]:
                 "properties": tool.parameters,
                 "required": list(tool.parameters.keys()),
                 "additionalProperties": False
-            }
+            },
+            "outputSchema": convert_python_type_to_json_schema(tool.return_type)
         }
-        
-        # Include sample inputs if available
-        if tool.sample_inputs:
-            tool_schema["sampleInputs"] = tool.sample_inputs
         
         tools_list.append(tool_schema)
     
