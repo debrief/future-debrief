@@ -56,6 +56,13 @@ python toolvault.pyz serve --port 8000
 
 **Note**: The .pyz package is fully self-contained and doesn't require the external `tools` directory.
 
+### 6. Analyze Tool Details
+
+```bash
+# Show detailed tool information including source code and git history
+python toolvault.pyz show-details
+```
+
 ## Tool Requirements
 
 Each tool must:
@@ -131,6 +138,173 @@ Response:
   "isError": false
 }
 ```
+
+## .PYZ Package Contents
+
+The generated `.pyz` file contains a complete, self-contained ToolVault deployment with rich metadata for analysis and integration.
+
+### Package Structure
+
+```
+toolvault.pyz (when extracted):
+├── __main__.py              # Entry point for .pyz execution
+├── cli.py                   # Command-line interface
+├── discovery.py             # Tool discovery system
+├── server.py                # FastAPI server
+├── packager.py             # Packaging utilities
+├── requirements.txt         # Dependencies documentation
+├── index.json              # Global MCP-compatible tool schema
+└── tools/                  # Packaged tools with metadata
+    ├── word_count/
+    │   ├── execute.py          # Tool implementation
+    │   ├── index.json          # Tool-specific navigation index
+    │   ├── inputs/             # Sample input files
+    │   │   ├── empty_text.json
+    │   │   ├── simple_text.json
+    │   │   └── paragraph_text.json
+    │   └── metadata/           # Rich supporting data
+    │       ├── git_history.json    # Git commit history
+    │       └── source_code.html    # HTML-formatted source code
+    └── toggle_first_feature_color/
+        └── [same structure]
+```
+
+### Global Index (`index.json`)
+
+The root `index.json` provides MCP-compatible tool schemas:
+
+```json
+{
+  "tools": [
+    {
+      "name": "word_count",
+      "description": "Count the number of words...",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "text": {"type": "string", "description": "Parameter text"}
+        },
+        "required": ["text"],
+        "additionalProperties": false
+      },
+      "outputSchema": {"type": "integer"}
+    }
+  ],
+  "version": "1.0.0",
+  "description": "ToolVault packaged tools"
+}
+```
+
+### Tool-Specific Index (`tools/{tool}/index.json`)
+
+Each tool directory contains a navigation index for SPA/analysis integration:
+
+```json
+{
+  "tool_name": "word_count",
+  "description": "Count the number of words in a given block of text...",
+  "files": {
+    "execute": {
+      "path": "execute.py",
+      "description": "Main tool implementation",
+      "type": "python"
+    },
+    "source_code": {
+      "path": "metadata/source_code.html",
+      "description": "Pretty-printed source code",
+      "type": "html"
+    },
+    "git_history": {
+      "path": "metadata/git_history.json",
+      "description": "Git commit history",
+      "type": "json"
+    },
+    "inputs": [
+      {
+        "name": "simple_text",
+        "path": "inputs/simple_text.json",
+        "description": "Sample input: simple_text",
+        "type": "json"
+      }
+    ]
+  },
+  "stats": {
+    "sample_inputs_count": 3,
+    "git_commits_count": 2,
+    "source_code_length": 691
+  }
+}
+```
+
+### Supporting Metadata
+
+#### Git History (`metadata/git_history.json`)
+Complete commit history for tool development context:
+
+```json
+[
+  {
+    "hash": "f74ff4fa04058aa27ba0dbe0da9037acec7e7f15",
+    "author": {
+      "name": "Ian Mayo",
+      "email": "ian@planetmayo.com"
+    },
+    "date": "2025-09-08 12:37:51 +0100",
+    "message": "feat: Implement ToolVault Multi-Runtime Packager Phase 0 & 1"
+  }
+]
+```
+
+#### HTML Source Code (`metadata/source_code.html`)
+Styled, browser-ready source code display:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>word_count - Source Code</title>
+    <style>/* Professional code styling */</style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="tool-name">word_count</div>
+        </div>
+        <div class="source-code">def word_count(text: str) -> int:
+    """Count the number of words in a given block of text."""
+    # Implementation...</div>
+    </div>
+</body>
+</html>
+```
+
+#### Sample Inputs (`inputs/*.json`)
+Test cases and examples for each tool:
+
+```json
+{
+  "text": "The quick brown fox jumps over the lazy dog"
+}
+```
+
+### Integration Points
+
+#### For Analysts
+- **Tool Discovery**: Use global `index.json` for complete tool inventory
+- **Source Analysis**: Access `metadata/source_code.html` for code review
+- **Development History**: Review `metadata/git_history.json` for provenance
+- **Test Data**: Examine `inputs/*.json` for usage patterns
+
+#### For SPA Integration
+- **Navigation**: Use tool-specific `index.json` files as API endpoints
+- **Content Display**: Load HTML source code directly into web interfaces
+- **Data Fetching**: Use relative paths from index files for dynamic loading
+- **Statistics**: Access file counts and metrics from tool stats
+
+#### For CLI Integration
+- **Tool Execution**: `python toolvault.pyz call-tool <name> <args>`
+- **Server Mode**: `python toolvault.pyz serve --port 8000`
+- **Analysis**: `python toolvault.pyz show-details`
 
 ## CLI Commands
 
