@@ -10,7 +10,7 @@ ToolVault Packager discovers tools in designated directories, validates their ty
 
 This phase provides:
 - Tool discovery system with validation
-- MCP-compatible REST endpoints (`/tools/list`, `/tools/call`)
+- MCP-compatible REST endpoints (`/tools/list`, `/tools/call`, `/api/tools/`)
 - Python .pyz packaging
 - CLI interface for tool management and server operations
 - Input/output validation using Pydantic
@@ -91,9 +91,13 @@ def word_count(text: str) -> int:
     return len(text.strip().split())
 ```
 
-## MCP Endpoints
+## REST API Endpoints
 
-### GET /tools/list
+The server provides both virtual and direct file access endpoints:
+
+### Virtual Endpoints (Generated Content)
+
+#### GET /tools/list
 
 Returns available tools with their schemas:
 
@@ -121,7 +125,7 @@ Returns available tools with their schemas:
 }
 ```
 
-### POST /tools/call
+#### POST /tools/call
 
 Execute a tool with arguments:
 
@@ -138,6 +142,31 @@ Response:
   "isError": false
 }
 ```
+
+### Direct File Access Endpoints
+
+#### GET /api/tools/{path}
+
+Direct access to tool files and metadata. Used by SPAs and analysis tools for navigation:
+
+```bash
+# Access tool metadata
+curl http://localhost:8000/api/tools/word_count/tool.json
+
+# Access source code HTML
+curl http://localhost:8000/api/tools/word_count/metadata/source_code.html
+
+# Access git history
+curl http://localhost:8000/api/tools/word_count/metadata/git_history.json
+
+# Access sample inputs
+curl http://localhost:8000/api/tools/word_count/inputs/simple_text.json
+```
+
+**Navigation Flow:**
+1. Start at `/tools/list` to get tool URLs pointing to `/api/tools/{tool}/tool.json`
+2. Follow `tool_url` to get tool structure and file paths
+3. Navigate to specific files using paths from tool.json
 
 ## .PYZ Package Contents
 
@@ -188,7 +217,7 @@ The root `index.json` provides MCP-compatible tool schemas:
         "additionalProperties": false
       },
       "outputSchema": {"type": "integer"},
-      "tool_url": "tools/word_count/tool.json"
+      "tool_url": "/api/tools/word_count/tool.json"
     }
   ],
   "version": "1.0.0",
