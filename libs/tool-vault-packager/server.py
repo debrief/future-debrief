@@ -137,6 +137,79 @@ class ToolVaultServer:
                     }
                 )
         
+        @self.app.get("/tools/{tool_path:path}/tool.json")
+        async def get_tool_metadata(tool_path: str):
+            """Serve tool-specific metadata JSON file."""
+            # Find tool by matching the tool_path with the tool directory path
+            # The tool_path should match the relative path from tools/ directory
+            matching_tool = None
+            for tool in self.tools:
+                # Convert tool.tool_dir to relative path from tools directory
+                tool_dir_path = Path(tool.tool_dir)
+                # If tool_dir is absolute, make it relative to tools directory
+                if tool_dir_path.is_absolute():
+                    # Find the tools part and get everything after it
+                    parts = tool_dir_path.parts
+                    if 'tools' in parts:
+                        tools_index = parts.index('tools')
+                        relative_path = '/'.join(parts[tools_index + 1:])
+                    else:
+                        relative_path = tool_dir_path.name
+                else:
+                    relative_path = str(tool_dir_path)
+                
+                if tool_path == relative_path:
+                    matching_tool = tool
+                    break
+            
+            if matching_tool is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Tool at path 'tools/{tool_path}' not found"
+                )
+            
+            tool = matching_tool
+            
+            # Generate the tool-specific metadata structure
+            tool_metadata = {
+                "tool_name": tool.name,
+                "description": tool.description,
+                "files": {
+                    "execute": {
+                        "path": "execute.py",
+                        "description": "Main tool implementation",
+                        "type": "python"
+                    },
+                    "source_code": {
+                        "path": "metadata/source_code.html",
+                        "description": "Pretty-printed source code",
+                        "type": "html"
+                    },
+                    "git_history": {
+                        "path": "metadata/git_history.json",
+                        "description": "Git commit history",
+                        "type": "json"
+                    },
+                    "inputs": []
+                },
+                "stats": {
+                    "sample_inputs_count": len(tool.sample_inputs),
+                    "git_commits_count": len(tool.git_history),
+                    "source_code_length": len(tool.source_code) if tool.source_code else 0
+                }
+            }
+            
+            # Add sample input files to metadata
+            for sample_input in tool.sample_inputs:
+                tool_metadata["files"]["inputs"].append({
+                    "name": sample_input["name"],
+                    "path": f"inputs/{sample_input['file']}",
+                    "description": f"Sample input: {sample_input['name']}",
+                    "type": "json"
+                })
+            
+            return JSONResponse(content=tool_metadata)
+        
         @self.app.get("/health")
         async def health():
             """Health check endpoint."""
