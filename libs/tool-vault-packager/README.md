@@ -26,13 +26,13 @@ pip install -r requirements.txt
 ### 2. Discover Tools
 
 ```bash
-python -m cli list-tools --tools-path tools
+python -m cli --tools-path tools list-tools
 ```
 
 ### 3. Start Server
 
 ```bash
-python -m cli serve --tools-path tools --port 8000
+python -m cli --tools-path tools serve --port 8000
 ```
 
 ### 4. Package into .pyz
@@ -127,22 +127,22 @@ Response:
 
 ### List Tools
 ```bash
-python -m cli list-tools --tools-path tools
+python -m cli --tools-path tools list-tools
 ```
 
 ### Call Tool
 ```bash
-python -m cli call-tool word_count '{"text": "Hello world"}' --tools-path tools
+python -m cli --tools-path tools call-tool word_count '{"text": "Hello world"}'
 ```
 
 ### Start Server
 ```bash
-python -m cli serve --tools-path tools --port 8000 --host 0.0.0.0
+python -m cli --tools-path tools serve --port 8000 --host 0.0.0.0
 ```
 
 ### Generate Index
 ```bash
-python -m cli generate --tools-path tools --output index.json
+python -m cli --tools-path tools generate --output index.json
 ```
 
 ## Architecture
