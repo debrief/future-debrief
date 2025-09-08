@@ -475,7 +475,7 @@ def generate_index_json(tools: List[ToolMetadata]) -> Dict[str, Any]:
                 "additionalProperties": False
             },
             "outputSchema": convert_python_type_to_json_schema(tool.return_type),
-            "tool_url": f"/tools/{tool_dir_name}/tool.json"
+            "tool_url": f"/api/tools/{tool_dir_name}/tool.json"
         }
         
         tools_list.append(tool_schema)
