@@ -1,96 +1,107 @@
 # Software Requirements Document (SRD)
-## ToolVault Packaging and Deployment (MCP-Compatible)
+## ToolVault Packaging and Deployment (Multi-Runtime, MCP-Compatible)
 
 ### 1. Scope
-ToolVault is a self-contained module that packages Python tools, reference data, metadata, and an MCP-compatible REST/WebSocket wrapper into a single deployable unit. The deployable provides both a human-facing SPA and an MCP-standard interface for AI supervisors.
+ToolVault is a self-contained module that packages tools, reference data, metadata, and an MCP-compatible wrapper into a single deployable unit. It supports both **Python** and **TypeScript** runtimes, ensuring flexibility in different environments. Each deployable must run in connected or air-gapped environments with minimal setup.
 
 ### 2. Context
-ToolVault instances will be used in the Future Debrief ecosystem and may also be consumed by external AI supervisors via the **Model Context Protocol (MCP)**. Each instance:
-- Contains Python tools with consistent interfaces.
-- Provides discovery metadata (`tools/list`) per MCP.
-- Exposes a uniform execution method (`tools/call`) per MCP.
-- Validates inputs/outputs against shared JSON Schemas.
+ToolVault instances will be used in the Future Debrief ecosystem and may also be consumed by AI supervisors via the **Model Context Protocol (MCP)**.  
+- Python runtime is packaged as a `.pyz` (zipapp).  
+- TypeScript runtime is packaged as a self-contained NPM tarball containing all dependencies.  
+- Both runtimes expose identical MCP endpoints (`tools/list`, `tools/call`) and serve the same static SPA.
 
 ### 3. Functional Requirements
 
 #### 3.1 Tools
 - [F1] Each module in `toolvault/tools/` must contain one public function representing a tool.
-- [F2] Each function must include type annotations for all parameters and return values.
+- [F2] Each function must include type annotations for all parameters and return values (Python) or TypeScript types (TS).
 - [F3] Missing annotations must cause the build to fail.
 
 #### 3.2 Discovery (`tools/list`)
-- [F4] ToolVault must expose a `tools/list` endpoint, per MCP spec.
-- [F5] Response must enumerate all tools with:
-  - Name
-  - Description
-  - Input schema (inline or `$ref` to shared-types)
-  - Output schema (inline or `$ref` to shared-types)
+- [F4] Both runtimes must expose `tools/list`, per MCP spec.
+- [F5] Response must enumerate all tools with name, description, input schema, and output schema (inline or `$ref`).
 
 #### 3.3 Execution (`tools/call`)
-- [F6] ToolVault must expose a `tools/call` endpoint, per MCP spec.
-- [F7] Request body must specify tool `name` and `arguments` (validated JSON object).
-- [F8] Response must include `result`, validated against declared output schema.
+- [F6] Both runtimes must expose `tools/call`, per MCP spec.
+- [F7] Requests must include tool name and arguments.  
+- [F8] Responses must include result, validated against schema.  
 - [F9] Error responses must follow MCP error structure.
 
-#### 3.4 Validation Models
-- [F10] Build process must generate `toolvault/metadata/models.py` containing Pydantic models for input and output of each tool.
-- [F11] Pydantic models must be derived from shared-types schemas where applicable.
-- [F12] All tool outputs must be wrapped in `{"result": ...}` for uniformity.
+#### 3.4 Validation
+- [F10] Validation must be schema-driven:  
+  - Python: Pydantic models generated from shared-types schemas.  
+  - TypeScript: `ajv` (or equivalent) validators generated from shared-types schemas.  
+- [F11] All tool outputs must be wrapped in `{"result": ...}` for uniformity.
 
 #### 3.5 Packaging
-- [F13] Build process must bundle:
-  - Python tools (`toolvault/tools/`).
-  - Metadata (`toolvault/metadata/index.json`, `toolvault/metadata/models.py`).
-  - Static SPA (`toolvault/static/`).
-  - MCP-compatible REST/WebSocket wrapper (`toolvault/rest.py`).
-- [F14] Final deployable unit must be a `.pyz` (zipapp) file.
+- [F12] Python build must bundle:  
+  - Tools (`toolvault/tools/`).  
+  - Metadata (`index.json`, Pydantic models).  
+  - Static SPA.  
+  - REST/WebSocket wrapper.  
+  - Deliverable: `toolvault.pyz`.  
+
+- [F13] TypeScript build must bundle:  
+  - Tools (`src/tools/`).  
+  - Metadata (`index.json`, AJV validators).  
+  - Static SPA.  
+  - REST/WebSocket wrapper (Express/Fastify).  
+  - Deliverable: self-contained `.tgz` NPM tarball with all dependencies vendored.  
+
+- [F14] Both deployables must run without network fetch.  
 
 #### 3.6 Runtime
-- [F15] Invoking `python toolvault.pyz serve --port <n>` must start a FastAPI/uvicorn server on the specified port.
-- [F16] Endpoints exposed:
-  - `POST /tools/list` — returns discovery metadata.
-  - `POST /tools/call` — validates input/output and executes tool.
-- [F17] SPA must render welcome page and allow navigation through tools based on `tools/list` response.
-- [F18] SPA may call `tools/call` to execute tools.
+- [F15] Python: `python toolvault.pyz serve --port <n>` must start the service.  
+- [F16] TypeScript: after installing tarball, `npx toolvault serve --port <n>` must start the service.  
+- [F17] Both must expose MCP endpoints:  
+  - `POST /tools/list`  
+  - `POST /tools/call`  
+- [F18] SPA must work identically on both runtimes.  
 
 ### 4. Non-Functional Requirements
-- [N1] Must run with Python 3.9+ without external dependencies beyond declared requirements.
-- [N2] Must function in offline/air-gapped environments (no internet required).
-- [N3] Startup must complete in under 2 seconds on a modern laptop.
-- [N4] REST responses must validate against Pydantic models before being returned.
-- [N5] Discovery and execution formats must remain MCP-compliant for compatibility with AI supervisors.
+- [N1] Must run with Python 3.9+ or Node.js 18+.  
+- [N2] Must function in offline/air-gapped networks.  
+- [N3] Startup under 2 seconds on modern laptop.  
+- [N4] Discovery/execution formats must remain MCP-compliant.  
+- [N5] Shared-types schemas must be the single source of truth for validation in both runtimes.
 
 ### 5. Packaging and Build Process
 
 #### 5.1 Objective
-Ensure ToolVault deployables are MCP-compatible from the outset, serving both human-facing SPA and MCP consumers.
+Provide two packaging targets (Python `.pyz`, TypeScript `.tgz`) with identical runtime behaviour.
 
 #### 5.2 Inputs
-- Python tools source tree.
+- Tool source trees (`toolvault/tools/`, `src/tools/`).  
 - Shared-types schemas (`libs/shared-types/`), maintained as JSON Schema master.
 
-#### 5.3 Build Steps
-1. Discover tools in `toolvault/tools/`.
-2. Extract signatures, docstrings, and type annotations.
-3. Map annotations to JSON Schema primitives or `$ref` to shared-types schemas.
-4. Generate MCP-compatible discovery JSON (used by `tools/list`).
-5. Generate Pydantic validation models (`models.py`) using shared-types where applicable.
-6. Package into `toolvault.pyz` containing tools, metadata, static SPA, and MCP wrapper.
+#### 5.3 Build Steps (Python)
+1. Discover tools and parse signatures.  
+2. Map annotations to JSON Schema or `$ref`.  
+3. Generate MCP-compatible `index.json`.  
+4. Generate Pydantic validation models.  
+5. Package into `.pyz` with static SPA and FastAPI wrapper.  
 
-#### 5.4 Runtime
-- REST/WebSocket wrapper must serve MCP methods `tools/list` and `tools/call`.
-- SPA must rely on these same methods for tool discovery and execution.
-- CLI runner must provide equivalent functionality.
+#### 5.4 Build Steps (TypeScript)
+1. Discover tools and parse signatures/types.  
+2. Map types to JSON Schema or `$ref`.  
+3. Generate MCP-compatible `index.json`.  
+4. Generate AJV validation code from schemas.  
+5. Bundle entire project (tools + deps + SPA) into single JS bundle with esbuild/webpack.  
+6. Publish as `.tgz` with all dependencies vendored.  
 
-#### 5.5 Requirements
+#### 5.5 Runtime
+- Both runtimes serve SPA and MCP endpoints.  
+- CLI wrappers provide `list-tools` and `call-tool`.  
+- Validation handled from shared-types schemas.
+
+#### 5.6 Requirements
 - [R1] Tools without type annotations must be rejected at build.
 - [R2] Input/output validation must use generated Pydantic models.
 - [R3] Discovery must follow MCP’s `tools/list` response schema.
 - [R4] Execution must follow MCP’s `tools/call` request/response schema.
 - [R5] Deployable must immediately serve welcome page and MCP endpoints when run with `serve` command.
-
 ### 6. Benefits
-- MCP-compliance ensures ToolVault can be immediately consumed by AI supervisors without adapters.
-- Single-file deployment (`.pyz`) for portability.
-- Shared-types guarantees cross-language consistency (Python, TS, REST).
-- SPA and MCP clients share the same discovery and execution interface, avoiding divergence.
+- Python `.pyz` = single file, standard for analysts in Python environments.  
+- TypeScript `.tgz` = self-contained, OS-independent, works offline with Node runtime.  
+- Both runtimes expose identical MCP-compatible interfaces.  
+- Shared-types ensures absolute consistency across languages.  
