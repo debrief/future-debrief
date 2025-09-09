@@ -323,51 +323,80 @@ class ToolVaultServer:
         @self.app.get("/api/tools/{full_path:path}")
         async def get_tool_file(full_path: str):
             """Serve any file from the tools directory structure."""
-            # Get the base tools directory from discovery
-            if self.tools:
-                # Use the parent directory of any tool to find the tools root
-                sample_tool_dir = Path(self.tools[0].tool_dir)
-                if 'tools' in sample_tool_dir.parts:
-                    tools_index = sample_tool_dir.parts.index('tools')
-                    tools_root = Path(*sample_tool_dir.parts[:tools_index + 1])
+            import sys
+            
+            # Check if running from a .pyz file
+            if hasattr(sys, '_MEIPASS') or str(sys.argv[0]).endswith('.pyz'):
+                # Running from packaged archive - read from zip
+                import zipfile
+                try:
+                    pyz_path = sys.argv[0]
+                    with zipfile.ZipFile(pyz_path, 'r') as zf:
+                        tools_file_path = f"tools/{full_path}"
+                        if tools_file_path in zf.namelist():
+                            content = zf.read(tools_file_path).decode('utf-8')
+                            
+                            # Determine content type and serve file
+                            if full_path.endswith('.html'):
+                                return HTMLResponse(content=content)
+                            elif full_path.endswith('.json'):
+                                return JSONResponse(content=json.loads(content))
+                            elif full_path.endswith('.py'):
+                                return PlainTextResponse(content=content, media_type="text/plain")
+                            else:
+                                # Default to plain text for other file types
+                                return PlainTextResponse(content=content, media_type="text/plain")
+                        else:
+                            raise HTTPException(status_code=404, detail=f"File '{full_path}' not found in archive")
+                except Exception as e:
+                    raise HTTPException(status_code=500, detail=f"Error reading from archive: {e}")
+            else:
+                # Running from file system
+                # Get the base tools directory from discovery
+                if self.tools:
+                    # Use the parent directory of any tool to find the tools root
+                    sample_tool_dir = Path(self.tools[0].tool_dir)
+                    if 'tools' in sample_tool_dir.parts:
+                        tools_index = sample_tool_dir.parts.index('tools')
+                        tools_root = Path(*sample_tool_dir.parts[:tools_index + 1])
+                    else:
+                        tools_root = sample_tool_dir.parent
+                        
+                    # Check if we should use tmp_package_contents instead (development mode)
+                    current_dir = Path(__file__).parent
+                    tmp_tools = current_dir / "tmp_package_contents" / "tools"
+                    if tmp_tools.exists():
+                        tools_root = tmp_tools
                 else:
-                    tools_root = sample_tool_dir.parent
-                    
-                # Check if we should use tmp_package_contents instead (development mode)
-                current_dir = Path(__file__).parent
-                tmp_tools = current_dir / "tmp_package_contents" / "tools"
-                if tmp_tools.exists():
-                    tools_root = tmp_tools
-            else:
-                raise HTTPException(status_code=500, detail="No tools available")
-            
-            # Construct the full file path
-            requested_file = tools_root / full_path
-            
-            # Security check - ensure file is within tools directory
-            try:
-                requested_file.resolve().relative_to(tools_root.resolve())
-            except ValueError:
-                raise HTTPException(status_code=403, detail="Access denied - path outside tools directory")
-            
-            # Check if file exists
-            if not requested_file.exists():
-                raise HTTPException(status_code=404, detail=f"File '{full_path}' not found")
-            
-            # Determine content type and serve file
-            if full_path.endswith('.html'):
-                content = requested_file.read_text(encoding='utf-8')
-                return HTMLResponse(content=content)
-            elif full_path.endswith('.json'):
-                content = requested_file.read_text(encoding='utf-8')
-                return JSONResponse(content=json.loads(content))
-            elif full_path.endswith('.py'):
-                content = requested_file.read_text(encoding='utf-8')
-                return PlainTextResponse(content=content, media_type="text/plain")
-            else:
-                # Default to plain text for other file types
-                content = requested_file.read_text(encoding='utf-8')
-                return PlainTextResponse(content=content, media_type="text/plain")
+                    raise HTTPException(status_code=500, detail="No tools available")
+                
+                # Construct the full file path
+                requested_file = tools_root / full_path
+                
+                # Security check - ensure file is within tools directory
+                try:
+                    requested_file.resolve().relative_to(tools_root.resolve())
+                except ValueError:
+                    raise HTTPException(status_code=403, detail="Access denied - path outside tools directory")
+                
+                # Check if file exists
+                if not requested_file.exists():
+                    raise HTTPException(status_code=404, detail=f"File '{full_path}' not found")
+                
+                # Determine content type and serve file
+                if full_path.endswith('.html'):
+                    content = requested_file.read_text(encoding='utf-8')
+                    return HTMLResponse(content=content)
+                elif full_path.endswith('.json'):
+                    content = requested_file.read_text(encoding='utf-8')
+                    return JSONResponse(content=json.loads(content))
+                elif full_path.endswith('.py'):
+                    content = requested_file.read_text(encoding='utf-8')
+                    return PlainTextResponse(content=content, media_type="text/plain")
+                else:
+                    # Default to plain text for other file types
+                    content = requested_file.read_text(encoding='utf-8')
+                    return PlainTextResponse(content=content, media_type="text/plain")
         
         @self.app.get("/health")
         async def health():
