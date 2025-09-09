@@ -21,29 +21,64 @@ except ImportError:
     BaseModel = None
     ValidationError = None
 
+# Handle imports - try absolute first, then relative
 try:
-    from .discovery import discover_tools, generate_index_json, ToolMetadata
-except ImportError:
-    # Handle case when running as script
     from discovery import discover_tools, generate_index_json, ToolMetadata
+except ImportError:
+    try:
+        from .discovery import discover_tools, generate_index_json, ToolMetadata
+    except ImportError:
+        # Last resort: explicit module loading
+        import sys
+        import importlib.util
+        import os
+        
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        discovery_path = os.path.join(current_dir, "discovery.py")
+        
+        if os.path.exists(discovery_path):
+            spec = importlib.util.spec_from_file_location("discovery", discovery_path)
+            discovery_module = importlib.util.module_from_spec(spec)
+            sys.modules["discovery"] = discovery_module
+            spec.loader.exec_module(discovery_module)
+            
+            from discovery import discover_tools, generate_index_json, ToolMetadata
+        else:
+            raise ImportError("Could not locate discovery module")
 
 
-class ToolCallRequest(BaseModel):
-    """Request model for tool call endpoint."""
-    name: str
-    arguments: Dict[str, Any]
+# Only define models if BaseModel is available
+if BaseModel is not None:
+    class ToolCallRequest(BaseModel):
+        """Request model for tool call endpoint."""
+        name: str
+        arguments: Dict[str, Any]
 
+    class ToolCallResponse(BaseModel):
+        """Response model for tool call endpoint."""
+        result: Any
+        isError: bool = False
 
-class ToolCallResponse(BaseModel):
-    """Response model for tool call endpoint."""
-    result: Any
-    isError: bool = False
-
-
-class ErrorResponse(BaseModel):
-    """Error response model."""
-    error: str
-    details: Optional[str] = None
+    class ErrorResponse(BaseModel):
+        """Error response model."""
+        error: str
+        details: Optional[str] = None
+else:
+    # Fallback simple classes when Pydantic is not available
+    class ToolCallRequest:
+        def __init__(self, name: str, arguments: Dict[str, Any]):
+            self.name = name
+            self.arguments = arguments
+    
+    class ToolCallResponse:
+        def __init__(self, result: Any, isError: bool = False):
+            self.result = result
+            self.isError = isError
+    
+    class ErrorResponse:
+        def __init__(self, error: str, details: Optional[str] = None):
+            self.error = error
+            self.details = details
 
 
 class ToolVaultServer:

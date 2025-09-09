@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import type { MCPTool, ToolIndex, GitHistory } from '../types';
+import { useState, useEffect, useCallback } from 'react';
+import type { MCPTool, ToolIndex, GitHistory, GitCommit } from '../types';
 import { mcpService } from '../services/mcpService';
 
 interface InfoTabProps {
@@ -12,27 +12,27 @@ export function InfoTab({ tool, toolIndex, loading }: InfoTabProps) {
   const [gitHistory, setGitHistory] = useState<GitHistory | null>(null);
   const [gitLoading, setGitLoading] = useState(false);
 
-  useEffect(() => {
-    if (toolIndex?.files.git_history) {
-      loadGitHistory();
-    }
-  }, [toolIndex]);
-
-  const loadGitHistory = async () => {
+  const loadGitHistory = useCallback(async () => {
     if (!toolIndex?.files.git_history) return;
     
     setGitLoading(true);
     try {
       const history = await mcpService.loadGitHistory(toolIndex.files.git_history.path, tool.name);
       // Backend returns array directly, wrap it in GitHistory format
-      setGitHistory({ commits: history as any[] });
+      setGitHistory({ commits: history as GitCommit[] });
     } catch (err) {
       console.warn('Could not load git history:', err);
       setGitHistory(null);
     } finally {
       setGitLoading(false);
     }
-  };
+  }, [toolIndex, tool.name]);
+
+  useEffect(() => {
+    if (toolIndex?.files.git_history) {
+      loadGitHistory();
+    }
+  }, [toolIndex, loadGitHistory]);
 
   if (loading) {
     return <div className="tab-loading">Loading tool information...</div>;

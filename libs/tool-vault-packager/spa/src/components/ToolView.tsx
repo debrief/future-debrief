@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { MCPTool, ToolIndex, TabType } from '../types';
 import { mcpService } from '../services/mcpService';
 import { InfoTab } from './InfoTab';
@@ -16,11 +16,7 @@ export function ToolView({ tool }: ToolViewProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadToolIndex();
-  }, [tool]);
-
-  const loadToolIndex = async () => {
+  const loadToolIndex = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -34,7 +30,11 @@ export function ToolView({ tool }: ToolViewProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [tool.name]);
+
+  useEffect(() => {
+    loadToolIndex();
+  }, [tool, loadToolIndex]);
 
   return (
     <div className="tool-view">

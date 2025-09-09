@@ -6,15 +6,37 @@ import sys
 from pathlib import Path
 from typing import Dict, Any
 
+# Handle imports - try relative first, then absolute
 try:
-    from .discovery import discover_tools, generate_index_json
-    from .server import create_app
-    from .packager import output_tool_details
-except ImportError:
-    # Handle case when running as script
     from discovery import discover_tools, generate_index_json
     from server import create_app
     from packager import output_tool_details
+except ImportError:
+    try:
+        from .discovery import discover_tools, generate_index_json
+        from .server import create_app
+        from .packager import output_tool_details
+    except ImportError:
+        # Last resort: try explicit module paths
+        import sys
+        import importlib.util
+        
+        # Get the directory containing this file
+        import os
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Load modules directly
+        for module_name in ['discovery', 'server', 'packager']:
+            module_path = os.path.join(current_dir, f"{module_name}.py")
+            if os.path.exists(module_path):
+                spec = importlib.util.spec_from_file_location(module_name, module_path)
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[module_name] = module
+                spec.loader.exec_module(module)
+        
+        from discovery import discover_tools, generate_index_json
+        from server import create_app
+        from packager import output_tool_details
 
 
 def list_tools_command(tools_path: str):

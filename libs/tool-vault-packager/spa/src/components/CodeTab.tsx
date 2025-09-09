@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { MCPTool, ToolIndex } from '../types';
 import { mcpService } from '../services/mcpService';
 import { NoDataWarning, LoadingError } from './Warning';
@@ -14,13 +14,7 @@ export function CodeTab({ tool, toolIndex, loading }: CodeTabProps) {
   const [codeLoading, setCodeLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (toolIndex?.files.source_code) {
-      loadSourceCode();
-    }
-  }, [toolIndex]);
-
-  const loadSourceCode = async () => {
+  const loadSourceCode = useCallback(async () => {
     if (!toolIndex?.files.source_code) return;
     
     setCodeLoading(true);
@@ -34,7 +28,13 @@ export function CodeTab({ tool, toolIndex, loading }: CodeTabProps) {
     } finally {
       setCodeLoading(false);
     }
-  };
+  }, [toolIndex, tool.name]);
+
+  useEffect(() => {
+    if (toolIndex?.files.source_code) {
+      loadSourceCode();
+    }
+  }, [toolIndex, loadSourceCode]);
 
   const copyToClipboard = async () => {
     try {
