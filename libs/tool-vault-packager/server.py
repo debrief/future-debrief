@@ -7,13 +7,15 @@ from pathlib import Path
 
 try:
     from fastapi import FastAPI, HTTPException
-    from fastapi.responses import JSONResponse
+    from fastapi.responses import JSONResponse, HTMLResponse, PlainTextResponse
+    from fastapi.middleware.cors import CORSMiddleware
     from pydantic import BaseModel, ValidationError
 except ImportError:
     # Handle case where dependencies might not be available yet
     FastAPI = None
     HTTPException = None
     JSONResponse = None
+    CORSMiddleware = None
     BaseModel = None
     ValidationError = None
 
@@ -56,6 +58,16 @@ class ToolVaultServer:
             version="1.0.0"
         )
         
+        # Add CORS middleware to allow cross-origin requests from SPA
+        if CORSMiddleware:
+            self.app.add_middleware(
+                CORSMiddleware,
+                allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],  # Vite dev server
+                allow_credentials=True,
+                allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                allow_headers=["*"],
+            )
+        
         # Discover tools
         try:
             self.tools = discover_tools(tools_path)
@@ -67,17 +79,23 @@ class ToolVaultServer:
         # Setup routes
         self._setup_routes()
     
+    
     def _setup_routes(self):
         """Setup FastAPI routes."""
         
         @self.app.get("/")
         async def root():
-            """Root endpoint providing basic server information."""
+            """Root endpoint providing basic server information and API discovery."""
             return {
                 "name": "ToolVault Server",
                 "version": "1.0.0",
                 "status": "running",
-                "tools_count": len(self.tools)
+                "tools_count": len(self.tools),
+                "endpoints": {
+                    "tools": "/tools/list",
+                    "call": "/tools/call",
+                    "health": "/health"
+                }
             }
         
         @self.app.get("/tools/list")
@@ -132,6 +150,80 @@ class ToolVaultServer:
                     }
                 )
         
+        @self.app.get("/tools/{tool_path:path}/tool.json")
+        async def get_tool_metadata(tool_path: str):
+            """Serve tool-specific metadata JSON file."""
+            # Get the base tools directory
+            if self.tools:
+                sample_tool_dir = Path(self.tools[0].tool_dir)
+                if 'tools' in sample_tool_dir.parts:
+                    tools_index = sample_tool_dir.parts.index('tools')
+                    tools_root = Path(*sample_tool_dir.parts[:tools_index + 1])
+                else:
+                    tools_root = sample_tool_dir.parent
+            else:
+                raise HTTPException(status_code=500, detail="No tools available")
+            
+            # Construct the full file path to tool.json
+            tool_json_file = tools_root / tool_path / "tool.json"
+            
+            # Security check - ensure file is within tools directory
+            try:
+                tool_json_file.resolve().relative_to(tools_root.resolve())
+            except ValueError:
+                raise HTTPException(status_code=403, detail="Access denied - path outside tools directory")
+            
+            # Check if file exists
+            if not tool_json_file.exists():
+                raise HTTPException(status_code=404, detail=f"Tool metadata file '{tool_path}/tool.json' not found")
+            
+            # Serve the tool.json file
+            content = tool_json_file.read_text(encoding='utf-8')
+            return JSONResponse(content=json.loads(content))
+        
+        @self.app.get("/api/tools/{full_path:path}")
+        async def get_tool_file(full_path: str):
+            """Serve any file from the tools directory structure."""
+            # Get the base tools directory from discovery
+            if self.tools:
+                # Use the parent directory of any tool to find the tools root
+                sample_tool_dir = Path(self.tools[0].tool_dir)
+                if 'tools' in sample_tool_dir.parts:
+                    tools_index = sample_tool_dir.parts.index('tools')
+                    tools_root = Path(*sample_tool_dir.parts[:tools_index + 1])
+                else:
+                    tools_root = sample_tool_dir.parent
+            else:
+                raise HTTPException(status_code=500, detail="No tools available")
+            
+            # Construct the full file path
+            requested_file = tools_root / full_path
+            
+            # Security check - ensure file is within tools directory
+            try:
+                requested_file.resolve().relative_to(tools_root.resolve())
+            except ValueError:
+                raise HTTPException(status_code=403, detail="Access denied - path outside tools directory")
+            
+            # Check if file exists
+            if not requested_file.exists():
+                raise HTTPException(status_code=404, detail=f"File '{full_path}' not found")
+            
+            # Determine content type and serve file
+            if full_path.endswith('.html'):
+                content = requested_file.read_text(encoding='utf-8')
+                return HTMLResponse(content=content)
+            elif full_path.endswith('.json'):
+                content = requested_file.read_text(encoding='utf-8')
+                return JSONResponse(content=json.loads(content))
+            elif full_path.endswith('.py'):
+                content = requested_file.read_text(encoding='utf-8')
+                return PlainTextResponse(content=content, media_type="text/plain")
+            else:
+                # Default to plain text for other file types
+                content = requested_file.read_text(encoding='utf-8')
+                return PlainTextResponse(content=content, media_type="text/plain")
+        
         @self.app.get("/health")
         async def health():
             """Health check endpoint."""
@@ -149,9 +241,20 @@ def create_app(tools_path: str = None) -> FastAPI:
         Configured FastAPI application instance
     """
     if tools_path is None:
-        # Default to tools directory relative to this file
         current_dir = Path(__file__).parent
-        tools_path = str(current_dir / "tools")
+        
+        # Check if we're running from a .pyz file
+        if str(current_dir).endswith('.pyz'):
+            # Running from .pyz - use internal tools directory
+            tools_path = str(current_dir / "tools")
+        else:
+            # Running from command line - check for debug-package-contents first
+            debug_tools = current_dir / "debug-package-contents" / "tools"
+            if debug_tools.exists():
+                tools_path = str(debug_tools)
+            else:
+                # Fallback to regular tools directory
+                tools_path = str(current_dir / "tools")
     
     server = ToolVaultServer(tools_path)
     return server.app

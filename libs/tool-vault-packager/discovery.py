@@ -3,6 +3,7 @@
 import importlib.util
 import inspect
 import json
+import subprocess
 from typing import Dict, Any, List, Callable, get_type_hints, Optional
 from pathlib import Path
 
@@ -24,7 +25,9 @@ class ToolMetadata:
         return_type: str,
         module_path: str,
         tool_dir: str,
-        sample_inputs: Optional[List[Dict[str, Any]]] = None
+        sample_inputs: Optional[List[Dict[str, Any]]] = None,
+        source_code: Optional[str] = None,
+        git_history: Optional[List[Dict[str, Any]]] = None
     ):
         self.name = name
         self.function = function
@@ -34,6 +37,8 @@ class ToolMetadata:
         self.module_path = module_path
         self.tool_dir = tool_dir
         self.sample_inputs = sample_inputs or []
+        self.source_code = source_code
+        self.git_history = git_history or []
 
 
 def extract_function_docstring(func: Callable) -> str:
@@ -42,6 +47,26 @@ def extract_function_docstring(func: Callable) -> str:
     if not doc:
         return f"Tool function: {func.__name__}"
     return doc.strip()
+
+
+def extract_first_sentence(text: str) -> str:
+    """Extract the first sentence from a text description."""
+    if not text:
+        return text
+    
+    # Find the first sentence ending with a period, exclamation, or question mark
+    import re
+    
+    # Look for sentence endings followed by whitespace or end of string
+    sentence_endings = r'[.!?](?:\s+|$)'
+    match = re.search(sentence_endings, text)
+    
+    if match:
+        # Return everything up to and including the sentence ending punctuation
+        return text[:match.end()].rstrip()
+    
+    # If no sentence ending found, return the entire text (fallback)
+    return text
 
 
 def extract_type_annotations(func: Callable) -> Dict[str, str]:
@@ -129,6 +154,72 @@ def load_sample_inputs(inputs_dir: Path) -> List[Dict[str, Any]]:
             print(f"Warning: Failed to load sample input {json_file}: {e}")
     
     return sample_inputs
+
+
+def get_pretty_printed_source(func: Callable, file_path: Path) -> str:
+    """Extract and format the source code for a function."""
+    try:
+        # Get the source code of the function
+        source = inspect.getsource(func)
+        return source.strip()
+    except Exception as e:
+        # Fallback: read the entire file if we can't get function source
+        try:
+            return file_path.read_text(encoding='utf-8')
+        except Exception:
+            return f"# Error extracting source code: {e}"
+
+
+def get_git_history(file_path: Path, max_commits: int = 10) -> List[Dict[str, Any]]:
+    """Get git commit history for a specific file."""
+    try:
+        # Get the git log for the specific file
+        cmd = [
+            'git', 'log', 
+            f'--max-count={max_commits}',
+            '--pretty=format:%H|%an|%ae|%ad|%s', 
+            '--date=iso',
+            '--follow',  # Follow file renames
+            str(file_path)
+        ]
+        
+        result = subprocess.run(
+            cmd, 
+            capture_output=True, 
+            text=True, 
+            cwd=file_path.parent,
+            timeout=10
+        )
+        
+        if result.returncode != 0:
+            return []
+        
+        commits = []
+        for line in result.stdout.strip().split('\n'):
+            if not line:
+                continue
+                
+            try:
+                parts = line.split('|', 4)
+                if len(parts) == 5:
+                    commit_hash, author_name, author_email, date, message = parts
+                    commits.append({
+                        "hash": commit_hash,
+                        "author": {
+                            "name": author_name,
+                            "email": author_email
+                        },
+                        "date": date,
+                        "message": message
+                    })
+            except ValueError:
+                continue
+        
+        return commits
+        
+    except Exception as e:
+        print(f"Warning: Failed to get git history for {file_path}: {e}")
+        return []
 
 
 def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
@@ -226,7 +317,9 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
                         return_type=return_type,
                         module_path=execute_path,
                         tool_dir=f'tools/{tool_name}',
-                        sample_inputs=sample_inputs
+                        sample_inputs=sample_inputs,
+                        source_code=module_content,  # Use the extracted module content
+                        git_history=[]  # Not available in zip files
                     ))
                     
                 finally:
@@ -326,6 +419,12 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
         inputs_dir = tool_dir / "inputs"
         sample_inputs = load_sample_inputs(inputs_dir)
         
+        # Get pretty-printed source code
+        source_code = get_pretty_printed_source(func, execute_file)
+        
+        # Get git history for this tool's execute.py
+        git_history = get_git_history(execute_file)
+        
         tools.append(ToolMetadata(
             name=func_name,
             function=func,
@@ -334,7 +433,9 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
             return_type=return_type,
             module_path=str(execute_file),
             tool_dir=str(tool_dir),
-            sample_inputs=sample_inputs
+            sample_inputs=sample_inputs,
+            source_code=source_code,
+            git_history=git_history
         ))
     
     if not tools:
@@ -346,6 +447,8 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
 def generate_index_json(tools: List[ToolMetadata]) -> Dict[str, Any]:
     """
     Generate MCP-compatible index.json from discovered tools.
+    Uses only the first sentence of tool descriptions for brevity.
+    Includes URLs for each tool.json file for SPA navigation.
     
     Args:
         tools: List of discovered tool metadata
@@ -356,16 +459,23 @@ def generate_index_json(tools: List[ToolMetadata]) -> Dict[str, Any]:
     tools_list = []
     
     for tool in tools:
+        # Use only the first sentence for the main index
+        short_description = extract_first_sentence(tool.description)
+        
+        # Get tool directory name from tool_dir path
+        tool_dir_name = Path(tool.tool_dir).name
+        
         tool_schema = {
             "name": tool.name,
-            "description": tool.description,
+            "description": short_description,
             "inputSchema": {
                 "type": "object",
                 "properties": tool.parameters,
                 "required": list(tool.parameters.keys()),
                 "additionalProperties": False
             },
-            "outputSchema": convert_python_type_to_json_schema(tool.return_type)
+            "outputSchema": convert_python_type_to_json_schema(tool.return_type),
+            "tool_url": f"/api/tools/{tool_dir_name}/tool.json"
         }
         
         tools_list.append(tool_schema)
