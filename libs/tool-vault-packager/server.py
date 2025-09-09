@@ -362,7 +362,7 @@ def create_app(tools_path: str = None) -> FastAPI:
             tools_path = str(current_dir / "tools")
         else:
             # Running from command line - check for debug-package-contents first
-            debug_tools = current_dir / "debug-package-contents" / "tools"
+            debug_tools = current_dir / "tmp_package_contents" / "tools"
             if debug_tools.exists():
                 tools_path = str(debug_tools)
             else:
