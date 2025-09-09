@@ -5,6 +5,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { PlotJsonEditorProvider } from '../providers/editors/plotJsonEditor';
 import { validateFeatureCollectionComprehensive, validateFeatureByType, classifyFeature } from '@debrief/shared-types/validators/typescript';
+import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
+import { ViewportState } from '@debrief/shared-types/derived/typescript/viewportstate';
+import { GlobalController } from '../core/globalController';
+import { EditorIdManager } from '../core/editorIdManager';
 
 interface GeoJSONFeature {
     type: 'Feature';
@@ -28,6 +32,8 @@ interface CommandParams {
     featureCollection?: GeoJSONFeatureCollection;
     ids?: (string | number)[];
     features?: GeoJSONFeature[];
+    timeState?: TimeState;
+    viewportState?: ViewportState;
     [key: string]: unknown;
 }
 
@@ -249,6 +255,18 @@ export class DebriefWebSocketServer {
                 
                 case 'list_open_plots':
                     return await this.handleListOpenPlotsCommand();
+
+                case 'get_time':
+                    return await this.handleGetTimeCommand(message.params || {});
+                
+                case 'set_time':
+                    return await this.handleSetTimeCommand(message.params || {});
+                
+                case 'get_viewport':
+                    return await this.handleGetViewportCommand(message.params || {});
+                
+                case 'set_viewport':
+                    return await this.handleSetViewportCommand(message.params || {});
                     
                 default:
                     return {
@@ -986,5 +1004,297 @@ export class DebriefWebSocketServer {
                 available_plots: openPlots
             }
         };
+    }
+
+    private async handleGetTimeCommand(params: CommandParams): Promise<DebriefResponse> {
+        // Resolve filename (optional parameter)
+        const resolution = await this.resolveFilename(params?.filename);
+        if (resolution.error) {
+            return resolution;
+        }
+        try {
+            const filename = resolution.result;
+            if (typeof filename !== 'string') {
+                return {
+                    error: {
+                        message: 'Invalid filename resolved',
+                        code: 500
+                    }
+                };
+            }
+            
+            const document = await this.findOpenDocument(filename);
+            if (!document) {
+                return {
+                    error: {
+                        message: `File not found or not open: ${filename}`,
+                        code: 404
+                    }
+                };
+            }
+
+            // Get editorId for this document
+            const globalController = GlobalController.getInstance();
+            const editorIds = globalController.getEditorIds();
+            let editorId: string | undefined;
+            
+            for (const id of editorIds) {
+                const doc = EditorIdManager.getDocument(id);
+                if (doc && doc.fileName === document.fileName) {
+                    editorId = id;
+                    break;
+                }
+            }
+            
+            if (!editorId) {
+                return {
+                    error: {
+                        message: `Editor not found for file: ${filename}`,
+                        code: 404
+                    }
+                };
+            }
+
+            const timeState = globalController.getStateSlice(editorId, 'timeState');
+            return { result: timeState || null };
+        } catch (error) {
+            console.error('Error getting time state:', error);
+            return {
+                error: {
+                    message: error instanceof Error ? error.message : 'Failed to get time state',
+                    code: 500
+                }
+            };
+        }
+    }
+
+    private async handleSetTimeCommand(params: CommandParams): Promise<DebriefResponse> {
+        if (!params || !params.timeState || typeof params.timeState !== 'object') {
+            return {
+                error: {
+                    message: 'set_time command requires "timeState" (object) parameter',
+                    code: 400
+                }
+            };
+        }
+
+        // Resolve filename (optional parameter)
+        const resolution = await this.resolveFilename(params?.filename);
+        if (resolution.error) {
+            return resolution;
+        }
+        try {
+            const filename = resolution.result;
+            if (typeof filename !== 'string') {
+                return {
+                    error: {
+                        message: 'Invalid filename resolved',
+                        code: 500
+                    }
+                };
+            }
+            
+            const document = await this.findOpenDocument(filename);
+            if (!document) {
+                return {
+                    error: {
+                        message: `File not found or not open: ${filename}`,
+                        code: 404
+                    }
+                };
+            }
+
+            // Validate the time state structure
+            const timeState = params.timeState as TimeState;
+            if (!timeState.current || !timeState.range || !Array.isArray(timeState.range) || timeState.range.length !== 2) {
+                return {
+                    error: {
+                        message: 'Invalid TimeState: must have "current" (string) and "range" (array with 2 elements)',
+                        code: 400
+                    }
+                };
+            }
+
+            // Get editorId for this document
+            const globalController = GlobalController.getInstance();
+            const editorIds = globalController.getEditorIds();
+            let editorId: string | undefined;
+            
+            for (const id of editorIds) {
+                const doc = EditorIdManager.getDocument(id);
+                if (doc && doc.fileName === document.fileName) {
+                    editorId = id;
+                    break;
+                }
+            }
+            
+            if (!editorId) {
+                return {
+                    error: {
+                        message: `Editor not found for file: ${filename}`,
+                        code: 404
+                    }
+                };
+            }
+
+            // Update the time state
+            globalController.updateState(editorId, 'timeState', timeState);
+            
+            return { result: 'Time state updated successfully' };
+        } catch (error) {
+            console.error('Error setting time state:', error);
+            return {
+                error: {
+                    message: error instanceof Error ? error.message : 'Failed to set time state',
+                    code: 500
+                }
+            };
+        }
+    }
+
+    private async handleGetViewportCommand(params: CommandParams): Promise<DebriefResponse> {
+        // Resolve filename (optional parameter)
+        const resolution = await this.resolveFilename(params?.filename);
+        if (resolution.error) {
+            return resolution;
+        }
+        try {
+            const filename = resolution.result;
+            if (typeof filename !== 'string') {
+                return {
+                    error: {
+                        message: 'Invalid filename resolved',
+                        code: 500
+                    }
+                };
+            }
+            
+            const document = await this.findOpenDocument(filename);
+            if (!document) {
+                return {
+                    error: {
+                        message: `File not found or not open: ${filename}`,
+                        code: 404
+                    }
+                };
+            }
+
+            // Get editorId for this document
+            const globalController = GlobalController.getInstance();
+            const editorIds = globalController.getEditorIds();
+            let editorId: string | undefined;
+            
+            for (const id of editorIds) {
+                const doc = EditorIdManager.getDocument(id);
+                if (doc && doc.fileName === document.fileName) {
+                    editorId = id;
+                    break;
+                }
+            }
+            
+            if (!editorId) {
+                return {
+                    error: {
+                        message: `Editor not found for file: ${filename}`,
+                        code: 404
+                    }
+                };
+            }
+
+            const viewportState = globalController.getStateSlice(editorId, 'viewportState');
+            return { result: viewportState || null };
+        } catch (error) {
+            console.error('Error getting viewport state:', error);
+            return {
+                error: {
+                    message: error instanceof Error ? error.message : 'Failed to get viewport state',
+                    code: 500
+                }
+            };
+        }
+    }
+
+    private async handleSetViewportCommand(params: CommandParams): Promise<DebriefResponse> {
+        if (!params || !params.viewportState || typeof params.viewportState !== 'object') {
+            return {
+                error: {
+                    message: 'set_viewport command requires "viewportState" (object) parameter',
+                    code: 400
+                }
+            };
+        }
+
+        // Resolve filename (optional parameter)
+        const resolution = await this.resolveFilename(params?.filename);
+        if (resolution.error) {
+            return resolution;
+        }
+        try {
+            const filename = resolution.result;
+            if (typeof filename !== 'string') {
+                return {
+                    error: {
+                        message: 'Invalid filename resolved',
+                        code: 500
+                    }
+                };
+            }
+            
+            const document = await this.findOpenDocument(filename);
+            if (!document) {
+                return {
+                    error: {
+                        message: `File not found or not open: ${filename}`,
+                        code: 404
+                    }
+                };
+            }
+
+            // Validate the viewport state structure
+            const viewportState = params.viewportState as ViewportState;
+            if (!viewportState.bounds || !Array.isArray(viewportState.bounds) || viewportState.bounds.length !== 4) {
+                return {
+                    error: {
+                        message: 'Invalid ViewportState: must have "bounds" (array with 4 elements)',
+                        code: 400
+                    }
+                };
+            }
+
+            // Get editorId for this document
+            const globalController = GlobalController.getInstance();
+            const editorIds = globalController.getEditorIds();
+            let editorId: string | undefined;
+            
+            for (const id of editorIds) {
+                const doc = EditorIdManager.getDocument(id);
+                if (doc && doc.fileName === document.fileName) {
+                    editorId = id;
+                    break;
+                }
+            }
+            
+            if (!editorId) {
+                return {
+                    error: {
+                        message: `Editor not found for file: ${filename}`,
+                        code: 404
+                    }
+                };
+            }
+
+            // Update the viewport state
+            globalController.updateState(editorId, 'viewportState', viewportState);
+            
+            return { result: 'Viewport state updated successfully' };
+        } catch (error) {
+            console.error('Error setting viewport state:', error);
+            return {
+                error: {
+                    message: error instanceof Error ? error.message : 'Failed to set viewport state',
+                    code: 500
+                }
+            };
+        }
     }
 }

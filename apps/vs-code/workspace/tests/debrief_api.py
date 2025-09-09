@@ -358,6 +358,50 @@ class DebriefAPI:
         }
         response = self._client.send_json_message(command)
         return response.get('result', [])
+    
+    def get_time(self, filename: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Get the current time state for a plot file."""
+        command = {
+            "command": "get_time",
+            "params": {
+                "filename": filename
+            }
+        }
+        response = self._client.send_json_message(command)
+        return response.get('result')
+    
+    def set_time(self, time_state: Dict[str, Any], filename: Optional[str] = None) -> None:
+        """Set the time state for a plot file."""
+        command = {
+            "command": "set_time",
+            "params": {
+                "timeState": time_state,
+                "filename": filename
+            }
+        }
+        self._client.send_json_message(command)
+    
+    def get_viewport(self, filename: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Get the current viewport state for a plot file."""
+        command = {
+            "command": "get_viewport",
+            "params": {
+                "filename": filename
+            }
+        }
+        response = self._client.send_json_message(command)
+        return response.get('result')
+    
+    def set_viewport(self, viewport_state: Dict[str, Any], filename: Optional[str] = None) -> None:
+        """Set the viewport state for a plot file."""
+        command = {
+            "command": "set_viewport",
+            "params": {
+                "viewportState": viewport_state,
+                "filename": filename
+            }
+        }
+        self._client.send_json_message(command)
 
 
 # Global API instance for easy access with auto-completion

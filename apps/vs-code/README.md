@@ -174,3 +174,167 @@ The extension integrates several key components:
 
 See `CLAUDE.md` for detailed development guidance and `Memory_Bank.md` for architectural decisions.
 
+## WebSocket API
+
+The extension provides a WebSocket server on `localhost:60123` for Python integration. The server supports the following commands:
+
+### Time State Commands
+
+#### `get_time` - Get Current Time State
+Retrieves the current time state for a specified document.
+
+**Request:**
+```json
+{
+  "command": "get_time",
+  "params": {
+    "filename": "sample.plot.json"  // Optional: if not specified, uses active document
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "result": {
+    "current": "2025-09-03T12:00:00Z",
+    "range": ["2025-09-03T10:00:00Z", "2025-09-03T14:00:00Z"]
+  }
+}
+```
+
+#### `set_time` - Update Time State
+Updates the time state for a specified document.
+
+**Request:**
+```json
+{
+  "command": "set_time",
+  "params": {
+    "timeState": {
+      "current": "2025-09-03T13:00:00Z",
+      "range": ["2025-09-03T10:00:00Z", "2025-09-03T14:00:00Z"]
+    },
+    "filename": "sample.plot.json"  // Optional
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "result": "Time state updated successfully"
+}
+```
+
+### Viewport State Commands
+
+#### `get_viewport` - Get Current Viewport State
+Retrieves the current map viewport bounds for a specified document.
+
+**Request:**
+```json
+{
+  "command": "get_viewport",
+  "params": {
+    "filename": "sample.plot.json"  // Optional
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "result": {
+    "bounds": [-10.0, 50.0, 2.0, 58.0]
+  }
+}
+```
+
+#### `set_viewport` - Update Viewport State
+Updates the map viewport bounds for a specified document.
+
+**Request:**
+```json
+{
+  "command": "set_viewport",
+  "params": {
+    "viewportState": {
+      "bounds": [-5.0, 45.0, 5.0, 55.0]
+    },
+    "filename": "sample.plot.json"  // Optional
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "result": "Viewport state updated successfully"
+}
+```
+
+### Python API Client
+
+The extension includes a Python client API for easy integration:
+
+```python
+from debrief_api import debrief
+
+# Get current time state
+time_state = debrief.get_time("sample.plot.json")
+print(f"Current time: {time_state['current']}")
+
+# Update time to center of range
+from datetime import datetime
+start = datetime.fromisoformat(time_state['range'][0].replace('Z', '+00:00'))
+end = datetime.fromisoformat(time_state['range'][1].replace('Z', '+00:00'))
+center = start + (end - start) / 2
+time_state['current'] = center.isoformat().replace('+00:00', 'Z')
+debrief.set_time(time_state, "sample.plot.json")
+
+# Get and update viewport
+viewport = debrief.get_viewport("sample.plot.json")
+if viewport:
+    print(f"Current bounds: {viewport['bounds']}")
+    
+# Set new viewport bounds [west, south, east, north]
+new_viewport = {"bounds": [-10.0, 50.0, 2.0, 58.0]}
+debrief.set_viewport(new_viewport, "sample.plot.json")
+```
+
+### Error Handling
+
+All commands follow a consistent error format:
+
+```json
+{
+  "error": {
+    "message": "File not found or not open: sample.plot.json",
+    "code": 404
+  }
+}
+```
+
+Common error codes:
+- `400` - Bad Request (invalid parameters)
+- `404` - File not found or not open
+- `500` - Internal server error
+- `"MULTIPLE_PLOTS"` - Multiple plots open, filename required
+
+### Existing Feature Commands
+
+The API also supports feature collection management:
+
+- `get_feature_collection` - Get GeoJSON features
+- `set_feature_collection` - Update GeoJSON features
+- `get_selected_features` - Get currently selected features
+- `set_selected_features` - Update feature selection
+- `update_features` - Update specific features by ID
+- `add_features` - Add new features
+- `delete_features` - Delete features by ID
+- `zoom_to_selection` - Zoom map to selected features
+- `list_open_plots` - List all open plot files
+
+See `workspace/tests/debrief_api.py` for complete API documentation and examples.
+
