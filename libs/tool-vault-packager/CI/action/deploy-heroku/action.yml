@@ -29,8 +29,15 @@ runs:
     
     - name: Authenticate with Heroku
       shell: bash
+      env:
+        HEROKU_API_KEY: ${{ inputs.heroku_api_key }}
       run: |
-        echo "${{ inputs.heroku_api_key }}" | heroku auth:token
+        # Set up Heroku authentication using API key
+        echo "🔐 Authenticating with Heroku..."
+        heroku auth:whoami || echo "Not authenticated yet"
+        
+        # The HEROKU_API_KEY environment variable is automatically used by Heroku CLI
+        echo "✅ Heroku authentication configured"
     
     - name: Prepare deployment directory
       shell: bash
@@ -62,6 +69,8 @@ runs:
     - name: Deploy to Heroku
       id: deploy
       shell: bash
+      env:
+        HEROKU_API_KEY: ${{ inputs.heroku_api_key }}
       working-directory: libs/tool-vault-packager/deploy
       run: |
         # Initialize git repo for deployment
@@ -87,6 +96,8 @@ runs:
     
     - name: Test deployment
       shell: bash
+      env:
+        HEROKU_API_KEY: ${{ inputs.heroku_api_key }}
       run: |
         APP_URL="${{ steps.deploy.outputs.url }}"
         echo "Testing deployment at: $APP_URL"
