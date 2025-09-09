@@ -1,0 +1,54 @@
+name: Tool Vault PR Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+    paths:
+      - 'libs/tool-vault-packager/**'
+
+jobs:
+  pr-cleanup:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    
+    steps:
+    - name: Install Heroku CLI
+      run: |
+        curl https://cli-assets.heroku.com/install.sh | sh
+        heroku --version
+    
+    - name: Cleanup Heroku PR app
+      env:
+        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+      run: |
+        echo "$HEROKU_API_KEY" | heroku auth:token
+        
+        APP_NAME="toolvault-pr-${{ github.event.number }}"
+        
+        # Check if app exists and delete it
+        if heroku apps:info $APP_NAME > /dev/null 2>&1; then
+          echo "Deleting Heroku app: $APP_NAME"
+          heroku apps:destroy $APP_NAME --confirm $APP_NAME
+          echo "✅ Heroku app deleted successfully"
+        else
+          echo "ℹ️ Heroku app $APP_NAME not found, nothing to cleanup"
+        fi
+    
+    - name: Comment on PR
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const prNumber = context.payload.pull_request.number;
+          
+          const comment = `
+          ## 🧹 Tool Vault Cleanup Complete
+          
+          The preview Heroku app \`toolvault-pr-${prNumber}\` has been cleaned up after PR merge.
+          `;
+          
+          github.rest.issues.createComment({
+            issue_number: prNumber,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
