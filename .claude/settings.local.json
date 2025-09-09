@@ -155,7 +155,9 @@
       "WebFetch(domain:spec.modelcontextprotocol.io)",
       "WebFetch(domain:localhost)",
       "Bash(python -m cli:*)",
-      "Bash(kill:*)"
+      "Bash(kill:*)",
+      "Bash(open http://localhost:5173/)",
+      "Bash(open http://localhost:5174/)"
     ]
   }
 }
