@@ -201,6 +201,47 @@ pydantic>=2.0.0
 """
 
 
+def build_spa() -> bool:
+    """
+    Build the SPA for integration into the package.
+    
+    Returns:
+        True if build succeeded, False otherwise
+    """
+    spa_dir = Path(__file__).parent / "spa"
+    
+    if not spa_dir.exists():
+        print("Warning: SPA directory not found, skipping SPA build")
+        return False
+    
+    try:
+        import subprocess
+        
+        print("Building SPA...")
+        
+        # Check if node_modules exists, install if not
+        node_modules = spa_dir / "node_modules"
+        if not node_modules.exists():
+            print("Installing SPA dependencies...")
+            result = subprocess.run(["npm", "install"], cwd=spa_dir, capture_output=True, text=True)
+            if result.returncode != 0:
+                print(f"SPA dependencies installation failed: {result.stderr}")
+                return False
+        
+        # Build the SPA
+        result = subprocess.run(["npm", "run", "build"], cwd=spa_dir, capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"SPA build failed: {result.stderr}")
+            return False
+        
+        print("SPA build completed successfully")
+        return True
+        
+    except Exception as e:
+        print(f"Error building SPA: {e}")
+        return False
+
+
 def package_toolvault(
     tools_path: str,
     output_path: str = "toolvault.pyz",
@@ -226,6 +267,9 @@ def package_toolvault(
     if not tools_path.exists():
         raise PackagerError(f"Tools directory does not exist: {tools_path}")
     
+    # Build SPA first
+    spa_build_success = build_spa()
+    
     try:
         # Discover and validate tools first
         tools = discover_tools(str(tools_path))
@@ -235,146 +279,152 @@ def package_toolvault(
     except Exception as e:
         raise PackagerError(f"Tool discovery failed: {e}")
     
-    # Create temporary directory for packaging
-    with tempfile.TemporaryDirectory() as temp_dir:
-        package_dir = Path(temp_dir) / "package"
-        package_dir.mkdir()
+    # Create persistent package directory for building and inspection
+    current_dir = Path(__file__).parent
+    package_dir = current_dir / "tmp_package_contents"
+    if package_dir.exists():
+        shutil.rmtree(package_dir)
+    package_dir.mkdir()
+    
+    try:
+        # Copy the main packager modules
+        source_dir = Path(__file__).parent
         
-        try:
-            # Copy the main packager modules
-            source_dir = Path(__file__).parent
-            
-            # Core modules to include
-            core_modules = [
-                "__init__.py",
-                "discovery.py",
-                "server.py",
-                "cli.py",
-                "packager.py"
-            ]
-            
-            for module in core_modules:
-                source_file = source_dir / module
-                if source_file.exists():
-                    shutil.copy2(source_file, package_dir / module)
-                else:
-                    print(f"Warning: Core module not found: {module}")
-            
-            # Copy tools directory with new structure
-            tools_dest = package_dir / "tools"
-            shutil.copytree(tools_path, tools_dest)
-            
-            # Generate and save index.json
-            index_path = package_dir / "index.json"
-            with open(index_path, 'w') as f:
-                json.dump(index_data, f, indent=2)
-            
-            # Create __main__.py entry point
-            main_path = package_dir / "__main__.py"
-            with open(main_path, 'w') as f:
-                f.write(create_main_module())
-            
-            # Create requirements.txt for documentation
-            req_path = package_dir / "requirements.txt"
-            with open(req_path, 'w') as f:
-                f.write(create_requirements_content())
-            
-            # Create debug folder to preserve pre-zip contents for debugging
-            debug_dir = Path("debug-package-contents")
-            if debug_dir.exists():
-                shutil.rmtree(debug_dir)
-            shutil.copytree(package_dir, debug_dir)
-            
-            # Save detailed tool metadata to metadata folder
-            for tool in tools:
-                tool_metadata_dir = debug_dir / "tools" / Path(tool.tool_dir).name / "metadata"
-                tool_metadata_dir.mkdir(exist_ok=True)
+        # Core modules to include
+        core_modules = [
+            "__init__.py",
+            "discovery.py",
+            "server.py",
+            "cli.py",
+            "packager.py"
+        ]
+        
+        for module in core_modules:
+            source_file = source_dir / module
+            if source_file.exists():
+                shutil.copy2(source_file, package_dir / module)
+            else:
+                print(f"Warning: Core module not found: {module}")
+        
+        # Copy tools directory with new structure
+        tools_dest = package_dir / "tools"
+        shutil.copytree(tools_path, tools_dest)
+        
+        # Copy SPA assets if build was successful
+        if spa_build_success:
+            spa_dist_dir = Path(__file__).parent / "spa" / "dist"
+            if spa_dist_dir.exists():
+                spa_dest = package_dir / "static"
+                shutil.copytree(spa_dist_dir, spa_dest)
+                print("SPA assets copied to package")
+            else:
+                print("Warning: SPA dist directory not found after build")
+        
+        # Generate and save index.json
+        index_path = package_dir / "index.json"
+        with open(index_path, 'w') as f:
+            json.dump(index_data, f, indent=2)
+        
+        # Create __main__.py entry point
+        main_path = package_dir / "__main__.py"
+        with open(main_path, 'w') as f:
+            f.write(create_main_module())
+        
+        # Create requirements.txt for documentation
+        req_path = package_dir / "requirements.txt"
+        with open(req_path, 'w') as f:
+            f.write(create_requirements_content())
+        
+        # Save detailed tool metadata to metadata folder
+        for tool in tools:
+            tool_metadata_dir = package_dir / "tools" / Path(tool.tool_dir).name / "metadata"
+            tool_metadata_dir.mkdir(exist_ok=True)
                 
-                # Save git history
-                if tool.git_history:
-                    git_history_file = tool_metadata_dir / "git_history.json"
-                    with open(git_history_file, 'w') as f:
-                        json.dump(tool.git_history, f, indent=2)
+            # Save git history
+            if tool.git_history:
+                git_history_file = tool_metadata_dir / "git_history.json"
+                with open(git_history_file, 'w') as f:
+                    json.dump(tool.git_history, f, indent=2)
                 
-                # Save source code as HTML with syntax highlighting
-                if tool.source_code:
-                    source_file = tool_metadata_dir / "source_code.html"
-                    html_content = generate_highlighted_source_html(tool.name, tool.source_code)
-                    with open(source_file, 'w') as f:
-                        f.write(html_content)
+            # Save source code as HTML with syntax highlighting
+            if tool.source_code:
+                source_file = tool_metadata_dir / "source_code.html"
+                html_content = generate_highlighted_source_html(tool.name, tool.source_code)
+                with open(source_file, 'w') as f:
+                    f.write(html_content)
                 
-                
-                # Create tool-specific tool.json for SPA navigation
-                tool_index = {
-                    "tool_name": tool.name,
-                    "description": tool.description,
-                    "files": {
-                        "execute": {
-                            "path": "execute.py",
-                            "description": "Main tool implementation",
-                            "type": "python"
-                        },
-                        "source_code": {
-                            "path": "metadata/source_code.html",
-                            "description": "Pretty-printed source code",
-                            "type": "html"
-                        },
-                        "git_history": {
-                            "path": "metadata/git_history.json",
-                            "description": "Git commit history",
-                            "type": "json"
-                        },
-                        "inputs": []
+            
+            # Create tool-specific tool.json for SPA navigation
+            tool_index = {
+                "tool_name": tool.name,
+                "description": tool.description,
+                "files": {
+                    "execute": {
+                        "path": "execute.py",
+                        "description": "Main tool implementation",
+                        "type": "python"
                     },
-                    "stats": {
-                        "sample_inputs_count": len(tool.sample_inputs),
-                        "git_commits_count": len(tool.git_history),
-                        "source_code_length": len(tool.source_code) if tool.source_code else 0
-                    }
-                }
-                
-                # Add sample input files to index
-                for sample_input in tool.sample_inputs:
-                    tool_index["files"]["inputs"].append({
-                        "name": sample_input["name"],
-                        "path": f"inputs/{sample_input['file']}",
-                        "description": f"Sample input: {sample_input['name']}",
+                    "source_code": {
+                        "path": "metadata/source_code.html",
+                        "description": "Pretty-printed source code",
+                        "type": "html"
+                    },
+                    "git_history": {
+                        "path": "metadata/git_history.json",
+                        "description": "Git commit history",
                         "type": "json"
-                    })
-                
-                # Save tool index in the tool's root directory as tool.json
-                tool_dir_path = debug_dir / "tools" / Path(tool.tool_dir).name
-                tool_index_file = tool_dir_path / "tool.json"
-                with open(tool_index_file, 'w') as f:
-                    json.dump(tool_index, f, indent=2)
+                    },
+                    "inputs": []
+                },
+                "stats": {
+                    "sample_inputs_count": len(tool.sample_inputs),
+                    "git_commits_count": len(tool.git_history),
+                    "source_code_length": len(tool.source_code) if tool.source_code else 0
+                }
+            }
             
-            print(f"Debug: Package contents preserved in {debug_dir}")
-            print(f"Debug: Tool metadata saved in metadata/ subdirectories")
+            # Add sample input files to index
+            for sample_input in tool.sample_inputs:
+                tool_index["files"]["inputs"].append({
+                    "name": sample_input["name"],
+                    "path": f"inputs/{sample_input['file']}",
+                    "description": f"Sample input: {sample_input['name']}",
+                    "type": "json"
+                })
             
-            # Create the .pyz package
-            print(f"Creating .pyz package: {output_path}")
-            zipapp.create_archive(
-                source=str(package_dir),
-                target=str(output_path),
-                interpreter=python_executable,
-                compressed=True
-            )
+            # Save tool index in the package directory
+            package_tool_dir = package_dir / "tools" / Path(tool.tool_dir).name
+            package_tool_index_file = package_tool_dir / "tool.json"
+            with open(package_tool_index_file, 'w') as f:
+                json.dump(tool_index, f, indent=2)
             
-            # Make executable
-            output_path.chmod(0o755)
-            
-            print(f"Successfully created ToolVault package: {output_path}")
-            print(f"Package size: {output_path.stat().st_size / 1024:.1f} KB")
-            print(f"Tools included: {len(tools)}")
-            
-            # Verify the package
-            if not output_path.exists():
-                raise PackagerError("Package creation failed - output file not found")
-            
-            return str(output_path)
-            
-        except Exception as e:
-            raise PackagerError(f"Failed to create package: {e}")
+        print(f"Package contents created in {package_dir}")
+        print(f"Tool metadata saved in metadata/ subdirectories")
+        
+        # Create the .pyz package
+        print(f"Creating .pyz package: {output_path}")
+        zipapp.create_archive(
+            source=str(package_dir),
+            target=str(output_path),
+            interpreter=python_executable,
+            compressed=True
+        )
+        
+        # Make executable
+        output_path.chmod(0o755)
+        
+        print(f"Successfully created ToolVault package: {output_path}")
+        print(f"Package size: {output_path.stat().st_size / 1024:.1f} KB")
+        print(f"Tools included: {len(tools)}")
+        
+        # Verify the package
+        if not output_path.exists():
+            raise PackagerError("Package creation failed - output file not found")
+        
+        return str(output_path)
+        
+    except Exception as e:
+        raise PackagerError(f"Failed to create package: {e}")
 
 
 def output_tool_details(tools_path: str) -> None:

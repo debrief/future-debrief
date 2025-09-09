@@ -93,10 +93,11 @@ def serve_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
         # Create the app
         app = create_app(tools_path)
         
-        print(f"Starting ToolVault server on {host}:{port}")
+        print(f"Server starting on http://{host}:{port}")
+        print(f"Web interface: http://{host}:{port}/ui/")
+        print(f"MCP API: http://{host}:{port}/tools/list")
         print(f"Tools directory: {tools_path}")
-        print(f"API endpoints:")
-        print(f"  - GET  http://{host}:{port}/tools/list")
+        print(f"Additional endpoints:")
         print(f"  - POST http://{host}:{port}/tools/call")
         print(f"  - GET  http://{host}:{port}/health")
         
