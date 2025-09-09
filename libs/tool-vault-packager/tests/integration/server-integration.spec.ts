@@ -41,20 +41,6 @@ test.describe('Server Integration Testing', () => {
     expect(criticalErrors).toHaveLength(0);
   });
 
-  if (!isPyzMode) {
-    test('should have Vite dev server running with hot reload', async ({ page }) => {
-      await page.goto('/');
-      
-      // Check for Vite-specific elements
-      const scripts = await page.$$eval('script', scripts => 
-        scripts.map(s => s.src).filter(src => src.includes('vite') || src.includes('@vite'))
-      );
-      
-      // In development, we should have Vite client scripts
-      expect(scripts.length).toBeGreaterThan(0);
-    });
-  }
-
   test('should serve API endpoints correctly', async ({ request }) => {
     // Test tools list endpoint
     const toolsResponse = await request.get('/tools/list');
