@@ -31,10 +31,33 @@ runs:
         # Clean npm cache to avoid potential corruption issues
         npm cache clean --force
         
-        # Try npm ci first, fallback to npm install if it fails
+        # Try npm ci first, fallback to regenerating package-lock if needed
         if ! npm ci; then
-          echo "⚠️  npm ci failed, trying npm install..."
-          npm install
+          echo "⚠️  npm ci failed, attempting recovery..."
+          echo "This may be due to corrupted package-lock.json"
+          
+          # Backup the original package-lock.json
+          if [ -f "package-lock.json" ]; then
+            cp package-lock.json package-lock.json.backup
+            echo "📋 Backed up package-lock.json"
+          fi
+          
+          # Try npm install to regenerate the lockfile
+          if ! npm install; then
+            echo "❌ npm install also failed"
+            # If we have a backup, restore it and try again
+            if [ -f "package-lock.json.backup" ]; then
+              echo "🔄 Restoring backup and trying fresh install..."
+              rm -f package-lock.json
+              rm -rf node_modules
+              npm install
+            else
+              echo "❌ No backup available, installation failed"
+              exit 1
+            fi
+          else
+            echo "✅ Successfully recovered with npm install"
+          fi
         fi
     
     - name: Build SPA
