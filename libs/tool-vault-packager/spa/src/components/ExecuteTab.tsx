@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import type { MCPTool, ToolIndex, ExecutionResult } from '../types';
 import { mcpService } from '../services/mcpService';
+import { SchemaForm } from './SchemaForm';
+import { NoDataWarning, LoadingError } from './Warning';
 
 interface ExecuteTabProps {
   tool: MCPTool;
@@ -10,17 +12,23 @@ interface ExecuteTabProps {
 
 export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
   const [input, setInput] = useState('{}');
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
+  const [inputMethod, setInputMethod] = useState<'form' | 'json'>('form');
   const [selectedSample, setSelectedSample] = useState<string>('');
   const [samples, setSamples] = useState<Array<{name: string, content: Record<string, unknown>}>>([]);
   const [executing, setExecuting] = useState(false);
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [samplesLoading, setSamplesLoading] = useState(false);
+  const [samplesError, setSamplesError] = useState<string | null>(null);
+  const [toolIndexError, setToolIndexError] = useState<string | null>(null);
 
   useEffect(() => {
     if (toolIndex?.files.inputs && toolIndex.files.inputs.length > 0) {
       loadSamples();
     } else {
+      const emptyData = {};
       setInput('{}');
+      setFormData(emptyData);
     }
   }, [toolIndex]);
 
@@ -28,6 +36,7 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
     if (!toolIndex?.files.inputs) return;
     
     setSamplesLoading(true);
+    setSamplesError(null);
     try {
       const samplePromises = toolIndex.files.inputs.map(async (inputFile) => {
         try {
@@ -47,12 +56,20 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
       if (loadedSamples.length > 0) {
         if (loadedSamples.length === 1) {
           setSelectedSample(loadedSamples[0].name);
+          setFormData(loadedSamples[0].content);
           setInput(JSON.stringify(loadedSamples[0].content, null, 2));
         } else {
           setSelectedSample('');
+          const emptyData = {};
+          setFormData(emptyData);
+          setInput('{}');
         }
+      } else {
+        setSamplesError(`Failed to load ${toolIndex.files.inputs.length} sample input(s) for this tool`);
       }
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setSamplesError(`Error loading sample inputs: ${errorMessage}`);
       console.error('Error loading samples:', err);
     } finally {
       setSamplesLoading(false);
@@ -63,7 +80,23 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
     const sample = samples.find(s => s.name === sampleName);
     if (sample) {
       setSelectedSample(sampleName);
+      setFormData(sample.content);
       setInput(JSON.stringify(sample.content, null, 2));
+    }
+  };
+
+  const handleFormDataChange = (data: Record<string, unknown>) => {
+    setFormData(data);
+    setInput(JSON.stringify(data, null, 2));
+  };
+
+  const handleInputChange = (value: string) => {
+    setInput(value);
+    try {
+      const parsed = JSON.parse(value) as Record<string, unknown>;
+      setFormData(parsed);
+    } catch {
+      // Invalid JSON - keep form data as is
     }
   };
 
@@ -112,38 +145,89 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
         <div className="input-section">
           <h3>Input</h3>
           
-          {samples.length > 0 && (
-            <div className="sample-selector">
-              <label htmlFor="sample-select">Sample Input:</label>
-              <select
-                id="sample-select"
-                value={selectedSample}
-                onChange={(e) => handleSampleSelect(e.target.value)}
-                disabled={samplesLoading}
-              >
-                <option value="">Select a sample...</option>
-                {samples.map(sample => (
-                  <option key={sample.name} value={sample.name}>
-                    {sample.name}
-                  </option>
-                ))}
-              </select>
-              {samplesLoading && <span className="loading-text">Loading samples...</span>}
-            </div>
+          {/* Tool Index Error Warning */}
+          {toolIndexError && (
+            <LoadingError 
+              resource="tool metadata"
+              error={toolIndexError}
+              onRetry={() => window.location.reload()}
+            />
+          )}
+          
+          {/* Sample Input Section */}
+          {!toolIndex?.files.inputs || toolIndex.files.inputs.length === 0 ? (
+            <NoDataWarning
+              title="No Sample Inputs Available"
+              message="This tool doesn't have any sample input files."
+              suggestion="You'll need to create the input manually using the form or JSON editor below."
+            />
+          ) : (
+            <>
+              {samplesError ? (
+                <LoadingError 
+                  resource="sample inputs"
+                  error={samplesError}
+                  onRetry={loadSamples}
+                />
+              ) : samples.length > 0 ? (
+                <div className="sample-selector">
+                  <label htmlFor="sample-select">Sample Input:</label>
+                  <select
+                    id="sample-select"
+                    value={selectedSample}
+                    onChange={(e) => handleSampleSelect(e.target.value)}
+                    disabled={samplesLoading}
+                  >
+                    <option value="">Select a sample...</option>
+                    {samples.map(sample => (
+                      <option key={sample.name} value={sample.name}>
+                        {sample.name}
+                      </option>
+                    ))}
+                  </select>
+                  {samplesLoading && <span className="loading-text">Loading samples...</span>}
+                </div>
+              ) : samplesLoading ? (
+                <div className="loading-text">Loading sample inputs...</div>
+              ) : null}
+            </>
           )}
 
-          <textarea
-            className="input-textarea"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Enter JSON input..."
-            rows={10}
-          />
+          <div className="input-method-toggle">
+            <button
+              className={`input-method-button ${inputMethod === 'form' ? 'active' : ''}`}
+              onClick={() => setInputMethod('form')}
+            >
+              Form Input
+            </button>
+            <button
+              className={`input-method-button ${inputMethod === 'json' ? 'active' : ''}`}
+              onClick={() => setInputMethod('json')}
+            >
+              JSON Input
+            </button>
+          </div>
+
+          {inputMethod === 'form' ? (
+            <SchemaForm
+              schema={tool.inputSchema}
+              initialValue={formData}
+              onChange={handleFormDataChange}
+            />
+          ) : (
+            <textarea
+              className="input-textarea"
+              value={input}
+              onChange={(e) => handleInputChange(e.target.value)}
+              placeholder="Enter JSON input..."
+              rows={10}
+            />
+          )}
           
           <button
             className="execute-button"
             onClick={handleExecute}
-            disabled={executing || !input.trim()}
+            disabled={executing || (!input.trim() && Object.keys(formData).length === 0)}
           >
             {executing ? 'Executing...' : 'Execute'}
           </button>
