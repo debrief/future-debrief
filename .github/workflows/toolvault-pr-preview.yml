@@ -26,10 +26,11 @@ jobs:
     - name: Run Tool Vault PR Pipeline
       uses: ./libs/tool-vault-packager/CI/action/main-pipeline
       with:
-        heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
-        heroku_app_name: 'toolvault-pr-${{ github.event.number }}'
+        fly_api_token: ${{ secrets.FLY_API_TOKEN }}
         artifact_retention_days: '7'
-        skip_deployment: ${{ secrets.HEROKU_API_KEY == '' }}
+        skip_deployment: ${{ secrets.FLY_API_TOKEN == '' }}
+        is_pr: true
+        pr_number: ${{ github.event.number }}
     
     - name: Comment on PR
       uses: actions/github-script@v7
@@ -39,7 +40,7 @@ jobs:
           const commitSha = context.payload.pull_request.head.sha.substring(0, 7);
           
           // Check if deployment was skipped
-          const skipDeployment = '${{ secrets.HEROKU_API_KEY }}' === '';
+          const skipDeployment = '${{ secrets.FLY_API_TOKEN }}' === '';
           
           const comment = `
           ## 🔧 Tool Vault Build Complete
@@ -47,8 +48,8 @@ jobs:
           **Commit:** ${commitSha}
           **Artifact:** Available in Actions tab
           ${skipDeployment 
-            ? '**Status:** Build and test completed (deployment skipped - no Heroku credentials)'
-            : `**Preview App:** https://toolvault-pr-${prNumber}.herokuapp.com`
+            ? '**Status:** Build and test completed (deployment skipped - no Fly.io credentials)'
+            : `**Preview App:** https://toolvault-pr-${prNumber}.fly.dev`
           }
           
           The Tool Vault packager has been built and tested successfully.
