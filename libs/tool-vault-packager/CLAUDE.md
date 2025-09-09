@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ToolVault Packager creates self-contained `.pyz` files containing both web interfaces and MCP-compatible REST endpoints. Each package includes tools, a React SPA frontend, and complete metadata for offline operation.
 
+**CRITICAL**: This package uses **npm** (not pnpm) due to Docker deployment constraints and maintains its own `package-lock.json`. The SPA subdirectory also uses npm with its own `package-lock.json`.
+
 Refer to README.md for user documentation and DEVELOPERS.md for detailed architecture and API documentation.
 
 ## Development Commands
@@ -120,3 +122,94 @@ curl -X POST http://localhost:8000/tools/call -H 'Content-Type: application/json
 # Test SPA
 open http://localhost:8000/ui/
 ```
+
+## Tool Development Workflow
+
+### Creating New Tools
+1. Create a new `.py` file in the `tools/` directory
+2. Implement exactly one public function with complete type annotations
+3. Add a descriptive docstring (first sentence becomes the tool description)
+4. Optionally create an `inputs/` folder with sample data files
+5. Test the tool: `python cli.py --tools-path tools call-tool <tool_name> '<json_args>'`
+6. Rebuild package: `npm run build`
+
+### Tool Requirements
+```python
+"""Example tool template."""
+
+def example_tool(param: str, count: int = 1) -> dict:
+    """
+    Brief description that appears in the tool list.
+    
+    Args:
+        param: Description of the parameter
+        count: Optional parameter with default value
+        
+    Returns:
+        Dictionary containing the result
+    """
+    return {"result": param * count}
+```
+
+### File Structure for Tools
+```
+tools/
+├── word_count.py              # Single tool file
+├── complex_tool/              # Tool with sample data
+│   ├── complex_tool.py        # Tool implementation
+│   └── inputs/                # Sample input files
+│       ├── sample1.json
+│       └── sample2.json
+```
+
+## Common Development Tasks
+
+### Debugging Tools
+```bash
+# Test a specific tool directly
+python cli.py --tools-path tools call-tool <tool_name> '<json_arguments>'
+
+# List all discovered tools and their schemas
+python cli.py --tools-path tools list-tools
+
+# Check tool metadata and validation
+python -c "from discovery import discover_tools; print(discover_tools('tools/'))"
+```
+
+### SPA Development
+```bash
+# Start SPA dev server with hot reload (connects to localhost:8000)
+npm run dev:spa
+
+# Start SPA dev server with custom backend
+npm run dev:spa:with-backend
+
+# Lint and build SPA
+cd spa && npm run lint && npm run build
+```
+
+### Package Testing
+```bash
+# Full integration test
+npm run build && python toolvault.pyz serve --port 8000 &
+curl http://localhost:8000/tools/list
+kill %1
+
+# Test specific scenarios
+npm run test:playwright:both  # Test both dev and production modes
+```
+
+## Troubleshooting
+
+### Common Issues
+- **Import errors**: Ensure tools use only standard library or include dependencies in requirements.txt
+- **Type annotation missing**: All tool parameters and return values must have type annotations
+- **Multiple public functions**: Each tool file must have exactly one public (non-underscore) function
+- **SPA build fails**: Run `cd spa && npm install` if dependencies are missing
+- **Package not found**: Ensure you're in the tool-vault-packager directory when running npm commands
+
+### Important File Locations
+- Tool schemas: Generated in `index.json` and `tools/{tool}/tool.json`
+- Built SPA assets: Embedded in `static/` directory within .pyz file
+- Package metadata: `metadata/` directory contains source code and git history
+- Temporary build: `tmp_package_contents/` (cleaned automatically)
