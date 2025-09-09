@@ -1,5 +1,3 @@
-import React from 'react';
-
 export type WarningType = 'warning' | 'error' | 'info';
 
 interface WarningProps {
