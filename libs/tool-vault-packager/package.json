@@ -10,7 +10,8 @@
     "prebuild": "npm run clean && npm run build:spa",
     "serve": "python cli.py serve",
     "dev:spa": "cd spa && npm run dev",
-    "dev:spa:with-backend": "cd spa && npm run dev:with-backend"
+    "dev:spa:with-backend": "cd spa && npm run dev:with-backend",
+    "test": "test -f toolvault.pyz && echo 'Test passed: toolvault.pyz exists' || (echo 'Test failed: toolvault.pyz not found' && exit 1)"
   },
   "keywords": ["toolvault", "mcp", "packaging"],
   "author": "ToolVault",
