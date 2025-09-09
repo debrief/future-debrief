@@ -1,26 +1,29 @@
 name: 'Tool Vault Main Pipeline'
 description: 'Complete CI/CD pipeline for Tool Vault packager'
 inputs:
-  heroku_api_key:
-    description: 'Heroku API key for deployment'
+  fly_api_token:
+    description: 'Fly.io API token for deployment'
     required: true
-  heroku_app_name:
-    description: 'Name of the Heroku app'
-    required: false
-    default: 'toolvault-server'
   artifact_retention_days:
     description: 'Days to retain artifacts'
     required: false
     default: '30'
   skip_deployment:
-    description: 'Skip Heroku deployment'
+    description: 'Skip Fly.io deployment'
     required: false
     default: 'false'
+  is_pr:
+    description: 'Whether this is a PR deployment'
+    required: false
+    default: 'false'
+  pr_number:
+    description: 'PR number for PR deployments'
+    required: false
 
 outputs:
   deployment_url:
     description: 'URL of the deployed application'
-    value: ${{ steps.deploy.outputs.deployment_url }}
+    value: ${{ steps.deploy.outputs.app_url }}
   artifact_name:
     description: 'Name of the published artifact'
     value: ${{ steps.publish.outputs.artifact_name }}
@@ -60,14 +63,18 @@ runs:
         ref: ${{ github.sha }}
         artifact_retention_days: ${{ inputs.artifact_retention_days }}
     
-    - name: Deploy to Heroku
+    - name: Deploy to Fly.io
       id: deploy
       if: inputs.skip_deployment != 'true'
-      uses: ./libs/tool-vault-packager/CI/action/deploy-heroku
+      uses: ./libs/tool-vault-packager/CI/action/deploy-fly
       with:
-        heroku_api_key: ${{ inputs.heroku_api_key }}
-        heroku_app_name: ${{ inputs.heroku_app_name }}
-        ref: ${{ github.sha }}
+        app_name: ${{ inputs.is_pr == 'true' && format('toolvault-pr-{0}', inputs.pr_number) || 'toolvault-main' }}
+        config_file: ${{ inputs.is_pr == 'true' && 'fly-template.toml' || 'fly-production.toml' }}
+        build_args: |
+          GITHUB_SHA=${{ github.sha }}
+          BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        github_sha: ${{ github.sha }}
+        fly_api_token: ${{ inputs.fly_api_token }}
     
     - name: Pipeline completion notification
       shell: bash
@@ -76,7 +83,7 @@ runs:
         echo "### ✅ Pipeline Completed Successfully" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         if [ "${{ inputs.skip_deployment }}" != "true" ]; then
-          echo "🚀 **Deployed to:** ${{ steps.deploy.outputs.deployment_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "🚀 **Deployed to Fly.io:** ${{ steps.deploy.outputs.app_url }}" >> $GITHUB_STEP_SUMMARY
         else
           echo "⏭️ **Deployment skipped**" >> $GITHUB_STEP_SUMMARY
         fi

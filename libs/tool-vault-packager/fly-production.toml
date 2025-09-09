@@ -1,0 +1,38 @@
+# Fly.io Production Configuration for ToolVault Packager Main Branch
+# Production deployment accessible at: https://toolvault-main.fly.dev
+# This configuration is for the stable main branch deployment
+
+app = "toolvault-main"
+primary_region = "dfw"
+
+[build]
+  # Use the existing Dockerfile for FastAPI ToolVault server
+
+[http_service]
+  internal_port = 5000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+[[vm]]
+  # Simpler resource requirements for FastAPI server (1 CPU, 1GB RAM)
+  cpu_kind = "shared"  
+  cpus = 1
+  memory_mb = 1024
+
+[env]
+  # Environment variables for FastAPI operation
+  # Set environment to production
+  ENVIRONMENT = "production"
+  # Set proper timezone
+  TZ = "UTC"
+  # Identify this as main branch deployment
+  BRANCH = "main"
+
+# No persistent storage - stateless operation as required
+# All data is ephemeral and reset with each deployment
+
+# Remove processes section - let Dockerfile CMD handle the startup
+# This prevents conflicts and uses the container's defined entry point
