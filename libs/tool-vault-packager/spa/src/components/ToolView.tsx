@@ -4,6 +4,7 @@ import { mcpService } from '../services/mcpService';
 import { InfoTab } from './InfoTab';
 import { ExecuteTab } from './ExecuteTab';
 import { CodeTab } from './CodeTab';
+import { LoadingError } from './Warning';
 
 interface ToolViewProps {
   tool: MCPTool;
@@ -26,7 +27,9 @@ export function ToolView({ tool }: ToolViewProps) {
       const index = await mcpService.loadToolIndex(tool.name);
       setToolIndex(index);
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       console.warn(`Could not load tool index for ${tool.name}:`, err);
+      setError(`Failed to load tool metadata: ${errorMessage}`);
       setToolIndex(null);
     } finally {
       setLoading(false);
@@ -63,7 +66,13 @@ export function ToolView({ tool }: ToolViewProps) {
 
       <div className="tab-content">
         {loading && <div className="loading">Loading tool metadata...</div>}
-        {error && <div className="error">Error: {error}</div>}
+        {error && (
+          <LoadingError 
+            resource="tool metadata"
+            error={error}
+            onRetry={loadToolIndex}
+          />
+        )}
         
         {activeTab === 'info' && (
           <InfoTab 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { MCPTool, ToolIndex } from '../types';
 import { mcpService } from '../services/mcpService';
+import { NoDataWarning, LoadingError } from './Warning';
 
 interface CodeTabProps {
   tool: MCPTool;
@@ -59,15 +60,28 @@ export function CodeTab({ tool, toolIndex, loading }: CodeTabProps) {
         )}
       </div>
 
-      {codeLoading && <div className="loading">Loading source code...</div>}
-      
-      {error && (
-        <div className="error-message">
-          <p><strong>Error loading source code:</strong> {error}</p>
-          <p>Falling back to basic tool description.</p>
-        </div>
+      {/* No Source Code Available */}
+      {!toolIndex?.files.source_code && (
+        <NoDataWarning
+          title="No Source Code Available"
+          message="This tool doesn't have source code metadata available."
+          suggestion="The tool may not have been packaged with source code, or the packager hasn't run yet."
+        />
       )}
 
+      {/* Loading State */}
+      {codeLoading && <div className="loading">Loading source code...</div>}
+      
+      {/* Error State */}
+      {error && (
+        <LoadingError 
+          resource="source code"
+          error={error}
+          onRetry={loadSourceCode}
+        />
+      )}
+
+      {/* Source Code Display */}
       {sourceCode ? (
         <div className="source-code-container">
           {toolIndex?.files.source_code.type === 'html' ? (
