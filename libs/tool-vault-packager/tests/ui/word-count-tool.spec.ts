@@ -8,16 +8,15 @@ test.describe('Word-Count Tool UI Functional Testing', () => {
   });
 
   test('should display word-count tool in tool list', async ({ page }) => {
-    // Look for word-count tool in the UI
-    // This will depend on the actual UI structure, but we'll look for common patterns
-    const wordCountElement = page.locator('text=word').or(page.locator('text=count')).or(page.locator('[data-testid*="word"]')).first();
+    // Look for word-count tool using specific data-testid
+    const wordCountElement = page.locator('[data-testid="tool-word_count"]');
     
     await expect(wordCountElement).toBeVisible({ timeout: 10000 });
   });
 
   test('should navigate to word-count tool interface', async ({ page }) => {
-    // Find and click on word-count tool
-    const wordCountLink = page.locator('text=word').or(page.locator('text=count')).or(page.locator('[data-testid*="word"]')).first();
+    // Find and click on word-count tool using specific data-testid
+    const wordCountLink = page.locator('[data-testid="tool-word_count"]');
     
     await wordCountLink.click();
     
@@ -30,8 +29,8 @@ test.describe('Word-Count Tool UI Functional Testing', () => {
   });
 
   test('should display git history (non-null verification)', async ({ page }) => {
-    // Navigate to word-count tool
-    const wordCountLink = page.locator('text=word').or(page.locator('text=count')).or(page.locator('[data-testid*="word"]')).first();
+    // Navigate to word-count tool using specific data-testid
+    const wordCountLink = page.locator('[data-testid="tool-word_count"]');
     await wordCountLink.click();
     await page.waitForLoadState('networkidle');
     
@@ -50,13 +49,13 @@ test.describe('Word-Count Tool UI Functional Testing', () => {
   });
 
   test('should display source code on Code tab (non-null verification)', async ({ page }) => {
-    // Navigate to word-count tool
-    const wordCountLink = page.locator('text=word').or(page.locator('text=count')).or(page.locator('[data-testid*="word"]')).first();
+    // Navigate to word-count tool using specific data-testid
+    const wordCountLink = page.locator('[data-testid="tool-word_count"]');
     await wordCountLink.click();
     await page.waitForLoadState('networkidle');
     
-    // Look for Code tab and click it
-    const codeTab = page.locator('text=Code').or(page.locator('[data-testid*="code"]')).or(page.locator('button:has-text("Code")')).first();
+    // Look for Code tab using specific data-testid
+    const codeTab = page.locator('[data-testid="tab-code"]');
     
     const codeTabExists = await codeTab.isVisible();
     if (codeTabExists) {
@@ -78,13 +77,13 @@ test.describe('Word-Count Tool UI Functional Testing', () => {
   });
 
   test('should have Execute tab with functional word-count execution', async ({ page }) => {
-    // Navigate to word-count tool
-    const wordCountLink = page.locator('text=word').or(page.locator('text=count')).or(page.locator('[data-testid*="word"]')).first();
+    // Navigate to word-count tool using specific data-testid
+    const wordCountLink = page.locator('[data-testid="tool-word_count"]');
     await wordCountLink.click();
     await page.waitForLoadState('networkidle');
     
-    // Look for Execute tab
-    const executeTab = page.locator('text=Execute').or(page.locator('[data-testid*="execute"]')).or(page.locator('button:has-text("Execute")')).first();
+    // Look for Execute tab using specific data-testid
+    const executeTab = page.locator('[data-testid="tab-execute"]');
     
     const executeTabExists = await executeTab.isVisible();
     if (executeTabExists) {
@@ -92,58 +91,80 @@ test.describe('Word-Count Tool UI Functional Testing', () => {
       await page.waitForLoadState('networkidle');
     }
     
-    // Look for samples dropdown
-    const samplesDropdown = page.locator('select').or(page.locator('[data-testid*="sample"]')).or(page.locator('[data-testid*="dropdown"]')).first();
+    // Wait for samples to load and dropdown to appear
+    const samplesDropdown = page.locator('#sample-select');
+    await expect(samplesDropdown).toBeVisible({ timeout: 10000 });
     
-    // If dropdown doesn't exist, look for other input methods
-    if (await samplesDropdown.isVisible()) {
-      // Get all options in the dropdown
-      const options = await samplesDropdown.locator('option').all();
-      expect(options.length).toBeGreaterThanOrEqual(3);
-      
-      // Select simple_text sample
-      await samplesDropdown.selectOption({ label: /simple.?text/i });
-      
-    } else {
-      // Look for alternative input methods (buttons, links, etc.)
-      const simpleTextButton = page.locator('text=simple').or(page.locator('[data-testid*="simple"]')).first();
-      if (await simpleTextButton.isVisible()) {
-        await simpleTextButton.click();
+    // Wait for options to be populated (not just the "Select a sample..." option)
+    await page.waitForFunction(() => {
+      const select = document.querySelector('#sample-select') as HTMLSelectElement;
+      return select && select.options.length > 1;
+    }, { timeout: 10000 });
+    
+    // Get all options and verify we have at least 3 (including the default "Select a sample..." option)
+    const options = await samplesDropdown.locator('option').all();
+    expect(options.length).toBeGreaterThanOrEqual(3);
+    
+    // Find and select the 'simple_text' sample option
+    let simpleTextFound = false;
+    
+    for (const option of options) {
+      const optionText = await option.textContent();
+      if (optionText && optionText.includes('simple_text')) {
+        const optionValue = await option.getAttribute('value');
+        if (optionValue) {
+          await samplesDropdown.selectOption(optionValue);
+          simpleTextFound = true;
+          break;
+        }
       }
     }
     
-    // Look for execute button and run the tool
-    const executeButton = page.locator('button:has-text("Execute")').or(page.locator('button:has-text("Run")').or(page.locator('[data-testid*="execute"]'))).first();
+    expect(simpleTextFound).toBeTruthy();
     
-    if (await executeButton.isVisible()) {
-      await executeButton.click();
-      
-      // Wait for execution result
-      await page.waitForLoadState('networkidle');
-      await page.waitForTimeout(2000); // Allow time for execution
-      
-      // Look for result display
-      const resultElement = page.locator('[data-testid*="result"]').or(page.locator('text=2')).or(page.locator('.result')).first();
-      
-      // Check that result is 2 (for "Hello world")
-      if (await resultElement.isVisible()) {
-        const resultText = await resultElement.textContent();
-        expect(resultText).toContain('2');
-      }
-    }
+    // Wait for the input to be populated
+    await page.waitForTimeout(1000);
     
-    // Ensure the page completed loading regardless of UI structure
-    await expect(page.locator('body')).toBeTruthy();
+    // Verify that some input was populated (check the textarea or form)
+    const inputTextarea = page.locator('.input-textarea');
+    const inputValue = await inputTextarea.inputValue();
+    expect(inputValue.trim()).not.toBe('{}');
+    expect(inputValue.trim()).not.toBe('');
+    
+    // Look for execute button and ensure it's enabled
+    const executeButton = page.locator('[data-testid="execute-button"]');
+    await expect(executeButton).toBeVisible();
+    await expect(executeButton).toBeEnabled();
+    
+    // Execute the tool
+    await executeButton.click();
+    
+    // Wait for execution result with longer timeout
+    await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(3000); // Allow time for execution
+    
+    // Look for result display using specific data-testid
+    const resultElement = page.locator('[data-testid="execution-result"]');
+    await expect(resultElement).toBeVisible({ timeout: 10000 });
+    
+    // Verify the result contains valid output (should be a number for word count)
+    const resultText = await resultElement.textContent();
+    expect(resultText).toBeTruthy();
+    expect(resultText?.trim()).not.toBe('');
+    
+    // For word count, result should be a number or JSON containing a number
+    const containsNumber = /\d+/.test(resultText || '');
+    expect(containsNumber).toBeTruthy();
   });
 
   test('should verify minimum 3 items in samples dropdown', async ({ page }) => {
-    // Navigate to word-count tool
-    const wordCountLink = page.locator('text=word').or(page.locator('text=count')).or(page.locator('[data-testid*="word"]')).first();
+    // Navigate to word-count tool using specific data-testid
+    const wordCountLink = page.locator('[data-testid="tool-word_count"]');
     await wordCountLink.click();
     await page.waitForLoadState('networkidle');
     
-    // Navigate to Execute tab if it exists
-    const executeTab = page.locator('text=Execute').or(page.locator('[data-testid*="execute"]')).or(page.locator('button:has-text("Execute")')).first();
+    // Navigate to Execute tab using specific data-testid
+    const executeTab = page.locator('[data-testid="tab-execute"]');
     
     const executeTabExists = await executeTab.isVisible();
     if (executeTabExists) {
@@ -151,24 +172,27 @@ test.describe('Word-Count Tool UI Functional Testing', () => {
       await page.waitForLoadState('networkidle');
     }
     
-    // Look for samples dropdown or sample selection mechanism
-    const samplesDropdown = page.locator('select').or(page.locator('[data-testid*="sample"]')).first();
+    // Wait for samples dropdown to appear and be populated
+    const samplesDropdown = page.locator('#sample-select');
+    await expect(samplesDropdown).toBeVisible({ timeout: 10000 });
     
-    if (await samplesDropdown.isVisible()) {
-      const options = await samplesDropdown.locator('option').all();
-      expect(options.length).toBeGreaterThanOrEqual(3);
-    } else {
-      // Look for alternative sample selection (buttons, list items, etc.)
-      const sampleItems = page.locator('[data-testid*="sample"]').or(page.locator('li')).or(page.locator('button'));
-      const sampleCount = await sampleItems.count();
-      
-      // If we find sample-related elements, verify minimum count
-      if (sampleCount > 0) {
-        expect(sampleCount).toBeGreaterThanOrEqual(3);
-      }
-    }
+    // Wait for options to be populated (not just the "Select a sample..." option)
+    await page.waitForFunction(() => {
+      const select = document.querySelector('#sample-select') as HTMLSelectElement;
+      return select && select.options.length > 1;
+    }, { timeout: 10000 });
     
-    // Ensure page loaded successfully
-    await expect(page.locator('body')).toBeTruthy();
+    // Check that we have at least 3 options total (including "Select a sample..." option)
+    const options = await samplesDropdown.locator('option').all();
+    expect(options.length).toBeGreaterThanOrEqual(3);
+    
+    // Verify the first option is the default "Select a sample..." option
+    const firstOption = await samplesDropdown.locator('option').nth(0);
+    const firstOptionText = await firstOption.textContent();
+    expect(firstOptionText).toContain('Select a sample');
+    
+    // Verify we have actual sample options (not just the default)
+    const sampleOptionsCount = options.length - 1; // Subtract 1 for the default option
+    expect(sampleOptionsCount).toBeGreaterThanOrEqual(2);
   });
 });
