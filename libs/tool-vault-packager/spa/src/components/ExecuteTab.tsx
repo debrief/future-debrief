@@ -228,6 +228,7 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
             className="execute-button"
             onClick={handleExecute}
             disabled={executing || (!input.trim() && Object.keys(formData).length === 0)}
+            data-testid="execute-button"
           >
             {executing ? 'Executing...' : 'Execute'}
           </button>
@@ -238,7 +239,7 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
           {result ? (
             <div className={`result-container ${result.success ? 'success' : 'error'}`}>
               {result.success ? (
-                <pre className="result-content">
+                <pre className="result-content" data-testid="execution-result">
                   {typeof result.result === 'string' ? result.result : JSON.stringify(result.result, null, 2)}
                 </pre>
               ) : (

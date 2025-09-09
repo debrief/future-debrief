@@ -47,18 +47,21 @@ export function ToolView({ tool }: ToolViewProps) {
         <button
           className={`tab ${activeTab === 'info' ? 'active' : ''}`}
           onClick={() => setActiveTab('info')}
+          data-testid="tab-info"
         >
           Info
         </button>
         <button
           className={`tab ${activeTab === 'execute' ? 'active' : ''}`}
           onClick={() => setActiveTab('execute')}
+          data-testid="tab-execute"
         >
           Execute
         </button>
         <button
           className={`tab ${activeTab === 'code' ? 'active' : ''}`}
           onClick={() => setActiveTab('code')}
+          data-testid="tab-code"
         >
           Code
         </button>
