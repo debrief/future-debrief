@@ -12,26 +12,30 @@ jobs:
     if: github.event.pull_request.merged == true
     
     steps:
-    - name: Install Heroku CLI
-      run: |
-        curl https://cli-assets.heroku.com/install.sh | sh
-        heroku --version
+    - name: Setup Fly CLI
+      uses: superfly/flyctl-actions/setup-flyctl@master
     
-    - name: Cleanup Heroku PR app
+    - name: Cleanup Fly.io PR app
       env:
-        HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+        FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       run: |
-        echo "$HEROKU_API_KEY" | heroku auth:token
+        if [ -z "$FLY_API_TOKEN" ]; then
+          echo "⚠️ FLY_API_TOKEN not configured, skipping Fly.io cleanup"
+          echo "cleanup_status=skipped" >> $GITHUB_ENV
+          exit 0
+        fi
         
         APP_NAME="toolvault-pr-${{ github.event.number }}"
         
         # Check if app exists and delete it
-        if heroku apps:info $APP_NAME > /dev/null 2>&1; then
-          echo "Deleting Heroku app: $APP_NAME"
-          heroku apps:destroy $APP_NAME --confirm $APP_NAME
-          echo "✅ Heroku app deleted successfully"
+        if flyctl apps list | grep -q "^${APP_NAME}"; then
+          echo "Deleting Fly.io app: $APP_NAME"
+          flyctl apps destroy "$APP_NAME" --yes
+          echo "✅ Fly.io app deleted successfully"
+          echo "cleanup_status=success" >> $GITHUB_ENV
         else
-          echo "ℹ️ Heroku app $APP_NAME not found, nothing to cleanup"
+          echo "ℹ️ Fly.io app $APP_NAME not found, nothing to cleanup"
+          echo "cleanup_status=not_found" >> $GITHUB_ENV
         fi
     
     - name: Comment on PR
@@ -39,11 +43,23 @@ jobs:
       with:
         script: |
           const prNumber = context.payload.pull_request.number;
+          const cleanupStatus = process.env.cleanup_status;
+          
+          let statusMessage = '';
+          if (cleanupStatus === 'success') {
+            statusMessage = `The preview Fly.io app \`toolvault-pr-${prNumber}\` has been cleaned up after PR merge.`;
+          } else if (cleanupStatus === 'not_found') {
+            statusMessage = `No preview app found for \`toolvault-pr-${prNumber}\` - nothing to cleanup.`;
+          } else if (cleanupStatus === 'skipped') {
+            statusMessage = `Preview app cleanup skipped - Fly.io credentials not configured.`;
+          } else {
+            statusMessage = `Preview app cleanup completed for \`toolvault-pr-${prNumber}\`.`;
+          }
           
           const comment = `
           ## 🧹 Tool Vault Cleanup Complete
           
-          The preview Heroku app \`toolvault-pr-${prNumber}\` has been cleaned up after PR merge.
+          ${statusMessage}
           `;
           
           github.rest.issues.createComment({
