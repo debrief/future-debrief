@@ -6,8 +6,5 @@ pydantic>=2.0.0
 # JSON schema validation
 jsonschema>=4.17.0
 
-# Python packaging
-zipapp
-
 # Syntax highlighting for source code
 pygments>=2.15.0
