@@ -1,0 +1,43 @@
+name: 'Build Tool Vault SPA'
+description: 'Build the Single Page Application for Tool Vault'
+inputs:
+  ref:
+    description: 'Git ref to checkout'
+    required: false
+    default: ''
+
+outputs:
+  spa_path:
+    description: 'Path to the built SPA'
+    value: 'libs/tool-vault-packager/spa/dist'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: libs/tool-vault-packager/spa/package-lock.json
+    
+    - name: Install SPA dependencies
+      shell: bash
+      working-directory: libs/tool-vault-packager/spa
+      run: |
+        npm ci
+    
+    - name: Build SPA
+      shell: bash
+      working-directory: libs/tool-vault-packager
+      run: |
+        npm run build:spa
+        
+        # Verify SPA was built
+        if [ -d "spa/dist" ]; then
+          echo "✅ SPA built successfully"
+          ls -la spa/dist/
+        else
+          echo "❌ SPA build failed"
+          exit 1
+        fi

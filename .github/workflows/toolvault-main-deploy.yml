@@ -1,0 +1,45 @@
+name: Tool Vault Main Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'libs/tool-vault-packager/**'
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment even if no changes detected'
+        required: false
+        default: false
+        type: boolean
+      skip_deployment:
+        description: 'Skip Heroku deployment (build and test only)'
+        required: false
+        default: false
+        type: boolean
+      heroku_app_name:
+        description: 'Override Heroku app name'
+        required: false
+        default: 'toolvault-server'
+
+concurrency:
+  group: toolvault-main-production-deploy
+  cancel-in-progress: true
+
+jobs:
+  main-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+    
+    - name: Run Tool Vault Main Pipeline
+      uses: ./libs/tool-vault-packager/CI/action/main-pipeline
+      with:
+        heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+        heroku_app_name: ${{ inputs.heroku_app_name || 'toolvault-server' }}
+        artifact_retention_days: '30'
+        skip_deployment: ${{ inputs.skip_deployment || false }}
