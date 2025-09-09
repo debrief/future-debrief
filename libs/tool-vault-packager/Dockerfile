@@ -15,12 +15,14 @@ WORKDIR /app
 # Copy entire directory structure
 COPY . .
 
-# Build script that handles both CI (.pyz exists) and local (build from source) scenarios
+# Always install Python dependencies (needed even for pre-built .pyz)
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Build script that handles both CI (.pyz exists) and local (build from source) scenarios  
 RUN if [ -f "toolvault.pyz" ]; then \
         echo "Using pre-built .pyz artifact from CI"; \
     else \
         echo "Building from source for local development"; \
-        pip install --no-cache-dir -r requirements.txt && \
         cd spa && npm ci && npm run build && cd .. && \
         python packager.py tools --output toolvault.pyz; \
     fi
