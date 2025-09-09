@@ -203,6 +203,7 @@ class ToolVaultServer:
                 "endpoints": {
                     "tools": "/tools/list",
                     "call": "/tools/call",
+                    "ui": "/ui/",
                     "health": "/health"
                 }
             }
