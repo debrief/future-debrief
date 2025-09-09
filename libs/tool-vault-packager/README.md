@@ -88,7 +88,41 @@ python toolvault.pyz call-tool word_count '{"text": "Hello world"}'
 
 **Note**: The .pyz package is fully self-contained with integrated SPA and doesn't require external dependencies.
 
-### 6. Analyze Tool Details
+### 6. Docker Containerization
+
+ToolVault can be containerized for cloud deployments with flexible build options:
+
+#### Local Development Build
+```bash
+# Build Docker image (builds from source)
+docker build -t toolvault .
+
+# Run container
+docker run -p 5000:5000 toolvault
+```
+
+#### CI/Production Build (Optimized)
+```bash
+# First create the .pyz artifact
+npm run build
+
+# Build Docker image (uses pre-built .pyz)
+docker build -t toolvault .
+
+# Run container
+docker run -p 5000:5000 toolvault
+```
+
+The Dockerfile automatically detects:
+- **CI Mode**: If `toolvault.pyz` exists, uses the pre-built artifact
+- **Local Mode**: If no `.pyz` file, builds from source with full SPA compilation
+
+The container runs the FastAPI server on port 5000 with:
+- Web interface: `http://localhost:5000/ui/`
+- MCP API: `http://localhost:5000/tools/list`
+- Health check: `http://localhost:5000/health`
+
+### 7. Analyze Tool Details
 
 ```bash
 # Show detailed tool information including source code and git history

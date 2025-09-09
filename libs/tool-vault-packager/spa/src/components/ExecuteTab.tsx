@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { MCPTool, ToolIndex, ExecutionResult } from '../types';
 import { mcpService } from '../services/mcpService';
 import { SchemaForm } from './SchemaForm';
@@ -22,17 +22,7 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
   const [samplesError, setSamplesError] = useState<string | null>(null);
   const [toolIndexError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (toolIndex?.files.inputs && toolIndex.files.inputs.length > 0) {
-      loadSamples();
-    } else {
-      const emptyData = {};
-      setInput('{}');
-      setFormData(emptyData);
-    }
-  }, [toolIndex]);
-
-  const loadSamples = async () => {
+  const loadSamples = useCallback(async () => {
     if (!toolIndex?.files.inputs) return;
     
     setSamplesLoading(true);
@@ -74,7 +64,17 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
     } finally {
       setSamplesLoading(false);
     }
-  };
+  }, [toolIndex, tool.name]);
+
+  useEffect(() => {
+    if (toolIndex?.files.inputs && toolIndex.files.inputs.length > 0) {
+      loadSamples();
+    } else {
+      const emptyData = {};
+      setInput('{}');
+      setFormData(emptyData);
+    }
+  }, [toolIndex, loadSamples]);
 
   const handleSampleSelect = (sampleName: string) => {
     const sample = samples.find(s => s.name === sampleName);

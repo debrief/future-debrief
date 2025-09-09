@@ -12,7 +12,7 @@ The pipeline follows the monorepo pattern established in `apps/vs-code/CI/` and 
 2. **Package PYZ** - Creates the .pyz file using the packager.py script
 3. **Test PYZ** - Validates the .pyz file exists and is executable
 4. **Publish Artifact** - Uploads the .pyz file to GitHub Actions artifacts
-5. **Deploy to Heroku** - Deploys the packaged application to Heroku
+5. **Deploy to Fly.io** - Deploys the packaged application to Fly.io using Docker
 
 ## Composite Actions
 
@@ -28,8 +28,8 @@ Tests that the .pyz file is correctly generated and executable.
 ### publish-artifact
 Uploads the .pyz file and metadata to GitHub Actions artifacts.
 
-### deploy-heroku
-Deploys the packaged application to Heroku with proper configuration.
+### deploy-fly
+Deploys the packaged application to Fly.io with Docker containerization.
 
 ### main-pipeline
 Orchestrates the complete pipeline execution in the correct sequence.
@@ -41,21 +41,25 @@ The pipeline is triggered by changes to files in the `libs/tool-vault-packager/`
 ## Configuration
 
 ### Environment Variables Required
-- `HEROKU_API_KEY` - Heroku API key for deployment
+- `FLY_API_TOKEN` - Fly.io API token for deployment
 
 ### Optional Inputs
-- `heroku_app_name` - Name of the Heroku app (default: 'toolvault-server')
 - `artifact_retention_days` - Days to retain artifacts (default: 30)
-- `skip_deployment` - Skip Heroku deployment (default: false)
+- `skip_deployment` - Skip Fly.io deployment (default: false)
+- `is_pr` - Whether this is a PR deployment (default: false)
+- `pr_number` - PR number for PR deployments
 
 ## Usage
 
 The pipeline is automatically triggered when files in `libs/tool-vault-packager/` are modified. It can also be manually triggered via workflow_dispatch.
 
-## Heroku Deployment
+## Fly.io Deployment
 
-The Heroku deployment:
-- Creates or uses an existing Heroku app
-- Deploys the .pyz file with proper Python runtime configuration
-- Starts the server with `python toolvault.pyz serve --port $PORT --host 0.0.0.0`
+The Fly.io deployment:
+- Creates or uses an existing Fly.io app
+- Builds and deploys using Docker containerization
+- Supports both production and PR preview deployments
+- Production: `https://toolvault-main.fly.dev`
+- PR previews: `https://toolvault-pr-{number}.fly.dev`
+- FastAPI server runs on port 5000 with health check endpoints
 - Provides the deployment URL in the pipeline output
