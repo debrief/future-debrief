@@ -20,7 +20,7 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
   const [result, setResult] = useState<ExecutionResult | null>(null);
   const [samplesLoading, setSamplesLoading] = useState(false);
   const [samplesError, setSamplesError] = useState<string | null>(null);
-  const [toolIndexError, setToolIndexError] = useState<string | null>(null);
+  const [toolIndexError] = useState<string | null>(null);
 
   useEffect(() => {
     if (toolIndex?.files.inputs && toolIndex.files.inputs.length > 0) {

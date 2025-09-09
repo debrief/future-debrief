@@ -78,6 +78,7 @@ index.json
 temp/
 tmp/
 debug-package-contents/
+tmp_package_contents/
 
 # Logs
 *.log

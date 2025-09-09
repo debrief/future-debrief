@@ -1,6 +1,31 @@
 import type { MCPToolListResponse, MCPToolCallRequest, MCPToolCallResponse, ToolIndex, ToolVaultRootResponse } from '../types';
 
-const MCP_BASE_URL = import.meta.env.VITE_MCP_BASE_URL || 'http://localhost:8000/tools';
+// Auto-detect server URL or use environment variable override
+const getServerBaseUrl = (): string => {
+  // Check for environment variable override (for development)
+  const envBackendUrl = import.meta.env.BACKEND_URL;
+  if (envBackendUrl) {
+    return envBackendUrl;
+  }
+  
+  // Check for Vite environment variable
+  const viteBackendUrl = import.meta.env.VITE_MCP_BASE_URL;
+  if (viteBackendUrl) {
+    return viteBackendUrl.replace('/tools', '');
+  }
+  
+  // Auto-detect from current window location (when served from same server)
+  if (typeof window !== 'undefined') {
+    const { protocol, hostname, port } = window.location;
+    return `${protocol}//${hostname}${port ? ':' + port : ''}`;
+  }
+  
+  // Fallback for development
+  return 'http://localhost:8000';
+};
+
+const SERVER_BASE_URL = getServerBaseUrl();
+const MCP_BASE_URL = `${SERVER_BASE_URL}/tools`;
 
 export class MCPService {
   private baseUrl: string;
@@ -13,7 +38,7 @@ export class MCPService {
   async discoverEndpoints(): Promise<ToolVaultRootResponse> {
     try {
       // Get root endpoint to discover available endpoints
-      const rootUrl = 'http://localhost:8000/';
+      const rootUrl = `${SERVER_BASE_URL}/`;
       
       console.log('Attempting to discover endpoints at:', rootUrl);
       const response = await fetch(rootUrl);
@@ -32,7 +57,7 @@ export class MCPService {
       
       // Extract tools list URL from discovery
       if (rootInfo.endpoints?.tools) {
-        this.toolsListUrl = `http://localhost:8000${rootInfo.endpoints.tools}`;
+        this.toolsListUrl = `${SERVER_BASE_URL}${rootInfo.endpoints.tools}`;
       } else {
         // Fallback to default if not provided
         this.toolsListUrl = `${this.baseUrl}/list`;
@@ -88,7 +113,7 @@ export class MCPService {
   }
 
   async loadToolIndex(toolName: string, indexPath?: string): Promise<ToolIndex> {
-    const path = indexPath || `http://localhost:8000/api/tools/${toolName}/tool.json`;
+    const path = indexPath || `${SERVER_BASE_URL}/api/tools/${toolName}/tool.json`;
     try {
       const response = await fetch(path);
       if (!response.ok) {
@@ -102,7 +127,7 @@ export class MCPService {
   }
 
   async loadSampleInput(inputPath: string, toolName?: string): Promise<Record<string, unknown>> {
-    const url = inputPath.startsWith('http') ? inputPath : (toolName ? `http://localhost:8000/api/tools/${toolName}/${inputPath}` : inputPath);
+    const url = inputPath.startsWith('http') ? inputPath : (toolName ? `${SERVER_BASE_URL}/api/tools/${toolName}/${inputPath}` : inputPath);
     try {
       const response = await fetch(url);
       if (!response.ok) {
@@ -116,7 +141,7 @@ export class MCPService {
   }
 
   async loadSourceCode(sourcePath: string, toolName?: string): Promise<string> {
-    const url = sourcePath.startsWith('http') ? sourcePath : (toolName ? `http://localhost:8000/api/tools/${toolName}/${sourcePath}` : sourcePath);
+    const url = sourcePath.startsWith('http') ? sourcePath : (toolName ? `${SERVER_BASE_URL}/api/tools/${toolName}/${sourcePath}` : sourcePath);
     try {
       const response = await fetch(url);
       if (!response.ok) {
@@ -130,7 +155,7 @@ export class MCPService {
   }
 
   async loadGitHistory(historyPath: string, toolName?: string): Promise<unknown> {
-    const url = historyPath.startsWith('http') ? historyPath : (toolName ? `http://localhost:8000/api/tools/${toolName}/${historyPath}` : historyPath);
+    const url = historyPath.startsWith('http') ? historyPath : (toolName ? `${SERVER_BASE_URL}/api/tools/${toolName}/${historyPath}` : historyPath);
     try {
       const response = await fetch(url);
       if (!response.ok) {

@@ -1,0 +1,23 @@
+{
+  "name": "tool-vault-packager",
+  "version": "1.0.0",
+  "description": "ToolVault packaging system for creating deployable .pyz files",
+  "main": "cli.py",
+  "scripts": {
+    "clean": "rm -f *.pyz && rm -rf tmp_package_contents",
+    "build": "python packager.py tools --output toolvault.pyz",
+    "build:spa": "cd spa && npm run build",
+    "prebuild": "npm run clean && npm run build:spa",
+    "serve": "python cli.py serve",
+    "dev:spa": "cd spa && npm run dev",
+    "dev:spa:with-backend": "cd spa && npm run dev:with-backend"
+  },
+  "keywords": ["toolvault", "mcp", "packaging"],
+  "author": "ToolVault",
+  "license": "MIT",
+  "dependencies": {
+    "fastapi": ">=0.104.0",
+    "uvicorn": ">=0.24.0",
+    "pydantic": ">=2.0.0"
+  }
+}

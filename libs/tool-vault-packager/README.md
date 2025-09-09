@@ -1,19 +1,22 @@
 # ToolVault Packager
 
-A multi-runtime tool discovery and packaging system that creates MCP-compatible deployable units for both Python and TypeScript environments.
+A unified tool discovery and packaging system that creates self-contained deployable units with integrated Single Page Application (SPA) interface and MCP-compatible REST endpoints.
 
 ## Overview
 
-ToolVault Packager discovers tools in designated directories, validates their type annotations, and packages them into self-contained deployables with MCP-compatible REST endpoints.
+ToolVault Packager discovers tools in designated directories, validates their type annotations, and packages them into unified deployables that serve both a web interface and MCP-compatible APIs from a single server instance.
 
-## Phase 1 Implementation - Core Packager and Minimal Runtime
+## Integrated SPA Implementation
 
-This phase provides:
-- Tool discovery system with validation
-- MCP-compatible REST endpoints (`/tools/list`, `/tools/call`, `/api/tools/`)
-- Python .pyz packaging
-- CLI interface for tool management and server operations
-- Input/output validation using Pydantic
+This implementation provides:
+- **Unified Server**: Single server instance serving both SPA and MCP API
+- **Tool Discovery System**: Automated tool validation and metadata extraction
+- **MCP-Compatible REST Endpoints**: `/tools/list`, `/tools/call`, `/api/tools/`
+- **Integrated Web Interface**: SPA accessible at `/ui/` endpoint with full tool interaction
+- **Self-Contained .pyz Packaging**: Complete deployment in a single executable file
+- **Auto-detecting API Configuration**: SPA automatically detects server URL/port
+- **Development Override Support**: Backend URL override for development workflows
+- **Build Process Integration**: Automated SPA building and asset bundling
 
 ## Quick Start
 
@@ -29,32 +32,61 @@ pip install -r requirements.txt
 python -m cli --tools-path tools list-tools
 ```
 
-### 3. Start Server
+### 3. Start Unified Server
 
 ```bash
 python -m cli --tools-path tools serve --port 8000
 ```
 
-### 4. Package into .pyz
+The server will start with both interfaces available:
+```
+Server starting on http://127.0.0.1:8000
+Web interface: http://127.0.0.1:8000/ui/
+MCP API: http://127.0.0.1:8000/tools/list
+```
+
+### 4. Build Complete Package (with SPA)
 
 ```bash
-python -m packager tools --output toolvault.pyz
+# Clean previous builds (optional)
+npm run clean
+
+# Build package with integrated SPA
+npm run build
 ```
+
+Or manually:
+```bash
+python packager.py tools --output toolvault.pyz
+```
+
+This will:
+1. Build the SPA automatically
+2. Package SPA assets into the .pyz file  
+3. Create `tmp_package_contents/` for inspection and development
+4. Create a unified deployable with both web UI and API
 
 ### 5. Run Packaged Version
 
+```bash
+# Start unified server from packaged version
+python toolvault.pyz serve --port 8000
+```
+
+This provides the same unified interface:
+- Web interface: `http://localhost:8000/ui/`
+- MCP API: `http://localhost:8000/tools/list`
+
+Additional CLI commands:
 ```bash
 # List tools from packaged version
 python toolvault.pyz list-tools
 
 # Call a tool from packaged version  
 python toolvault.pyz call-tool word_count '{"text": "Hello world"}'
-
-# Start server from packaged version
-python toolvault.pyz serve --port 8000
 ```
 
-**Note**: The .pyz package is fully self-contained and doesn't require the external `tools` directory.
+**Note**: The .pyz package is fully self-contained with integrated SPA and doesn't require external dependencies.
 
 ### 6. Analyze Tool Details
 
@@ -62,6 +94,58 @@ python toolvault.pyz serve --port 8000
 # Show detailed tool information including source code and git history
 python toolvault.pyz show-details
 ```
+
+## SPA Development
+
+### Development Setup
+
+For SPA development with live reloading:
+
+```bash
+# Navigate to SPA directory
+cd spa
+
+# Install dependencies
+npm install
+
+# Start development server (connects to backend on localhost:8000)
+npm run dev
+
+# Or override backend URL for custom backend
+npm run dev:with-backend
+```
+
+### Backend URL Override
+
+The SPA automatically detects the server URL when served from the integrated server. For development with a custom backend:
+
+```bash
+# Example: Connect to backend on different port
+npm run dev:with-backend
+```
+
+This uses the configured backend URL override: `http://localhost:8001`
+
+### Build Process
+
+The SPA is automatically built during package creation, but you can build it separately:
+
+```bash
+cd spa
+npm run build
+```
+
+Built assets are placed in `spa/dist/` and automatically included in the .pyz package.
+
+### Package Inspection
+
+After building, inspect the complete package contents before compression:
+
+```bash
+ls -la tmp_package_contents/
+```
+
+This persistent folder contains the exact structure that gets packaged into the .pyz file, including SPA assets, tool metadata, and all supporting files.
 
 ## Tool Requirements
 
@@ -179,10 +263,16 @@ toolvault.pyz (when extracted):
 ├── __main__.py              # Entry point for .pyz execution
 ├── cli.py                   # Command-line interface
 ├── discovery.py             # Tool discovery system
-├── server.py                # FastAPI server
+├── server.py                # FastAPI server with SPA integration
 ├── packager.py             # Packaging utilities
 ├── requirements.txt         # Dependencies documentation
 ├── index.json              # Global MCP-compatible tool schema
+├── static/                 # Integrated SPA assets
+│   ├── index.html             # SPA entry point
+│   ├── assets/                # Built CSS/JS files
+│   │   ├── index-[hash].css
+│   │   └── index-[hash].js
+│   └── vite.svg              # SPA assets
 └── tools/                  # Packaged tools with metadata
     ├── word_count/
     │   ├── execute.py          # Tool implementation
@@ -338,6 +428,15 @@ Test cases and examples for each tool:
 
 ## CLI Commands
 
+### Build Commands
+```bash
+# Clean build artifacts
+npm run clean
+
+# Build complete package with SPA
+npm run build
+```
+
 ### List Tools
 ```bash
 python -m cli --tools-path tools list-tools
@@ -348,9 +447,25 @@ python -m cli --tools-path tools list-tools
 python -m cli --tools-path tools call-tool word_count '{"text": "Hello world"}'
 ```
 
-### Start Server
+### Start Unified Server
 ```bash
 python -m cli --tools-path tools serve --port 8000 --host 0.0.0.0
+```
+
+Server provides both interfaces:
+- **Web Interface**: `http://localhost:8000/ui/`
+- **MCP API**: `http://localhost:8000/tools/list`
+
+### SPA Development Commands
+```bash
+# Navigate to SPA directory
+cd spa
+
+# Start development server
+npm run dev
+
+# Start with backend URL override
+npm run dev:with-backend
 ```
 
 
@@ -359,10 +474,11 @@ python -m cli --tools-path tools serve --port 8000 --host 0.0.0.0
 ### Core Modules
 
 - **discovery.py**: Tool discovery and metadata extraction
-- **server.py**: FastAPI server with MCP endpoints
+- **server.py**: FastAPI server with MCP endpoints and SPA integration
 - **cli.py**: Command-line interface
-- **packager.py**: .pyz packaging system
+- **packager.py**: .pyz packaging system with SPA build integration
 - **validation.py**: Input/output validation
+- **spa/**: Integrated Single Page Application
 
 ### Directory Structure
 
@@ -370,16 +486,24 @@ python -m cli --tools-path tools serve --port 8000 --host 0.0.0.0
 libs/tool-vault-packager/
 ├── __init__.py
 ├── discovery.py          # Tool discovery system
-├── server.py             # FastAPI server
+├── server.py             # FastAPI server with SPA integration
 ├── cli.py               # Command-line interface
-├── packager.py          # Packaging system
+├── packager.py          # Packaging system with SPA build
 ├── validation.py        # Validation system
-├── requirements.txt     # Dependencies
+├── package.json         # Build system configuration
+├── requirements.txt     # Python dependencies
 ├── setup.py            # Package configuration
 ├── README.md           # This file
 ├── docs/               # Documentation
 │   ├── toolvault_srd.md
 │   └── toolvault_packager_plan.md
+├── spa/                # Integrated Single Page Application
+│   ├── src/               # SPA source code
+│   ├── public/            # Static assets
+│   ├── dist/              # Built SPA assets (after build)
+│   ├── package.json       # SPA dependencies
+│   ├── vite.config.ts     # Build configuration
+│   └── README.md          # SPA documentation
 └── tools/              # Example tools
     ├── __init__.py
     ├── word_count.py

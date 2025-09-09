@@ -1512,9 +1512,56 @@ Tasks: Run Task → "SPA: Start Dev Server (External MCP)"
 
 **Final Status:** ✅ **COMPLETED SUCCESSFULLY** - ToolVault SPA Minimal Implementation delivered with complete React/TypeScript application. MCP-first architecture loads tools dynamically and executes via endpoints. Three-tab interface (Info, Execute, Code) provides comprehensive tool interaction. Build system generates static files for Python packager integration. VS Code development environment configured for debugging and external MCP server testing. All minimal requirements met while maintaining extensibility for future enhancements.
 
+### ToolVault SPA Integration into Python Packaged App - Issue #76 ✅
+**Decision**: Integrate existing SPA into Python packaged application for unified distribution and serving
+- **Problem**: SPA and Python server running separately on different ports, requiring separate deployment
+- **Solution**: Unified server instance serving both SPA at `/ui/` and MCP API endpoints from single port
+
+#### Implementation Architecture:
+
+**Phase 1: Build Process Integration** (`libs/tool-vault-packager/`)
+- **Clean Command**: `package.json` with `npm run clean` removes `*.pyz` files and `debug-package-contents/`
+- **SPA Build Integration**: `packager.py` automatically builds SPA and copies `spa/dist/` → package `static/` directory  
+- **Development Override**: `spa/package.json` includes `dev:with-backend` script for custom backend URL testing
+
+**Phase 2: Server Integration** (`server.py`)
+- **Static File Serving**: FastAPI StaticFiles mounted at `/ui/` endpoint for extracted files
+- **Archive Serving**: Custom route handlers for serving SPA from within `.pyz` archive using zipfile
+- **Unified Startup Messages**: Server displays both `Web interface: http://host:port/ui/` and `MCP API: http://host:port/tools/list`
+
+**Phase 3: API Auto-Detection** (`spa/src/services/mcpService.ts`)
+- **Dynamic URL Detection**: `getServerBaseUrl()` auto-detects from `window.location` when served from same server
+- **Environment Override Support**: `BACKEND_URL` environment variable for development workflows
+- **Fallback Strategy**: Graceful fallback to `localhost:8000` for standalone development
+
+#### Key Files Modified:
+- **Build System**: `libs/tool-vault-packager/package.json` - Build scripts and clean commands
+- **Packager**: `libs/tool-vault-packager/packager.py` - `build_spa()` function and asset integration  
+- **Server**: `libs/tool-vault-packager/server.py` - Archive static file serving with content-type detection
+- **SPA Service**: `libs/tool-vault-packager/spa/src/services/mcpService.ts` - Auto-detecting API configuration
+- **SPA Config**: `libs/tool-vault-packager/spa/package.json` - Development backend override script
+
+#### Testing Results:
+- ✅ **Development Mode**: SPA serves from `debug-package-contents/static/` with StaticFiles
+- ✅ **Production Mode**: SPA serves from `.pyz` archive using custom zipfile route handlers
+- ✅ **Unified Endpoints**: Single server provides both `/ui/` (SPA) and `/tools/list` (MCP API)
+- ✅ **API Auto-Detection**: SPA automatically connects to correct server URL/port
+- ✅ **Build Integration**: `npm run build` creates complete package with integrated SPA assets
+
+#### Package Structure Enhancement:
+```
+toolvault.pyz:
+├── static/              # SPA assets (index.html, CSS, JS)
+├── server.py           # Enhanced with SPA serving capability  
+├── packager.py         # Enhanced with SPA build integration
+└── [existing structure...]
+```
+
+**Final Status:** ✅ **COMPLETED SUCCESSFULLY** - SPA integrated into Python packaged app with unified serving from single server instance. Complete build process automation with clean commands. Production-ready .pyz packages include SPA assets and serve them from archive. Development workflow maintained with backend URL override capability.
+
 ---
 
-*Last Updated: 2025-09-08*  
-*Total Sections Compressed: 22 major implementations*  
+*Last Updated: 2025-09-09*  
+*Total Sections Compressed: 23 major implementations*  
 
 *Focus: Key decisions, file locations, and navigation for future developers*
