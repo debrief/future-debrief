@@ -18,14 +18,24 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: libs/tool-vault-packager/spa/package-lock.json
     
     - name: Install SPA dependencies
       shell: bash
       working-directory: libs/tool-vault-packager/spa
       run: |
-        npm ci
+        echo "📦 Installing SPA dependencies..."
+        echo "Working directory: $(pwd)"
+        echo "Node version: $(node --version)"
+        echo "NPM version: $(npm --version)"
+        
+        # Clean npm cache to avoid potential corruption issues
+        npm cache clean --force
+        
+        # Try npm ci first, fallback to npm install if it fails
+        if ! npm ci; then
+          echo "⚠️  npm ci failed, trying npm install..."
+          npm install
+        fi
     
     - name: Build SPA
       shell: bash
