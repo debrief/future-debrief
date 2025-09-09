@@ -1,0 +1,62 @@
+name: Tool Vault PR Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths:
+      - 'libs/tool-vault-packager/**'
+
+concurrency:
+  group: toolvault-pr-preview-${{ github.event.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr-preview:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 1
+    
+    - name: Run Tool Vault PR Pipeline
+      uses: ./libs/tool-vault-packager/CI/action/main-pipeline
+      with:
+        heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+        heroku_app_name: 'toolvault-pr-${{ github.event.number }}'
+        artifact_retention_days: '7'
+        skip_deployment: ${{ secrets.HEROKU_API_KEY == '' }}
+    
+    - name: Comment on PR
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const prNumber = context.payload.pull_request.number;
+          const commitSha = context.payload.pull_request.head.sha.substring(0, 7);
+          
+          // Check if deployment was skipped
+          const skipDeployment = '${{ secrets.HEROKU_API_KEY }}' === '';
+          
+          const comment = `
+          ## 🔧 Tool Vault Build Complete
+          
+          **Commit:** ${commitSha}
+          **Artifact:** Available in Actions tab
+          ${skipDeployment 
+            ? '**Status:** Build and test completed (deployment skipped - no Heroku credentials)'
+            : `**Preview App:** https://toolvault-pr-${prNumber}.herokuapp.com`
+          }
+          
+          The Tool Vault packager has been built and tested successfully.
+          `;
+          
+          github.rest.issues.createComment({
+            issue_number: prNumber,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: comment
+          });
