@@ -122,14 +122,21 @@ test.describe('Word-Count Tool UI Functional Testing', () => {
     
     expect(simpleTextFound).toBeTruthy();
     
-    // Wait for the input to be populated
+    // Wait for the input to be populated after sample selection
     await page.waitForTimeout(1000);
     
-    // Verify that some input was populated (check the textarea or form)
+    // Switch to JSON Input mode to access the textarea
+    const jsonInputButton = page.locator('.input-method-button').filter({ hasText: 'JSON Input' });
+    await jsonInputButton.click();
+    await page.waitForTimeout(500);
+    
+    // Verify that some input was populated (check the textarea)
     const inputTextarea = page.locator('.input-textarea');
+    await expect(inputTextarea).toBeVisible();
     const inputValue = await inputTextarea.inputValue();
     expect(inputValue.trim()).not.toBe('{}');
     expect(inputValue.trim()).not.toBe('');
+    expect(inputValue.length).toBeGreaterThan(2);
     
     // Look for execute button and ensure it's enabled
     const executeButton = page.locator('[data-testid="execute-button"]');
