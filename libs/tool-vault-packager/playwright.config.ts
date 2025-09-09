@@ -33,14 +33,15 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: process.env.TEST_MODE === 'pyz' ? {
-    command: 'python cli.py serve --port 8080',
-    port: 8080,
+  webServer: process.env.TEST_MODE === 'dev' ? {
+    command: 'cd spa && npm run dev',
+    port: 5173,
     reuseExistingServer: !process.env.CI,
   } : {
-    // Default to .pyz mode when no TEST_MODE is specified
+    // Default to .pyz mode when no TEST_MODE is specified or TEST_MODE is 'pyz'
     command: 'python cli.py serve --port 8080',
     port: 8080,
     reuseExistingServer: !process.env.CI,
+    timeout: 12 * 1000, // 2 minutes timeout
   },
 });
