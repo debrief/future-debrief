@@ -24,6 +24,7 @@ jobs:
         fetch-depth: 1
     
     - name: Run Tool Vault PR Pipeline
+      id: pipeline
       uses: ./libs/tool-vault-packager/CI/action/main-pipeline
       with:
         fly_api_token: ${{ secrets.FLY_API_TOKEN }}
@@ -41,6 +42,7 @@ jobs:
           
           // Check if deployment was skipped
           const skipDeployment = '${{ secrets.FLY_API_TOKEN }}' === '';
+          const deploymentUrl = '${{ steps.pipeline.outputs.deployment_url }}';
           
           const comment = `
           ## 🔧 Tool Vault Build Complete
@@ -49,7 +51,9 @@ jobs:
           **Artifact:** Available in Actions tab
           ${skipDeployment 
             ? '**Status:** Build and test completed (deployment skipped - no Fly.io credentials)'
-            : `**Preview App:** https://toolvault-pr-${prNumber}.fly.dev`
+            : deploymentUrl 
+              ? `**Preview App:** ${deploymentUrl}`
+              : '**Status:** Build completed (no deployment URL available)'
           }
           
           The Tool Vault packager has been built and tested successfully.
