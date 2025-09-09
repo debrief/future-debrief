@@ -50,6 +50,8 @@ export function Sidebar({ tools, selectedTool, onToolSelect, loading }: SidebarP
               key={tool.name}
               className={`tool-item ${selectedTool?.name === tool.name ? 'selected' : ''}`}
               onClick={() => onToolSelect(tool)}
+              data-testid={`tool-${tool.name}`}
+              data-tool-name={tool.name}
             >
               <div className="tool-name">{tool.name}</div>
               <div className="tool-description">{tool.description}</div>
