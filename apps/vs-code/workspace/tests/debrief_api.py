@@ -56,12 +56,20 @@ class DebriefWebSocketClient:
         atexit.register(self.cleanup)
     
     def connect(self) -> None:
-        """Establish connection to the WebSocket server."""
+        """
+        Establish connection to the WebSocket server.
+        
+        Returns:
+            None: Method returns nothing but raises DebriefAPIError on connection failure
+        
+        Raises:
+            DebriefAPIError: When connection to WebSocket server fails
+        """
         if self.connected and self.ws:
             return
             
         try:
-            self.logger.info("Connecting to Debrief WebSocket server...")
+            self.logger.info("Connecting to Debrief...")
             self.ws = websocket.create_connection(self.url, timeout=10)
             self.connected = True
             self.logger.info("Connected successfully!")
@@ -79,12 +87,23 @@ class DebriefWebSocketClient:
             raise DebriefAPIError(f"Connection failed: {str(e)}")
     
     def send_raw_message(self, message: str) -> str:
-        """Send a raw string message and return the response."""
+        """
+        Send a raw string message and return the response.
+        
+        Args:
+            message (str): The raw string message to send to the server
+        
+        Returns:
+            str: The response from the server as a string
+        
+        Raises:
+            DebriefAPIError: When connection fails or message sending fails
+        """
         if not self.connected:
             self.connect()
             
         if not self.connected or not self.ws:
-            raise DebriefAPIError("Not connected to WebSocket server")
+            raise DebriefAPIError("Not connected to Debrief")
         
         try:
             # Send message
@@ -107,7 +126,18 @@ class DebriefWebSocketClient:
             raise DebriefAPIError(f"Message send failed: {e}")
     
     def send_json_message(self, message: Dict[str, Any]) -> Dict[str, Any]:
-        """Send a JSON message and return the parsed response."""
+        """
+        Send a JSON message and return the parsed response.
+        
+        Args:
+            message (Dict[str, Any]): The JSON message dictionary to send
+        
+        Returns:
+            Dict[str, Any]: The parsed JSON response from the server
+        
+        Raises:
+            DebriefAPIError: When connection fails, message sending fails, or server returns an error
+        """
         if not self.connected:
             self.connect()
         
@@ -137,7 +167,18 @@ class DebriefWebSocketClient:
         return self._send_json_raw(message)
     
     def _send_json_raw(self, message: Dict[str, Any]) -> Dict[str, Any]:
-        """Send a JSON message without filename handling logic."""
+        """
+        Send a JSON message without filename handling logic.
+        
+        Args:
+            message (Dict[str, Any]): The JSON message dictionary to send
+        
+        Returns:
+            Dict[str, Any]: The parsed JSON response from the server
+        
+        Raises:
+            DebriefAPIError: When message sending fails or JSON parsing fails
+        """
         json_str = json.dumps(message)
         response_str = self.send_raw_message(json_str)
         
@@ -162,7 +203,19 @@ class DebriefWebSocketClient:
             raise DebriefAPIError(f"Invalid JSON response: {e}")
     
     def _prompt_plot_selection(self, available_plots: List[Dict[str, str]]) -> str:
-        """Prompt user to select from available plots."""
+        """
+        Prompt user to select from available plots.
+        
+        Args:
+            available_plots (List[Dict[str, str]]): List of plot dictionaries with 'filename' and 'title' keys
+        
+        Returns:
+            str: The filename of the selected plot
+        
+        Raises:
+            DebriefAPIError: When no plots are available
+            SystemExit: When user chooses to quit (via 'Q' input or Ctrl+C)
+        """
         if not available_plots:
             raise DebriefAPIError("No plots available")
         
@@ -201,8 +254,13 @@ class DebriefWebSocketClient:
                 print("\nInput stream closed. Exiting script.")
                 sys.exit(0)
     
-    def cleanup(self):
-        """Clean up resources."""
+    def cleanup(self) -> None:
+        """
+        Clean up resources.
+        
+        Returns:
+            None: Method returns nothing, closes WebSocket connection and resets state
+        """
         if self.ws:
             try:
                 self.ws.close()
@@ -235,19 +293,60 @@ class DebriefAPI:
         self._client = DebriefWebSocketClient()
     
     def connect(self) -> None:
-        """Connect to the Debrief WebSocket server."""
+        """
+        Connect to the Debrief WebSocket server.
+        
+        Returns:
+            None: Method returns nothing but establishes connection for subsequent API calls
+        
+        Raises:
+            DebriefAPIError: When connection to WebSocket server fails
+        """
         self._client.connect()
     
     def send_raw_message(self, message: str) -> str:
-        """Send a raw message to the server."""
+        """
+        Send a raw message to the server.
+        
+        Args:
+            message (str): The raw string message to send
+        
+        Returns:
+            str: The response from the server as a string
+        
+        Raises:
+            DebriefAPIError: When connection fails or message sending fails
+        """
         return self._client.send_raw_message(message)
     
     def send_json_message(self, message: Dict[str, Any]) -> Dict[str, Any]:
-        """Send a JSON message to the server."""
+        """
+        Send a JSON message to the server.
+        
+        Args:
+            message (Dict[str, Any]): The JSON message dictionary to send
+        
+        Returns:
+            Dict[str, Any]: The parsed JSON response from the server
+        
+        Raises:
+            DebriefAPIError: When connection fails, message sending fails, or server returns an error
+        """
         return self._client.send_json_message(message)
     
     def notify(self, message: str) -> None:
-        """Display a notification in VS Code."""
+        """
+        Display a notification in VS Code.
+        
+        Args:
+            message (str): The notification message text to display
+        
+        Returns:
+            None: Method returns nothing but triggers a notification in VS Code
+        
+        Raises:
+            DebriefAPIError: When WebSocket communication fails
+        """
         command = {
             "command": "notify",
             "params": {
@@ -257,7 +356,18 @@ class DebriefAPI:
         self._client.send_json_message(command)
     
     def get_feature_collection(self, filename: Optional[str] = None) -> Dict[str, Any]:
-        """Get the feature collection for a plot file."""
+        """
+        Get the feature collection for a plot file.
+        
+        Args:
+            filename (Optional[str]): The plot file name. If None, uses single open plot or prompts for selection
+        
+        Returns:
+            Dict[str, Any]: The GeoJSON FeatureCollection dictionary containing all features in the plot
+        
+        Raises:
+            DebriefAPIError: When WebSocket communication fails or no plots are open
+        """
         command = {
             "command": "get_feature_collection",
             "params": {
@@ -269,7 +379,19 @@ class DebriefAPI:
         return response.get('result', {})
     
     def set_feature_collection(self, fc: Dict[str, Any], filename: Optional[str] = None) -> None:
-        """Set the feature collection for a plot file."""
+        """
+        Set the feature collection for a plot file.
+        
+        Args:
+            fc (Dict[str, Any]): The GeoJSON FeatureCollection dictionary to set
+            filename (Optional[str]): The plot file name. If None, uses single open plot or prompts for selection
+        
+        Returns:
+            None: Method returns nothing but updates the plot with the new feature collection
+        
+        Raises:
+            DebriefAPIError: When WebSocket communication fails or no plots are open
+        """
         command = {
             "command": "set_feature_collection",
             "params": {
@@ -281,7 +403,18 @@ class DebriefAPI:
         self._client.send_json_message(command)
     
     def get_selected_features(self, filename: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Get the currently selected features for a plot file."""
+        """
+        Get the currently selected features for a plot file.
+        
+        Args:
+            filename (Optional[str]): The plot file name. If None, uses single open plot or prompts for selection
+        
+        Returns:
+            List[Dict[str, Any]]: List of GeoJSON Feature dictionaries that are currently selected
+        
+        Raises:
+            DebriefAPIError: When WebSocket communication fails or no plots are open
+        """
         command = {
             "command": "get_selected_features",
             "params": {
@@ -293,7 +426,19 @@ class DebriefAPI:
         return response.get('result', [])
     
     def set_selected_features(self, ids: List[str], filename: Optional[str] = None) -> None:
-        """Set the selected features for a plot file."""
+        """
+        Set the selected features for a plot file.
+        
+        Args:
+            ids (List[str]): List of feature IDs to select
+            filename (Optional[str]): The plot file name. If None, uses single open plot or prompts for selection
+        
+        Returns:
+            None: Method returns nothing but updates the selection state in the plot
+        
+        Raises:
+            DebriefAPIError: When WebSocket communication fails or no plots are open
+        """
         command = {
             "command": "set_selected_features",
             "params": {
@@ -305,7 +450,19 @@ class DebriefAPI:
         self._client.send_json_message(command)
     
     def update_features(self, features: List[Dict[str, Any]], filename: Optional[str] = None) -> None:
-        """Update features in a plot file."""
+        """
+        Update features in a plot file.
+        
+        Args:
+            features (List[Dict[str, Any]]): List of GeoJSON Feature dictionaries to update (must have matching IDs)
+            filename (Optional[str]): The plot file name. If None, uses single open plot or prompts for selection
+        
+        Returns:
+            None: Method returns nothing but updates the specified features in the plot
+        
+        Raises:
+            DebriefAPIError: When WebSocket communication fails or no plots are open
+        """
         command = {
             "command": "update_features",
             "params": {
@@ -317,7 +474,19 @@ class DebriefAPI:
         self._client.send_json_message(command)
     
     def add_features(self, features: List[Dict[str, Any]], filename: Optional[str] = None) -> None:
-        """Add new features to a plot file."""
+        """
+        Add new features to a plot file.
+        
+        Args:
+            features (List[Dict[str, Any]]): List of GeoJSON Feature dictionaries to add to the plot
+            filename (Optional[str]): The plot file name. If None, uses single open plot or prompts for selection
+        
+        Returns:
+            None: Method returns nothing but adds the features to the plot
+        
+        Raises:
+            DebriefAPIError: When WebSocket communication fails or no plots are open
+        """
         command = {
             "command": "add_features",
             "params": {
@@ -329,7 +498,19 @@ class DebriefAPI:
         self._client.send_json_message(command)
     
     def delete_features(self, ids: List[str], filename: Optional[str] = None) -> None:
-        """Delete features from a plot file."""
+        """
+        Delete features from a plot file.
+        
+        Args:
+            ids (List[str]): List of feature IDs to delete
+            filename (Optional[str]): The plot file name. If None, uses single open plot or prompts for selection
+        
+        Returns:
+            None: Method returns nothing but removes the specified features from the plot
+        
+        Raises:
+            DebriefAPIError: When WebSocket communication fails or no plots are open
+        """
         command = {
             "command": "delete_features",
             "params": {
@@ -341,7 +522,18 @@ class DebriefAPI:
         self._client.send_json_message(command)
     
     def zoom_to_selection(self, filename: Optional[str] = None) -> None:
-        """Zoom to the selected features in a plot file."""
+        """
+        Zoom to the selected features in a plot file.
+        
+        Args:
+            filename (Optional[str]): The plot file name. If None, uses single open plot or prompts for selection
+        
+        Returns:
+            None: Method returns nothing but adjusts the viewport to fit selected features
+        
+        Raises:
+            DebriefAPIError: When WebSocket communication fails or no plots are open
+        """
         command = {
             "command": "zoom_to_selection",
             "params": {
@@ -352,7 +544,15 @@ class DebriefAPI:
         self._client.send_json_message(command)
     
     def list_open_plots(self) -> List[Dict[str, str]]:
-        """Get a list of currently open plot files."""
+        """
+        Get a list of currently open plot files.
+        
+        Returns:
+            List[Dict[str, str]]: List of dictionaries with 'filename' and 'title' keys for each open plot
+        
+        Raises:
+            DebriefAPIError: When WebSocket communication fails
+        """
         command = {
             "command": "list_open_plots"
         }
@@ -360,7 +560,18 @@ class DebriefAPI:
         return response.get('result', [])
     
     def get_time(self, filename: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        """Get the current time state for a plot file."""
+        """
+        Get the current time state for a plot file.
+        
+        Args:
+            filename (Optional[str]): The plot file name. If None, uses single open plot or prompts for selection
+        
+        Returns:
+            Optional[Dict[str, Any]]: Time state dictionary with current time settings, or None if not available
+        
+        Raises:
+            DebriefAPIError: When WebSocket communication fails or no plots are open
+        """
         command = {
             "command": "get_time",
             "params": {
@@ -371,7 +582,19 @@ class DebriefAPI:
         return response.get('result')
     
     def set_time(self, time_state: Dict[str, Any], filename: Optional[str] = None) -> None:
-        """Set the time state for a plot file."""
+        """
+        Set the time state for a plot file.
+        
+        Args:
+            time_state (Dict[str, Any]): Time state dictionary containing time settings to apply
+            filename (Optional[str]): The plot file name. If None, uses single open plot or prompts for selection
+        
+        Returns:
+            None: Method returns nothing but updates the time state in the plot
+        
+        Raises:
+            DebriefAPIError: When WebSocket communication fails or no plots are open
+        """
         command = {
             "command": "set_time",
             "params": {
@@ -382,7 +605,18 @@ class DebriefAPI:
         self._client.send_json_message(command)
     
     def get_viewport(self, filename: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        """Get the current viewport state for a plot file."""
+        """
+        Get the current viewport state for a plot file.
+        
+        Args:
+            filename (Optional[str]): The plot file name. If None, uses single open plot or prompts for selection
+        
+        Returns:
+            Optional[Dict[str, Any]]: Viewport state dictionary with zoom and center coordinates, or None if not available
+        
+        Raises:
+            DebriefAPIError: When WebSocket communication fails or no plots are open
+        """
         command = {
             "command": "get_viewport",
             "params": {
@@ -393,7 +627,19 @@ class DebriefAPI:
         return response.get('result')
     
     def set_viewport(self, viewport_state: Dict[str, Any], filename: Optional[str] = None) -> None:
-        """Set the viewport state for a plot file."""
+        """
+        Set the viewport state for a plot file.
+        
+        Args:
+            viewport_state (Dict[str, Any]): Viewport state dictionary containing zoom and center coordinates
+            filename (Optional[str]): The plot file name. If None, uses single open plot or prompts for selection
+        
+        Returns:
+            None: Method returns nothing but updates the viewport in the plot
+        
+        Raises:
+            DebriefAPIError: When WebSocket communication fails or no plots are open
+        """
         command = {
             "command": "set_viewport",
             "params": {
