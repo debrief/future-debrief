@@ -36,8 +36,6 @@ export class PythonWheelInstaller {
             // Check if bundled wheel exists
             if (!this.bundledWheelPath || !fs.existsSync(this.bundledWheelPath)) {
                 console.warn('Bundled debrief-types wheel not found. Python integration will not be available.');
-                console.warn('Searched for wheel files in:', path.join(this.extensionContext.extensionPath, 'python'));
-                this.listPythonDirectory();
                 return;
             }
 
@@ -83,9 +81,6 @@ export class PythonWheelInstaller {
 
         } catch (error) {
             console.error('Failed to install debrief-types package:', error);
-            console.error('Bundled wheel path:', this.bundledWheelPath);
-            console.error('Extension path:', this.extensionContext.extensionPath);
-            this.listPythonDirectory();
             
             vscode.window.showWarningMessage(
                 `Failed to install Debrief Python types: ${error}. You can install manually: pip install ${this.bundledWheelPath || 'path/to/wheel'}`,
@@ -115,7 +110,6 @@ export class PythonWheelInstaller {
                 try {
                     const { stdout } = await execAsync(`"${venvPath}" --version`);
                     if (stdout.includes('Python')) {
-                        console.log(`Found virtual environment Python: ${venvPath}`);
                         return venvPath;
                     }
                 } catch {
@@ -133,7 +127,6 @@ export class PythonWheelInstaller {
                         const pythonPath = Array.isArray(executionDetails.execCommand) 
                             ? executionDetails.execCommand[0] 
                             : executionDetails.execCommand;
-                        console.log(`Using VS Code Python extension path: ${pythonPath}`);
                         return pythonPath;
                     }
                 }
@@ -145,7 +138,6 @@ export class PythonWheelInstaller {
                 try {
                     const { stdout } = await execAsync(`${cmd} --version`);
                     if (stdout.includes('Python')) {
-                        console.log(`Using system Python: ${cmd}`);
                         return cmd;
                     }
                 } catch {
@@ -191,26 +183,16 @@ export class PythonWheelInstaller {
 
         for (let i = 0; i < strategies.length; i++) {
             const installCommand = strategies[i];
-            console.log(`Installing with strategy ${i + 1}: ${installCommand}`);
             
             try {
                 const { stdout, stderr } = await execAsync(installCommand);
-                if (stderr && !stderr.includes('DEPRECATION')) {
-                    console.warn('Installation warnings:', stderr);
-                }
-                if (stdout) {
-                    console.log('Installation output:', stdout);
-                }
-                console.log(`Installation successful with strategy ${i + 1}`);
                 return; // Success, exit the function
             } catch (error) {
                 lastError = error instanceof Error ? error : new Error(String(error));
-                console.warn(`Strategy ${i + 1} failed:`, lastError.message);
                 
                 // If this was a PEP 668 error, continue to next strategy
                 if (lastError.message.includes('externally-managed-environment') || 
                     lastError.message.includes('PEP 668')) {
-                    console.log('PEP 668 error detected, trying next strategy...');
                     continue;
                 }
                 
@@ -242,9 +224,6 @@ export class PythonWheelInstaller {
                 return null;
             }
 
-            if (wheelFiles.length > 1) {
-                console.warn(`Multiple wheel files found, using first one: ${wheelFiles[0]}`);
-            }
 
             return path.join(pythonDir, wheelFiles[0]);
         } catch (error) {
