@@ -147,10 +147,5 @@ libs/tool-vault-packager/playwright-report
 libs/tool-vault-packager/test-results
 
 # Python build artifacts
-libs/shared-types/build/
-libs/shared-types/*.egg-info/
-libs/shared-types/dist/python/
-libs/shared-types/src/types/[!R]*.ts
-libs/shared-types/python-src/debrief/types/[!R]*.py
-libs/shared-types/python-src/debrief/schemas/*.json
+
 apps/vs-code/python/
