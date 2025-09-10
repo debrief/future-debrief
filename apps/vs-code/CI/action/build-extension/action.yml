@@ -27,13 +27,26 @@ runs:
       shell: bash
       run: npm install -g pnpm
     
+    - name: Setup Python for wheel building
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install Python build dependencies
+      shell: bash
+      run: pip install build wheel
+    
+    - name: Install global Node.js tools
+      shell: bash
+      run: npm install -g quicktype
+    
     - name: Install dependencies
       shell: bash
       run: pnpm install --no-frozen-lockfile
     
     - name: Build VS Code extension and dependencies
       shell: bash
-      run: pnpm build:vs-code:ci
+      run: pnpm build:vs-code
     
     - name: Install vsce
       shell: bash
