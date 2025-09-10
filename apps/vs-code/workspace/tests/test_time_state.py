@@ -22,10 +22,10 @@ def test_time_state_center_calculation():
         
         # Get current time state
         print("\n📋 Getting current time state...")
-        time_state = debrief.get_time("large-sample.plot.json")
+        time_state = debrief.get_time()
         
         if not time_state:
-            print("⚠️  No time state found for sample.plot.json")
+            print("⚠️  No time state found for current plot")
             print("💡 This is normal if no time state has been set yet")
             
             # Create a default time state for demonstration
@@ -37,11 +37,11 @@ def test_time_state_center_calculation():
                     "2025-09-03T14:00:00Z"
                 ]
             }
-            debrief.set_time(default_time_state, "sample.plot.json")
+            debrief.set_time(default_time_state)
             print("✅ Default time state created")
             
             # Get the newly set time state
-            time_state = debrief.get_time("sample.plot.json")
+            time_state = debrief.get_time()
         
         print(f"✅ Retrieved time state:")
         print(f"   Current time: {time_state['current']}")
@@ -60,13 +60,13 @@ def test_time_state_center_calculation():
         # Update current time to center
         print("\n⏰ Setting current time to calculated center...")
         time_state['current'] = center_time.isoformat().replace('+00:00', 'Z')
-        debrief.set_time(time_state, "large-sample.plot.json")
+        debrief.set_time(time_state)
         
         print(f"✅ Time updated to center: {time_state['current']}")
         
         # Verify the update by getting the time state again
         print("\n🔍 Verifying time state update...")
-        updated_time_state = debrief.get_time("large-sample.plot.json")
+        updated_time_state = debrief.get_time()
         
         if updated_time_state and updated_time_state['current'] == time_state['current']:
             print("✅ Time state update verified successfully!")
@@ -86,7 +86,7 @@ def test_time_state_center_calculation():
         # Provide helpful troubleshooting information
         print("\n🔧 Troubleshooting:")
         print("   1. Ensure VS Code extension is running")
-        print("   2. Ensure sample.plot.json is open in VS Code")
+        print("   2. Ensure temporal plot is open in VS Code")
         print("   3. Ensure WebSocket server is started on port 60123")
         print("   4. Check that debrief_api.py is in the same directory")
 
