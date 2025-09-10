@@ -22,7 +22,7 @@ def test_time_state_center_calculation():
         
         # Get current time state
         print("\n📋 Getting current time state...")
-        time_state = debrief.get_time("sample.plot.json")
+        time_state = debrief.get_time("large-sample.plot.json")
         
         if not time_state:
             print("⚠️  No time state found for sample.plot.json")
@@ -60,13 +60,13 @@ def test_time_state_center_calculation():
         # Update current time to center
         print("\n⏰ Setting current time to calculated center...")
         time_state['current'] = center_time.isoformat().replace('+00:00', 'Z')
-        debrief.set_time(time_state, "sample.plot.json")
+        debrief.set_time(time_state, "large-sample.plot.json")
         
         print(f"✅ Time updated to center: {time_state['current']}")
         
         # Verify the update by getting the time state again
         print("\n🔍 Verifying time state update...")
-        updated_time_state = debrief.get_time("sample.plot.json")
+        updated_time_state = debrief.get_time("large-sample.plot.json")
         
         if updated_time_state and updated_time_state['current'] == time_state['current']:
             print("✅ Time state update verified successfully!")
