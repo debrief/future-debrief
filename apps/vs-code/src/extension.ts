@@ -17,6 +17,7 @@ import { CustomOutlineTreeProvider } from './providers/outlines/customOutlineTre
 
 // External services
 import { DebriefWebSocketServer } from './services/debriefWebSocketServer';
+import { PythonWheelInstaller } from './services/pythonWheelInstaller';
 
 
 class HelloWorldProvider implements vscode.TreeDataProvider<string> {
@@ -57,6 +58,13 @@ export function activate(context: vscode.ExtensionContext) {
     webSocketServer.start().catch(error => {
         console.error('Failed to start WebSocket server:', error);
         vscode.window.showErrorMessage('Failed to start Debrief WebSocket Bridge. Some features may not work.');
+    });
+
+    // Initialize Python wheel installer for automatic debrief-types installation
+    const pythonWheelInstaller = new PythonWheelInstaller(context);
+    pythonWheelInstaller.checkAndInstallPackage().catch(error => {
+        console.error('Python wheel installation failed:', error);
+        // Non-blocking error - extension continues to work without Python integration
     });
     
     // Add cleanup to subscriptions

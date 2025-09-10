@@ -19,15 +19,16 @@ except ImportError:
         "websocket-client library is required. Install it with: pip install websocket-client"
     )
 
-# Import State classes from shared-types
-import os
-shared_types_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../libs/shared-types/derived/python'))
-sys.path.insert(0, shared_types_path)
-
-# Import the State classes by executing the files
-exec(open(os.path.join(shared_types_path, 'TimeState.py')).read())
-exec(open(os.path.join(shared_types_path, 'ViewportState.py')).read())
-exec(open(os.path.join(shared_types_path, 'SelectionState.py')).read())
+# Import State classes from the debrief-types package
+try:
+    from debrief.types.TimeState import TimeState
+    from debrief.types.ViewportState import ViewportState  
+    from debrief.types.SelectionState import SelectionState
+except ImportError as e:
+    raise ImportError(
+        "debrief-types package is required. Install it with: pip install debrief-types\n"
+        f"Original error: {e}"
+    )
 
 
 class DebriefAPIError(Exception):

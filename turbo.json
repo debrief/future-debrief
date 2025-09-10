@@ -6,6 +6,11 @@
       "inputs": ["src/**", "schema/**", "derived/**"],
       "dependsOn": ["^build"]
     },
+    "build:ci": {
+      "outputs": ["dist/**"],  
+      "inputs": ["src/**", "schema/**", "derived/**"],
+      "dependsOn": ["^build:ci"]
+    },
     "dev": {
       "cache": false,
       "persistent": true,

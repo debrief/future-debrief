@@ -1,11 +1,10 @@
 import * as vscode from 'vscode';
 import { GlobalController, EditorState } from './globalController';
 import { EditorIdManager } from './editorIdManager';
-import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
-import { ViewportState } from '@debrief/shared-types/derived/typescript/viewportstate';
+import { TimeState, ViewportState } from '@debrief/shared-types';
 import { calculateTimeRange } from '../common/time-helpers';
 // Note: SelectionState imported in case needed for future enhancements
-// import { SelectionState } from '@debrief/shared-types/derived/typescript/selectionstate';
+// import { SelectionState } from '@debrief/shared-types';
 
 interface GeoJSONFeature {
     type: 'Feature';

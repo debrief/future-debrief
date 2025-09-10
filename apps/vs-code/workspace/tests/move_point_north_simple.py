@@ -6,11 +6,7 @@ Simple example: Move selected points 100km North
 from debrief_api import debrief
 
 # Import SelectionState for typed API
-import sys
-import os
-shared_types_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../libs/shared-types/derived/python'))
-sys.path.insert(0, shared_types_path)
-exec(open(os.path.join(shared_types_path, 'SelectionState.py')).read())
+from debrief.types.SelectionState import SelectionState
 
 # Get selected features using SelectionState
 selection_state = debrief.get_selected_features("sample.plot.json")

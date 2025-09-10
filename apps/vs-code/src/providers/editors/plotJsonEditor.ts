@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
-import { validateFeatureCollectionComprehensive } from '@debrief/shared-types/validators/typescript';
+import { validateFeatureCollectionComprehensive } from '@debrief/shared-types';
 import { GlobalController } from '../../core/globalController';
 import { EditorIdManager } from '../../core/editorIdManager';
 import { StatePersistence } from '../../core/statePersistence';
-import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
+import { TimeState } from '@debrief/shared-types';
 import { calculateTimeRange, GeoJSONFeature } from '../../common/time-helpers';
 
 interface GeoJSONFeatureCollection {

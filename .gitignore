@@ -145,3 +145,7 @@ libs/web-components/storybook-static/
 .turbo/
 libs/tool-vault-packager/playwright-report
 libs/tool-vault-packager/test-results
+
+# Python build artifacts
+
+apps/vs-code/python/

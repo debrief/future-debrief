@@ -1,5 +1,5 @@
 import React from 'react';
-import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
+import { TimeState } from '@debrief/shared-types';
 
 export interface TimeControllerProps {
   onTimeChange?: (time: string) => void;

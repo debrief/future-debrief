@@ -1,85 +1,100 @@
-#!/usr/bin/env python3
 """
-Setup script for debrief-shared-types Python package
+Custom setup for debrief-types package.
+This handles copying generated types and schema files during build.
 """
 
-from setuptools import setup, find_packages
 import os
+import shutil
+from pathlib import Path
+from setuptools import setup
+from setuptools.command.build_py import build_py
 
-# Read README for long description
-current_dir = os.path.dirname(os.path.abspath(__file__))
-readme_path = os.path.join(current_dir, 'README.md')
 
-try:
-    with open(readme_path, 'r', encoding='utf-8') as f:
-        long_description = f.read()
-except FileNotFoundError:
-    long_description = "Shared types for Debrief ecosystem with constrained GeoJSON FeatureCollections"
+class CustomBuildPy(build_py):
+    """Custom build command that copies generated types and schemas."""
+    
+    def run(self):
+        # Ensure generated types exist
+        self.generate_python_types()
+        
+        # Copy schema files to source
+        self.copy_schema_files()
+        
+        # Copy generated types to source
+        self.copy_generated_types()
+        
+        # Run the standard build
+        super().run()
+    
+    def generate_python_types(self):
+        """Generate Python types from JSON schemas if they don't exist."""
+        types_dir = Path("python-src/debrief/types")
+        if not types_dir.exists() or not list(types_dir.glob("[!_]*.py")):
+            print("Generating Python types from schemas...")
+            os.system("pnpm generate:python")
+    
+    def copy_schema_files(self):
+        """Copy JSON schema files to python-src/debrief/schemas/."""
+        schema_dest = Path("python-src/debrief/schemas")
+        schema_dest.mkdir(parents=True, exist_ok=True)
+        
+        # Copy from schema/ directory
+        schema_dir = Path("schema")
+        if schema_dir.exists():
+            for schema_file in schema_dir.glob("*.json"):
+                shutil.copy2(schema_file, schema_dest)
+        
+        # Copy from schemas/ directory  
+        schemas_dir = Path("schemas")
+        if schemas_dir.exists():
+            for schema_file in schemas_dir.glob("*.json"):
+                shutil.copy2(schema_file, schema_dest)
+    
+    def copy_generated_types(self):
+        """Update __init__.py with proper imports for generated types."""
+        # Types are now generated directly in python-src/debrief/types/
+        # Just update the __init__.py file
+        self.update_types_init()
+    
+    def update_types_init(self):
+        """Update python-src/debrief/types/__init__.py with proper imports."""
+        types_dir = Path("python-src/debrief/types")
+        init_file = types_dir / "__init__.py"
+        
+        # Find all generated Python files
+        py_files = [f.stem for f in types_dir.glob("*.py") if f.name != "__init__.py"]
+        
+        if py_files:
+            imports = []
+            all_exports = []
+            
+            # Generate imports based on file naming conventions
+            for filename in py_files:
+                if filename in ["track", "point", "annotation", "featurecollection"]:
+                    # Maritime GeoJSON types
+                    class_name = f"{filename.title()}Feature" if filename != "featurecollection" else "DebriefFeatureCollection"
+                    imports.append(f"from .{filename} import {class_name}")
+                    all_exports.append(class_name)
+                else:
+                    # Application state types (TimeState, ViewportState, etc.)
+                    imports.append(f"from .{filename} import {filename}")
+                    all_exports.append(filename)
+            
+            # Write updated __init__.py
+            content = '"""\n'
+            content += "Generated Python types for Debrief maritime GeoJSON features and application state.\n"
+            content += "These types are generated from JSON schemas and provide type hints and validation.\n"
+            content += '"""\n\n'
+            content += "\n".join(imports)
+            content += f"\n\n__all__ = {all_exports}\n"
+            
+            with open(init_file, 'w') as f:
+                f.write(content)
 
-# Read requirements
-requirements = []
-requirements_path = os.path.join(current_dir, 'requirements.txt')
-if os.path.exists(requirements_path):
-    with open(requirements_path, 'r', encoding='utf-8') as f:
-        requirements = [line.strip() for line in f if line.strip() and not line.startswith('#')]
 
-setup(
-    name="debrief-shared-types",
-    version="1.0.0",
-    author="Debrief Team",
-    author_email="support@debrief.org",
-    description="Shared types for Debrief ecosystem with constrained GeoJSON FeatureCollections",
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    url="https://github.com/debrief/future-debrief",
-    project_urls={
-        "Bug Tracker": "https://github.com/debrief/future-debrief/issues",
-        "Documentation": "https://github.com/debrief/future-debrief/tree/main/libs/shared-types",
-        "Source Code": "https://github.com/debrief/future-debrief/tree/main/libs/shared-types",
-    },
-    packages=find_packages(where="."),
-    package_dir={"": "."},
-    package_data={
-        "": [
-            "schema/*.json",
-            "derived/python/*.py",
-            "validators/python/*.py",
-        ],
-    },
-    include_package_data=True,
-    classifiers=[
-        "Development Status :: 4 - Beta",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: MIT License",
-        "Operating System :: OS Independent",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-        "Programming Language :: Python :: 3.12",
-        "Topic :: Software Development :: Libraries :: Python Modules",
-        "Topic :: Scientific/Engineering :: GIS",
-        "Topic :: Scientific/Engineering :: Visualization",
-    ],
-    python_requires=">=3.8",
-    install_requires=requirements,
-    extras_require={
-        "dev": [
-            "pytest>=6.0",
-            "pytest-cov",
-            "black",
-            "flake8",
-            "mypy",
-        ],
-    },
-    keywords=[
-        "geojson",
-        "maritime",
-        "debrief", 
-        "shared-types",
-        "validation",
-        "json-schema"
-    ],
-    zip_safe=False,
-)
+if __name__ == "__main__":
+    setup(
+        cmdclass={
+            'build_py': CustomBuildPy,
+        }
+    )

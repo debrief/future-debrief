@@ -1,6 +1,6 @@
 import React from 'react';
 import { GeoJSONFeatureCollection } from './MapComponent';
-import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
+import { TimeState } from '@debrief/shared-types';
 import { Track } from './features/Track';
 import { Point } from './features/Point';
 import { Zone } from './features/Zone';
