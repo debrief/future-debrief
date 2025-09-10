@@ -1,5 +1,7 @@
 import React from 'react';
 import { TimeState } from '@debrief/shared-types';
+import { VscodeButton, VscodeLabel } from '@vscode-elements/react-elements';
+import './TimeController.css';
 
 export interface TimeControllerProps {
   onTimeChange?: (time: string) => void;
@@ -19,8 +21,8 @@ export const TimeController: React.FC<TimeControllerProps> = ({
   if (!timeState || !timeState.range || !timeState.current || 
       !timeState.range[0] || !timeState.range[1]) {
     return (
-      <div className={`time-controller ${className}`} data-testid="time-controller">
-        <div>TimeController: No time range available</div>
+      <div className={`time-controller no-data ${className}`} data-testid="time-controller">
+        <VscodeLabel>TimeController: No time range available</VscodeLabel>
       </div>
     );
   }
@@ -39,16 +41,14 @@ export const TimeController: React.FC<TimeControllerProps> = ({
 
   return (
     <div className={`time-controller ${className}`} data-testid="time-controller">
-      <div style={{ marginBottom: '10px' }}>
-        <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }} data-testid="time-label">
+      <div className="time-labels">
+        <VscodeLabel className="current-time" data-testid="time-label">
           {new Date(currentTime).toLocaleString()}
-        </div>
+        </VscodeLabel>
         
-        <div style={{ marginBottom: '5px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#333' }}>
-            {new Date(startTime).toLocaleString()} - {new Date(endTime).toLocaleString()}
-          </div>
-        </div>
+        <VscodeLabel className="time-range">
+          {new Date(startTime).toLocaleString()} - {new Date(endTime).toLocaleString()}
+        </VscodeLabel>
       </div>
       
       <input
@@ -59,13 +59,14 @@ export const TimeController: React.FC<TimeControllerProps> = ({
         onChange={handleTimeChange}
         className="time-slider"
         data-testid="time-slider"
-        style={{ width: '100%', marginBottom: '10px' }}
       />
       
       {onPlayPause && (
-        <button onClick={onPlayPause} data-testid="play-pause-button">
-          {isPlaying ? 'Pause' : 'Play'}
-        </button>
+        <div className="play-controls">
+          <VscodeButton onClick={onPlayPause} data-testid="play-pause-button">
+            {isPlaying ? 'Pause' : 'Play'}
+          </VscodeButton>
+        </div>
       )}
     </div>
   );

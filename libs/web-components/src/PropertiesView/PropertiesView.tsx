@@ -1,4 +1,6 @@
 import React from 'react';
+import { VscodeLabel, VscodeTextfield, VscodeCheckbox, VscodeDivider } from '@vscode-elements/react-elements';
+import './PropertiesView.css';
 
 export interface Property {
   key: string;
@@ -17,28 +19,80 @@ export interface PropertiesViewProps {
 export const PropertiesView: React.FC<PropertiesViewProps> = ({
   properties = [],
   title = 'Properties',
-  onPropertyChange: _onPropertyChange,
+  onPropertyChange,
   readonly = false,
   className = '',
 }) => {
+  const handlePropertyChange = (key: string, newValue: string | number | boolean) => {
+    if (onPropertyChange && !readonly) {
+      onPropertyChange(key, newValue);
+    }
+  };
+
+  const renderPropertyInput = (property: Property, index: number) => {
+    const isReadonly = readonly;
+    
+    if (typeof property.value === 'boolean') {
+      return (
+        <VscodeCheckbox
+          checked={property.value}
+          disabled={isReadonly}
+          onChange={(e: Event) => {
+            const target = e.target as HTMLInputElement;
+            handlePropertyChange(property.key, target.checked);
+          }}
+          data-testid={`property-${property.key}-input`}
+        >
+          {property.key}
+        </VscodeCheckbox>
+      );
+    }
+    
+    return (
+      <div className="property-row">
+        <VscodeLabel className="property-label">
+          {property.key}
+        </VscodeLabel>
+        <VscodeTextfield
+          value={String(property.value)}
+          disabled={isReadonly}
+          type={typeof property.value === 'number' ? 'number' : 'text'}
+          onChange={(e: Event) => {
+            const target = e.target as HTMLInputElement;
+            const newValue = typeof property.value === 'number' 
+              ? parseFloat(target.value) || 0
+              : target.value;
+            handlePropertyChange(property.key, newValue);
+          }}
+          data-testid={`property-${property.key}-input`}
+          className="property-input"
+        />
+      </div>
+    );
+  };
+
   return (
     <div className={`properties-view ${className}`} data-testid="properties-view">
-      <div>PropertiesView Placeholder</div>
-      <h3>{title}</h3>
+      <div className="properties-header">
+        <VscodeLabel className="properties-title">{title}</VscodeLabel>
+        {readonly && (
+          <VscodeLabel className="readonly-indicator">Read-only</VscodeLabel>
+        )}
+      </div>
+      
+      <VscodeDivider />
+      
       <div className="properties-list">
         {properties.length === 0 ? (
-          <div>No properties to display</div>
+          <VscodeLabel className="no-properties">No properties to display</VscodeLabel>
         ) : (
           properties.map((property, index) => (
             <div key={`${property.key}-${index}`} className="property-item">
-              <span className="property-key">{property.key}:</span>
-              <span className="property-value">{String(property.value)}</span>
-              <span className="property-type">({typeof property.value})</span>
+              {renderPropertyInput(property, index)}
             </div>
           ))
         )}
       </div>
-      <div>Read-only: {readonly ? 'Yes' : 'No'}</div>
     </div>
   );
 };

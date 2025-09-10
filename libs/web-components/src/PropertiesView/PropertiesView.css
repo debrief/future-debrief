@@ -1,0 +1,93 @@
+.properties-view {
+  padding: 16px;
+  background: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-panel-border, #3e3e3e);
+  border-radius: 4px;
+  color: var(--vscode-editor-foreground, #cccccc);
+  min-height: 200px;
+}
+
+.properties-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.properties-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--vscode-editor-foreground, #cccccc);
+}
+
+.readonly-indicator {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground, #cccccc);
+  background: var(--vscode-badge-background, #4d4d4d);
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--vscode-badge-foreground, #ffffff);
+}
+
+.properties-list {
+  margin-top: 16px;
+}
+
+.property-item {
+  margin-bottom: 12px;
+}
+
+.property-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.property-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--vscode-editor-foreground, #cccccc);
+  margin-bottom: 4px;
+}
+
+.property-input {
+  width: 100%;
+  background: var(--vscode-input-background, #3c3c3c);
+  border: 1px solid var(--vscode-input-border, #3e3e3e);
+  color: var(--vscode-input-foreground, #cccccc);
+}
+
+.property-input:focus {
+  border-color: var(--vscode-focusBorder, #007acc);
+  outline: none;
+}
+
+.property-input:disabled {
+  background: var(--vscode-input-background, #3c3c3c);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.no-properties {
+  text-align: center;
+  color: var(--vscode-descriptionForeground, #cccccc);
+  font-style: italic;
+  padding: 20px;
+  display: block;
+}
+
+/* Checkbox styling for boolean properties */
+.properties-view vscode-checkbox {
+  margin-bottom: 8px;
+}
+
+.properties-view vscode-checkbox[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Divider styling */
+.properties-view vscode-divider {
+  margin: 12px 0;
+  border-color: var(--vscode-panel-border, #3e3e3e);
+}
