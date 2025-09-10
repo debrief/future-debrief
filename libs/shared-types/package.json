@@ -6,7 +6,10 @@
   "types": "dist/index.d.ts",
   "files": [
     "dist/",
+    "src/types/",
+    "src/validators/",
     "schema/",
+    "schemas/",
     "derived/",
     "validators/"
   ],
@@ -23,6 +26,7 @@
     "build:dist": "pnpm generate:types && mkdir -p dist && pnpm compile:ts",
     "build:ci": "pnpm clean && pnpm build:dist",
     "build": "pnpm clean && pnpm build:dist && pnpm build:python-wheel",
+    "pack:tgz": "pnpm build && npm pack",
     "dev": "npx concurrently \"npx nodemon --watch schema --watch schemas --ext 'json' --exec 'pnpm generate:types'\" \"npx tsc --watch --preserveWatchOutput\"",
     "test:generated": "pnpm test:generated:ts && pnpm test:generated:python",
     "test:generated:ts": "node tests/typescript/test-generated-files.js",
