@@ -147,14 +147,71 @@
 - **Removed**: `src/vanilla.ts` (manual 800-line implementation)
 - **Added**: `src/vanilla-generated.tsx` (automated wrapper system)
 - **Added**: `tsconfig.vanilla.json` (build configuration for vanilla types)
-- **Updated**: `package.json` exports and build scripts
 
-#### Architecture Decision:
-Chose ReactDOM wrapper approach over build-time transformation because:
-- Maintains React component functionality (state, lifecycle, effects)
-- Simpler than custom React→vanilla transpilation
-- Leverages existing React optimizations
-- Compatible with complex components like MapComponent with Leaflet integration  
+### Python WebSocket API Typed State Objects - Issue #87 ✅
+**Decision**: Modernize Python WebSocket API to use typed state objects instead of raw dictionaries
+- **Problem**: Dictionary-based API lacked type safety, IDE support, and documentation
+- **Solution**: Implemented typed TimeState, ViewportState, and SelectionState objects with automatic conversion
+- **Location**: `apps/vs-code/workspace/tests/debrief_api.py`
+
+#### Implementation Details:
+1. **State Class Integration**
+   - Imported generated Python classes from `libs/shared-types/derived/python/`
+   - TimeState, ViewportState, SelectionState with `from_dict()` and `to_dict()` methods
+   - Automatic conversion between typed objects and WebSocket JSON protocol
+
+2. **API Method Signatures (Breaking Changes)**
+   ```python
+   # BEFORE (dictionary-based)
+   def get_time(filename: str) -> Optional[Dict[str, Any]]: ...
+   def set_time(time_state: Dict[str, Any], filename: str): ...
+   
+   # AFTER (typed objects)
+   def get_time(filename: str) -> Optional[TimeState]: ...  
+   def set_time(time_state: TimeState, filename: str): ...
+   ```
+
+3. **Type Conversion Pattern**
+   ```python
+   # GET methods: JSON → Typed Object
+   response = self._client.send_json_message(command)
+   result = response.get('result')
+   return TimeState.from_dict(result) if result else None
+   
+   # SET methods: Typed Object → JSON
+   command['params']['timeState'] = time_state.to_dict()
+   ```
+
+4. **Key Method Updates**
+   - `get_time()` → returns `TimeState` object with `.current` and `.range` properties
+   - `set_time(TimeState)` → accepts typed object, converts to dict for WebSocket
+   - `get_viewport()` → returns `ViewportState` with `.bounds` array property  
+   - `set_viewport(ViewportState)` → accepts typed object with bounds validation
+   - `get_selected_features()` → returns `SelectionState` with `.selected_ids` list
+   - `set_selected_features(SelectionState)` → extracts IDs from object for transmission
+
+#### Test File Updates:
+- **select_centre_time.py**: Updated to use TimeState object properties instead of dictionary keys
+- **move_point_north_simple.py**: Updated to work with SelectionState object and feature ID extraction
+
+#### Documentation Updates:
+- **README.md**: Added typed API examples with type safety benefits section
+- **debrief_websocket_api.md**: Added comprehensive state management API documentation with typed examples
+- **debrief_ws_bridge.md**: Updated command table and Python API signatures with typed state objects
+
+#### Benefits Delivered:
+- **Type Safety**: Runtime validation and IDE auto-completion support
+- **Better Developer Experience**: Self-documenting code with clear property types  
+- **Error Prevention**: Catch type mismatches before runtime execution
+- **API Consistency**: Uniform typed interface across all state management operations
+- **WebSocket Protocol Preservation**: Underlying JSON protocol unchanged
+
+#### Import Strategy:
+- Used `exec(open().read())` pattern to load Python classes due to relative path challenges
+- Added `__init__.py` to shared-types derived Python directory for proper module structure
+- Path resolution: `../../../../libs/shared-types/derived/python/` from test directory
+
+---
   - `src/services/` - External integrations (WebSocket)
 - **Type safety improvements** - Eliminated `any` casts with proper switch statements
 - **Panel integration completed** - All three Debrief Activity panels now use GlobalController
