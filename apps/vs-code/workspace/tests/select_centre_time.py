@@ -8,11 +8,7 @@ from debrief_api import debrief
 from datetime import datetime
 
 # Import TimeState for typed API
-import sys
-import os
-shared_types_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../libs/shared-types/derived/python'))
-sys.path.insert(0, shared_types_path)
-exec(open(os.path.join(shared_types_path, 'TimeState.py')).read())
+from debrief.types.TimeState import TimeState
 
 # Connect to VS Code Debrief extension
 debrief.connect()
@@ -34,5 +30,5 @@ center = start + (end - start) / 2
 new_time_state = TimeState(current=center, range=time_state.range)
 debrief.set_time(new_time_state)
 
-print(f"✅ Time set to center: {new_time_state.current.isoformat()}")
-print("💡 Check the VS Code time slider - it should now show the center time!")
+print(f"✅ Time set to centre: {new_time_state.current.isoformat()}")
+print("💡 Check the VS Code time slider - it should now show the centre time!")
