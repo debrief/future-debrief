@@ -150,8 +150,7 @@ export const WithStringData: Story = {
 
 export const WithHighlight: Story = {
   args: {
-    geoJsonData: sampleGeoJSON,
-    revealFeatureIndex: 0,
+    geoJsonData: sampleGeoJSON
   },
 };
 
