@@ -19,6 +19,16 @@ except ImportError:
         "websocket-client library is required. Install it with: pip install websocket-client"
     )
 
+# Import State classes from shared-types
+import os
+shared_types_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../../libs/shared-types/derived/python'))
+sys.path.insert(0, shared_types_path)
+
+# Import the State classes by executing the files
+exec(open(os.path.join(shared_types_path, 'TimeState.py')).read())
+exec(open(os.path.join(shared_types_path, 'ViewportState.py')).read())
+exec(open(os.path.join(shared_types_path, 'SelectionState.py')).read())
+
 
 class DebriefAPIError(Exception):
     """Exception raised for errors in the Debrief API communication."""
@@ -402,7 +412,7 @@ class DebriefAPI:
         
         self._client.send_json_message(command)
     
-    def get_selected_features(self, filename: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_selected_features(self, filename: Optional[str] = None) -> SelectionState:
         """
         Get the currently selected features for a plot file.
         
@@ -410,7 +420,7 @@ class DebriefAPI:
             filename (Optional[str]): The plot file name. If None, uses single open plot or prompts for selection
         
         Returns:
-            List[Dict[str, Any]]: List of GeoJSON Feature dictionaries that are currently selected
+            SelectionState: SelectionState object containing selected feature IDs
         
         Raises:
             DebriefAPIError: When WebSocket communication fails or no plots are open
@@ -423,14 +433,21 @@ class DebriefAPI:
         }
         
         response = self._client.send_json_message(command)
-        return response.get('result', [])
+        result = response.get('result', [])
+        # Convert the list of features to feature IDs for SelectionState
+        selected_ids = []
+        if isinstance(result, list):
+            for feature in result:
+                if isinstance(feature, dict) and 'id' in feature:
+                    selected_ids.append(feature['id'])
+        return SelectionState(selected_ids)
     
-    def set_selected_features(self, ids: List[str], filename: Optional[str] = None) -> None:
+    def set_selected_features(self, selection_state: SelectionState, filename: Optional[str] = None) -> None:
         """
         Set the selected features for a plot file.
         
         Args:
-            ids (List[str]): List of feature IDs to select
+            selection_state (SelectionState): SelectionState object containing feature IDs to select
             filename (Optional[str]): The plot file name. If None, uses single open plot or prompts for selection
         
         Returns:
@@ -442,7 +459,7 @@ class DebriefAPI:
         command = {
             "command": "set_selected_features",
             "params": {
-                "ids": ids,
+                "ids": selection_state.selected_ids,
                 "filename": filename
             }
         }
@@ -559,7 +576,7 @@ class DebriefAPI:
         response = self._client.send_json_message(command)
         return response.get('result', [])
     
-    def get_time(self, filename: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def get_time(self, filename: Optional[str] = None) -> Optional[TimeState]:
         """
         Get the current time state for a plot file.
         
@@ -567,7 +584,7 @@ class DebriefAPI:
             filename (Optional[str]): The plot file name. If None, uses single open plot or prompts for selection
         
         Returns:
-            Optional[Dict[str, Any]]: Time state dictionary with current time settings, or None if not available
+            Optional[TimeState]: TimeState object with current time settings, or None if not available
         
         Raises:
             DebriefAPIError: When WebSocket communication fails or no plots are open
@@ -579,14 +596,17 @@ class DebriefAPI:
             }
         }
         response = self._client.send_json_message(command)
-        return response.get('result')
+        result = response.get('result')
+        if result is None:
+            return None
+        return TimeState.from_dict(result)
     
-    def set_time(self, time_state: Dict[str, Any], filename: Optional[str] = None) -> None:
+    def set_time(self, time_state: TimeState, filename: Optional[str] = None) -> None:
         """
         Set the time state for a plot file.
         
         Args:
-            time_state (Dict[str, Any]): Time state dictionary containing time settings to apply
+            time_state (TimeState): TimeState object containing time settings to apply
             filename (Optional[str]): The plot file name. If None, uses single open plot or prompts for selection
         
         Returns:
@@ -598,13 +618,13 @@ class DebriefAPI:
         command = {
             "command": "set_time",
             "params": {
-                "timeState": time_state,
+                "timeState": time_state.to_dict(),
                 "filename": filename
             }
         }
         self._client.send_json_message(command)
     
-    def get_viewport(self, filename: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def get_viewport(self, filename: Optional[str] = None) -> Optional[ViewportState]:
         """
         Get the current viewport state for a plot file.
         
@@ -612,7 +632,7 @@ class DebriefAPI:
             filename (Optional[str]): The plot file name. If None, uses single open plot or prompts for selection
         
         Returns:
-            Optional[Dict[str, Any]]: Viewport state dictionary with zoom and center coordinates, or None if not available
+            Optional[ViewportState]: ViewportState object with zoom and center coordinates, or None if not available
         
         Raises:
             DebriefAPIError: When WebSocket communication fails or no plots are open
@@ -624,14 +644,17 @@ class DebriefAPI:
             }
         }
         response = self._client.send_json_message(command)
-        return response.get('result')
+        result = response.get('result')
+        if result is None:
+            return None
+        return ViewportState.from_dict(result)
     
-    def set_viewport(self, viewport_state: Dict[str, Any], filename: Optional[str] = None) -> None:
+    def set_viewport(self, viewport_state: ViewportState, filename: Optional[str] = None) -> None:
         """
         Set the viewport state for a plot file.
         
         Args:
-            viewport_state (Dict[str, Any]): Viewport state dictionary containing zoom and center coordinates
+            viewport_state (ViewportState): ViewportState object containing zoom and center coordinates
             filename (Optional[str]): The plot file name. If None, uses single open plot or prompts for selection
         
         Returns:
@@ -643,7 +666,7 @@ class DebriefAPI:
         command = {
             "command": "set_viewport",
             "params": {
-                "viewportState": viewport_state,
+                "viewportState": viewport_state.to_dict(),
                 "filename": filename
             }
         }
