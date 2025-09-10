@@ -1,39 +1,69 @@
 .current-state-table {
 	width: 100%;
-	border-collapse: collapse;
 	font-size: 0.95em;
 }
 
-.current-state-table th, .current-state-table td {
-	border: 1px solid #ddd;
+.current-state-table vscode-table-header-cell {
+	background: var(--vscode-editor-background, #1e1e1e);
+	border: 1px solid var(--vscode-panel-border, #3e3e3e);
 	padding: 6px 10px;
 	text-align: left;
 	vertical-align: top;
-}
-
-.current-state-table th {
-	background: #f4f4f4;
 	font-weight: bold;
+	color: var(--vscode-editor-foreground, #cccccc);
 }
 
-.current-state-table tr:nth-child(even) {
-	background: #fafafa;
+.current-state-table vscode-table-cell {
+	border: 1px solid var(--vscode-panel-border, #3e3e3e);
+	padding: 6px 10px;
+	text-align: left;
+	vertical-align: top;
+	background: var(--vscode-editor-background, #1e1e1e);
+	color: var(--vscode-editor-foreground, #cccccc);
+}
+
+.current-state-table vscode-table-row:nth-child(even) vscode-table-cell {
+	background: var(--vscode-list-evenBackground, #252526);
 }
 
 .current-state-table .field-name {
 	font-weight: bold;
-	background: #f8f8f8;
+	background: var(--vscode-list-hoverBackground, #2a2d2e) !important;
 	min-width: 120px;
-	color: #333;
+	color: var(--vscode-list-activeSelectionForeground, #ffffff);
 }
 
 .current-state-table .highlight {
-	background: #fff7c0 !important;
-	transition: background 0.2s;
+	background: inherit;
+	position: relative;
+	animation: textHighlight 500ms ease-out;
+}
+
+.current-state-table .highlight::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	background: var(--vscode-editor-findMatchHighlightBackground, #ea5c0055);
+	border-radius: 2px;
+	z-index: -1;
 	animation: highlightFade 500ms ease-out;
 }
 
+@keyframes textHighlight {
+	0% { 
+		color: var(--vscode-editor-findMatchForeground, #ffffff);
+		text-shadow: 0 0 3px var(--vscode-editor-findMatchHighlightBackground, #ea5c00);
+	}
+	100% { 
+		color: inherit;
+		text-shadow: none;
+	}
+}
+
 @keyframes highlightFade {
-	0% { background: #ffe066 !important; }
-	100% { background: #fff7c0 !important; }
+	0% { opacity: 1; }
+	100% { opacity: 0; }
 }

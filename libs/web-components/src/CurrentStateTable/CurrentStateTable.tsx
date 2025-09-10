@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import './CurrentStateTable.css';
 import { CurrentState } from '@debrief/shared-types';
+import { VscodeTable, VscodeTableHeader, VscodeTableHeaderCell, VscodeTableBody, VscodeTableRow, VscodeTableCell } from '@vscode-elements/react-elements';
 
 export interface StateFieldRow {
 	field: string;
@@ -29,7 +30,7 @@ const convertCurrentStateToRows = (currentState: CurrentState): StateFieldRow[] 
 
 	if (currentState.editorState.viewportState) {
 		const bounds = currentState.editorState.viewportState.bounds;
-		const formattedBounds = bounds.map(num => num.toFixed(3)).join(', ');
+		const formattedBounds = bounds.map((num: number) => num.toFixed(3)).join(', ');
 		rows.push({ field: 'Viewport State', value: `[${formattedBounds}]` });
 	}
 
@@ -78,21 +79,19 @@ export const CurrentStateTable: React.FC<Props> = ({ currentState }) => {
 	}, [displayData]);
 
 	return (
-		<table className="current-state-table">
-			<thead>
-				<tr>
-					<th>Field</th>
-					<th>Value</th>
-				</tr>
-			</thead>
-			<tbody>
+		<VscodeTable className="current-state-table">
+			<VscodeTableHeader slot="header">
+				<VscodeTableHeaderCell>Field</VscodeTableHeaderCell>
+				<VscodeTableHeaderCell>Value</VscodeTableHeaderCell>
+			</VscodeTableHeader>
+			<VscodeTableBody slot="body">
 				{displayData.map((row: StateFieldRow, idx: number) => (
-					<tr key={row.field}>
-						<td className="field-name">{row.field}</td>
-						<td className={highlighted[`${idx}-value`] ? 'highlight' : ''}>{row.value}</td>
-					</tr>
+					<VscodeTableRow key={row.field}>
+						<VscodeTableCell className="field-name">{row.field}</VscodeTableCell>
+						<VscodeTableCell className={highlighted[`${idx}-value`] ? 'highlight' : ''}>{row.value}</VscodeTableCell>
+					</VscodeTableRow>
 				))}
-			</tbody>
-		</table>
+			</VscodeTableBody>
+		</VscodeTable>
 	);
 };

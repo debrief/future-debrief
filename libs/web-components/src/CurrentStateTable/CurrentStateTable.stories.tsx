@@ -46,6 +46,28 @@ export const Default = () => <CurrentStateTable currentState={sampleCurrentState
 
 export const EmptyState = () => <CurrentStateTable />;
 
+export const VSCodeTheming = () => (
+	<div style={{ padding: '20px', background: 'var(--vscode-editor-background, #1e1e1e)', minHeight: '400px' }}>
+		<h3 style={{ color: 'var(--vscode-editor-foreground, #cccccc)', marginBottom: '16px' }}>VS Code Elements Integration</h3>
+		<p style={{ color: 'var(--vscode-descriptionForeground, #cccccc)', marginBottom: '20px' }}>
+			CurrentStateTable now uses vscode-elements components with native VS Code theming variables.
+			The table automatically adapts to VS Code&apos;s theme (dark/light) and provides consistent styling.
+		</p>
+		<div style={{ border: '1px solid var(--vscode-panel-border, #3e3e3e)', borderRadius: '4px', overflow: 'hidden' }}>
+			<CurrentStateTable currentState={sampleCurrentState} />
+		</div>
+		<div style={{ marginTop: '16px', fontSize: '12px', color: 'var(--vscode-descriptionForeground, #cccccc)' }}>
+			<strong>Features:</strong>
+			<ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+				<li>Native VS Code table elements (vscode-table, vscode-table-cell, etc.)</li>
+				<li>Automatic theme adaptation using CSS variables</li>
+				<li>Preserved highlight animations with VS Code colors</li>
+				<li>Consistent border styling and hover states</li>
+			</ul>
+		</div>
+	</div>
+);
+
 export const WithHighlightingChanges = () => {
 	const [state, setState] = useState<CurrentState>(sampleCurrentState);
 	const [counter, setCounter] = useState(0);
