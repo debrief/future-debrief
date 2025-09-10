@@ -1,27 +1,50 @@
 /**
- * Main entry point for @debrief/shared-types
- * 
- * This package provides:
- * - JSON Schema definitions for Debrief feature types
- * - Generated TypeScript interfaces from schemas (in derived/ directory)
- * - Manual validators with cross-field validation logic (in validators/ directory)
- * 
- * Note: This is a source package - users should import directly from:
- * - derived/typescript/* for generated types
- * - validators/typescript/* for validation functions
- * - schema/* for JSON Schema definitions
+ * TypeScript Validators for Debrief Shared Types
+ * Manual validators that work with generated types
  */
 
-// This file serves as documentation and package metadata only
-// Users should import directly from the specific directories they need
+// Track validators
+export {
+  validateTimestampsLength,
+  validateTrackFeature,
+  validateLineStringCoordinates,
+  validateMultiLineStringCoordinates,
+  validateTrackFeatureComprehensive
+} from './validators/track-validator';
 
-export const PACKAGE_INFO = {
-  name: '@debrief/shared-types',
-  version: '1.0.0',
-  description: 'Shared types for Debrief ecosystem with constrained GeoJSON FeatureCollections',
-  directories: {
-    schema: 'schema/',
-    derived: 'derived/',
-    validators: 'validators/',
-  },
-};
+// Point validators
+export {
+  validateTimeProperties,
+  validatePointFeature,
+  isValidDate as isValidPointDate,
+  validateGeographicCoordinates,
+  validatePointFeatureComprehensive
+} from './validators/point-validator';
+
+// Annotation validators
+export {
+  validateColorFormat,
+  validateAnnotationType,
+  validateAnnotationFeature,
+  validateGeometryCoordinates,
+  validateAnnotationFeatureComprehensive
+} from './validators/annotation-validator';
+
+// FeatureCollection validators
+export {
+  validateBbox,
+  validateFeatureCollection,
+  classifyFeature,
+  validateFeatureByType,
+  validateFeatureCollectionProperties,
+  getFeatureCounts,
+  validateFeatureCollectionComprehensive
+} from './validators/featurecollection-validator';
+
+// Re-export types for convenience
+export type { 
+  DebriefTrackFeature, 
+  DebriefPointFeature, 
+  DebriefAnnotationFeature, 
+  DebriefFeatureCollection 
+} from './types/featurecollection';
