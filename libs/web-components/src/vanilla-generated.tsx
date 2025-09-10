@@ -7,7 +7,7 @@ import { MapComponent, MapComponentProps, GeoJSONFeature, MapState } from './Map
 import { TimeController, TimeControllerProps } from './TimeController/TimeController';
 import { PropertiesView, PropertiesViewProps } from './PropertiesView/PropertiesView';
 import { CurrentStateTable, StateFieldRow } from './CurrentStateTable/CurrentStateTable';
-import { CurrentState } from '@debrief/shared-types/derived/typescript/currentstate';
+import { CurrentState } from '@debrief/shared-types';
 import './vanilla.css';
 
 // Re-export types for compatibility

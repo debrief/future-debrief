@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import React, { useState } from 'react';
 import { TimeController } from './TimeController';
-import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
+import { TimeState } from '@debrief/shared-types';
 
 const meta: Meta<typeof TimeController> = {
   title: 'Components/TimeController',

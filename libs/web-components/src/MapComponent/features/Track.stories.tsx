@@ -3,7 +3,7 @@ import { Track } from './Track';
 import { MapContainer, TileLayer } from 'react-leaflet';
 import plot from '../../../../../apps/vs-code/workspace/large-sample.plot.json';
 import { GeoJSONFeature } from '../MapComponent';
-import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
+import { TimeState } from '@debrief/shared-types';
 
 const meta: Meta<typeof Track> = {
   title: 'Map/Track',

@@ -3,7 +3,7 @@ import { Polyline, Marker } from 'react-leaflet';
 import * as L from 'leaflet';
 import { GeoJSONFeature } from '../MapComponent';
 import { getFeatureColor, getFeatureStyle } from '../utils/featureUtils';
-import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
+import { TimeState } from '@debrief/shared-types';
 import '../MapComponent.css';
 
 interface TrackProps {

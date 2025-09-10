@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { CurrentStateTable } from './CurrentStateTable';
-import { CurrentState } from '@debrief/shared-types/derived/typescript/currentstate';
+import { CurrentState } from '@debrief/shared-types';
 
 export default {
 	title: 'CurrentStateTable',

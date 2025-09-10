@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import './CurrentStateTable.css';
-import { CurrentState } from '@debrief/shared-types/derived/typescript/currentstate';
+import { CurrentState } from '@debrief/shared-types';
 
 export interface StateFieldRow {
 	field: string;
