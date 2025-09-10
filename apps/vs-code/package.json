@@ -9,14 +9,15 @@
     "url": "https://github.com/debrief/future-debrief/apps/vs-code.git"
   },
   "scripts": {
-    "clean": "rm -rf dist/* media/web-components.js media/web-components.css",
+    "clean": "rm -rf dist/* media/web-components.js media/web-components.css python/",
     "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
     "copy-webcomponents": "cp ../../libs/web-components/dist/vanilla/index.js media/web-components.js && cp ../../libs/web-components/dist/vanilla/index.css media/web-components.css",
-    "compile": "pnpm esbuild-base --sourcemap && pnpm copy-webcomponents",
+    "bundle-python-wheel": "mkdir -p python && cp ../../libs/shared-types/dist/python/*.whl python/debrief_types.whl",
+    "compile": "pnpm esbuild-base --sourcemap && pnpm copy-webcomponents && pnpm bundle-python-wheel",
     "build": "pnpm compile",
     "watch": "pnpm esbuild-base --sourcemap --watch",
     "dev": "pnpm copy-webcomponents && pnpm watch",
-    "vscode:prepublish": "pnpm esbuild-base --minify && pnpm copy-webcomponents",
+    "vscode:prepublish": "pnpm esbuild-base --minify && pnpm copy-webcomponents && pnpm bundle-python-wheel",
     "typecheck": "tsc --noEmit",
     "eslint": "eslint . --ext .ts,.tsx",
     "eslint:fix": "eslint . --ext .ts,.tsx --fix",
