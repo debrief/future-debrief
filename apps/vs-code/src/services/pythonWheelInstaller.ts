@@ -97,6 +97,26 @@ export class PythonWheelInstaller {
      */
     private async getPythonInterpreter(): Promise<string | null> {
         try {
+            // First, check for virtual environment in common Docker/workspace locations
+            const venvPaths = [
+                '/home/coder/workspace/tests/venv/bin/python',
+                '/home/coder/workspace/venv/bin/python',
+                './tests/venv/bin/python',
+                './venv/bin/python'
+            ];
+            
+            for (const venvPath of venvPaths) {
+                try {
+                    const { stdout } = await execAsync(`"${venvPath}" --version`);
+                    if (stdout.includes('Python')) {
+                        console.log(`Found virtual environment Python: ${venvPath}`);
+                        return venvPath;
+                    }
+                } catch {
+                    // Continue to next path
+                }
+            }
+
             // Try to get Python path from VS Code Python extension
             const pythonExtension = vscode.extensions.getExtension('ms-python.python');
             if (pythonExtension && pythonExtension.isActive) {
@@ -104,9 +124,11 @@ export class PythonWheelInstaller {
                 if (pythonApi && pythonApi.settings && pythonApi.settings.getExecutionDetails) {
                     const executionDetails = pythonApi.settings.getExecutionDetails();
                     if (executionDetails && executionDetails.execCommand) {
-                        return Array.isArray(executionDetails.execCommand) 
+                        const pythonPath = Array.isArray(executionDetails.execCommand) 
                             ? executionDetails.execCommand[0] 
                             : executionDetails.execCommand;
+                        console.log(`Using VS Code Python extension path: ${pythonPath}`);
+                        return pythonPath;
                     }
                 }
             }
@@ -117,6 +139,7 @@ export class PythonWheelInstaller {
                 try {
                     const { stdout } = await execAsync(`${cmd} --version`);
                     if (stdout.includes('Python')) {
+                        console.log(`Using system Python: ${cmd}`);
                         return cmd;
                     }
                 } catch {
@@ -148,16 +171,52 @@ export class PythonWheelInstaller {
      * Install the bundled wheel package.
      */
     private async installPackage(pythonPath: string): Promise<void> {
-        const installCommand = `"${pythonPath}" -m pip install "${this.bundledWheelPath}" --force-reinstall --quiet`;
-        console.log(`Installing with command: ${installCommand}`);
-        
-        const { stdout, stderr } = await execAsync(installCommand);
-        if (stderr && !stderr.includes('DEPRECATION')) {
-            console.warn('Installation warnings:', stderr);
+        // Try installation with different strategies to handle PEP 668 and virtual environments
+        const strategies = [
+            // Strategy 1: Normal pip install (works in virtual environments)
+            `"${pythonPath}" -m pip install "${this.bundledWheelPath}" --force-reinstall --quiet`,
+            // Strategy 2: Use --user flag for user installation
+            `"${pythonPath}" -m pip install "${this.bundledWheelPath}" --force-reinstall --quiet --user`,
+            // Strategy 3: Use --break-system-packages flag for externally managed environments
+            `"${pythonPath}" -m pip install "${this.bundledWheelPath}" --force-reinstall --quiet --break-system-packages`
+        ];
+
+        let lastError: Error | null = null;
+
+        for (let i = 0; i < strategies.length; i++) {
+            const installCommand = strategies[i];
+            console.log(`Installing with strategy ${i + 1}: ${installCommand}`);
+            
+            try {
+                const { stdout, stderr } = await execAsync(installCommand);
+                if (stderr && !stderr.includes('DEPRECATION')) {
+                    console.warn('Installation warnings:', stderr);
+                }
+                if (stdout) {
+                    console.log('Installation output:', stdout);
+                }
+                console.log(`Installation successful with strategy ${i + 1}`);
+                return; // Success, exit the function
+            } catch (error) {
+                lastError = error instanceof Error ? error : new Error(String(error));
+                console.warn(`Strategy ${i + 1} failed:`, lastError.message);
+                
+                // If this was a PEP 668 error, continue to next strategy
+                if (lastError.message.includes('externally-managed-environment') || 
+                    lastError.message.includes('PEP 668')) {
+                    console.log('PEP 668 error detected, trying next strategy...');
+                    continue;
+                }
+                
+                // For other errors on the first strategy, continue to next strategy
+                if (i === 0) {
+                    continue;
+                }
+            }
         }
-        if (stdout) {
-            console.log('Installation output:', stdout);
-        }
+
+        // If all strategies failed, throw the last error
+        throw lastError || new Error('All installation strategies failed');
     }
 
     /**
