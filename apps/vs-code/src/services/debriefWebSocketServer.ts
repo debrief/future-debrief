@@ -4,9 +4,7 @@ import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PlotJsonEditorProvider } from '../providers/editors/plotJsonEditor';
-import { validateFeatureCollectionComprehensive, validateFeatureByType, classifyFeature } from '@debrief/shared-types/validators/typescript';
-import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
-import { ViewportState } from '@debrief/shared-types/derived/typescript/viewportstate';
+import { validateFeatureCollectionComprehensive, validateFeatureByType, classifyFeature, TimeState, ViewportState } from '@debrief/shared-types';
 import { GlobalController } from '../core/globalController';
 import { EditorIdManager } from '../core/editorIdManager';
 

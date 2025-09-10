@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { GlobalController } from '../../core/globalController';
-import { SelectionState } from '@debrief/shared-types/derived/typescript/selectionstate';
-import { DebriefFeature } from '@debrief/shared-types/derived/typescript/featurecollection';
+import { SelectionState, DebriefFeature } from '@debrief/shared-types';
 
 export class PropertiesViewProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'debrief.propertiesView';

@@ -1,10 +1,6 @@
 
 import * as vscode from 'vscode';
-import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
-import { ViewportState } from '@debrief/shared-types/derived/typescript/viewportstate';
-import { SelectionState } from '@debrief/shared-types/derived/typescript/selectionstate';
-import { DebriefFeatureCollection } from '@debrief/shared-types/derived/typescript/featurecollection';
-import { EditorState } from '@debrief/shared-types/derived/typescript/editorstate';
+import { TimeState, ViewportState, SelectionState, DebriefFeatureCollection, EditorState } from '@debrief/shared-types';
 
 export { EditorState };
 

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { GlobalController } from '../../core/globalController';
-import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
+import { TimeState } from '@debrief/shared-types';
 
 export class TimeControllerProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'debrief.timeController';

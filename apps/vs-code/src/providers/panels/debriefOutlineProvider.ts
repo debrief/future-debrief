@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { GlobalController } from '../../core/globalController';
-import { SelectionState } from '@debrief/shared-types/derived/typescript/selectionstate';
+import { SelectionState } from '@debrief/shared-types';
 
 export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineItem> {
     private _onDidChangeTreeData: vscode.EventEmitter<OutlineItem | undefined | null | void> = new vscode.EventEmitter<OutlineItem | undefined | null | void>();

@@ -46,5 +46,13 @@ export type {
   DebriefTrackFeature, 
   DebriefPointFeature, 
   DebriefAnnotationFeature, 
-  DebriefFeatureCollection 
+  DebriefFeatureCollection,
+  DebriefFeature 
 } from './types/featurecollection';
+
+// Re-export state types
+export type { TimeState } from './types/timestate';
+export type { ViewportState } from './types/viewportstate';
+export type { SelectionState } from './types/selectionstate';
+export type { EditorState } from './types/editorstate';
+export type { CurrentState } from './types/currentstate';
