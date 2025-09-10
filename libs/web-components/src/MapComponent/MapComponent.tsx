@@ -41,14 +41,8 @@ export interface MapComponentProps {
   geoJsonData?: string | GeoJSONFeatureCollection;
   /** Callback when feature selection changes */
   onSelectionChange?: (selectedFeatureIds: (string | number)[]) => void;
-  /** Callback when map is clicked for adding new points */
-  onMapClick?: (lat: number, lng: number) => void;
   /** Array of feature IDs to select */
   selectedFeatureIds?: (string | number)[];
-  /** Whether to show the add button */
-  showAddButton?: boolean;
-  /** Callback when add button is clicked */
-  onAddClick?: () => void;
   /** Callback when zoom to selection is requested */
   onZoomToSelection?: () => void;
   /** Callback when map state changes (for persistence) */
@@ -65,12 +59,11 @@ export interface MapComponentProps {
 
 // Helper components for React Leaflet integration
 interface MapEventsHandlerProps {
-  onMapClick?: (lat: number, lng: number) => void;
   onMapStateChange?: (state: MapState) => void;
   mapRef?: React.MutableRefObject<L.Map | null>;
 }
 
-const MapEventsHandler: React.FC<MapEventsHandlerProps> = ({ onMapClick, onMapStateChange, mapRef }) => {
+const MapEventsHandler: React.FC<MapEventsHandlerProps> = ({ onMapStateChange, mapRef }) => {
   const map = useMap();
 
   // Store map reference for external access
@@ -81,11 +74,6 @@ const MapEventsHandler: React.FC<MapEventsHandlerProps> = ({ onMapClick, onMapSt
   }, [map, mapRef]);
 
   useMapEvents({
-    click: (e) => {
-      if (onMapClick) {
-        onMapClick(e.latlng.lat, e.latlng.lng);
-      }
-    },
     moveend: () => {
       if (onMapStateChange) {
         const center = map.getCenter();
@@ -113,10 +101,7 @@ const MapEventsHandler: React.FC<MapEventsHandlerProps> = ({ onMapClick, onMapSt
 export const MapComponent: React.FC<MapComponentProps> = ({
   geoJsonData,
   onSelectionChange,
-  onMapClick,
   selectedFeatureIds = [],
-  showAddButton = false,
-  onAddClick,
   onZoomToSelection: _onZoomToSelection,
   onMapStateChange,
   initialMapState,
@@ -158,32 +143,6 @@ export const MapComponent: React.FC<MapComponentProps> = ({
     }
   }, [geoJsonData, parseGeoJsonData]);
 
-  // Handle zoom to selection - currently disabled
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleZoomToSelection = useCallback(() => {
-    if (!currentData || !mapRef.current) return;
-    
-    const selectedIndices: number[] = [];
-    selectedFeatureIds.forEach(id => {
-      const index = currentData.features.findIndex(feature => feature.id === id);
-      if (index >= 0) {
-        selectedIndices.push(index);
-      }
-    });
-    
-    if (selectedIndices.length === 0) return;
-    
-    const selectedFeatures = selectedIndices.map(index => currentData.features[index]).filter(Boolean);
-    
-    if (selectedFeatures.length === 0) return;
-    
-    // Use helper function to calculate bounds
-    const { bounds, hasValidGeometry } = calculateFeatureBounds(selectedFeatures);
-    
-    if (hasValidGeometry && bounds.isValid()) {
-      mapRef.current.fitBounds(bounds, { padding: [20, 20] });
-    }
-  }, [currentData, selectedFeatureIds]);
 
   // Auto fit bounds when no initial viewport and data is loaded
   useEffect(() => {
@@ -213,13 +172,6 @@ export const MapComponent: React.FC<MapComponentProps> = ({
 
   return (
     <div id={_mapId} className={`plot-editor ${className}`}>
-      {showAddButton && (
-        <div className="controls">
-          <button className="add-button" onClick={onAddClick}>
-            Add Feature
-          </button>
-        </div>
-      )}
       <MapContainer
         center={center}
         zoom={zoom}
@@ -232,7 +184,6 @@ export const MapComponent: React.FC<MapComponentProps> = ({
         />
         
         <MapEventsHandler
-          onMapClick={onMapClick}
           onMapStateChange={onMapStateChange}
           mapRef={mapRef}
         />
