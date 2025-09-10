@@ -1,6 +1,4 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
-import * as fs from 'fs';
 
 // Core architecture
 import { GlobalController } from './core/globalController';
@@ -39,88 +37,6 @@ class HelloWorldProvider implements vscode.TreeDataProvider<string> {
 }
 
 let webSocketServer: DebriefWebSocketServer | null = null;
-
-async function exportTypesToWorkspace(): Promise<void> {
-    const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders || workspaceFolders.length === 0) {
-        vscode.window.showErrorMessage('No workspace folder is open. Please open a workspace first.');
-        return;
-    }
-
-    try {
-        const workspaceRoot = workspaceFolders[0].uri.fsPath;
-        const nodeModulesPath = path.join(workspaceRoot, 'node_modules');
-        const debriefTypesPath = path.join(nodeModulesPath, '@debrief', 'shared-types');
-        
-        // Get the extension path
-        const extensionPath = vscode.extensions.getExtension('ian.vs-code')?.extensionPath;
-        if (!extensionPath) {
-            vscode.window.showErrorMessage('Could not locate Debrief extension installation.');
-            return;
-        }
-
-        const typesSourcePath = path.join(extensionPath, 'types');
-        
-        // Check if bundled types exist
-        if (!fs.existsSync(typesSourcePath)) {
-            vscode.window.showErrorMessage('Debrief types are not bundled with this extension. Please rebuild the extension with types included.');
-            return;
-        }
-
-        // Create node_modules structure if it doesn't exist
-        await fs.promises.mkdir(path.dirname(debriefTypesPath), { recursive: true });
-        
-        // Copy types to node_modules/@debrief/shared-types
-        await copyDirectory(typesSourcePath, debriefTypesPath);
-
-        // Create a basic tsconfig.json if it doesn't exist
-        const tsconfigPath = path.join(workspaceRoot, 'tsconfig.json');
-        if (!fs.existsSync(tsconfigPath)) {
-            const tsconfig = {
-                "compilerOptions": {
-                    "target": "ES2020",
-                    "module": "commonjs",
-                    "lib": ["ES2020"],
-                    "moduleResolution": "node",
-                    "esModuleInterop": true,
-                    "allowSyntheticDefaultImports": true,
-                    "strict": true,
-                    "skipLibCheck": true,
-                    "forceConsistentCasingInFileNames": true,
-                    "types": ["node"]
-                },
-                "include": ["**/*.ts", "**/*.js"],
-                "exclude": ["node_modules"]
-            };
-            
-            await fs.promises.writeFile(tsconfigPath, JSON.stringify(tsconfig, null, 2));
-        }
-
-        vscode.window.showInformationMessage(
-            'Debrief types have been exported to your workspace! You can now import them using:\n' +
-            'import { DebriefFeatureCollection } from "@debrief/shared-types"'
-        );
-    } catch (error) {
-        vscode.window.showErrorMessage(`Failed to export types: ${error}`);
-        console.error('Export types error:', error);
-    }
-}
-
-async function copyDirectory(src: string, dest: string): Promise<void> {
-    await fs.promises.mkdir(dest, { recursive: true });
-    const entries = await fs.promises.readdir(src, { withFileTypes: true });
-    
-    for (const entry of entries) {
-        const srcPath = path.join(src, entry.name);
-        const destPath = path.join(dest, entry.name);
-        
-        if (entry.isDirectory()) {
-            await copyDirectory(srcPath, destPath);
-        } else {
-            await fs.promises.copyFile(srcPath, destPath);
-        }
-    }
-}
 let globalController: GlobalController | null = null;
 let activationHandler: EditorActivationHandler | null = null;
 let statePersistence: StatePersistence | null = null;
@@ -326,15 +242,6 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
     context.subscriptions.push(debriefSelectFeatureCommand);
-
-    // Register export types to workspace command
-    const exportTypesToWorkspaceCommand = vscode.commands.registerCommand(
-        'debrief.exportTypesToWorkspace',
-        async () => {
-            await exportTypesToWorkspace();
-        }
-    );
-    context.subscriptions.push(exportTypesToWorkspaceCommand);
 
     context.subscriptions.push(disposable);
 }

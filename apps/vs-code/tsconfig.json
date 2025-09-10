@@ -15,5 +15,5 @@
     "noUnusedParameters": true,
     "types": ["node", "vscode"]
   },
-  "exclude": ["src/**/*.test.ts", "types/**/*"]
+  "exclude": ["src/**/*.test.ts"]
 }
