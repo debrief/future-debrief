@@ -17,6 +17,7 @@
       "path": "libs/web-components"
     },
     {
+      "name": "Tool Vault Packager",
       "path": "libs/tool-vault-packager"
     }
   ],
