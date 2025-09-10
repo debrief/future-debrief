@@ -276,32 +276,52 @@ Updates the map viewport bounds for a specified document.
 
 ### Python API Client
 
-The extension includes a Python client API for easy integration:
+The extension includes a Python client API with **typed state objects** for improved type safety and IDE support:
 
 ```python
-from debrief_api import debrief
-
-# Get current time state
-time_state = debrief.get_time("sample.plot.json")
-print(f"Current time: {time_state['current']}")
-
-# Update time to center of range
+from debrief_api import debrief, TimeState, ViewportState, SelectionState
 from datetime import datetime
-start = datetime.fromisoformat(time_state['range'][0].replace('Z', '+00:00'))
-end = datetime.fromisoformat(time_state['range'][1].replace('Z', '+00:00'))
-center = start + (end - start) / 2
-time_state['current'] = center.isoformat().replace('+00:00', 'Z')
-debrief.set_time(time_state, "sample.plot.json")
 
-# Get and update viewport
+# Get current time state (returns TimeState object)
+time_state = debrief.get_time("sample.plot.json")
+if time_state:
+    print(f"Current time: {time_state.current}")
+    print(f"Time range: {time_state.range[0]} to {time_state.range[1]}")
+
+    # Update time to center of range using TimeState object
+    start = time_state.range[0]
+    end = time_state.range[1]
+    center = start + (end - start) / 2
+    
+    # Create new TimeState with center time
+    new_time_state = TimeState(current=center, range=time_state.range)
+    debrief.set_time(new_time_state, "sample.plot.json")
+
+# Get and update viewport (returns ViewportState object)
 viewport = debrief.get_viewport("sample.plot.json")
 if viewport:
-    print(f"Current bounds: {viewport['bounds']}")
+    print(f"Current bounds: {viewport.bounds}")
     
-# Set new viewport bounds [west, south, east, north]
-new_viewport = {"bounds": [-10.0, 50.0, 2.0, 58.0]}
-debrief.set_viewport(new_viewport, "sample.plot.json")
+    # Set new viewport bounds [west, south, east, north]
+    new_viewport = ViewportState(bounds=[-10.0, 50.0, 2.0, 58.0])
+    debrief.set_viewport(new_viewport, "sample.plot.json")
+
+# Get selected features (returns SelectionState object)
+selection = debrief.get_selected_features("sample.plot.json")
+print(f"Selected feature IDs: {selection.selected_ids}")
+
+# Update selection with new feature IDs
+new_selection = SelectionState(selected_ids=["feature1", "feature2"])
+debrief.set_selected_features(new_selection, "sample.plot.json")
 ```
+
+#### Type Safety Benefits
+
+The typed API provides:
+- **IDE Auto-completion**: Full IntelliSense support for state object properties
+- **Type Checking**: Automatic validation of data types at runtime  
+- **Better Documentation**: Clear method signatures and property types
+- **Conversion Methods**: Automatic `to_dict()` and `from_dict()` for WebSocket transmission
 
 ### Error Handling
 

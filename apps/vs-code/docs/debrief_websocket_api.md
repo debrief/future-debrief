@@ -1,12 +1,17 @@
-# Debrief WebSocket API Documentation
+# Debrief WebSocket API - User Guide & Reference
 
 ## Overview
 
-The Debrief WebSocket API provides a bridge between Python scripts and the Debrief VS Code extension, allowing programmatic manipulation of GeoJSON plot files. The API supports real-time interaction with open plot files, including feature manipulation, selection management, and view control.
+This guide provides **complete Python API usage examples and reference** for the Debrief WebSocket API. For system architecture and design details, see [debrief_ws_bridge.md](debrief_ws_bridge.md).
 
-## Connection
+The API enables Python scripts to interact with open Debrief plot files in VS Code, providing:
+- Real-time feature manipulation and selection management
+- Typed state objects for time, viewport, and selection control  
+- Automatic connection handling and error management
 
-The WebSocket server runs inside the VS Code extension on `ws://localhost:60123` and starts automatically when the extension is activated.
+## Quick Start
+
+The WebSocket server runs automatically inside the VS Code extension on `ws://localhost:60123`.
 
 ### Python Quick Start
 
@@ -104,40 +109,45 @@ Get the currently selected features from a plot file.
 **Parameters:**
 - `filename` (str): Path to the plot file
 
-**Returns:** list - Array of selected Feature objects
+**Returns:** SelectionState - Typed object containing selected feature IDs
 
 **Example:**
 ```python
 from debrief_api import get_selected_features
 
-selected = get_selected_features("sample.plot.json")
-print(f"Selected {len(selected)} features")
+selection_state = get_selected_features("sample.plot.json")
+print(f"Selected feature IDs: {selection_state.selected_ids}")
 
-for feature in selected:
+# Get actual feature objects if needed
+fc = get_feature_collection("sample.plot.json")
+selected_features = [f for f in fc['features'] if f.get('id') in selection_state.selected_ids]
+for feature in selected_features:
     print(f"Selected: {feature['properties'].get('name')}")
 ```
 
 ---
 
-### 5. set_selected_features(filename, feature_ids)
+### 5. set_selected_features(selection_state, filename)
 
-Update the selection to specific features by their IDs.
+Update the selection using a SelectionState object.
 
 **Parameters:**
+- `selection_state` (SelectionState): SelectionState object containing feature IDs to select
 - `filename` (str): Path to the plot file
-- `feature_ids` (list): List of feature ID strings to select (empty list clears selection)
 
 **Returns:** None
 
 **Example:**
 ```python
-from debrief_api import set_selected_features
+from debrief_api import set_selected_features, SelectionState
 
 # Select specific features
-set_selected_features("sample.plot.json", ["feature_1", "feature_2"])
+selection = SelectionState(selected_ids=["feature_1", "feature_2"])
+set_selected_features(selection, "sample.plot.json")
 
 # Clear selection
-set_selected_features("sample.plot.json", [])
+empty_selection = SelectionState(selected_ids=[])
+set_selected_features(empty_selection, "sample.plot.json")
 ```
 
 ---
@@ -249,6 +259,110 @@ zoom_to_selection("sample.plot.json")
 
 ---
 
+## State Management APIs (Typed Objects)
+
+The API provides typed state management for time, viewport, and selection control with full type safety:
+
+### Time State Management
+
+**get_time(filename) → TimeState**
+
+Get current time state as a typed TimeState object.
+
+```python
+from debrief_api import debrief, TimeState
+
+# Get time state (returns TimeState object)
+time_state = debrief.get_time("temporal.plot.json")
+if time_state:
+    print(f"Current time: {time_state.current}")
+    print(f"Time range: {time_state.range[0]} to {time_state.range[1]}")
+```
+
+**set_time(time_state, filename)**
+
+Set time state using a TimeState object.
+
+```python
+# Create new TimeState with center time
+start = time_state.range[0]
+end = time_state.range[1]
+center = start + (end - start) / 2
+new_time_state = TimeState(current=center, range=time_state.range)
+debrief.set_time(new_time_state, "temporal.plot.json")
+```
+
+---
+
+### Viewport State Management
+
+**get_viewport(filename) → ViewportState**
+
+Get current viewport state as a typed ViewportState object.
+
+```python
+from debrief_api import debrief, ViewportState
+
+# Get viewport bounds
+viewport = debrief.get_viewport("sample.plot.json")
+if viewport:
+    west, south, east, north = viewport.bounds
+    print(f"Viewport: {west}, {south}, {east}, {north}")
+```
+
+**set_viewport(viewport_state, filename)**
+
+Set viewport using a ViewportState object.
+
+```python
+# Set new viewport bounds [west, south, east, north]
+new_viewport = ViewportState(bounds=[-10.0, 50.0, 2.0, 58.0])
+debrief.set_viewport(new_viewport, "sample.plot.json")
+```
+
+---
+
+### Selection State Management
+
+**get_selected_features(filename) → SelectionState**
+
+Get currently selected features as a typed SelectionState object.
+
+```python
+from debrief_api import debrief, SelectionState
+
+# Get selected feature IDs
+selection = debrief.get_selected_features("sample.plot.json")
+print(f"Selected IDs: {selection.selected_ids}")
+```
+
+**set_selected_features(selection_state, filename)**
+
+Set selection using a SelectionState object.
+
+```python
+# Create selection with specific feature IDs
+new_selection = SelectionState(selected_ids=["feature1", "feature2"])
+debrief.set_selected_features(new_selection, "sample.plot.json")
+
+# Clear selection
+empty_selection = SelectionState(selected_ids=[])
+debrief.set_selected_features(empty_selection, "sample.plot.json")
+```
+
+---
+
+### Type Safety Benefits
+
+The typed state objects provide:
+- **IDE Auto-completion**: Full IntelliSense support for all properties
+- **Runtime Validation**: Automatic type checking and data validation  
+- **Conversion Methods**: Automatic `to_dict()` and `from_dict()` for WebSocket communication
+- **Error Prevention**: Catch type mismatches before runtime
+- **Better Documentation**: Self-documenting code with clear property types
+
+---
+
 ## Complete Workflow Example
 
 Here's a complete example showing common operations:
@@ -357,14 +471,13 @@ All operations immediately reflect in the VS Code interface:
 - **Selection Sync**: Selection changes are reflected in both the map and outline tree view
 - **Zoom Operations**: Map view adjustments happen immediately
 
-## Connection Management
+## Connection Notes
 
-The Python client handles connection management automatically:
+No manual connection management required - the API handles everything automatically:
 
-- **Auto-Connect**: Connects automatically on first API call
-- **Auto-Reconnect**: Automatically reconnects if connection is lost
-- **Singleton Pattern**: Uses a single connection for all operations
-- **Resource Cleanup**: Automatically cleans up on script exit
+- Connects on first API call
+- Reconnects automatically if connection drops  
+- Cleans up resources when script ends
 
 ## Performance Considerations
 
@@ -413,7 +526,9 @@ for f in os.listdir('.'):
 
 ---
 
-For more information, see:
-- [WebSocket Bridge Design Document](debrief_ws_bridge.md)
-- [Extension Development Guide](../README.md)
-- [Test Examples](../workspace/tests/)
+## Related Documentation
+
+- **[WebSocket Bridge Architecture](debrief_ws_bridge.md)**: System design and technical implementation details  
+- **[Extension Development Guide](../README.md)**: VS Code extension setup and development
+- **[Test Examples](../workspace/tests/)**: Working Python scripts demonstrating API usage
+- **[Shared Types](../../libs/shared-types/README.md)**: Type system and schema documentation
