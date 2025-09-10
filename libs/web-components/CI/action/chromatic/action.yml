@@ -30,7 +30,7 @@ runs:
 
     - name: Build shared types
       shell: bash
-      run: pnpm --filter @debrief/shared-types build
+      run: pnpm --filter @debrief/shared-types build:ci
 
     - name: Run Chromatic for Web Components
       id: chromatic
