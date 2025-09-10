@@ -18,14 +18,14 @@ const execAsync = promisify(exec);
  */
 export class PythonWheelInstaller {
     private readonly extensionContext: vscode.ExtensionContext;
-    private readonly bundledWheelPath: string;
+    private readonly bundledWheelPath: string | null;
     private readonly packageName = 'debrief-types';
     private readonly packageVersion: string;
 
     constructor(context: vscode.ExtensionContext) {
         this.extensionContext = context;
-        this.bundledWheelPath = path.join(context.extensionPath, 'python', 'debrief_types.whl');
-        this.packageVersion = this.extractVersionFromWheelName();
+        this.bundledWheelPath = this.findBundledWheelFile(context.extensionPath);
+        this.packageVersion = this.bundledWheelPath ? this.extractVersionFromWheelName() : '1.0.0';
     }
 
     /**
@@ -34,8 +34,10 @@ export class PythonWheelInstaller {
     async checkAndInstallPackage(): Promise<void> {
         try {
             // Check if bundled wheel exists
-            if (!fs.existsSync(this.bundledWheelPath)) {
+            if (!this.bundledWheelPath || !fs.existsSync(this.bundledWheelPath)) {
                 console.warn('Bundled debrief-types wheel not found. Python integration will not be available.');
+                console.warn('Searched for wheel files in:', path.join(this.extensionContext.extensionPath, 'python'));
+                this.listPythonDirectory();
                 return;
             }
 
@@ -81,8 +83,12 @@ export class PythonWheelInstaller {
 
         } catch (error) {
             console.error('Failed to install debrief-types package:', error);
+            console.error('Bundled wheel path:', this.bundledWheelPath);
+            console.error('Extension path:', this.extensionContext.extensionPath);
+            this.listPythonDirectory();
+            
             vscode.window.showWarningMessage(
-                `Failed to install Debrief Python types: ${error}. You can install manually: pip install ${this.bundledWheelPath}`,
+                `Failed to install Debrief Python types: ${error}. You can install manually: pip install ${this.bundledWheelPath || 'path/to/wheel'}`,
                 'Show Instructions'
             ).then(selection => {
                 if (selection === 'Show Instructions') {
@@ -220,9 +226,57 @@ export class PythonWheelInstaller {
     }
 
     /**
+     * Find the bundled wheel file in the python directory.
+     */
+    private findBundledWheelFile(extensionPath: string): string | null {
+        try {
+            const pythonDir = path.join(extensionPath, 'python');
+            if (!fs.existsSync(pythonDir)) {
+                return null;
+            }
+
+            const files = fs.readdirSync(pythonDir);
+            const wheelFiles = files.filter(file => file.endsWith('.whl') && file.startsWith('debrief_types-'));
+            
+            if (wheelFiles.length === 0) {
+                return null;
+            }
+
+            if (wheelFiles.length > 1) {
+                console.warn(`Multiple wheel files found, using first one: ${wheelFiles[0]}`);
+            }
+
+            return path.join(pythonDir, wheelFiles[0]);
+        } catch (error) {
+            console.error('Error finding bundled wheel file:', error);
+            return null;
+        }
+    }
+
+    /**
+     * List contents of python directory for debugging.
+     */
+    private listPythonDirectory(): void {
+        try {
+            const pythonDir = path.join(this.extensionContext.extensionPath, 'python');
+            if (fs.existsSync(pythonDir)) {
+                const files = fs.readdirSync(pythonDir);
+                console.warn('Python directory contents:', files);
+            } else {
+                console.warn('Python directory does not exist');
+            }
+        } catch (error) {
+            console.warn('Error listing python directory:', error);
+        }
+    }
+
+    /**
      * Extract version from wheel filename.
      */
     private extractVersionFromWheelName(): string {
+        if (!this.bundledWheelPath) {
+            return '1.0.0';
+        }
         const filename = path.basename(this.bundledWheelPath);
         const versionMatch = filename.match(/debrief_types-(.+?)-py/);
         return versionMatch ? versionMatch[1] : '1.0.0';
