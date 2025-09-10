@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { MapComponent } from './MapComponent';
 import type { GeoJSONFeatureCollection } from './MapComponent';
@@ -130,18 +130,6 @@ describe('MapComponent', () => {
     render(<MapComponent />);
     // Component should render the container div
     expect(document.querySelector('.plot-editor')).toBeInTheDocument();
-  });
-
-  it('renders with add button when showAddButton is true', () => {
-    render(<MapComponent showAddButton={true} />);
-    const addButton = screen.getByText('Add Feature');
-    expect(addButton).toBeInTheDocument();
-  });
-
-  it('does not render add button when showAddButton is false', () => {
-    render(<MapComponent showAddButton={false} />);
-    const addButton = screen.queryByText('Add Feature');
-    expect(addButton).not.toBeInTheDocument();
   });
 
   it('renders with custom className', () => {

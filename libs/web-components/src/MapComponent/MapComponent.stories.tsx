@@ -13,8 +13,6 @@ const meta: Meta<typeof MapComponent> = {
   },
   argTypes: {
     onSelectionChange: { action: 'selection-changed' },
-    onMapClick: { action: 'map-clicked' },
-    onAddClick: { action: 'add-clicked' },
     onZoomToSelection: { action: 'zoom-to-selection' },
     onMapStateChange: { action: 'map-state-changed' },
   },
@@ -141,14 +139,12 @@ const sampleGeoJSON: GeoJSONFeatureCollection = {
 export const Default: Story = {
   args: {
     geoJsonData: sampleGeoJSON,
-    showAddButton: true,
   },
 };
 
 export const WithStringData: Story = {
   args: {
     geoJsonData: JSON.stringify(sampleGeoJSON),
-    showAddButton: true,
   },
 };
 
@@ -156,7 +152,6 @@ export const WithHighlight: Story = {
   args: {
     geoJsonData: sampleGeoJSON,
     revealFeatureIndex: 0,
-    showAddButton: true,
   },
 };
 
@@ -164,21 +159,12 @@ export const WithSelectedIds: Story = {
   args: {
     geoJsonData: sampleGeoJSON,
     selectedFeatureIds: ['point1', 'polygon1'],
-    showAddButton: true,
   },
 };
 
-export const NoAddButton: Story = {
-  args: {
-    geoJsonData: sampleGeoJSON,
-    showAddButton: false,
-  },
-};
 
 export const EmptyMap: Story = {
-  args: {
-    showAddButton: true,
-  },
+  args: {},
 };
 
 // Stories showcasing new property-based rendering features
@@ -250,7 +236,6 @@ export const BuoyfieldsAndTracks: Story = {
         }
       ]
     },
-    showAddButton: true,
   },
 };
 
@@ -322,7 +307,6 @@ export const ZonesWithOpacity: Story = {
         }
       ]
     },
-    showAddButton: true,
   },
 };
 
@@ -393,6 +377,5 @@ export const VisibilityFiltering: Story = {
         }
       ]
     },
-    showAddButton: true,
   },
 };
