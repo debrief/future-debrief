@@ -1,0 +1,35 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://debrief.org/schemas/TimeState.json",
+  "title": "TimeState",
+  "description": "State representing the current time position in a Debrief editor",
+  "type": "object",
+  "properties": {
+    "current": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Current time position as ISO 8601 date-time string"
+    },
+    "range": {
+      "type": "array",
+      "description": "The overall time range of the data, as a [start, end] tuple of ISO 8601 date-time strings",
+      "items": {
+        "type": "string",
+        "format": "date-time"
+      },
+      "minItems": 2,
+      "maxItems": 2
+    }
+  },
+  "required": ["current", "range"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "current": "2025-09-03T12:00:00Z",
+      "range": [
+        "2025-09-03T10:00:00Z",
+        "2025-09-03T14:00:00Z"
+      ]
+    }
+  ]
+}

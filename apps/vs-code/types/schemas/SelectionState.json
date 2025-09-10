@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://debrief.org/schemas/SelectionState.json", 
+  "title": "SelectionState",
+  "description": "State representing the currently selected features in a Debrief editor",
+  "type": "object",
+  "properties": {
+    "selectedIds": {
+      "type": "array",
+      "description": "Array of selected feature IDs",
+      "items": {
+        "oneOf": [
+          { "type": "string" },
+          { "type": "number" }
+        ]
+      },
+      "uniqueItems": true
+    }
+  },
+  "required": ["selectedIds"],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "selectedIds": ["id-123", "id-456"]
+    },
+    {
+      "selectedIds": [123, 456]
+    },
+    {
+      "selectedIds": []
+    }
+  ]
+}

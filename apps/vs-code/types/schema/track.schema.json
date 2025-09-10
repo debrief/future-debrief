@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.debrief.org/track.schema.json",
+  "title": "Debrief Track Feature",
+  "description": "A GeoJSON Feature representing a track with LineString or MultiLineString geometry and optional timestamps",
+  "type": "object",
+  "required": ["type", "id", "geometry", "properties"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "const": "Feature"
+    },
+    "id": {
+      "type": ["string", "number"],
+      "description": "Unique identifier for this feature"
+    },
+    "geometry": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["type", "coordinates"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["LineString"]
+            },
+            "coordinates": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 3,
+                "items": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["type", "coordinates"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["MultiLineString"]
+            },
+            "coordinates": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "array",
+                "minItems": 2,
+                "items": {
+                  "type": "array",
+                  "minItems": 2,
+                  "maxItems": 3,
+                  "items": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "properties": {
+      "type": "object",
+      "required": ["dataType"],
+      "properties": {
+        "dataType": {
+          "type": "string",
+          "enum": ["track"],
+          "description": "Discriminator to identify this as a track feature"
+        },
+        "timestamps": {
+          "type": "array",
+          "description": "Optional array of timestamps corresponding to each coordinate point",
+          "items": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "name": {
+          "type": "string",
+          "description": "Human readable name for this track"
+        },
+        "description": {
+          "type": "string",
+          "description": "Additional description or notes about this track"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
