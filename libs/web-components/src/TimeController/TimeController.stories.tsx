@@ -114,6 +114,29 @@ export const Interactive: Story = {
   render: () => <InteractiveWrapper />,
 };
 
+export const VSCodeTheming: Story = {
+  render: () => (
+    <div style={{ padding: '20px', background: 'var(--vscode-editor-background, #1e1e1e)', minHeight: '400px' }}>
+      <h3 style={{ color: 'var(--vscode-editor-foreground, #cccccc)', marginBottom: '16px' }}>VS Code Elements Integration - TimeController</h3>
+      <p style={{ color: 'var(--vscode-descriptionForeground, #cccccc)', marginBottom: '20px' }}>
+        TimeController now uses native vscode-elements for buttons and labels with VS Code themed slider controls.
+      </p>
+      <div style={{ border: '1px solid var(--vscode-panel-border, #3e3e3e)', borderRadius: '4px', padding: '16px' }}>
+        <WithTimeRangeWrapper />
+      </div>
+      <div style={{ marginTop: '16px', fontSize: '12px', color: 'var(--vscode-descriptionForeground, #cccccc)' }}>
+        <strong>Features:</strong>
+        <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+          <li>VscodeButton for play/pause controls</li>
+          <li>VscodeLabel for time displays</li>
+          <li>VS Code themed range slider with hover effects</li>
+          <li>Automatic theme adaptation</li>
+        </ul>
+      </div>
+    </div>
+  ),
+};
+
 export const NoTimeRange: Story = {
   args: {
     timeState: undefined,

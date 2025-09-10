@@ -1,4 +1,13 @@
-/* Vanilla MapComponent CSS styles */
+/* Vanilla Component CSS styles with VSCode Elements theming */
+
+/* Global VSCode Elements theme integration */
+:root {
+  /* Ensure VSCode CSS variables are inherited */
+  font-family: var(--vscode-font-family, 'Segoe UI', sans-serif);
+  font-size: var(--vscode-font-size, 13px);
+  color: var(--vscode-editor-foreground, #cccccc);
+  background: var(--vscode-editor-background, #1e1e1e);
+}
 
 /* Container styles */
 .plot-editor {
@@ -6,12 +15,17 @@
   flex-direction: column;
   height: 100%;
   width: 100%;
+  background: var(--vscode-editor-background, #1e1e1e);
+  color: var(--vscode-editor-foreground, #cccccc);
 }
 
 .controls {
   padding: 8px;
   background: var(--vscode-editor-background, #1e1e1e);
   border-bottom: 1px solid var(--vscode-panel-border, #3e3e3e);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .add-button {
@@ -22,15 +36,62 @@
   border-radius: 2px;
   cursor: pointer;
   font-size: 13px;
+  font-family: inherit;
+  transition: background-color 0.15s ease;
 }
 
 .add-button:hover {
   background: var(--vscode-button-hoverBackground, #1177bb);
 }
 
+.add-button:focus {
+  outline: 1px solid var(--vscode-focusBorder, #007acc);
+  outline-offset: 2px;
+}
+
+.add-button:disabled {
+  background: var(--vscode-button-secondaryBackground, #5f6a79);
+  color: var(--vscode-button-secondaryForeground, #ffffff);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .map-instance {
   flex: 1;
   min-height: 400px;
+  border: 1px solid var(--vscode-panel-border, #3e3e3e);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* VSCode Elements global styling integration */
+vscode-button {
+  font-family: inherit;
+}
+
+vscode-textfield,
+vscode-textarea {
+  font-family: inherit;
+}
+
+vscode-label {
+  font-family: inherit;
+}
+
+/* Panel and container improvements */
+.component-panel {
+  background: var(--vscode-sideBar-background, #252526);
+  border: 1px solid var(--vscode-panel-border, #3e3e3e);
+  border-radius: 4px;
+  color: var(--vscode-sideBar-foreground, #cccccc);
+}
+
+.component-header {
+  background: var(--vscode-sideBarSectionHeader-background, #2d2d30);
+  border-bottom: 1px solid var(--vscode-panel-border, #3e3e3e);
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 13px;
 }
 
 /* White shadow effect for selected features */
