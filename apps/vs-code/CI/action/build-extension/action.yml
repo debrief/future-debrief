@@ -33,7 +33,7 @@ runs:
     
     - name: Build VS Code extension and dependencies
       shell: bash
-      run: pnpm build:vs-code
+      run: pnpm build:vs-code:ci
     
     - name: Install vsce
       shell: bash
