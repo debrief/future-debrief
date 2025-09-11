@@ -196,8 +196,12 @@ def get_feature_counts(collection: Dict[str, Any]) -> Dict[str, int]:
 
     for feature in features:
         feature_type = classify_feature(feature)
-        if feature_type in counts:
-            counts[feature_type + "s"] += 1
+        if feature_type == "track":
+            counts["tracks"] += 1
+        elif feature_type == "point":
+            counts["points"] += 1
+        elif feature_type == "annotation":
+            counts["annotations"] += 1
         else:
             counts["unknown"] += 1
 
