@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'libs/tool-vault-packager/**'
+      - 'libs/shared-types/**'
   workflow_dispatch:
     inputs:
       force_deploy:

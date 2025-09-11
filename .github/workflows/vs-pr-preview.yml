@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - 'apps/vs-code/**'
+      - 'libs/shared-types/**'
+      - 'libs/web-components/**'
 
 concurrency:
   group: vs-pr-preview-${{ github.event.number }}

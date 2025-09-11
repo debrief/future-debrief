@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'libs/tool-vault-packager/**'
+      - 'libs/shared-types/**'
 
 concurrency:
   group: toolvault-pr-preview-${{ github.event.number }}
