@@ -87,7 +87,7 @@ export const VSCodeTheming: Story = {
             { key: 'classification', value: 'destroyer' },
             { key: 'radar_active', value: false },
           ]}
-          onPropertyChange={(key, value) => console.log('Property changed:', key, '=', value)}
+          onPropertyChange={(key, value) => console.warn('Property changed:', key, '=', value)}
         />
       </div>
       <div style={{ marginTop: '16px', fontSize: '12px', color: 'var(--vscode-descriptionForeground, #cccccc)' }}>
