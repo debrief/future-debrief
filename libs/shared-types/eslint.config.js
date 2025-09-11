@@ -27,10 +27,30 @@ module.exports = [
     },
   },
   {
+    // Configuration for Node.js scripts (CommonJS)
+    files: ['scripts/**/*.js'],
+    languageOptions: {
+      globals: {
+        require: 'readonly',
+        module: 'readonly',
+        console: 'readonly',
+        process: 'readonly',
+        __dirname: 'readonly',
+        __filename: 'readonly',
+      },
+      sourceType: 'commonjs',
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+      'no-undef': 'off', // Turn off for Node.js scripts since globals are defined above
+    },
+  },
+  {
     // Ignore generated files, build output, and test files
     ignores: [
       'dist/**',
       'derived/**',
+      'src/types/**', // Ignore generated TypeScript types
       'node_modules/**',
       'tests/**',
       '**/*.js.map',

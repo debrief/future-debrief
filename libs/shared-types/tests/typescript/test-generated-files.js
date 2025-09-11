@@ -7,7 +7,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const DERIVED_DIR = path.join(__dirname, '..', '..', 'derived', 'typescript');
+const DERIVED_DIR = path.join(__dirname, '..', '..', 'src', 'types');
 
 const EXPECTED_FILES = [
   'track.ts',
