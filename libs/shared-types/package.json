@@ -2,15 +2,13 @@
   "name": "@debrief/shared-types",
   "version": "1.0.0",
   "description": "Shared types for Debrief ecosystem with constrained GeoJSON FeatureCollections",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
   "files": [
     "dist/",
-    "src/types/",
     "src/validators/",
     "schemas/",
-    "derived/",
-    "src/validators/"
+    "derived/"
   ],
   "scripts": {
     "clean": "rm -rf derived/ dist/* python-src/debrief/types/[!R]*.py python-src/debrief/schemas/*.json build/ *.egg-info/",
