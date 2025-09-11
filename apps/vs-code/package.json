@@ -50,7 +50,8 @@
         "extensions": [
           ".plot.json"
         ],
-        "configuration": "./language-configuration.json"
+        "configuration": "./language-configuration.json",
+        "mimetypes": ["application/json"]
       }
     ],
     "commands": [
@@ -153,6 +154,12 @@
       {
         "fileMatch": "*.plot.json",
         "url": "./schemas/features/FeatureCollection.schema.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "plot-json",
+        "scopeName": "source.json"
       }
     ]
   },
