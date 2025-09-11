@@ -10,14 +10,16 @@ The `@debrief/shared-types` package provides schema-driven type generation for m
 
 ### Essential Commands
 ```bash
+# Conditional build system (automatically detects changes)
+pnpm build:status          # Check what would be rebuilt and why
+pnpm build                 # Smart conditional build (only builds what changed)
+pnpm build:ci              # Clean build for CI/CD environments
+
 # Generate all types from schemas (most important command)
 pnpm generate:types
 
-# Build everything (clean + generate + compile)
-pnpm build
-
 # Development with watch mode
-pnpm dev    # Watches schemas/ directory
+pnpm dev    # Watches schema/ and schemas/ directories
 
 # Testing
 pnpm test                  # Run all tests
@@ -29,6 +31,12 @@ pnpm test:schemas         # Test JSON schema validation
 pnpm typecheck            # TypeScript type check
 pnpm lint                 # ESLint + typecheck
 ```
+
+### Conditional Build Performance
+The package includes an intelligent conditional build system for improved developer productivity:
+- **No changes**: ~1.5 seconds (85% improvement over unconditional build)
+- **Schema changes**: Full regeneration (~13 seconds) 
+- **Source changes**: Compilation only (~3.5 seconds)
 
 ### Package-Specific Commands
 ```bash
@@ -52,38 +60,21 @@ pnpm clean:smart
 This package follows a **build-based type generation approach** where JSON schemas are the single source of truth:
 
 ```
-JSON Schema (schemas/) → json-schema-to-typescript → TypeScript types (derived/typescript/)
-JSON Schema (schemas/) → quicktype → Python types (derived/python/)
+JSON Schema (schema/ + schemas/) → json-schema-to-typescript → TypeScript types (src/types/)
+JSON Schema (schema/ + schemas/) → quicktype → Python types (python-src/debrief/types/)
 ```
 
-**Critical**: The `derived/` directory contains generated files and is excluded from version control. All types must be regenerated on build.
+**Critical**: Generated files are placed in language-specific directories and are excluded from version control. All types must be regenerated on build.
 
 ### Directory Structure
 
-```
-schemas/                   # All JSON schemas
-│   ├── features/          # Maritime GeoJSON schemas
-│   └── states/            # Application state schemas
-├── Track.schema.json     # LineString/MultiLineString with timestamps
-├── Point.schema.json     # Point features with time properties  
-├── Annotation.schema.json # Multi-geometry annotations
-└── FeatureCollection.schema.json # Collection schema with discriminated unions
+**For detailed package structure information, see [README.md](README.md#package-structure).**
 
-schemas/                   # Application state schemas
-├── TimeState.schema.json        # Time control state
-├── ViewportState.schema.json    # Map viewport state
-├── SelectionState.schema.json   # Feature selection state
-├── EditorState.schema.json      # Editor mode state
-└── CurrentState.schema.json     # Current vessel state
-
-derived/                   # Generated types (not in git)
-├── typescript/           # Generated TS interfaces
-└── python/              # Generated Python classes
-
-validators/               # Manual validation functions
-├── typescript/          # TS validators with cross-field logic
-└── python/             # Python validators (equivalent logic)
-```
+Key directories:
+- `schema/` + `schemas/` - JSON Schema source files
+- `src/types/` - Generated TypeScript interfaces
+- `python-src/debrief/types/` - Generated Python classes
+- `src/validators/` + `python-src/debrief/validators/` - Manual validation functions
 
 ### Key Design Principles
 
@@ -108,15 +99,15 @@ validators/               # Manual validation functions
 ## Development Workflow
 
 ### Making Schema Changes
-1. Edit JSON schemas in `schemas/features/` or `schemas/states/`
+1. Edit JSON schemas in `schema/` or `schemas/`
 2. Run `pnpm generate:types` to regenerate derived types
 3. Update validators if cross-field validation logic changes
 4. Run `pnpm test` to ensure consistency across languages
 5. Build consuming packages that depend on changed types
 
 ### Adding New Feature Types
-1. Create new JSON schema file in `schemas/features/` or `schemas/states/`
-2. Add schema reference to `FeatureCollection.schema.json` oneOf array
+1. Create new JSON schema file in `schema/`
+2. Add schema reference to `featurecollection.schema.json` oneOf array
 3. Add post-processing rules in `generate:ts:post-process` script if needed
 4. Create corresponding validator files in both `validators/typescript/` and `validators/python/`
 5. Add test data in `tests/json/data/`
@@ -125,30 +116,30 @@ validators/               # Manual validation functions
 
 **TypeScript**: Import directly from generated files
 ```typescript
-import { DebriefTrackFeature } from './derived/typescript/featurecollection';
-import { TimeState } from './derived/typescript/timestate';
+import { DebriefTrackFeature } from './src/types/featurecollection';
+import { TimeState } from './src/types/timestate';
 ```
 
 **From consuming packages** (like `../../apps/vs-code`):
 ```typescript
 // State types from schemas/
-import { TimeState } from '@debrief/shared-types/derived/typescript/timestate';
-import { ViewportState } from '@debrief/shared-types/derived/typescript/viewportstate';
-import { SelectionState } from '@debrief/shared-types/derived/typescript/selectionstate';
-import { EditorState } from '@debrief/shared-types/derived/typescript/editorstate';
-import { CurrentState } from '@debrief/shared-types/derived/typescript/currentstate';
+import { TimeState } from '@debrief/shared-types/src/types/timestate';
+import { ViewportState } from '@debrief/shared-types/src/types/viewportstate';
+import { SelectionState } from '@debrief/shared-types/src/types/selectionstate';
+import { EditorState } from '@debrief/shared-types/src/types/editorstate';
+import { CurrentState } from '@debrief/shared-types/src/types/currentstate';
 
-// Feature types from schemas/features/
-import { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types/derived/typescript/featurecollection';
+// Feature types from schema/
+import { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types/src/types/featurecollection';
 
 // Validators 
-import { validateFeatureCollectionComprehensive, validateFeatureByType, classifyFeature } from '@debrief/shared-types/validators/typescript';
+import { validateFeatureCollectionComprehensive, validateFeatureByType, classifyFeature } from '@debrief/shared-types/src/validators';
 ```
 
 **Python**: Import from generated modules
 ```python
-from derived.python.track import TrackFeature
-from derived.python.TimeState import TimeState
+from debrief.types.track import TrackFeature
+from debrief.types.TimeState import TimeState
 ```
 
 ### Validation Strategy
@@ -171,8 +162,8 @@ from derived.python.TimeState import TimeState
 
 ### Import Errors
 - Remember this is a source package - import from specific directories
-- Generated files in `derived/` must exist before importing
-- Run `pnpm build` if `derived/` directory is missing
+- Generated files in `src/types/` and `python-src/debrief/types/` must exist before importing
+- Run `pnpm build` if generated directories are missing
 
 ## Integration with VS Code Extension
 
