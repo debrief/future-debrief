@@ -1104,10 +1104,10 @@ export class DebriefWebSocketServer {
 
             // Validate the time state structure
             const timeState = params.timeState as TimeState;
-            if (!timeState.current || !timeState.range || !Array.isArray(timeState.range) || timeState.range.length !== 2) {
+            if (!timeState.current || !timeState.start || !timeState.end) {
                 return {
                     error: {
-                        message: 'Invalid TimeState: must have "current" (string) and "range" (array with 2 elements)',
+                        message: 'Invalid TimeState: must have "current", "start", and "end" properties (all strings)',
                         code: 400
                     }
                 };

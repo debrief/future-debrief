@@ -135,7 +135,8 @@ export class StatePersistence {
                 if (timeRange) {
                     extractedState.timeState = {
                         current: timeRange[0], // Start at beginning of time range
-                        range: timeRange
+                        start: timeRange[0],
+                        end: timeRange[1]
                     };
                 } else {
                 }
@@ -274,7 +275,7 @@ export class StatePersistence {
             const range = feature.properties?.['range'];
 
             if (typeof current === 'string' && Array.isArray(range) && range.length === 2) {
-                return { current, range: range as [string, string] };
+                return { current, start: range[0], end: range[1] };
             }
         } catch (error) {
             console.error('Error extracting time state:', error);
@@ -315,7 +316,8 @@ export class StatePersistence {
                 properties: {
                     'debrief-feature-type': StatePersistence.METADATA_FEATURE_TYPES.TIME,
                     'current': state.timeState.current,
-                    'range': state.timeState.range,
+                    'start': state.timeState.start,
+                    'end': state.timeState.end,
                     'visible': false // Hide metadata features from map display
                 }
             });

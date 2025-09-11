@@ -183,7 +183,7 @@
    ```
 
 4. **Key Method Updates**
-   - `get_time()` → returns `TimeState` object with `.current` and `.range` properties
+   - `get_time()` → returns `TimeState` object with `.current`, `.start`, and `.end` properties
    - `set_time(TimeState)` → accepts typed object, converts to dict for WebSocket
    - `get_viewport()` → returns `ViewportState` with `.bounds` array property  
    - `set_viewport(ViewportState)` → accepts typed object with bounds validation

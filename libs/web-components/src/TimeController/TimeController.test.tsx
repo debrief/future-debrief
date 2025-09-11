@@ -7,7 +7,8 @@ import { TimeState } from '@debrief/shared-types';
 describe('TimeController', () => {
   const mockTimeState: TimeState = {
     current: '2025-09-05T12:00:00.000Z',
-    range: ['2025-09-05T10:00:00.000Z', '2025-09-05T14:00:00.000Z'],
+    start: '2025-09-05T10:00:00.000Z',
+    end: '2025-09-05T14:00:00.000Z',
   };
 
   it('renders the component with a slider when timeState is provided', () => {
@@ -32,10 +33,10 @@ describe('TimeController', () => {
     render(<TimeController timeState={mockTimeState} onTimeChange={onTimeChange} />);
 
     const slider = screen.getByTestId('time-slider');
-    fireEvent.change(slider, { target: { value: new Date(mockTimeState.range[1]).getTime() } });
+    fireEvent.change(slider, { target: { value: new Date(mockTimeState.end).getTime() } });
 
     expect(onTimeChange).toHaveBeenCalledTimes(1);
-    expect(onTimeChange).toHaveBeenCalledWith(mockTimeState.range[1]);
+    expect(onTimeChange).toHaveBeenCalledWith(mockTimeState.end);
   });
 
   it('displays playing state correctly', () => {

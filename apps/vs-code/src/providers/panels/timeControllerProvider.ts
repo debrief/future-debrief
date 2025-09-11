@@ -138,10 +138,8 @@ export class TimeControllerProvider implements vscode.WebviewViewProvider {
             const currentTimeState = this._globalController.getStateSlice(activeEditorId, 'timeState');
             const updatedTimeState: TimeState = {
                 current: newTimeISO,
-                range: currentTimeState?.range || [
-                    new Date(new Date(newTimeISO).getTime() - 3600000).toISOString(), // 1 hour before
-                    new Date(new Date(newTimeISO).getTime() + 3600000).toISOString()   // 1 hour after
-                ]
+                start: currentTimeState?.start || new Date(new Date(newTimeISO).getTime() - 3600000).toISOString(), // 1 hour before
+                end: currentTimeState?.end || new Date(new Date(newTimeISO).getTime() + 3600000).toISOString()   // 1 hour after
             };
             this._globalController.updateState(activeEditorId, 'timeState', updatedTimeState);
         }
@@ -155,10 +153,11 @@ export class TimeControllerProvider implements vscode.WebviewViewProvider {
         if (activeEditorId) {
             // Get current time state to preserve the range
             const currentTimeState = this._globalController.getStateSlice(activeEditorId, 'timeState');
-            if (currentTimeState && currentTimeState.range) {
+            if (currentTimeState && currentTimeState.start && currentTimeState.end) {
                 const updatedTimeState: TimeState = {
-                    current: currentTimeState.range[0], // Reset to start of range
-                    range: currentTimeState.range
+                    current: currentTimeState.start, // Reset to start of range
+                    start: currentTimeState.start,
+                    end: currentTimeState.end
                 };
                 this._globalController.updateState(activeEditorId, 'timeState', updatedTimeState);
             }

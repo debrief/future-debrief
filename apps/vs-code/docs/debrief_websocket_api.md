@@ -276,7 +276,7 @@ from debrief_api import debrief, TimeState
 time_state = debrief.get_time("temporal.plot.json")
 if time_state:
     print(f"Current time: {time_state.current}")
-    print(f"Time range: {time_state.range[0]} to {time_state.range[1]}")
+    print(f"Time range: {time_state.start} to {time_state.end}")
 ```
 
 **set_time(time_state, filename)**
@@ -285,10 +285,10 @@ Set time state using a TimeState object.
 
 ```python
 # Create new TimeState with center time
-start = time_state.range[0]
-end = time_state.range[1]
+start = time_state.start
+end = time_state.end
 center = start + (end - start) / 2
-new_time_state = TimeState(current=center, range=time_state.range)
+new_time_state = TimeState(current=center, start=time_state.start, end=time_state.end)
 debrief.set_time(new_time_state, "temporal.plot.json")
 ```
 
