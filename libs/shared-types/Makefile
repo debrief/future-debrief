@@ -56,7 +56,13 @@ $(PYTHON_WHEEL): $(PY_GENERATED_FILES)
 	@if command -v python >/dev/null 2>&1; then \
 		echo "$(BLUE)Building Python wheel...$(RESET)"; \
 		mkdir -p dist/python; \
-		python -m build --wheel --outdir dist/python/ || echo "$(YELLOW)⚠️ Python wheel build skipped (missing dependencies)$(RESET)"; \
+		if python -m build --wheel --outdir dist/python/ >/tmp/wheel-build.log 2>&1; then \
+			echo "$(GREEN)✓ Python wheel built successfully$(RESET)"; \
+		else \
+			echo "$(YELLOW)⚠️ Python wheel build failed. Output:$(RESET)"; \
+			cat /tmp/wheel-build.log; \
+		fi; \
+		rm -f /tmp/wheel-build.log \
 	else \
 		echo "$(YELLOW)Skipping Python wheel (Python not available)$(RESET)"; \
 	fi
