@@ -5,25 +5,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 - `pnpm install` - Install dependencies (run from root for full workspace)
-- `pnpm compile` - Bundle extension with esbuild (includes sourcemap for development)
+- `pnpm compile` - Bundle extension with esbuild + copy schemas and dependencies
 - `pnpm watch` - Watch mode bundling with esbuild for development
-- `pnpm vscode:prepublish` - Prepare for publishing (minified esbuild bundle)
+- `pnpm vscode:prepublish` - Prepare for publishing (minified esbuild bundle + schemas)
+- `pnpm copy-schemas` - Copy JSON schemas from libs/shared-types to extension
 - `pnpm typecheck` - Type check TypeScript without compilation
 
 ### Build System
 
-The extension uses **esbuild** for fast bundling instead of traditional TypeScript compilation:
+The extension uses **esbuild** for fast bundling and includes JSON schema integration:
 - Source files in `src/` are bundled into a single `dist/extension.js` file
 - Bundle includes all dependencies except VS Code API (externalized)
 - Development builds include sourcemaps for debugging
 - Production builds are minified for optimal performance
-- Build time: ~20ms (compared to previous slower TypeScript compilation)
+- **Schema copying**: JSON schemas from `libs/shared-types` are copied to `schemas/` directory
+- **Language configuration**: Plot JSON files inherit JSON language server features
+- Build time: ~20ms for TypeScript + schema copying
 
 ## Testing
 
 ### Extension Testing
 - Press `F5` in VS Code to launch Extension Development Host
 - Or run "Debug: Start Debugging" from Command Palette
+- **Test JSON Schema Validation**: Open `.plot.json` files and verify autocomplete/validation works
 
 ### WebSocket Bridge Testing
 Navigate to `workspace/tests/` and run:
@@ -52,6 +56,7 @@ Navigate to `workspace/tests/` and run:
 - Custom webview editor for `.plot.json` files
 - Displays GeoJSON data on Leaflet map with feature selection
 - Integrates with outline view for feature navigation
+- **JSON Schema Support**: Files also get validation and autocomplete in text editor mode
 
 **Custom Outline (`src/customOutlineTreeProvider.ts`)**
 - Tree view showing GeoJSON features from active plot files
@@ -67,6 +72,16 @@ Navigate to `workspace/tests/` and run:
 ### File Structure
 
 ```
+schemas/                           # JSON schemas (generated during build)
+├── features/                     # Feature schemas from libs/shared-types
+│   ├── FeatureCollection.schema.json
+│   ├── Track.schema.json
+│   ├── Point.schema.json
+│   └── Annotation.schema.json
+└── states/                       # State schemas from libs/shared-types
+    ├── TimeState.schema.json
+    ├── ViewportState.schema.json
+    └── ...
 src/
 ├── core/                          # Core architecture
 │   ├── globalController.ts        # Centralized state management
@@ -89,6 +104,8 @@ src/
 ├── legacy/                        # Legacy code (to be removed)
 │   └── debriefStateManager.ts     # Old state system
 └── extension.ts                   # Main extension entry point
+language-configuration.json       # Plot JSON language configuration
+package.json                       # Extension manifest with schema validation
 ```
 
 ### WebSocket Protocol
@@ -151,5 +168,33 @@ Multiple plots error format:
 
 - **Python Testing**: Use `workspace/tests/debrief_api.py` for WebSocket integration
 - **Plot Files**: `.plot.json` files in workspace/ for testing custom editor
+- **JSON Schema Validation**: Files automatically validated using FeatureCollection.schema.json
 - **Port Configuration**: WebSocket bridge uses fixed port 60123
 - **Feature Selection**: Outline view and plot editor are bidirectionally linked
+
+## JSON Schema Integration
+
+The extension provides comprehensive JSON schema validation for `.plot.json` files:
+
+### Schema Sources
+- Schemas are copied from `libs/shared-types/schemas/` during build process
+- Primary schema: `FeatureCollection.schema.json` for overall structure validation
+- Child schemas: `Track.schema.json`, `Point.schema.json`, `Annotation.schema.json` via `$ref` resolution
+
+### Language Configuration
+- `.plot.json` files are recognized as "Plot JSON" language but inherit JSON features
+- `language-configuration.json` provides JSON-like syntax rules and auto-pairing
+- Grammar contribution uses `source.json` scope for syntax highlighting
+- `application/json` mimetype enables JSON language server features
+
+### VS Code Features Enabled
+- **Real-time validation**: Red squiggles for invalid JSON structure or schema violations
+- **IntelliSense**: Property autocomplete based on schema definitions
+- **Documentation**: Hover tooltips showing property descriptions from schemas
+- **Formatting**: Pretty-printing and auto-indentation for JSON content
+- **Error details**: Detailed error messages for schema validation failures
+
+### Build Integration
+- `copy-schemas` script copies all schemas during compilation
+- Schemas are included in extension package (not in .gitignore)
+- Schema paths in `jsonValidation` contribution: `./schemas/features/FeatureCollection.schema.json`

@@ -10,7 +10,8 @@ This extension provides comprehensive maritime analysis capabilities:
 - **GeoJSON Outline View**: Tree view showing features from plot files with bidirectional selection
 - **WebSocket Bridge**: Python integration on localhost:60123 for external tool communication
 - **Debrief Activity Panel**: Dedicated activity bar with TimeController, Outline, and PropertiesView, and State Monitor
-- **Feature Validation**: Comprehensive validation using shared JSON Schema types
+- **JSON Schema Validation**: Real-time validation of `.plot.json` files using schemas from `libs/shared-types`
+- **Feature Validation**: Comprehensive validation using shared JSON Schema types with IntelliSense support
 
 ## Development Setup
 
@@ -53,6 +54,7 @@ Once the Extension Development Host launches:
    - Open a `.plot.json` file from the workspace/ directory
    - Verify the custom Plot JSON editor opens with interactive map
    - Test feature selection and outline synchronization
+   - Verify JSON schema validation provides autocomplete and error highlighting
 
 2. **Check WebSocket Bridge**:
    - Run Python tests: `cd workspace/tests && python test_integration.py`
@@ -74,6 +76,9 @@ vs-code/
 ├── media/
 │   ├── debrief-icon.svg          # Activity bar icon
 │   └── plotJsonEditor.js         # Plot editor webview implementation
+├── schemas/                      # JSON schema files (generated during build)
+│   ├── features/                 # Feature schemas from shared-types
+│   └── states/                   # State schemas from shared-types
 ├── src/
 │   ├── extension.ts              # Main extension entry point
 │   ├── plotJsonEditor.ts         # Custom Plot JSON editor
@@ -84,6 +89,7 @@ vs-code/
 │   ├── propertiesViewProvider.ts # Properties view webview
 │   └── debriefStateManager.ts    # State management
 ├── dist/                         # Compiled JavaScript (generated)
+├── language-configuration.json  # Plot JSON language configuration
 ├── package.json                  # Extension manifest
 ├── tsconfig.json                # TypeScript configuration
 └── CLAUDE.md                    # Development guidance
@@ -123,11 +129,12 @@ When you create a Pull Request:
 
 ## Build Commands
 
-- `pnpm compile` - Fast esbuild compilation with sourcemaps (~20ms)
+- `pnpm compile` - Fast esbuild compilation with sourcemaps (~20ms) + copies schemas
 - `pnpm watch` - Watch mode compilation for development  
 - `pnpm dev` - Alias for watch mode
 - `pnpm build` - Production build (alias for compile)
-- `pnpm vscode:prepublish` - Minified build for publishing
+- `pnpm vscode:prepublish` - Minified build for publishing + schema bundling
+- `pnpm copy-schemas` - Copy JSON schemas from libs/shared-types
 - `pnpm typecheck` - TypeScript validation without compilation
 - `pnpm lint` - ESLint + TypeScript checking
 

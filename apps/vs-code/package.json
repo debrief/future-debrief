@@ -9,15 +9,16 @@
     "url": "https://github.com/debrief/future-debrief/apps/vs-code.git"
   },
   "scripts": {
-    "clean": "rm -rf dist/* media/web-components.js media/web-components.css python/",
+    "clean": "rm -rf dist/* media/web-components.js media/web-components.css python/ schemas/",
     "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
     "copy-webcomponents": "cp ../../libs/web-components/dist/vanilla/index.js media/web-components.js && cp ../../libs/web-components/dist/vanilla/index.css media/web-components.css",
+    "copy-schemas": "mkdir -p schemas/features schemas/states && cp ../../libs/shared-types/schemas/features/*.schema.json schemas/features/ && cp ../../libs/shared-types/schemas/states/*.schema.json schemas/states/",
     "bundle-python-wheel": "mkdir -p python && cp ../../libs/shared-types/dist/python/*.whl python/",
-    "compile": "pnpm esbuild-base --sourcemap && pnpm copy-webcomponents && pnpm bundle-python-wheel",
+    "compile": "pnpm esbuild-base --sourcemap && pnpm copy-webcomponents && pnpm copy-schemas && pnpm bundle-python-wheel",
     "build": "pnpm vscode:prepublish && vsce package --no-dependencies",
     "watch": "pnpm esbuild-base --sourcemap --watch",
     "dev": "pnpm copy-webcomponents && pnpm watch",
-    "vscode:prepublish": "pnpm esbuild-base --minify && pnpm copy-webcomponents && pnpm bundle-python-wheel",
+    "vscode:prepublish": "pnpm esbuild-base --minify && pnpm copy-webcomponents && pnpm copy-schemas && pnpm bundle-python-wheel",
     "docker:build": "docker build -t debrief-vs-code:local .",
     "docker:run": "docker run -d -p 8081:8080 --name debrief-vs-code-local debrief-vs-code:local",
     "docker:stop": "docker rm -f debrief-vs-code-local",
@@ -49,7 +50,8 @@
         "extensions": [
           ".plot.json"
         ],
-        "configuration": "./language-configuration.json"
+        "configuration": "./language-configuration.json",
+        "mimetypes": ["application/json"]
       }
     ],
     "commands": [
@@ -146,6 +148,18 @@
             "filenamePattern": "*.plot.json"
           }
         ]
+      }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": "*.plot.json",
+        "url": "./schemas/features/FeatureCollection.schema.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "plot-json",
+        "scopeName": "source.json"
       }
     ]
   },
