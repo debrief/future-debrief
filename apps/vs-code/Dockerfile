@@ -4,16 +4,12 @@ FROM codercom/code-server:latest
 # Set the working directory
 WORKDIR /home/coder
 
-# Install Node.js, pnpm, and Python (required for VS Code extension builds and testing)
+# Install Python (required for workspace testing)
 USER root
 RUN apt-get update && apt-get install -y \
-    curl \
     python3 \
     python3-pip \
     python3-venv \
-    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install -g pnpm \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -23,20 +19,20 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 # Switch back to coder user
 USER coder
 
-# Create workspace directory
-RUN mkdir -p /home/coder/workspace
+# Create workspace and project directories
+RUN mkdir -p /home/coder/workspace /home/coder/project
 
-# Copy the VS Code extension files (pre-compiled)
+# Copy the VS Code extension files (including pre-built VSIX)
 COPY --chown=coder:coder . /home/coder/project/
 
-# Extension should already be compiled and packaged by CI build step
-# Verify both compiled extension and packaged .vsix exist
+# Switch to project directory for extension installation
 WORKDIR /home/coder/project
-RUN if [ ! -d "dist" ]; then echo "Error: Extension not compiled - dist/ directory missing"; exit 1; fi
-RUN if [ ! -f "extension.vsix" ]; then echo "Error: Extension not packaged - extension.vsix missing"; exit 1; fi
+
+# Verify the pre-built VSIX exists
+RUN if [ ! -f "vs-code-0.0.1.vsix" ]; then echo "Error: Pre-built vs-code-0.0.1.vsix missing"; exit 1; fi
 
 # Install the extension in code-server
-RUN code-server --install-extension ./extension.vsix
+RUN code-server --install-extension ./vs-code-0.0.1.vsix
 
 # Install Python extension for code-server
 RUN code-server --install-extension ms-python.python
@@ -51,7 +47,8 @@ RUN mkdir -p /home/coder/workspace/.vscode && \
 # Create and activate virtual environment, then install Python test requirements
 RUN cd /home/coder/workspace/tests && \
     python3 -m venv venv && \
-    venv/bin/pip install -r requirements.txt
+    venv/bin/pip install -r requirements.txt && \
+    venv/bin/pip install /home/coder/project/python/*.whl
 
 # Create a simple README for the workspace
 RUN echo "# Debrief Extension Preview\n\nThis is a preview environment for the Debrief VS Code extension.\n\n## Sample Files\n\n- \`*.rep\` files: Debrief replay files\n- \`*.plot.json\` files: Plot data visualization files\n\n## Usage\n\n1. Open any .plot.json file to see the custom Plot JSON editor\n2. Use Ctrl+Shift+P to access the 'Hello World' command\n3. Check the 'Hello World' view in the Explorer panel\n\n## Python Scripts\n\nPython scripts can be run directly with F5 or using the Run button in VS Code. The environment is pre-configured to use the virtual environment automatically.\n\nAlternatively, you can run scripts manually:\n\n\`\`\`bash\ncd tests\n./venv/bin/python move_point_north_simple.py\n\`\`\`\n\nThis environment includes sample data files for testing the extension features." > /home/coder/workspace/README.md
