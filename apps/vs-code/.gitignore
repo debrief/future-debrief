@@ -164,3 +164,6 @@ MANIFEST
 # Generated web-components files (copied during build)
 media/web-components.js
 media/web-components.css
+
+# VS Code extension package (build artifact)
+*.vsix
