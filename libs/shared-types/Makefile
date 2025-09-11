@@ -178,7 +178,7 @@ test-generated:
 	@node tests/typescript/test-generated-files.js >/dev/null 2>&1 || (echo "$(RED)✗ TypeScript tests failed$(RESET)" && node tests/typescript/test-generated-files.js && exit 1)
 	@if command -v python3 >/dev/null 2>&1; then \
 		echo "$(BLUE)Installing Python dependencies for testing...$(RESET)"; \
-		python3 -m pip install python-dateutil>=2.8.0 >/dev/null 2>&1 || echo "$(YELLOW)⚠️ Could not install python-dateutil, tests may fail$(RESET)"; \
+		python3 -m pip install "python-dateutil>=2.8.0" >/dev/null 2>&1 || echo "$(YELLOW)⚠️ Could not install python-dateutil, tests may fail$(RESET)"; \
 		python3 tests/python/test_generated_files.py >/dev/null 2>&1 || (echo "$(RED)✗ Python tests failed$(RESET)" && python3 tests/python/test_generated_files.py && exit 1); \
 	else \
 		echo "$(YELLOW)Skipping Python tests (Python not available)$(RESET)"; \
