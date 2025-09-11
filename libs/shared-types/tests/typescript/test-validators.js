@@ -10,7 +10,7 @@ const path = require('path');
 
 // Since we can't directly import TypeScript in Node.js without transpilation,
 // we'll test that the validator files exist and have expected structure
-const VALIDATORS_DIR = path.join(__dirname, '..', '..', 'src', 'validators');
+const VALIDATORS_DIR = path.join(__dirname, '..', '..', 'validators', 'typescript');
 
 const VALIDATOR_FILES = [
   'track-validator.ts',

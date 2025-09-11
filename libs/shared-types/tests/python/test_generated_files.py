@@ -11,7 +11,7 @@ from pathlib import Path
 
 # Add the project root to Python path
 PROJECT_ROOT = Path(__file__).parent.parent.parent
-DERIVED_DIR = PROJECT_ROOT / 'derived' / 'python'
+DERIVED_DIR = PROJECT_ROOT / 'python-src' / 'debrief' / 'types'
 
 EXPECTED_FILES = [
     'track.py',
