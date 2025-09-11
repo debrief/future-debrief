@@ -99,8 +99,8 @@ This report documents the current state management patterns across the Debrief V
 4. **WebSocket Protocol**: Established communication pattern for external services
 
 ### Schema Infrastructure
-- Existing schemas: `annotation.schema.json`, `featurecollection.schema.json`, `point.schema.json`, `track.schema.json`
-- Location: `libs/shared-types/schema/`
+- Existing schemas: `Annotation.schema.json`, `FeatureCollection.schema.json`, `Point.schema.json`, `Track.schema.json`
+- Location: `libs/shared-types/schemas/features/`
 - Code generation ready: TypeScript interfaces already generated
 
 ## Implementation Phases

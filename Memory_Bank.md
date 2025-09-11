@@ -96,7 +96,7 @@
    - VS Code document lifecycle integration
 
 #### State Schema System:
-- **JSON Schemas**: `libs/shared-types/schemas/` (TimeState.json, ViewportState.json, SelectionState.json, EditorState.json)
+- **JSON Schemas**: `libs/shared-types/schemas/states/` (TimeState.schema.json, ViewportState.schema.json, SelectionState.schema.json, EditorState.schema.json)
 - **Generated Types**: TypeScript interfaces + Python dataclasses via existing build system
 - **Code Generation**: Extended existing `pnpm build:types` to include state schemas
 
@@ -291,7 +291,7 @@ pnpm test           # Run JSON Schema validation tests
 - `apps/vs-code/src/extension.ts` - Extension entry point
 - `apps/vs-code/src/plotJsonEditor.ts` - Custom editor implementation
 - `apps/vs-code/src/debriefWebSocketServer.ts` - Python integration bridge
-- `libs/shared-types/schema/*.schema.json` - JSON Schema definitions
+- `libs/shared-types/schemas/**/*.schema.json` - JSON Schema definitions
 - `libs/shared-types/validators/typescript/` - Validation logic
 - `apps/vs-code/CLAUDE.md` - Development guidance for Claude Code
 
@@ -932,7 +932,7 @@ export default [
 ### Technical Implementation Details
 
 **Turborepo Configuration (`turbo.json`):**
-- Tasks configured with proper outputs (`dist/**`) and inputs (`src/**`, `schema/**`, `derived/**`)
+- Tasks configured with proper outputs (`dist/**`) and inputs (`src/**`, `schemas/**`, `derived/**`)
 - Cache disabled for `dev` tasks (persistent: true)
 - Automatic dependency resolution based on package.json workspace references
 - Build optimization with incremental caching
