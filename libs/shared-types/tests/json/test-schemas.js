@@ -9,14 +9,14 @@ const path = require('path');
 const Ajv = require('ajv');
 const addFormats = require('ajv-formats');
 
-const SCHEMA_DIR = path.join(__dirname, '..', '..', 'schema');
+const FEATURES_SCHEMA_DIR = path.join(__dirname, '..', '..', 'schemas', 'features');
 const TEST_DATA_DIR = path.join(__dirname, 'data');
 
 const SCHEMA_FILES = [
-  'track.schema.json',
-  'point.schema.json',
-  'annotation.schema.json',
-  'featurecollection.schema.json'
+  'Track.schema.json',
+  'Point.schema.json',
+  'Annotation.schema.json',
+  'FeatureCollection.schema.json'
 ];
 
 /**
@@ -51,7 +51,7 @@ function loadTestData(schemaFilename) {
 
 
 function loadSchema(filename) {
-  const schemaPath = path.join(SCHEMA_DIR, filename);
+  const schemaPath = path.join(FEATURES_SCHEMA_DIR, filename);
   if (!fs.existsSync(schemaPath)) {
     throw new Error(`Schema file not found: ${filename}`);
   }
@@ -81,12 +81,12 @@ function testSchemaValidation(filename, schema) {
   addFormats(ajv);
   
   // For featurecollection schema, we need to add the referenced schemas
-  if (filename === 'featurecollection.schema.json') {
+  if (filename === 'FeatureCollection.schema.json') {
     // Load and add the referenced schemas to AJV
     try {
-      const trackSchema = loadSchema('track.schema.json');
-      const pointSchema = loadSchema('point.schema.json');
-      const annotationSchema = loadSchema('annotation.schema.json');
+      const trackSchema = loadSchema('Track.schema.json');
+      const pointSchema = loadSchema('Point.schema.json');
+      const annotationSchema = loadSchema('Annotation.schema.json');
       
       // Remove $schema properties and add to AJV
       const trackForValidation = { ...trackSchema };
@@ -96,9 +96,9 @@ function testSchemaValidation(filename, schema) {
       const annotationForValidation = { ...annotationSchema };
       delete annotationForValidation.$schema;
       
-      ajv.addSchema(trackForValidation, 'track.schema.json');
-      ajv.addSchema(pointForValidation, 'point.schema.json');
-      ajv.addSchema(annotationForValidation, 'annotation.schema.json');
+      ajv.addSchema(trackForValidation, 'Track.schema.json');
+      ajv.addSchema(pointForValidation, 'Point.schema.json');
+      ajv.addSchema(annotationForValidation, 'Annotation.schema.json');
     } catch (error) {
       console.log(`⚠ Warning: Could not add referenced schemas: ${error.message}`);
     }

@@ -10,17 +10,17 @@ This directory contains Python type definitions that are automatically generated
 
 The files in this directory are generated from:
 
-- **Maritime GeoJSON schemas**: `../../schema/*.schema.json`
-  - `track.py` ← `../../schema/track.schema.json`
-  - `point.py` ← `../../schema/point.schema.json`  
-  - `annotation.py` ← `../../schema/annotation.schema.json`
-  - `featurecollection.py` ← `../../schema/featurecollection.schema.json`
+- **Maritime GeoJSON schemas**: `../../schemas/features/*.schema.json`
+  - `track.py` ← `../../schemas/features/Track.schema.json`
+  - `point.py` ← `../../schemas/features/Point.schema.json`  
+  - `annotation.py` ← `../../schemas/features/Annotation.schema.json`
+  - `featurecollection.py` ← `../../schemas/features/FeatureCollection.schema.json`
 
-- **Application state schemas**: `../../schemas/*.json`
-  - `TimeState.py` ← `../../schemas/TimeState.json`
-  - `ViewportState.py` ← `../../schemas/ViewportState.json`
-  - `SelectionState.py` ← `../../schemas/SelectionState.json`
-  - `EditorState.py` ← `../../schemas/EditorState.json`
+- **Application state schemas**: `../../schemas/states/*.schema.json`
+  - `TimeState.py` ← `../../schemas/states/TimeState.schema.json`
+  - `ViewportState.py` ← `../../schemas/states/ViewportState.schema.json`
+  - `SelectionState.py` ← `../../schemas/states/SelectionState.schema.json`
+  - `EditorState.py` ← `../../schemas/states/EditorState.schema.json`
 
 ## Generation process
 
@@ -32,7 +32,7 @@ The files in this directory are generated from:
 
 **To change these types, edit the source JSON schemas, not these Python files:**
 
-1. Edit the relevant `.json` schema file in `schema/` or `schemas/`
+1. Edit the relevant `.schema.json` schema file in `schemas/features/` or `schemas/states/`
 2. Run `pnpm generate:python` to regenerate Python types
 3. Run `pnpm build:python-wheel` to rebuild the wheel
 
@@ -47,4 +47,4 @@ The files in this directory are generated from:
 
 ---
 
-**Remember**: The JSON schemas in `schema/` and `schemas/` are the single source of truth for all type definitions!
+**Remember**: The JSON schemas in `schemas/features/` and `schemas/states/` are the single source of truth for all type definitions!

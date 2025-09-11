@@ -3,18 +3,18 @@
   "tasks": {
     "build": {
       "outputs": ["dist/**"],  
-      "inputs": ["src/**", "schema/**", "derived/**"],
+      "inputs": ["src/**", "schemas/**", "derived/**"],
       "dependsOn": ["^build"]
     },
     "build:ci": {
       "outputs": ["dist/**"],  
-      "inputs": ["src/**", "schema/**", "derived/**"],
+      "inputs": ["src/**", "schemas/**", "derived/**"],
       "dependsOn": ["^build:ci"]
     },
     "dev": {
       "cache": false,
       "persistent": true,
-      "inputs": ["src/**", "schema/**", "derived/**"]
+      "inputs": ["src/**", "schemas/**", "derived/**"]
     },
     "typecheck": {
       "outputs": []

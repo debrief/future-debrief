@@ -29,7 +29,7 @@ export const PropertiesView: React.FC<PropertiesViewProps> = ({
     }
   };
 
-  const renderPropertyInput = (property: Property, index: number) => {
+  const renderPropertyInput = (property: Property, _index: number) => {
     const isReadonly = readonly;
     
     if (typeof property.value === 'boolean') {

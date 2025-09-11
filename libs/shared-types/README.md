@@ -33,12 +33,12 @@ npm run build:python # Generate Python types only
 
 ### Schema-Driven Development
 
-All types are derived from JSON Schema definitions in `schema/`:
+All types are derived from JSON Schema definitions in `schemas/`:
 
-- `track.schema.json` - LineString/MultiLineString features with optional timestamps
-- `point.schema.json` - Point features with time properties
-- `annotation.schema.json` - Multi-geometry annotation features
-- `featurecollection.schema.json` - Top-level collection schema
+- `schemas/features/Track.schema.json` - LineString/MultiLineString features with optional timestamps
+- `schemas/features/Point.schema.json` - Point features with time properties
+- `schemas/features/Annotation.schema.json` - Multi-geometry annotation features
+- `schemas/features/FeatureCollection.schema.json` - Top-level collection schema
 
 ### Cross-Field Validation
 
@@ -169,7 +169,9 @@ npm run test:schemas    # Validate schemas and test data
 
 ```
 libs/shared-types/
-├── schema/                 # JSON Schema definitions (source of truth)
+├── schemas/               # JSON Schema definitions (source of truth)
+│   ├── features/         # Feature schemas (Track, Point, etc.)
+│   └── states/          # State schemas (TimeState, ViewportState, etc.)
 ├── templates/             # Manual templates for complex types (.ts.txt files)
 ├── derived/               # Generated types (not committed)
 │   ├── typescript/        # Generated TS interfaces
@@ -203,7 +205,7 @@ MIT
 
 ## Contributing
 
-1. Modify JSON schemas in `schema/` directory
+1. Modify JSON schemas in `schemas/` directory
 2. Run `npm run build` to regenerate types
 3. Update validators if needed (manual)
 4. Run `npm run test` to ensure everything works

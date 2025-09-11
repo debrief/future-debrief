@@ -7,9 +7,6 @@ Shows how easy it is to programmatically control Debrief from Python
 from debrief_api import debrief
 from datetime import datetime
 
-# Import TimeState for typed API
-from debrief.types.TimeState import TimeState
-
 # Connect to VS Code Debrief extension
 debrief.connect()
 
@@ -21,13 +18,16 @@ if not time_state:
     print("❌ Current plot has no time data - open a temporal plot like large-sample.plot.json")
     exit(1)
 
-# Calculate centre of time range using TimeState object properties
-start = time_state.range[0]
-end = time_state.range[1]
-centre = start + (end - start) / 2
+# Calculate centre of time range
+start_ts = time_state.range[0].timestamp()
+end_ts = time_state.range[1].timestamp()
+centre_ts = start_ts + (end_ts - start_ts) / 2
+
+# Convert back to datetime object for the TimeState
+centre_dt = datetime.fromtimestamp(centre_ts)
 
 # update time state
-time_state.current = centre
+time_state.current = centre_dt
 # set new time
 debrief.set_time(time_state)
 

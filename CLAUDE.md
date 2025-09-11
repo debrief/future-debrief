@@ -115,7 +115,7 @@ libs/                    # Shared libraries (internal dependencies only)
 
 The `libs/shared-types` package provides the foundation for all data contracts:
 
-- **Schema-first approach**: JSON schemas in `schema/` and `schemas/` directories
+- **Schema-first approach**: JSON schemas in `schemas/features/` and `schemas/states/` directories
 - **Multi-language generation**: TypeScript types and Python classes auto-generated
 - **Maritime GeoJSON extensions**: Custom feature types for tracks, points, annotations
 - **State management contracts**: Editor state, time state, viewport state
@@ -182,7 +182,7 @@ cd libs/tool-vault-packager && npm run test:playwright
 4. **Test integration** across the full stack
 
 ### Making Changes to Shared Types
-1. Update JSON schemas in `libs/shared-types/schema/` or `schemas/`
+1. Update JSON schemas in `libs/shared-types/schemas/features/` or `schemas/states/`
 2. Run `pnpm --filter @debrief/shared-types build` to regenerate types
 3. Update dependent packages that use the modified types
 4. Verify TypeScript compilation across all packages with `pnpm typecheck`

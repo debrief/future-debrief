@@ -17,7 +17,7 @@ pnpm generate:types
 pnpm build
 
 # Development with watch mode
-pnpm dev    # Watches schema/ and schemas/ directories
+pnpm dev    # Watches schemas/ directory
 
 # Testing
 pnpm test                  # Run all tests
@@ -52,7 +52,7 @@ pnpm clean:smart
 This package follows a **build-based type generation approach** where JSON schemas are the single source of truth:
 
 ```
-JSON Schema (schema/) → json-schema-to-typescript → TypeScript types (derived/typescript/)
+JSON Schema (schemas/) → json-schema-to-typescript → TypeScript types (derived/typescript/)
 JSON Schema (schemas/) → quicktype → Python types (derived/python/)
 ```
 
@@ -61,18 +61,20 @@ JSON Schema (schemas/) → quicktype → Python types (derived/python/)
 ### Directory Structure
 
 ```
-schema/                    # Maritime GeoJSON schemas
-├── track.schema.json     # LineString/MultiLineString with timestamps
-├── point.schema.json     # Point features with time properties  
-├── annotation.schema.json # Multi-geometry annotations
-└── featurecollection.schema.json # Collection schema with discriminated unions
+schemas/                   # All JSON schemas
+│   ├── features/          # Maritime GeoJSON schemas
+│   └── states/            # Application state schemas
+├── Track.schema.json     # LineString/MultiLineString with timestamps
+├── Point.schema.json     # Point features with time properties  
+├── Annotation.schema.json # Multi-geometry annotations
+└── FeatureCollection.schema.json # Collection schema with discriminated unions
 
 schemas/                   # Application state schemas
-├── TimeState.json        # Time control state
-├── ViewportState.json    # Map viewport state
-├── SelectionState.json   # Feature selection state
-├── EditorState.json      # Editor mode state
-└── CurrentState.json     # Current vessel state
+├── TimeState.schema.json        # Time control state
+├── ViewportState.schema.json    # Map viewport state
+├── SelectionState.schema.json   # Feature selection state
+├── EditorState.schema.json      # Editor mode state
+└── CurrentState.schema.json     # Current vessel state
 
 derived/                   # Generated types (not in git)
 ├── typescript/           # Generated TS interfaces
@@ -106,15 +108,15 @@ validators/               # Manual validation functions
 ## Development Workflow
 
 ### Making Schema Changes
-1. Edit JSON schemas in `schema/` or `schemas/`
+1. Edit JSON schemas in `schemas/features/` or `schemas/states/`
 2. Run `pnpm generate:types` to regenerate derived types
 3. Update validators if cross-field validation logic changes
 4. Run `pnpm test` to ensure consistency across languages
 5. Build consuming packages that depend on changed types
 
 ### Adding New Feature Types
-1. Create new JSON schema file in `schema/`
-2. Add schema reference to `featurecollection.schema.json` oneOf array
+1. Create new JSON schema file in `schemas/features/` or `schemas/states/`
+2. Add schema reference to `FeatureCollection.schema.json` oneOf array
 3. Add post-processing rules in `generate:ts:post-process` script if needed
 4. Create corresponding validator files in both `validators/typescript/` and `validators/python/`
 5. Add test data in `tests/json/data/`
@@ -136,7 +138,7 @@ import { SelectionState } from '@debrief/shared-types/derived/typescript/selecti
 import { EditorState } from '@debrief/shared-types/derived/typescript/editorstate';
 import { CurrentState } from '@debrief/shared-types/derived/typescript/currentstate';
 
-// Feature types from schema/
+// Feature types from schemas/features/
 import { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types/derived/typescript/featurecollection';
 
 // Validators 

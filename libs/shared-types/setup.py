@@ -38,22 +38,31 @@ class CustomBuildPy(build_py):
         schema_dest = Path("python-src/debrief/schemas")
         schema_dest.mkdir(parents=True, exist_ok=True)
         
-        # Copy from schema/ directory
-        schema_dir = Path("schema")
-        if schema_dir.exists():
-            for schema_file in schema_dir.glob("*.json"):
+        # Copy from schemas/features/ directory
+        features_dir = Path("schemas/features")
+        if features_dir.exists():
+            for schema_file in features_dir.glob("*.json"):
+                shutil.copy2(schema_file, schema_dest)
+                
+        # Copy from schemas/states/ directory
+        states_dir = Path("schemas/states")
+        if states_dir.exists():
+            for schema_file in states_dir.glob("*.json"):
                 shutil.copy2(schema_file, schema_dest)
         
-        # Copy from schemas/ directory  
-        schemas_dir = Path("schemas")
-        if schemas_dir.exists():
-            for schema_file in schemas_dir.glob("*.json"):
-                shutil.copy2(schema_file, schema_dest)
     
     def copy_generated_types(self):
-        """Update __init__.py with proper imports for generated types."""
-        # Types are now generated directly in python-src/debrief/types/
-        # Just update the __init__.py file
+        """Copy generated Python types from derived/python/ to python-src/debrief/types/."""
+        derived_dir = Path("derived/python")
+        dest_dir = Path("python-src/debrief/types")
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Copy all generated Python files
+        if derived_dir.exists():
+            for py_file in derived_dir.glob("*.py"):
+                shutil.copy2(py_file, dest_dir)
+        
+        # Update the __init__.py file
         self.update_types_init()
     
     def update_types_init(self):
