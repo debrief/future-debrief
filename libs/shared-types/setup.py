@@ -52,9 +52,17 @@ class CustomBuildPy(build_py):
         
     
     def copy_generated_types(self):
-        """Update __init__.py with proper imports for generated types."""
-        # Types are now generated directly in python-src/debrief/types/
-        # Just update the __init__.py file
+        """Copy generated Python types from derived/python/ to python-src/debrief/types/."""
+        derived_dir = Path("derived/python")
+        dest_dir = Path("python-src/debrief/types")
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Copy all generated Python files
+        if derived_dir.exists():
+            for py_file in derived_dir.glob("*.py"):
+                shutil.copy2(py_file, dest_dir)
+        
+        # Update the __init__.py file
         self.update_types_init()
     
     def update_types_init(self):
