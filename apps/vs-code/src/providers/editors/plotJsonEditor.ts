@@ -167,7 +167,8 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
             if (timeRange) {
                 const timeState: TimeState = {
                     current: timeRange[0],
-                    range: timeRange,
+                    start: timeRange[0],
+                    end: timeRange[1],
                 };
                 globalController.updateState(editorId, 'timeState', timeState);
             }

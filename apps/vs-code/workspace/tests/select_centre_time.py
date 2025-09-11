@@ -19,8 +19,8 @@ if not time_state:
     exit(1)
 
 # Calculate centre of time range
-start_ts = time_state.range[0].timestamp()
-end_ts = time_state.range[1].timestamp()
+start_ts = time_state.start.timestamp()
+end_ts = time_state.end.timestamp()
 centre_ts = start_ts + (end_ts - start_ts) / 2
 
 # Convert back to datetime object for the TimeState

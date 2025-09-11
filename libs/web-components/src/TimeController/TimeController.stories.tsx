@@ -25,10 +25,8 @@ export const Default: Story = {
   args: {
     timeState: {
       current: '2024-01-15T10:00:00Z', // Fixed time at start of range
-      range: [
-        '2024-01-15T10:00:00Z', // Fixed start time
-        '2024-01-15T12:00:00Z', // Fixed end time
-      ],
+      start: '2024-01-15T10:00:00Z', // Fixed start time
+      end: '2024-01-15T12:00:00Z', // Fixed end time
     },
     isPlaying: false,
   },
@@ -38,10 +36,8 @@ export const Playing: Story = {
   args: {
     timeState: {
       current: '2024-01-15T10:00:00Z', // Fixed time at start of range
-      range: [
-        '2024-01-15T10:00:00Z', // Fixed start time
-        '2024-01-15T12:00:00Z', // Fixed end time
-      ],
+      start: '2024-01-15T10:00:00Z', // Fixed start time
+      end: '2024-01-15T12:00:00Z', // Fixed end time
     },
     isPlaying: true,
   },
@@ -50,7 +46,8 @@ export const Playing: Story = {
 const WithTimeRangeWrapper = () => {
   const initialTimeState: TimeState = {
     current: '2024-01-15T12:00:00Z', // Fixed time in middle of range
-    range: ['2024-01-15T10:00:00Z', '2024-01-15T14:00:00Z'],
+    start: '2024-01-15T10:00:00Z',
+    end: '2024-01-15T14:00:00Z',
   };
 
   const [timeState, setTimeState] = useState<TimeState>(initialTimeState);
@@ -81,10 +78,8 @@ export const WithTimeRange: Story = {
 const InteractiveWrapper = () => {
   const initialTimeState: TimeState = {
     current: '2024-01-15T08:00:00Z', // Fixed time at start of range
-    range: [
-      '2024-01-15T08:00:00Z', // Fixed start time
-      '2024-01-15T16:00:00Z', // Fixed end time (8 hour range)
-    ],
+    start: '2024-01-15T08:00:00Z', // Fixed start time
+    end: '2024-01-15T16:00:00Z', // Fixed end time (8 hour range)
   };
 
   const [timeState, setTimeState] = useState<TimeState>(initialTimeState);
@@ -148,7 +143,8 @@ export const MissingCurrentTime: Story = {
   args: {
     timeState: {
       current: '',
-      range: ['2024-01-15T10:00:00Z', '2024-01-15T14:00:00Z'],
+      start: '2024-01-15T10:00:00Z',
+      end: '2024-01-15T14:00:00Z',
     },
     isPlaying: false,
   },
@@ -158,7 +154,8 @@ export const MissingRangeStart: Story = {
   args: {
     timeState: {
       current: '2024-01-15T12:00:00Z',
-      range: ['', '2024-01-15T14:00:00Z'],
+      start: '',
+      end: '2024-01-15T14:00:00Z',
     },
     isPlaying: false,
   },
@@ -168,7 +165,8 @@ export const MissingRangeEnd: Story = {
   args: {
     timeState: {
       current: '2024-01-15T12:00:00Z',
-      range: ['2024-01-15T10:00:00Z', ''],
+      start: '2024-01-15T10:00:00Z',
+      end: '',
     },
     isPlaying: false,
   },

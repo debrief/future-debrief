@@ -183,7 +183,7 @@
    ```
 
 4. **Key Method Updates**
-   - `get_time()` → returns `TimeState` object with `.current` and `.range` properties
+   - `get_time()` → returns `TimeState` object with `.current`, `.start`, and `.end` properties
    - `set_time(TimeState)` → accepts typed object, converts to dict for WebSocket
    - `get_viewport()` → returns `ViewportState` with `.bounds` array property  
    - `set_viewport(ViewportState)` → accepts typed object with bounds validation
@@ -1683,9 +1683,73 @@ npm run test:playwright:both   # Both modes sequentially
 
 **Final Status:** ✅ **COMPLETED SUCCESSFULLY** - Comprehensive Playwright test suite implemented with full coverage of package structure, server integration, and UI functionality. Multi-mode testing ensures reliability across development and production deployment scenarios. Test execution documented and ready for CI/CD integration.
 
+### TimeState Schema Modernization - Issue #92 ✅
+**Decision**: Replace array-based `range` property with explicit `start` and `end` properties for improved developer experience
+- **Problem**: `range: [string, string]` required developers to remember array indices, reducing code readability
+- **Solution**: Explicit `start: string` and `end: string` properties with ISO 8601 format validation
+- **Breaking Change**: ⚠️ Non-backward compatible change requiring coordinated deployment
+
+#### Schema Transformation:
+**Before:**
+```json
+{
+  "current": "2025-09-03T12:00:00Z",
+  "range": ["2025-09-03T10:00:00Z", "2025-09-03T14:00:00Z"]
+}
+```
+
+**After:**
+```json
+{
+  "current": "2025-09-03T12:00:00Z", 
+  "start": "2025-09-03T10:00:00Z",
+  "end": "2025-09-03T14:00:00Z"
+}
+```
+
+#### Files Modified (11 total):
+- **Schema**: `libs/shared-types/schemas/states/TimeState.schema.json` - Core schema definition
+- **Components**: `libs/web-components/src/TimeController/*` - React components and tests  
+- **VS Code Extension**: 
+  - `apps/vs-code/src/core/statePersistence.ts` - State persistence logic
+  - `apps/vs-code/src/providers/panels/timeControllerProvider.ts` - Time controls
+  - `apps/vs-code/src/providers/editors/plotJsonEditor.ts` - Editor integration
+  - `apps/vs-code/src/services/debriefWebSocketServer.ts` - WebSocket validation
+- **Python Tests**: `apps/vs-code/workspace/tests/select_centre_time.py` - Test migration
+- **Documentation**: API docs, README files, and Memory Bank updates
+
+#### Code Migration Patterns:
+```typescript
+// Before: Array-based access (hard to remember)
+const startTime = new Date(timeState.range[0]).getTime();
+const endTime = new Date(timeState.range[1]).getTime();
+const { range, current } = timeState;
+
+// After: Explicit property access (intuitive)
+const startTime = new Date(timeState.start).getTime(); 
+const endTime = new Date(timeState.end).getTime();
+const { start, end, current } = timeState;
+```
+
+#### Quality Assurance Results:
+- ✅ **TypeScript**: All packages pass type checking (shared-types, web-components, vs-code)
+- ✅ **Build Process**: Schema regeneration and TypeScript/Python type generation successful
+- ✅ **Core Tests**: TimeController component tests validate new structure
+- ✅ **Integration**: WebSocket API validation updated for new schema
+
+#### Developer Experience Improvements:
+- **Intuitive Property Names**: `start`/`end` vs array indices `[0]`/`[1]`
+- **Better IDE Support**: Improved IntelliSense and auto-completion
+- **Reduced Cognitive Load**: Self-documenting property names
+- **Type Safety**: Clearer property-based destructuring patterns
+- **Consistency**: Aligns with other state schemas using explicit properties
+
+**Branch**: `issue-92-modify-timestate-range-to-start-end` | **Commit**: `fa9509a`  
+**Final Status:** ✅ **COMPLETED SUCCESSFULLY** - TimeState schema modernized with breaking change properly documented and implemented across all affected codebases. Ready for coordinated deployment.
+
 ---
 
-*Last Updated: 2025-09-09*  
-*Total Sections Compressed: 24 major implementations*  
+*Last Updated: 2025-09-11*  
+*Total Sections Compressed: 25 major implementations*  
 
 *Focus: Key decisions, file locations, and navigation for future developers*

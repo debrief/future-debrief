@@ -18,8 +18,7 @@ export const TimeController: React.FC<TimeControllerProps> = ({
   onPlayPause,
   className = '',
 }) => {
-  if (!timeState || !timeState.range || !timeState.current || 
-      !timeState.range[0] || !timeState.range[1]) {
+  if (!timeState || !timeState.start || !timeState.end || !timeState.current) {
     return (
       <div className={`time-controller no-data ${className}`} data-testid="time-controller">
         <VscodeLabel>TimeController: No time range available</VscodeLabel>
@@ -27,9 +26,9 @@ export const TimeController: React.FC<TimeControllerProps> = ({
     );
   }
 
-  const { range, current } = timeState;
-  const startTime = new Date(range[0]).getTime();
-  const endTime = new Date(range[1]).getTime();
+  const { start, end, current } = timeState;
+  const startTime = new Date(start).getTime();
+  const endTime = new Date(end).getTime();
   const currentTime = new Date(current).getTime();
 
   const handleTimeChange = (event: React.ChangeEvent<HTMLInputElement>) => {

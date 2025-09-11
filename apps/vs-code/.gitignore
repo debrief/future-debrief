@@ -168,5 +168,8 @@ media/web-components.css
 # Generated schema files (copied during build)
 schemas/
 
+# Generated Python wheel (copied during build)  
+python/
+
 # VS Code extension package (build artifact)
 *.vsix

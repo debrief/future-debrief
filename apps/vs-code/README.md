@@ -293,15 +293,15 @@ from datetime import datetime
 time_state = debrief.get_time("sample.plot.json")
 if time_state:
     print(f"Current time: {time_state.current}")
-    print(f"Time range: {time_state.range[0]} to {time_state.range[1]}")
+    print(f"Time range: {time_state.start} to {time_state.end}")
 
     # Update time to center of range using TimeState object
-    start = time_state.range[0]
-    end = time_state.range[1]
+    start = time_state.start
+    end = time_state.end
     center = start + (end - start) / 2
     
     # Create new TimeState with center time
-    new_time_state = TimeState(current=center, range=time_state.range)
+    new_time_state = TimeState(current=center, start=time_state.start, end=time_state.end)
     debrief.set_time(new_time_state, "sample.plot.json")
 
 # Get and update viewport (returns ViewportState object)
