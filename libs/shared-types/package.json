@@ -19,7 +19,6 @@
     "generate:types": "pnpm generate:ts & pnpm generate:python & wait",
     "compile:ts": "npx tsc",
     "build:python-wheel": "python -m build --wheel --outdir dist/python/",
-    "build:python-wheel:optional": "python -m build --wheel --outdir dist/python/ || echo '⚠️ Python wheel build skipped (missing dependencies)'",
     "build:dist": "pnpm generate:types && mkdir -p dist && pnpm compile:ts",
     "build:ci": "pnpm clean && pnpm build:dist",
     "build": "pnpm clean && pnpm build:dist && pnpm build:python-wheel",
