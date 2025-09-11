@@ -7,7 +7,7 @@
 # - Source changes: Compile + test only
 
 # File pattern definitions
-SCHEMA_FILES := $(wildcard schema/*.json) $(wildcard schemas/*.json)
+SCHEMA_FILES := $(wildcard schemas/features/*.json) $(wildcard schemas/states/*.json)
 TS_GENERATED_FILES := src/types/featurecollection.ts src/types/timestate.ts src/types/viewportstate.ts src/types/selectionstate.ts src/types/editorstate.ts src/types/currentstate.ts src/types/track.ts src/types/point.ts src/types/annotation.ts
 PY_GENERATED_FILES := python-src/debrief/types/track.py python-src/debrief/types/point.py python-src/debrief/types/annotation.py python-src/debrief/types/featurecollection.py python-src/debrief/types/TimeState.py python-src/debrief/types/ViewportState.py python-src/debrief/types/SelectionState.py python-src/debrief/types/EditorState.py
 GENERATED_FILES := $(TS_GENERATED_FILES) $(PY_GENERATED_FILES)
@@ -134,12 +134,12 @@ $(GENERATED_FILES): $(SCHEMA_FILES)
 generate-ts-internal:
 	@echo "$(BLUE)Generating TypeScript types (6 parallel processes)...$(RESET)"
 	@NODE_NO_WARNINGS=1 mkdir -p src/types
-	@NODE_NO_WARNINGS=1 npx json-schema-to-typescript schema/featurecollection.schema.json --cwd schema/ > src/types/featurecollection.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/TimeState.json --cwd schemas/ > src/types/timestate.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/ViewportState.json --cwd schemas/ > src/types/viewportstate.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/SelectionState.json --cwd schemas/ > src/types/selectionstate.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/EditorState.json --cwd schemas/ > src/types/editorstate.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/CurrentState.json --cwd schemas/ > src/types/currentstate.ts & \
+	@NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/features/FeatureCollection.schema.json --cwd schemas/features/ > src/types/featurecollection.ts & \
+	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/states/TimeState.schema.json --cwd schemas/states/ > src/types/timestate.ts & \
+	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/states/ViewportState.schema.json --cwd schemas/states/ > src/types/viewportstate.ts & \
+	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/states/SelectionState.schema.json --cwd schemas/states/ > src/types/selectionstate.ts & \
+	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/states/EditorState.schema.json --cwd schemas/states/ > src/types/editorstate.ts & \
+	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/states/CurrentState.schema.json --cwd schemas/states/ > src/types/currentstate.ts & \
 	wait
 	@printf '// Re-export from featurecollection to avoid duplication\nexport { DebriefTrackFeature } from "./featurecollection";\n' > src/types/track.ts
 	@printf '// Re-export from featurecollection to avoid duplication\nexport { DebriefPointFeature } from "./featurecollection";\n' > src/types/point.ts
@@ -149,14 +149,14 @@ generate-ts-internal:
 generate-python-internal:
 	@echo "$(BLUE)Generating Python types (8 parallel processes)...$(RESET)"
 	@NODE_NO_WARNINGS=1 mkdir -p python-src/debrief/types
-	@NODE_NO_WARNINGS=1 quicktype -s schema schema/track.schema.json -o python-src/debrief/types/track.py --lang python --top-level TrackFeature & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schema/point.schema.json -o python-src/debrief/types/point.py --lang python --top-level PointFeature & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schema/annotation.schema.json -o python-src/debrief/types/annotation.py --lang python --top-level AnnotationFeature & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schema/featurecollection.schema.json -o python-src/debrief/types/featurecollection.py --lang python --top-level DebriefFeatureCollection & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/TimeState.json -o python-src/debrief/types/TimeState.py --lang python --top-level TimeState & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/ViewportState.json -o python-src/debrief/types/ViewportState.py --lang python --top-level ViewportState & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/SelectionState.json -o python-src/debrief/types/SelectionState.py --lang python --top-level SelectionState & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/EditorState.json -o python-src/debrief/types/EditorState.py --lang python --top-level EditorState & \
+	@NODE_NO_WARNINGS=1 quicktype -s schema schemas/features/Track.schema.json -o python-src/debrief/types/track.py --lang python --top-level TrackFeature & \
+	NODE_NO_WARNINGS=1 quicktype -s schema schemas/features/Point.schema.json -o python-src/debrief/types/point.py --lang python --top-level PointFeature & \
+	NODE_NO_WARNINGS=1 quicktype -s schema schemas/features/Annotation.schema.json -o python-src/debrief/types/annotation.py --lang python --top-level AnnotationFeature & \
+	NODE_NO_WARNINGS=1 quicktype -s schema schemas/features/FeatureCollection.schema.json -o python-src/debrief/types/featurecollection.py --lang python --top-level DebriefFeatureCollection & \
+	NODE_NO_WARNINGS=1 quicktype -s schema schemas/states/TimeState.schema.json -o python-src/debrief/types/TimeState.py --lang python --top-level TimeState & \
+	NODE_NO_WARNINGS=1 quicktype -s schema schemas/states/ViewportState.schema.json -o python-src/debrief/types/ViewportState.py --lang python --top-level ViewportState & \
+	NODE_NO_WARNINGS=1 quicktype -s schema schemas/states/SelectionState.schema.json -o python-src/debrief/types/SelectionState.py --lang python --top-level SelectionState & \
+	NODE_NO_WARNINGS=1 quicktype -s schema schemas/states/EditorState.schema.json -o python-src/debrief/types/EditorState.py --lang python --top-level EditorState & \
 	wait
 
 # Rule 2: Compile distribution if any generated file is newer than compiled output
