@@ -38,17 +38,18 @@ class CustomBuildPy(build_py):
         schema_dest = Path("python-src/debrief/schemas")
         schema_dest.mkdir(parents=True, exist_ok=True)
         
-        # Copy from schema/ directory
-        schema_dir = Path("schema")
-        if schema_dir.exists():
-            for schema_file in schema_dir.glob("*.json"):
+        # Copy from schemas/features/ directory
+        features_dir = Path("schemas/features")
+        if features_dir.exists():
+            for schema_file in features_dir.glob("*.json"):
+                shutil.copy2(schema_file, schema_dest)
+                
+        # Copy from schemas/states/ directory
+        states_dir = Path("schemas/states")
+        if states_dir.exists():
+            for schema_file in states_dir.glob("*.json"):
                 shutil.copy2(schema_file, schema_dest)
         
-        # Copy from schemas/ directory  
-        schemas_dir = Path("schemas")
-        if schemas_dir.exists():
-            for schema_file in schemas_dir.glob("*.json"):
-                shutil.copy2(schema_file, schema_dest)
     
     def copy_generated_types(self):
         """Update __init__.py with proper imports for generated types."""

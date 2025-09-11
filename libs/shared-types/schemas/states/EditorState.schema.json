@@ -6,19 +6,19 @@
   "type": "object",
   "properties": {
     "featureCollection": {
-      "$ref": "../schema/featurecollection.schema.json",
+      "$ref": "../features/FeatureCollection.schema.json",
       "description": "The GeoJSON FeatureCollection data"
     },
     "timeState": {
-      "$ref": "./TimeState.json",
+      "$ref": "./TimeState.schema.json",
       "description": "Current time position state"
     },
     "viewportState": {
-      "$ref": "./ViewportState.json", 
+      "$ref": "./ViewportState.schema.json", 
       "description": "Current map viewport bounds state"
     },
     "selectionState": {
-      "$ref": "./SelectionState.json",
+      "$ref": "./SelectionState.schema.json",
       "description": "Current feature selection state"
     }
   },

@@ -325,7 +325,7 @@ pip install --force-reinstall path/to/debrief_types-*.whl
 
 ### Making Changes
 
-1. **Update JSON schemas** in `schema/` or `schemas/` directories
+1. **Update JSON schemas** in `schemas/features/` or `schemas/states/` directories
 2. **Regenerate types**: `pnpm generate:python`
 3. **Build wheel**: `pnpm build:python-wheel` 
 4. **Test installation**: `python test_wheel_installation.py`

@@ -11,13 +11,13 @@
       "description": "Union type representing any valid Debrief feature (track, point, or annotation)",
       "oneOf": [
         {
-          "$ref": "track.schema.json"
+          "$ref": "Track.schema.json"
         },
         {
-          "$ref": "point.schema.json"
+          "$ref": "Point.schema.json"
         },
         {
-          "$ref": "annotation.schema.json"
+          "$ref": "Annotation.schema.json"
         }
       ],
       "discriminator": {

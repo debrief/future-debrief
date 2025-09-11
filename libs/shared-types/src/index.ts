@@ -48,11 +48,11 @@ export type {
   DebriefAnnotationFeature, 
   DebriefFeatureCollection,
   DebriefFeature 
-} from './types/featurecollection';
+} from '../derived/typescript/featurecollection';
 
 // Re-export state types
-export type { TimeState } from './types/timestate';
-export type { ViewportState } from './types/viewportstate';
-export type { SelectionState } from './types/selectionstate';
-export type { EditorState } from './types/editorstate';
-export type { CurrentState } from './types/currentstate';
+export type { TimeState } from '../derived/typescript/timestate';
+export type { ViewportState } from '../derived/typescript/viewportstate';
+export type { SelectionState } from '../derived/typescript/selectionstate';
+export type { EditorState } from '../derived/typescript/editorstate';
+export type { CurrentState } from '../derived/typescript/currentstate';

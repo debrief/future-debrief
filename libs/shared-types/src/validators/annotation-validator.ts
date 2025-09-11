@@ -3,7 +3,7 @@
  * These validators work with the generated types and provide additional validation logic
  */
 
-import { DebriefAnnotationFeature } from '../types/featurecollection';
+import { DebriefAnnotationFeature } from '../../derived/typescript/featurecollection';
 
 /**
  * Type-safe helper to check if a value is a non-null object

@@ -48,8 +48,8 @@ The project does not cover UI logic, persistence, or business processes. It stri
 - Both packages include JSON Schemas and validators.
 
 ### 3.7 Organisation
-- Modular schemas: `track.schema.json`, `event.schema.json`, `annotation.schema.json`.
-- Top-level `featurecollection.schema.json` references each type.
+- Modular schemas: `Track.schema.json`, `Point.schema.json`, `Annotation.schema.json`.
+- Top-level `FeatureCollection.schema.json` references each type.
 - FeatureCollections may contain a **mix** of feature types.
 - Folder structure:
     - schema (json schema)
