@@ -56,21 +56,12 @@
     ],
     "commands": [
       {
-        "command": "debrief.toggleFeatureVisibility",
-        "title": "Toggle Feature Visibility",
-        "category": "Debrief"
-      },
-      {
         "command": "vs-code.helloWorld",
         "title": "Hello World"
       },
       {
         "command": "customOutline.selectFeature",
         "title": "Select Feature"
-      },
-      {
-        "command": "debrief.selectFeature",
-        "title": "Select Feature in Debrief Panel"
       },
       {
         "command": "debrief.undo",
@@ -113,7 +104,7 @@
         {
           "id": "debrief.outline",
           "name": "Outline",
-          "type": "tree",
+          "type": "webview",
           "when": "true"
         },
         {
@@ -131,13 +122,6 @@
       ]
     },
     "menus": {
-      "view/title": [
-        {
-          "command": "debrief.toggleFeatureVisibility",
-          "when": "view == debrief.outline",
-          "group": "navigation@1"
-        }
-      ]
     },
     "customEditors": [
       {
