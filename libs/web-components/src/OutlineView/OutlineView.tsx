@@ -9,6 +9,7 @@ import {
   VscodeIcon
 } from '@vscode-elements/react-elements'
 import type { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types'
+import { VscTreeSelectEvent } from '@vscode-elements/elements/dist/vscode-tree/vscode-tree'
 
 // Tool interface for future implementation
 export interface ToolIndex {
@@ -115,15 +116,16 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
     }
   }
 
-  const handleSelection = (event: React.SyntheticEvent, source: string) => {
+  const handleSelection = (event: VscTreeSelectEvent) => {
     // For simplicity, this is a placeholder.
     // A real implementation would need to inspect the event details
     // to determine which items are selected.
-    console.warn('Selection changed', event, source)
+    const selectedItems = event.detail as unknown as Array<{id: string | null}>
+    const selectedIds = selectedItems.map(item => item.id).filter(id => id) as string[]
+    _onSelectionChange(selectedIds)
   }
 
-  return (
-    <div className="outline-view">
+  return (<div style={{ border: '1px solid var(--vscode-editorWidget-border)', borderRadius: '4px', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' }}>
       <VscodeToolbarContainer>
         <VscodeToolbarButton 
           onClick={handleVisibilityToggle}
@@ -170,20 +172,19 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
           </VscodeToolbarButton>
         )}
       </VscodeToolbarContainer>
-      <VscodeTree onSelect={(event) => handleSelection(event, 'tree')}>
+      <VscodeTree multiSelect onVscTreeSelect={handleSelection} >
         {(Object.entries(groupedFeatures) as [string, DebriefFeature[]][]).map(([type, features]) => (
           <VscodeTreeItem key={type}>
             <span>{type}</span>
             {features.map((feature: DebriefFeature) => (
-              <VscodeTreeItem onSelect={(event) => handleSelection(event, 'tree-item')} key={String(feature.id)}>
+              <VscodeTreeItem key={String(feature.id)} id={String(feature.id)}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                   <span style={{ opacity: hiddenFeatures.has(String(feature.id)) ? 0.5 : 1 }}>
                     {feature.properties?.name || 'Unnamed'}
                   </span>
                   {onViewFeature && (
                     <VscodeToolbarButton 
-                      onClick={(e) => {
-                        handleSelection(e, 'view-button')
+                      onChange={(e) => {
                         e.stopPropagation() // Prevent tree item selection
                         onViewFeature(String(feature.id))
                       }}
