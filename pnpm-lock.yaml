@@ -132,6 +132,9 @@ importers:
       '@vscode-elements/react-elements':
         specifier: ^2.3.1
         version: 2.3.1(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+      '@vscode/codicons':
+        specifier: ^0.0.40
+        version: 0.0.40
       leaflet:
         specifier: ^1.9.4
         version: 1.9.4
@@ -1589,6 +1592,9 @@ packages:
     peerDependencies:
       react: 17 || 18 || 19
       react-dom: 17 || 18 || 19
+
+  '@vscode/codicons@0.0.40':
+    resolution: {integrity: sha512-R8sEDXthD86JHsk3xERrMcTN6sMovbk1AXYB5/tGoEYCE8DWwya6al5VLrAmQYXC1bQhUHIfHALj8ijQUs11cQ==}
 
   '@vscode/vsce-sign-alpine-arm64@2.0.5':
     resolution: {integrity: sha512-XVmnF40APwRPXSLYA28Ye+qWxB25KhSVpF2eZVtVOs6g7fkpOxsVnpRU1Bz2xG4ySI79IRuapDJoAQFkoOgfdQ==}
@@ -6129,6 +6135,8 @@ snapshots:
       react-dom: 19.1.1(react@19.1.1)
     transitivePeerDependencies:
       - '@types/react'
+
+  '@vscode/codicons@0.0.40': {}
 
   '@vscode/vsce-sign-alpine-arm64@2.0.5':
     optional: true
