@@ -10,3 +10,4 @@ export { OutlineView } from './OutlineView/OutlineView';
 export type { TimeControllerProps } from './TimeController/TimeController';
 export type { PropertiesViewProps } from './PropertiesView/PropertiesView';
 export type { MapComponentProps, GeoJSONFeature, GeoJSONFeatureCollection, MapState } from './MapComponent/MapComponent';
+export type { OutlineViewProps, ToolIndex } from './OutlineView/OutlineView';
