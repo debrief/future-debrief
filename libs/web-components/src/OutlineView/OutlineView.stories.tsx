@@ -81,11 +81,11 @@ export const Empty: Story = {
   args: {
     featureCollection: emptyFeatureCollection,
     selectedFeatureIds: [],
-    onSelectionChange: (ids) => console.log('Selection changed:', ids),
-    onFeatureVisibilityChange: (id, visible) => console.log('Visibility changed:', id, visible),
-    onViewFeature: (id) => console.log('View feature:', id),
-    onDeleteFeatures: (ids) => console.log('Delete features:', ids),
-    onCollapseAll: () => console.log('Collapse all'),
+    onSelectionChange: (ids) => console.warn('Selection changed:', ids),
+    onFeatureVisibilityChange: (id, visible) => console.warn('Visibility changed:', id, visible),
+    onViewFeature: (id) => console.warn('View feature:', id),
+    onDeleteFeatures: (ids) => console.warn('Delete features:', ids),
+    onCollapseAll: () => console.warn('Collapse all'),
   },
 }
 
