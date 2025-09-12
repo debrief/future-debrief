@@ -11,6 +11,11 @@ interface StandardGeoJSONProps {
 }
 
 export const StandardGeoJSON: React.FC<StandardGeoJSONProps> = ({ feature }) => {
+  // Return early if feature is not visible
+  if (feature.properties?.visible === false) {
+    return null;
+  }
+  
   // Simple fallback using standard GeoJSON component
   const geoJsonStyle = (geoFeature?: GeoJSON.Feature) => {
     if (!geoFeature?.properties) {

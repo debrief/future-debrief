@@ -13,6 +13,11 @@ interface PointProps {
 export const Point: React.FC<PointProps> = (props) => {
   const { feature, selectedFeatureIds, onSelectionChange } = props;
   
+  // Return early if point is not visible
+  if (feature.properties?.visible === false) {
+    return null;
+  }
+  
   // Check if this feature is selected by ID
   const isSelected = selectedFeatureIds.some(id => feature.id === id);
   
