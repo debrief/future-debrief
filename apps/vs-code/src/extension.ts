@@ -160,16 +160,7 @@ export function activate(context: vscode.ExtensionContext) {
     );
     context.subscriptions.push(selectFeatureCommand);
 
-    // Register command to handle multi-select feature toggling from outline
-    const toggleFeatureSelectionCommand = vscode.commands.registerCommand(
-        'debrief.toggleFeatureSelection',
-        (featureIndex: number, featureId?: string) => {
-            if (debriefOutlineProvider) {
-                debriefOutlineProvider.toggleFeatureSelection(featureIndex, featureId);
-            }
-        }
-    );
-    context.subscriptions.push(toggleFeatureSelectionCommand);
+    // Multi-select is now handled internally by the OutlineView webview component
 
     // Initialize Global Controller (new centralized state management)
     globalController = GlobalController.getInstance();
@@ -196,16 +187,7 @@ export function activate(context: vscode.ExtensionContext) {
     debriefOutlineProvider = new DebriefOutlineProvider();
     propertiesViewProvider = new PropertiesViewProvider(context.extensionUri);
 
-    // Register feature visibility toggle command for Outline panel toolbar
-    const toggleFeatureVisibilityCommand = vscode.commands.registerCommand(
-        'debrief.toggleFeatureVisibility',
-        () => {
-            if (debriefOutlineProvider) {
-                debriefOutlineProvider.toggleFeatureVisibility();
-            }
-        }
-    );
-    context.subscriptions.push(toggleFeatureVisibilityCommand);
+    // Feature visibility is now handled internally by the OutlineView webview component
 
     // Register the webview view providers
     context.subscriptions.push(
@@ -213,10 +195,7 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     context.subscriptions.push(
-        vscode.window.createTreeView('debrief.outline', {
-            treeDataProvider: debriefOutlineProvider,
-            showCollapseAll: false
-        })
+        vscode.window.registerWebviewViewProvider(DebriefOutlineProvider.viewType, debriefOutlineProvider)
     );
 
     context.subscriptions.push(
@@ -231,17 +210,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Panel connections are handled automatically through GlobalController subscriptions
 
-    // Register feature selection command to work with GlobalController
-    const debriefSelectFeatureCommand = vscode.commands.registerCommand(
-        'debrief.selectFeature',
-        (featureIndex: number) => {
-            console.warn('Debrief feature selected:', featureIndex);
-            if (debriefOutlineProvider) {
-                debriefOutlineProvider.selectFeature(featureIndex);
-            }
-        }
-    );
-    context.subscriptions.push(debriefSelectFeatureCommand);
+    // Feature selection is now handled internally by the OutlineView webview component
 
     context.subscriptions.push(disposable);
 }

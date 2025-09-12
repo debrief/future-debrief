@@ -9,6 +9,11 @@ const config: StorybookConfig = {
     name: '@storybook/react-vite',
     options: {},
   },
+  staticDirs: ['./public'],
+  previewHead: (head) => `
+    ${head}
+    <link id="vscode-codicon-stylesheet" rel="stylesheet" href="/codicon.css">
+  `,
 };
 
 export default config;

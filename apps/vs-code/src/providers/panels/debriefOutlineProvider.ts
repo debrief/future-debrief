@@ -1,215 +1,335 @@
 import * as vscode from 'vscode';
 import { GlobalController } from '../../core/globalController';
-import { SelectionState } from '@debrief/shared-types';
+import { SelectionState, DebriefFeatureCollection } from '@debrief/shared-types';
 
-export class DebriefOutlineProvider implements vscode.TreeDataProvider<OutlineItem> {
-    private _onDidChangeTreeData: vscode.EventEmitter<OutlineItem | undefined | null | void> = new vscode.EventEmitter<OutlineItem | undefined | null | void>();
-    readonly onDidChangeTreeData: vscode.Event<OutlineItem | undefined | null | void> = this._onDidChangeTreeData.event;
+export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
+  public static readonly viewType = 'debrief.outline';
+  private _view?: vscode.WebviewView;
+  private _globalController: GlobalController;
+  private _subscriptions: vscode.Disposable[] = [];
 
-    private _globalController: GlobalController;
-    private _disposables: vscode.Disposable[] = [];
-    private _currentEditorId?: string;
-    private _featuresVisible = true;
+  constructor() {
+    this._globalController = GlobalController.getInstance();
+  }
 
-    constructor() {
-        this._globalController = GlobalController.getInstance();
-        this._setupGlobalControllerSubscriptions();
+  resolveWebviewView(
+    webviewView: vscode.WebviewView,
+    _context: vscode.WebviewViewResolveContext,
+    _token: vscode.CancellationToken
+  ) {
+    this._view = webviewView;
+    webviewView.webview.options = {
+      enableScripts: true,
+    };
+    this._update();
+    this._setupEventSubscriptions();
+    this._setupMessageHandlers();
+    webviewView.onDidDispose(() => {
+      this._cleanup();
+    });
+  }
+
+  private _update() {
+    if (!this._view) return;
+    const outlineData = this._getOutlineData();
+    const html = this._renderOutlineView(outlineData);
+    this._view.webview.html = html;
+  }
+
+  private _getOutlineData(): {
+    featureCollection: DebriefFeatureCollection | null;
+    selectedFeatureIds: string[];
+    currentEditorId?: string;
+  } {
+    const currentEditorId = this._globalController.activeEditorId || this._globalController.getEditorIds()[0];
+    
+    if (!currentEditorId) {
+      return {
+        featureCollection: { type: 'FeatureCollection', features: [] },
+        selectedFeatureIds: [],
+      };
     }
 
-    public toggleFeatureVisibility(): void {
-        this._featuresVisible = !this._featuresVisible;
-        this.refresh();
-    }
+    const featureCollection = this._globalController.getStateSlice(currentEditorId, 'featureCollection') || { type: 'FeatureCollection', features: [] };
+    const selectionState = this._globalController.getStateSlice(currentEditorId, 'selectionState') || { selectedIds: [] };
+    const selectedFeatureIds = Array.isArray(selectionState.selectedIds) 
+      ? selectionState.selectedIds.map(id => String(id))
+      : [];
 
-    /**
-     * Setup subscriptions to GlobalController events
-     */
-    private _setupGlobalControllerSubscriptions(): void {
-        // Subscribe to feature collection changes
-        const fcSubscription = this._globalController.on('fcChanged', (data) => {
-            if (data.editorId === this._currentEditorId) {
-                this.refresh();
+    return {
+      featureCollection,
+      selectedFeatureIds,
+      currentEditorId
+    };
+  }
+
+  private _renderOutlineView(data: {
+    featureCollection: DebriefFeatureCollection | null;
+    selectedFeatureIds: string[];
+    currentEditorId?: string;
+  }): string {
+    const nonce = this._getNonce();
+    if (!this._view) {
+      return '<div>Error: View not initialized</div>';
+    }
+    
+    if (!data.featureCollection || !data.currentEditorId) {
+      return `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Outline View</title>
+          <style>
+            body { 
+              font-family: var(--vscode-font-family, sans-serif); 
+              margin: 0; 
+              padding: 20px; 
+              color: var(--vscode-foreground);
+              background-color: var(--vscode-editor-background);
             }
-        });
-        this._disposables.push(fcSubscription);
-
-        // Subscribe to selection changes
-        const selectionSubscription = this._globalController.on('selectionChanged', (data) => {
-            if (data.editorId === this._currentEditorId) {
-                this.refresh();
-            }
-        });
-        this._disposables.push(selectionSubscription);
-
-        // Subscribe to active editor changes
-        const activeEditorSubscription = this._globalController.on('activeEditorChanged', (data) => {
-            this._currentEditorId = data.currentEditorId;
-            this.refresh();
-        });
-        this._disposables.push(activeEditorSubscription);
-
-        // Initialize with current active editor
-        this._currentEditorId = this._globalController.activeEditorId;
-        
-        // Trigger initial refresh if we have an active editor
-        if (this._currentEditorId) {
-            this.refresh();
-        }
+          </style>
+        </head>
+        <body>
+          <div>No active plot editor</div>
+        </body>
+        </html>`;
     }
+    
+    const extensionUri = vscode.extensions.getExtension('ian.vs-code')?.extensionUri || vscode.Uri.file('.');
+    const webComponentsScriptUri = this._view.webview.asWebviewUri(
+      vscode.Uri.joinPath(extensionUri, 'media', 'web-components.js')
+    );
+    const webComponentsCssUri = this._view.webview.asWebviewUri(
+      vscode.Uri.joinPath(extensionUri, 'media', 'web-components.css')
+    );
 
-    refresh(): void {
-        this._onDidChangeTreeData.fire();
-    }
-
-    getTreeItem(element: OutlineItem): vscode.TreeItem {
-        const collapsibleState = element.hasChildren()
-            ? vscode.TreeItemCollapsibleState.Collapsed
-            : vscode.TreeItemCollapsibleState.None;
-        const treeItem = new vscode.TreeItem(element.label, collapsibleState);
-        treeItem.contextValue = 'debriefFeature';
-
-        // Set icon based on feature type or state
-        if (element.isSelected) {
-            treeItem.iconPath = new vscode.ThemeIcon('location', new vscode.ThemeColor('charts.yellow'));
-        } else {
-            treeItem.iconPath = new vscode.ThemeIcon('location');
-        }
-
-        // Only add command if leaf node
-        if (!element.hasChildren()) {
-            treeItem.command = {
-                command: 'debrief.toggleFeatureSelection', // new command for multi-select
-                title: 'Toggle Feature Selection',
-                arguments: [element.featureIndex, element.featureId]
-            };
-        }
-
-        // Add description with feature details
-        if (element.featureType) {
-            treeItem.description = element.featureType;
-        }
-
-
-        // Support multi-select in the UI
-        if (element.featureId) {
-            treeItem.resourceUri = vscode.Uri.parse(`debrief-feature:${element.featureId}`);
-            treeItem.id = element.featureId;
-        } else if (element.featureIndex === -1 && element.label.startsWith('Features hidden')) {
-            treeItem.resourceUri = vscode.Uri.parse('debrief-feature:hidden-placeholder');
-            treeItem.id = 'placeholder:hidden';
-        } else if (element.featureIndex === -1 && element.label) {
-            // Group node: use group: prefix and label for uniqueness
-            treeItem.resourceUri = vscode.Uri.parse(`debrief-feature:group-${element.label}`);
-            treeItem.id = `group:${element.label}`;
-        } else {
-            treeItem.resourceUri = vscode.Uri.parse(`debrief-feature:${element.featureIndex}`);
-            treeItem.id = element.featureIndex.toString();
-        }
-
-        return treeItem;
-    }
-
-    getChildren(element?: OutlineItem): Promise<OutlineItem[]> {
-        if (!element) {
-            if (!this._currentEditorId) {
-                return Promise.resolve([]);
-            }
-            try {
-                // Get feature collection from GlobalController
-                const featureCollection = this._globalController.getStateSlice(this._currentEditorId, 'featureCollection');
-                const selectionState = this._globalController.getStateSlice(this._currentEditorId, 'selectionState');
-                if (!featureCollection || !Array.isArray(featureCollection.features)) {
-                    return Promise.resolve([]);
-                }
-                if (!this._featuresVisible) {
-                    // If features are hidden, show a single node as a placeholder
-                    return Promise.resolve([
-                        new OutlineItem('Features hidden (toggle to show)', -1, undefined, false, undefined, [])
-                    ]);
-                }
-                // Group features by properties.dataType
-                const groups: { [dataType: string]: OutlineItem[] } = {};
-                featureCollection.features.forEach((feature: unknown, index: number) => {
-                    const f = feature as { id?: string | number; properties?: { name?: string; dataType?: string }; geometry?: { type?: string } };
-                    const featureName = f.properties?.name || `Feature ${index}`;
-                    const dataType = f.properties?.dataType || 'Unknown';
-                    const featureType = f.geometry?.type || 'Unknown';
-                    const featureId = f.id !== undefined ? String(f.id) : index.toString();
-                    const isSelected = selectionState?.selectedIds?.includes(featureId) || false;
-                    const item = new OutlineItem(featureName, index, featureType, isSelected, featureId);
-                    if (!groups[dataType]) groups[dataType] = [];
-                    groups[dataType].push(item);
+    return `<!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' ${this._view?.webview.cspSource}; script-src 'nonce-${nonce}'; font-src ${this._view?.webview.cspSource};">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Outline View</title>
+        <link rel="stylesheet" href="${webComponentsCssUri}">
+        <style>
+          /* VS Code Codicons for vscode-elements */
+          @import url("vscode-resource://icons/codicon/codicon.css");
+          .codicon {
+            font-family: 'codicon';
+            font-display: block;
+            font-size: 16px;
+            text-rendering: auto;
+            text-align: center;
+            text-transform: none;
+            line-height: 1;
+            letter-spacing: 0px;
+            will-change: transform;
+          }
+        </style>
+        <style>
+          body { 
+            font-family: var(--vscode-font-family, sans-serif); 
+            margin: 0; 
+            padding: 0; 
+            color: var(--vscode-foreground);
+            background-color: var(--vscode-editor-background);
+          }
+          #outline-container {
+            height: 100vh;
+            width: 100%;
+          }
+        </style>
+      </head>
+      <body>
+        <div id="outline-container"></div>
+        <script nonce="${nonce}" src="${webComponentsScriptUri}"></script>
+        <script nonce="${nonce}">
+          const vscode = acquireVsCodeApi();
+          window.vscode = vscode;
+          const outlineData = ${JSON.stringify(data)};
+          
+          function initializeOutlineView() {
+            const container = document.getElementById('outline-container');
+            if (!container || !window.DebriefWebComponents) return;
+            
+            const outlineComponent = window.DebriefWebComponents.createOutlineView(container, {
+              featureCollection: outlineData.featureCollection,
+              selectedFeatureIds: outlineData.selectedFeatureIds,
+              onSelectionChange: (ids) => {
+                window.vscode.postMessage({
+                  type: 'selectionChanged',
+                  selectedIds: ids
                 });
-                // Create group nodes
-                const groupNodes = Object.entries(groups).map(([dataType, children]) =>
-                    new OutlineItem(dataType, -1, undefined, false, undefined, children)
-                );
-                return Promise.resolve(groupNodes);
-            } catch (error) {
-                console.error('Error creating debrief outline items:', error);
-                return Promise.resolve([]);
+              },
+              onFeatureVisibilityChange: (id, visible) => {
+                window.vscode.postMessage({
+                  type: 'visibilityChanged',
+                  featureId: id,
+                  visible: visible
+                });
+              },
+              onViewFeature: (id) => {
+                window.vscode.postMessage({
+                  type: 'viewFeature',
+                  featureId: id
+                });
+              },
+              onDeleteFeatures: (ids) => {
+                window.vscode.postMessage({
+                  type: 'deleteFeatures',
+                  featureIds: ids
+                });
+              },
+              onCollapseAll: () => {
+                window.vscode.postMessage({
+                  type: 'collapseAll'
+                });
+              }
+            });
+            
+            // Store reference for updates
+            window.outlineComponent = outlineComponent;
+          }
+          
+          // Handle VS Code messages for updates
+          window.addEventListener('message', event => {
+            const message = event.data;
+            switch (message.type) {
+              case 'updateOutlineData':
+                if (window.outlineComponent) {
+                  window.outlineComponent.updateProps({
+                    featureCollection: message.data.featureCollection,
+                    selectedFeatureIds: message.data.selectedFeatureIds
+                  });
+                }
+                break;
             }
-        } else {
-            // Return children for a group node
-            return Promise.resolve(element.children || []);
-        }
-    }
+          });
+          
+          if (window.DebriefWebComponents) {
+            initializeOutlineView();
+          } else {
+            // Wait for components to load
+            document.addEventListener('DOMContentLoaded', initializeOutlineView);
+          }
+        </script>
+      </body>
+      </html>`;
+  }
 
-    /**
-     * Handle feature selection from the outline
-     */
-    public selectFeature(featureIndex: number): void {
-        if (this._currentEditorId) {
-            // Get the feature collection to find the actual feature ID
-            const featureCollection = this._globalController.getStateSlice(this._currentEditorId, 'featureCollection');
-            if (featureCollection && featureCollection.features && featureCollection.features[featureIndex]) {
-                const feature = featureCollection.features[featureIndex] as { id?: string | number };
-                const featureId = feature.id !== undefined ? String(feature.id) : featureIndex.toString();
-                
-                const selectionState: SelectionState = {
-                    selectedIds: [featureId]
-                };
-                this._globalController.updateState(this._currentEditorId, 'selectionState', selectionState);
+  private _setupMessageHandlers(): void {
+    if (!this._view) return;
+    
+    this._view.webview.onDidReceiveMessage(
+      message => {
+        const currentEditorId = this._globalController.activeEditorId || this._globalController.getEditorIds()[0];
+        if (!currentEditorId) return;
+
+        switch (message.type) {
+          case 'selectionChanged': {
+            const selectionState: SelectionState = {
+              selectedIds: message.selectedIds
+            };
+            this._globalController.updateState(currentEditorId, 'selectionState', selectionState);
+            break;
+          }
+
+          case 'visibilityChanged': {
+            // Update feature visibility in the feature collection
+            const featureCollection = this._globalController.getStateSlice(currentEditorId, 'featureCollection');
+            if (featureCollection && featureCollection.features) {
+              const updatedFeatures = featureCollection.features.map(feature => {
+                if (String(feature.id) === message.featureId) {
+                  return {
+                    ...feature,
+                    properties: {
+                      ...feature.properties,
+                      visible: message.visible as boolean
+                    }
+                  } as typeof feature;
+                }
+                return feature;
+              });
+              
+              const updatedFeatureCollection: DebriefFeatureCollection = {
+                ...featureCollection,
+                features: updatedFeatures
+              };
+              
+              this._globalController.updateState(currentEditorId, 'featureCollection', updatedFeatureCollection);
             }
+            break;
+          }
+
+          case 'viewFeature':
+            // Handle view feature requests
+            // Handle view feature requests
+            break;
+
+          case 'deleteFeatures':
+            // Handle feature deletion
+            // Handle feature deletion
+            break;
+
+          case 'collapseAll':
+            // Handle collapse all
+            // Handle collapse all
+            break;
         }
-    }
+      },
+      undefined,
+      this._subscriptions
+    );
+  }
 
-    // Add a new method to handle multi-select
-    public toggleFeatureSelection(featureIndex: number, featureId?: string): void {
-        if (!this._currentEditorId) return;
-        const featureCollection = this._globalController.getStateSlice(this._currentEditorId, 'featureCollection');
-        if (!featureCollection || !featureCollection.features) return;
-        const id = featureId ?? featureIndex.toString();
-        const selectionState = this._globalController.getStateSlice(this._currentEditorId, 'selectionState') || { selectedIds: [] };
-        const selectedIds: Array<string | number> = Array.isArray(selectionState.selectedIds) ? [...selectionState.selectedIds] : [];
-        const idx = selectedIds.indexOf(id);
-        if (idx === -1) {
-            selectedIds.push(id);
-        } else {
-            selectedIds.splice(idx, 1);
-        }
-        this._globalController.updateState(this._currentEditorId, 'selectionState', { selectedIds });
+  private _getNonce() {
+    let text = '';
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    for (let i = 0; i < 32; i++) {
+      text += possible.charAt(Math.floor(Math.random() * possible.length));
     }
+    return text;
+  }
 
-    /**
-     * Dispose of the provider
-     */
-    public dispose(): void {
-        this._disposables.forEach(disposable => disposable.dispose());
-        this._disposables = [];
-    }
-}
+  private _setupEventSubscriptions(): void {
+    // Subscribe to all state changes that affect the outline display
+    const fcSubscription = this._globalController.on('fcChanged', () => {
+      this._updateWebviewData();
+    });
+    
+    const selectionSubscription = this._globalController.on('selectionChanged', () => {
+      this._updateWebviewData();
+    });
+    
+    const activeEditorSubscription = this._globalController.on('activeEditorChanged', () => {
+      this._update(); // Full refresh when editor changes
+    });
 
-class OutlineItem {
-    constructor(
-        public readonly label: string,
-        public readonly featureIndex: number,
-        public readonly featureType?: string,
-        public readonly isSelected = false,
-        public readonly featureId?: string,
-        public readonly children: OutlineItem[] = []
-    ) {}
-    hasChildren(): boolean {
-        return this.children && this.children.length > 0;
-    }
+    // Store disposables for cleanup
+    this._subscriptions.push(fcSubscription, selectionSubscription, activeEditorSubscription);
+  }
+
+  private _updateWebviewData(): void {
+    if (!this._view) return;
+    
+    const outlineData = this._getOutlineData();
+    this._view.webview.postMessage({
+      type: 'updateOutlineData',
+      data: outlineData
+    });
+  }
+
+  private _cleanup(): void {
+    // Dispose all event subscriptions
+    this._subscriptions.forEach(disposable => disposable.dispose());
+    this._subscriptions = [];
+  }
+
+  /**
+   * Dispose of the provider
+   */
+  public dispose(): void {
+    this._cleanup();
+  }
 }
