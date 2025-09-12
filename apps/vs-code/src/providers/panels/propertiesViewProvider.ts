@@ -166,7 +166,7 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
         // TODO: Implement property editing functionality
         // This would update the feature in the feature collection and trigger
         // a state update through GlobalController
-        console.log('Property change requested:', property, value);
+        console.warn('Property change requested:', property, value);
     }
 
     /**
