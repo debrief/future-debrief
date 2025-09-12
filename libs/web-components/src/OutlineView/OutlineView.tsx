@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import {
   VscodeTree,
   VscodeTreeItem,
@@ -61,46 +61,41 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
   onDeleteFeatures,
   onCollapseAll,
 }) => {
-  const [hiddenFeatures, setHiddenFeatures] = useState<Set<string>>(new Set())
-  
   const groupedFeatures = groupFeaturesByType(featureCollection.features)
 
-  // Calculate visibility state based on selected features
+  // Calculate visibility state based on selected features using feature.properties.visible
   const getVisibilityState = (): VisibilityState => {
     if (selectedFeatureIds.length === 0) return VisibilityState.AllVisible
     
-    const selectedHiddenCount = selectedFeatureIds.filter(id => hiddenFeatures.has(id)).length
+    const selectedFeatures = featureCollection.features.filter(f => 
+      selectedFeatureIds.includes(String(f.id))
+    )
+    const hiddenCount = selectedFeatures.filter(f => f.properties?.visible === false).length
     
-    if (selectedHiddenCount === 0) return VisibilityState.AllVisible
-    if (selectedHiddenCount === selectedFeatureIds.length) return VisibilityState.NoneVisible
+    if (hiddenCount === 0) return VisibilityState.AllVisible
+    if (hiddenCount === selectedFeatures.length) return VisibilityState.NoneVisible
     return VisibilityState.SomeVisible
   }
 
   const handleVisibilityToggle = () => {
-    if (selectedFeatureIds.length === 0) return
+    if (selectedFeatureIds.length === 0 || !onFeatureVisibilityChange) return
     
     const currentState = getVisibilityState()
-    const newHidden = new Set(hiddenFeatures)
     
     switch (currentState) {
       case VisibilityState.AllVisible:
         // Hide all selected
-        selectedFeatureIds.forEach(id => newHidden.add(id))
+        selectedFeatureIds.forEach(id => {
+          onFeatureVisibilityChange(id, false)
+        })
         break
       case VisibilityState.SomeVisible:
       case VisibilityState.NoneVisible:
         // Show all selected
-        selectedFeatureIds.forEach(id => newHidden.delete(id))
+        selectedFeatureIds.forEach(id => {
+          onFeatureVisibilityChange(id, true)
+        })
         break
-    }
-    
-    setHiddenFeatures(newHidden)
-    
-    // Notify parent of visibility changes
-    if (onFeatureVisibilityChange) {
-      selectedFeatureIds.forEach(id => {
-        onFeatureVisibilityChange(id, !newHidden.has(id))
-      })
     }
   }
 
@@ -126,7 +121,7 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
   }
 
   function featureIsVisible(feature: DebriefFeature): boolean {
-    return hiddenFeatures.has(String(feature.id)) ? false : true
+    return feature.properties?.visible !== false
   }
 
   return (<div style={{ border: '1px solid var(--vscode-editorWidget-border)', borderRadius: '4px', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -184,7 +179,7 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
               <VscodeTreeItem key={String(feature.id)} id={String(feature.id)}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                   <VscodeIcon name={featureIsVisible(feature) ? "eye" : "eye-closed"} />
-                  <span style={{ opacity: hiddenFeatures.has(String(feature.id)) ? 0.5 : 1 }}>
+                  <span style={{ opacity: featureIsVisible(feature) ? 1 : 0.5 }}>
                     {feature.properties?.name || 'Unnamed'}
                   </span>
                   {onViewFeature && (
