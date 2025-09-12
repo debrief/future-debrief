@@ -6,12 +6,13 @@ import { createRoot, Root } from 'react-dom/client';
 import { MapComponent, MapComponentProps, GeoJSONFeature, MapState } from './MapComponent/MapComponent';
 import { TimeController, TimeControllerProps } from './TimeController/TimeController';
 import { PropertiesView, PropertiesViewProps } from './PropertiesView/PropertiesView';
+import { OutlineView, OutlineViewProps } from './OutlineView/OutlineView';
 import { CurrentStateTable, StateFieldRow } from './CurrentStateTable/CurrentStateTable';
 import { CurrentState } from '@debrief/shared-types';
 import './vanilla.css';
 
 // Re-export types for compatibility
-export type { GeoJSONFeature, MapState, TimeControllerProps, PropertiesViewProps, StateFieldRow };
+export type { GeoJSONFeature, MapState, TimeControllerProps, PropertiesViewProps, OutlineViewProps, StateFieldRow };
 
 // Wrapper interfaces - maintain API compatibility with manual vanilla.ts
 export interface GeoJSONFeatureCollection {
@@ -95,6 +96,13 @@ class VanillaPropertiesViewWrapper extends ReactComponentWrapper<PropertiesViewP
   }
 }
 
+// OutlineView wrapper
+class VanillaOutlineViewWrapper extends ReactComponentWrapper<OutlineViewProps> {
+  protected renderComponent(): React.ReactElement {
+    return React.createElement(OutlineView, this.currentProps);
+  }
+}
+
 // CurrentStateTable wrapper
 class VanillaCurrentStateTableWrapper extends ReactComponentWrapper<VanillaCurrentStateTableProps> {
   constructor(container: HTMLElement, props: VanillaCurrentStateTableProps) {
@@ -153,6 +161,18 @@ export function createPropertiesView(container: HTMLElement, props: PropertiesVi
   return {
     destroy: () => wrapper.destroy(),
     updateProps: (newProps: Partial<PropertiesViewProps>) => wrapper.updateProps(newProps)
+  };
+}
+
+export function createOutlineView(container: HTMLElement, props: OutlineViewProps): {
+  destroy: () => void;
+  updateProps: (newProps: Partial<OutlineViewProps>) => void;
+} {
+  const wrapper = new VanillaOutlineViewWrapper(container, props);
+
+  return {
+    destroy: () => wrapper.destroy(),
+    updateProps: (newProps: Partial<OutlineViewProps>) => wrapper.updateProps(newProps),
   };
 }
 
@@ -222,7 +242,10 @@ if (typeof window !== 'undefined') {
     window.DebriefWebComponents = {
       createTimeController,
       createPropertiesView,
+      createTimeController,
+      createPropertiesView,
       createMapComponent,
+      createOutlineView,
       createCurrentStateTable
     };
   } else {
@@ -230,6 +253,7 @@ if (typeof window !== 'undefined') {
       createTimeController,
       createPropertiesView,
       createMapComponent,
+      createOutlineView,
       createCurrentStateTable
     });
   }
@@ -242,6 +266,7 @@ declare global {
       createTimeController: typeof createTimeController;
       createPropertiesView: typeof createPropertiesView;
       createMapComponent: typeof createMapComponent;
+      createOutlineView: typeof createOutlineView;
       createCurrentStateTable: typeof createCurrentStateTable;
     };
   }

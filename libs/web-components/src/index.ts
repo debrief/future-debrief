@@ -4,6 +4,7 @@ export { PropertiesView } from './PropertiesView/PropertiesView';
 export { MapComponent } from './MapComponent/MapComponent';
 
 export { CurrentStateTable } from './CurrentStateTable/CurrentStateTable';
+export { OutlineView } from './OutlineView/OutlineView';
 
 // Type exports
 export type { TimeControllerProps } from './TimeController/TimeController';
