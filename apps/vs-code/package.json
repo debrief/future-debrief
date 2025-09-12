@@ -155,12 +155,6 @@
         "fileMatch": "*.plot.json",
         "url": "./schemas/features/FeatureCollection.schema.json"
       }
-    ],
-    "grammars": [
-      {
-        "language": "plot-json",
-        "scopeName": "source.json"
-      }
     ]
   },
   "devDependencies": {
