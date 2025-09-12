@@ -43,7 +43,7 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
     // For simplicity, this is a placeholder.
     // A real implementation would need to inspect the event details
     // to determine which items are selected.
-    console.log('Selection changed', event)
+    console.warn('Selection changed', event)
   }
 
   return (
@@ -56,11 +56,12 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
         <VscodeToolbarButton onClick={onCollapseAll}>Collapse</VscodeToolbarButton>
       </VscodeToolbarContainer>
       <VscodeTree onSelect={handleSelection}>
-        {Object.entries(groupedFeatures).map(([type, features]) => (
-          <VscodeTreeItem key={type} text={type}>
-            {features.map((feature) => (
-              <VscodeTreeItem key={feature.id} text={feature.properties?.name || 'Unnamed'}>
-                {/* Individual feature actions can be placed here */}
+        {(Object.entries(groupedFeatures) as [string, DebriefFeature[]][]).map(([type, features]) => (
+          <VscodeTreeItem key={type}>
+            {type}
+            {features.map((feature: DebriefFeature) => (
+              <VscodeTreeItem key={feature.id}>
+                {feature.properties?.name || 'Unnamed'}
               </VscodeTreeItem>
             ))}
           </VscodeTreeItem>
