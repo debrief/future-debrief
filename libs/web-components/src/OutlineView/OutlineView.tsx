@@ -115,11 +115,11 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
     }
   }
 
-  const handleSelection = (event: React.SyntheticEvent) => {
+  const handleSelection = (event: React.SyntheticEvent, source: string) => {
     // For simplicity, this is a placeholder.
     // A real implementation would need to inspect the event details
     // to determine which items are selected.
-    console.warn('Selection changed', event)
+    console.warn('Selection changed', event, source)
   }
 
   return (
@@ -170,12 +170,12 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
           </VscodeToolbarButton>
         )}
       </VscodeToolbarContainer>
-      <VscodeTree onSelect={handleSelection}>
+      <VscodeTree onSelect={(event) => handleSelection(event, 'tree')}>
         {(Object.entries(groupedFeatures) as [string, DebriefFeature[]][]).map(([type, features]) => (
           <VscodeTreeItem key={type}>
             <span>{type}</span>
             {features.map((feature: DebriefFeature) => (
-              <VscodeTreeItem key={String(feature.id)}>
+              <VscodeTreeItem onSelect={(event) => handleSelection(event, 'tree-item')} key={String(feature.id)}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                   <span style={{ opacity: hiddenFeatures.has(String(feature.id)) ? 0.5 : 1 }}>
                     {feature.properties?.name || 'Unnamed'}
@@ -183,7 +183,8 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
                   {onViewFeature && (
                     <VscodeToolbarButton 
                       onClick={(e) => {
-                        e.stopPropagation()
+                        handleSelection(e, 'view-button')
+                        e.stopPropagation() // Prevent tree item selection
                         onViewFeature(String(feature.id))
                       }}
                       style={{ marginLeft: 'auto', fontSize: '12px', padding: '2px 4px' }}
