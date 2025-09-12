@@ -125,6 +125,10 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
     _onSelectionChange(selectedIds)
   }
 
+  function featureIsVisible(feature: DebriefFeature): boolean {
+    return hiddenFeatures.has(String(feature.id)) ? false : true
+  }
+
   return (<div style={{ border: '1px solid var(--vscode-editorWidget-border)', borderRadius: '4px', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' }}>
       <VscodeToolbarContainer>
         <VscodeToolbarButton 
@@ -179,6 +183,7 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
             {features.map((feature: DebriefFeature) => (
               <VscodeTreeItem key={String(feature.id)} id={String(feature.id)}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <VscodeIcon name={featureIsVisible(feature) ? "eye" : "eye-closed"} />
                   <span style={{ opacity: hiddenFeatures.has(String(feature.id)) ? 0.5 : 1 }}>
                     {feature.properties?.name || 'Unnamed'}
                   </span>
@@ -190,7 +195,7 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
                       }}
                       style={{ marginLeft: 'auto', fontSize: '12px', padding: '2px 4px' }}
                     >
-                      <VscodeIcon name="eye" />
+                      <VscodeIcon name="zoom-in" />
                     </VscodeToolbarButton>
                   )}
                 </div>
