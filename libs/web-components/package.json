@@ -24,7 +24,7 @@
     "clean": "rm -rf dist/*",
     "build:vanilla": "esbuild src/vanilla-generated.tsx --bundle --outdir=dist/vanilla --entry-names=index --format=iife --minify --define:process.env.NODE_ENV='\"production\"' --jsx=automatic",
     "build:types:vanilla": "tsc --project tsconfig.vanilla.json --outDir dist/vanilla",
-    "build": "pnpm clean && pnpm lint && pnpm build:vanilla && pnpm build:types:vanilla",
+    "build": "pnpm clean && pnpm build:vanilla && pnpm build:types:vanilla",
     "build:ci": "pnpm clean && pnpm lint && pnpm build:vanilla && pnpm build:types:vanilla",
     "dev": "pnpm build",
     "storybook": "storybook dev -p 6006",

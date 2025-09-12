@@ -127,37 +127,37 @@ class VanillaCurrentStateTableWrapper extends ReactComponentWrapper<VanillaCurre
 }
 
 // Factory functions - maintain exact API compatibility with manual vanilla.ts
-export function createMapComponent(container: HTMLElement, props: VanillaMapComponentProps): { 
+export function createMapComponent(container: HTMLElement, props: VanillaMapComponentProps): {
   destroy: () => void;
   updateProps: (newProps: Partial<VanillaMapComponentProps>) => void;
 } {
   const wrapper = new VanillaMapComponentWrapper(container, props);
-  
+
   return {
     destroy: () => wrapper.destroy(),
     updateProps: (newProps: Partial<VanillaMapComponentProps>) => wrapper.updateProps(newProps)
   };
 }
 
-export function createTimeController(container: HTMLElement, props: TimeControllerProps): { 
+export function createTimeController(container: HTMLElement, props: TimeControllerProps): {
   destroy: () => void;
   updateProps: (newProps: Partial<TimeControllerProps>) => void;
 } {
   console.warn('createTimeController called with props:', props);
   const wrapper = new VanillaTimeControllerWrapper(container, props);
-  
+
   return {
     destroy: () => wrapper.destroy(),
     updateProps: (newProps: Partial<TimeControllerProps>) => wrapper.updateProps(newProps)
   };
 }
 
-export function createPropertiesView(container: HTMLElement, props: PropertiesViewProps): { 
+export function createPropertiesView(container: HTMLElement, props: PropertiesViewProps): {
   destroy: () => void;
   updateProps: (newProps: Partial<PropertiesViewProps>) => void;
 } {
   const wrapper = new VanillaPropertiesViewWrapper(container, props);
-  
+
   return {
     destroy: () => wrapper.destroy(),
     updateProps: (newProps: Partial<PropertiesViewProps>) => wrapper.updateProps(newProps)
@@ -176,14 +176,14 @@ export function createOutlineView(container: HTMLElement, props: OutlineViewProp
   };
 }
 
-export function createCurrentStateTable(container: HTMLElement, props: VanillaCurrentStateTableProps): { 
+export function createCurrentStateTable(container: HTMLElement, props: VanillaCurrentStateTableProps): {
   destroy: () => void;
   updateProps: (newProps: Partial<VanillaCurrentStateTableProps>) => void;
   setData: (data: StateFieldRow[]) => void;
   setCurrentState: (currentState: CurrentState) => void;
 } {
   const wrapper = new VanillaCurrentStateTableWrapper(container, props);
-  
+
   return {
     destroy: () => wrapper.destroy(),
     updateProps: (newProps: Partial<VanillaCurrentStateTableProps>) => wrapper.updateProps(newProps),
@@ -240,8 +240,6 @@ if (typeof window !== 'undefined' && window.customElements) {
 if (typeof window !== 'undefined') {
   if (!window.DebriefWebComponents) {
     window.DebriefWebComponents = {
-      createTimeController,
-      createPropertiesView,
       createTimeController,
       createPropertiesView,
       createMapComponent,

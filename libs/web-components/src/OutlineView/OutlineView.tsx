@@ -1,9 +1,9 @@
 import React from 'react'
 import {
-  VscTree,
-  VscTreeItem,
-  VscToolbar,
-  VscToolbarButton,
+  VscodeTree,
+  VscodeTreeItem,
+  VscodeToolbarContainer,
+  VscodeToolbarButton,
 } from '@vscode-elements/react-elements'
 import type { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types'
 
@@ -48,24 +48,24 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
 
   return (
     <div className="outline-view">
-      <VscToolbar>
-        <VscToolbarButton>Hide/Reveal</VscToolbarButton>
-        <VscToolbarButton onClick={() => onDeleteFeatures(selectedFeatureIds)}>
+      <VscodeToolbarContainer>
+        <VscodeToolbarButton>Hide/Reveal</VscodeToolbarButton>
+        <VscodeToolbarButton onClick={() => onDeleteFeatures(selectedFeatureIds)}>
           Delete
-        </VscToolbarButton>
-        <VscToolbarButton onClick={onCollapseAll}>Collapse</VscToolbarButton>
-      </VscToolbar>
-      <VscTree onSelect={handleSelection}>
+        </VscodeToolbarButton>
+        <VscodeToolbarButton onClick={onCollapseAll}>Collapse</VscodeToolbarButton>
+      </VscodeToolbarContainer>
+      <VscodeTree onSelect={handleSelection}>
         {Object.entries(groupedFeatures).map(([type, features]) => (
-          <VscTreeItem key={type} text={type}>
+          <VscodeTreeItem key={type} text={type}>
             {features.map((feature) => (
-              <VscTreeItem key={feature.id} text={feature.properties?.name || 'Unnamed'}>
+              <VscodeTreeItem key={feature.id} text={feature.properties?.name || 'Unnamed'}>
                 {/* Individual feature actions can be placed here */}
-              </VscTreeItem>
+              </VscodeTreeItem>
             ))}
-          </VscTreeItem>
+          </VscodeTreeItem>
         ))}
-      </VscTree>
+      </VscodeTree>
     </div>
   )
 }
