@@ -24,7 +24,28 @@ The component branches tree items based on feature dataType and includes view bu
         `,
       },
     },
+    backgrounds: {
+      default: 'dark',
+      values: [
+        { name: 'dark', value: '#1e1e1e' },
+        { name: 'light', value: '#ffffff' }
+      ]
+    }
   },
+  decorators: [
+    (Story) => (
+      <div style={{ 
+        backgroundColor: 'var(--vscode-editor-background, #1e1e1e)',
+        color: 'var(--vscode-editor-foreground, #cccccc)',
+        padding: '16px',
+        minHeight: '400px',
+        fontFamily: 'var(--vscode-font-family, "Segoe UI", system-ui, sans-serif)',
+        fontSize: 'var(--vscode-font-size, 13px)'
+      }}>
+        <Story />
+      </div>
+    )
+  ],
   argTypes: {
     featureCollection: {
       description: 'The DebriefFeatureCollection to display',
@@ -70,7 +91,7 @@ export const Empty: Story = {
 
 import largeSample from '../../../../apps/vs-code/workspace/large-sample.plot.json'
 
-const populatedFeatureCollection = largeSample as DebriefFeatureCollection
+const populatedFeatureCollection = largeSample as unknown as DebriefFeatureCollection
 
 /**
  * Populated state using the large sample data from VS Code workspace.
