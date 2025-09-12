@@ -7,7 +7,6 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private _globalController: GlobalController;
   private _subscriptions: vscode.Disposable[] = [];
-  private _outlineComponent: any = null;
 
   constructor() {
     this._globalController = GlobalController.getInstance();
@@ -109,10 +108,25 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' ${this._view?.webview.cspSource}; script-src 'nonce-${nonce}';">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' ${this._view?.webview.cspSource}; script-src 'nonce-${nonce}'; font-src ${this._view?.webview.cspSource};">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Outline View</title>
         <link rel="stylesheet" href="${webComponentsCssUri}">
+        <style>
+          /* VS Code Codicons for vscode-elements */
+          @import url("vscode-resource://icons/codicon/codicon.css");
+          .codicon {
+            font-family: 'codicon';
+            font-display: block;
+            font-size: 16px;
+            text-rendering: auto;
+            text-align: center;
+            text-transform: none;
+            line-height: 1;
+            letter-spacing: 0px;
+            will-change: transform;
+          }
+        </style>
         <style>
           body { 
             font-family: var(--vscode-font-family, sans-serif); 
@@ -213,31 +227,54 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
         if (!currentEditorId) return;
 
         switch (message.type) {
-          case 'selectionChanged':
+          case 'selectionChanged': {
             const selectionState: SelectionState = {
               selectedIds: message.selectedIds
             };
             this._globalController.updateState(currentEditorId, 'selectionState', selectionState);
             break;
+          }
 
-          case 'visibilityChanged':
-            // Handle visibility changes if needed
-            console.log(`Feature ${message.featureId} visibility changed to ${message.visible}`);
+          case 'visibilityChanged': {
+            // Update feature visibility in the feature collection
+            const featureCollection = this._globalController.getStateSlice(currentEditorId, 'featureCollection');
+            if (featureCollection && featureCollection.features) {
+              const updatedFeatures = featureCollection.features.map(feature => {
+                if (String(feature.id) === message.featureId) {
+                  return {
+                    ...feature,
+                    properties: {
+                      ...feature.properties,
+                      visible: message.visible as boolean
+                    }
+                  } as typeof feature;
+                }
+                return feature;
+              });
+              
+              const updatedFeatureCollection: DebriefFeatureCollection = {
+                ...featureCollection,
+                features: updatedFeatures
+              };
+              
+              this._globalController.updateState(currentEditorId, 'featureCollection', updatedFeatureCollection);
+            }
             break;
+          }
 
           case 'viewFeature':
             // Handle view feature requests
-            console.log(`View feature ${message.featureId}`);
+            // Handle view feature requests
             break;
 
           case 'deleteFeatures':
             // Handle feature deletion
-            console.log(`Delete features`, message.featureIds);
+            // Handle feature deletion
             break;
 
           case 'collapseAll':
             // Handle collapse all
-            console.log('Collapse all requested');
+            // Handle collapse all
             break;
         }
       },
