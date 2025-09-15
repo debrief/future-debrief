@@ -1,0 +1,151 @@
+{
+  "$id": "https://toolvault.dev/schemas/command.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ToolVault Command",
+  "description": "A command returned by a ToolVault tool.",
+  "type": "object",
+  "oneOf": [
+    {
+      "properties": {
+        "command": { "const": "addFeatures" },
+        "payload": {
+          "type": "array",
+          "items": { "$ref": "https://geojson.org/schema/Feature.json" }
+        }
+      },
+      "required": ["command", "payload"],
+      "additionalProperties": false
+    },
+    {
+      "properties": {
+        "command": { "const": "updateFeatures" },
+        "payload": {
+          "type": "array",
+          "items": { "$ref": "https://geojson.org/schema/Feature.json" }
+        }
+      },
+      "required": ["command", "payload"],
+      "additionalProperties": false
+    },
+    {
+      "properties": {
+        "command": { "const": "deleteFeatures" },
+        "payload": {
+          "type": "array",
+          "items": { "type": "string" }
+          
+        }
+      },
+      "required": ["command", "payload"],
+      "additionalProperties": false
+    },
+    {
+      "properties": {
+        "command": { "const": "setFeatureCollection" },
+        "payload": { "$ref": "https://geojson.org/schema/FeatureCollection.json" }
+      },
+      "required": ["command", "payload"],
+      "additionalProperties": false
+    },
+    {
+      "properties": {
+        "command": { "const": "showText" },
+        "payload": { "type": "string" }
+      },
+      "required": ["command", "payload"],
+      "additionalProperties": false
+    },
+    {
+      "properties": {
+        "command": { "const": "showData" },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "shape": {
+              "type": "array",
+              "items": { "type": "integer", "minimum": 1 },
+              "minItems": 1
+            },
+            "axes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "values": { "type": "array" }
+                },
+                "required": ["name"],
+                "additionalProperties": false
+              }
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "anyOf": [
+                  { "type": "string" },
+                  { "type": "number" },
+                  { "type": "boolean" },
+                  { "type": "null" },
+                  { "$ref": "#/definitions/nestedArray" }
+                ]
+              }
+            }
+          },
+          "required": ["shape", "values"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["command", "payload"],
+      "additionalProperties": false
+    },
+    {
+      "properties": {
+        "command": { "const": "showImage" },
+        "payload": {
+          "type": "object",
+          "properties": {
+            "mediaType": { "type": "string", "enum": ["image/png", "image/svg+xml"] },
+            "data": { "type": "string", "contentEncoding": "base64" }
+          },
+          "required": ["mediaType", "data"],
+          "additionalProperties": false
+        }
+      },
+      "required": ["command", "payload"],
+      "additionalProperties": false
+    },
+    {
+      "properties": {
+        "command": { "const": "logMessage" },
+        "payload": { "type": "string" }
+      },
+      "required": ["command", "payload"],
+      "additionalProperties": false
+    },
+    {
+      "properties": {
+        "command": { "const": "composite" },
+        "payload": {
+          "type": "array",
+          "items": { "$ref": "https://toolvault.dev/schemas/command.json" }
+        }
+      },
+      "required": ["command", "payload"],
+      "additionalProperties": false
+    }
+  ],
+  "definitions": {
+    "nestedArray": {
+      "type": "array",
+      "items": {
+        "anyOf": [
+          { "type": "string" },
+          { "type": "number" },
+          { "type": "boolean" },
+          { "type": "null" },
+          { "$ref": "#/definitions/nestedArray" }
+        ]
+      }
+    }
+  }
+}
