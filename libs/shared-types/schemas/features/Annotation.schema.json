@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$id": "https://schemas.debrief.org/annotation.schema.json",
+  "$id": "https://example.org/debrief/schemas/features/Annotation.schema.json",
   "title": "Debrief Annotation Feature",
   "description": "A GeoJSON Feature representing an annotation with any geometry type",
   "type": "object",

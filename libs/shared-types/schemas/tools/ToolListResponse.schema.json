@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$id": "https://schemas.debrief.org/tools/toollistresponse.schema.json",
+  "$id": "https://example.org/debrief/schemas/tools/ToolListResponse.schema.json",
   "title": "Tool List Response",
   "description": "Response format for listing available tools",
   "type": "object",

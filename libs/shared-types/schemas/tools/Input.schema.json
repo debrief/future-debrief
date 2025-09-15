@@ -1,5 +1,5 @@
 {
-  "$id": "https://toolvault.dev/schemas/tool.json",
+  "$id": "https://example.org/debrief/schemas/tools/Input.schema.json",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ToolVault Tool Definition",
   "description": "Schema for defining a ToolVault tool, its inputs, and outputs.",

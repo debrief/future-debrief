@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$id": "https://schemas.debrief.org/tools/toolcallrequest.schema.json",
+  "$id": "https://example.org/debrief/schemas/tools/ToolCallRequest.schema.json",
   "title": "Tool Call Request",
   "description": "Request format for calling a tool with features and configuration parameters",
   "type": "object",

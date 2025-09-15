@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$id": "https://schemas.debrief.org/tools/toolcallresponse.schema.json",
+  "$id": "https://example.org/debrief/schemas/tools/ToolCallResponse.schema.json",
   "title": "Tool Call Response",
   "description": "Response format for tool execution results containing ToolVault commands",
   "type": "object",
