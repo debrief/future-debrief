@@ -2,7 +2,20 @@
 derived/
 dist/
 
-# Compiled TypeScript artifacts (should not be in VCS)
+# Generated TypeScript types (preserve validators and index.ts)
+src/types/
+
+# Generated Python types (preserve validators and __init__.py)
+python-src/debrief/types/features/
+python-src/debrief/types/states/
+python-src/debrief/types/tools/
+python-src/debrief/types/*.py
+!python-src/debrief/types/README.md
+
+# Copied schema files (generated from source)
+python-src/debrief/schemas/
+
+# Compiled TypeScript artifacts
 validators/**/*.js
 validators/**/*.d.ts
 validators/**/*.d.ts.map
@@ -43,6 +56,3 @@ yarn-error.log*
 build/
 *.egg-info/
 dist/python/
-src/types/[!R]*.ts
-python-src/debrief/types/[!R]*.py
-python-src/debrief/schemas/*.json
