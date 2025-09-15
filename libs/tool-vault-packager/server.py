@@ -32,31 +32,49 @@ except ImportError:
         import sys
         import importlib.util
         import os
-        
+
         current_dir = os.path.dirname(os.path.abspath(__file__))
         discovery_path = os.path.join(current_dir, "discovery.py")
-        
+
         if os.path.exists(discovery_path):
             spec = importlib.util.spec_from_file_location("discovery", discovery_path)
             discovery_module = importlib.util.module_from_spec(spec)
             sys.modules["discovery"] = discovery_module
             spec.loader.exec_module(discovery_module)
-            
+
             from discovery import discover_tools, generate_index_json, ToolMetadata
         else:
             raise ImportError("Could not locate discovery module")
 
+# Try to import shared-types classes if available
+try:
+    from debrief.types.tools.ToolCallRequest import ToolCallRequest as SharedToolCallRequest
+    from debrief.types.tools.ToolCallResponse import ToolCallResponse as SharedToolCallResponse
+    SHARED_TYPES_AVAILABLE = True
+except ImportError:
+    SHARED_TYPES_AVAILABLE = False
+
 
 # Only define models if BaseModel is available
 if BaseModel is not None:
-    class ToolCallRequest(BaseModel):
-        """Request model for tool call endpoint."""
+    class ToolArgument(BaseModel):
+        """Individual tool argument with name and value."""
         name: str
-        arguments: Dict[str, Any]
+        value: Any
+
+    class ToolCallRequest(BaseModel):
+        """Request model for tool call endpoint matching new schema format."""
+        name: str
+        arguments: List[ToolArgument]
+
+    class ToolVaultCommand(BaseModel):
+        """ToolVault command object for tool responses."""
+        command: str
+        payload: Any
 
     class ToolCallResponse(BaseModel):
-        """Response model for tool call endpoint."""
-        result: Any
+        """Response model for tool call endpoint matching new schema format."""
+        result: ToolVaultCommand
         isError: bool = False
 
     class ErrorResponse(BaseModel):
@@ -65,16 +83,26 @@ if BaseModel is not None:
         details: Optional[str] = None
 else:
     # Fallback simple classes when Pydantic is not available
-    class ToolCallRequest:
-        def __init__(self, name: str, arguments: Dict[str, Any]):
+    class ToolArgument:
+        def __init__(self, name: str, value: Any):
             self.name = name
-            self.arguments = arguments
-    
+            self.value = value
+
+    class ToolCallRequest:
+        def __init__(self, name: str, arguments: List[Dict[str, Any]]):
+            self.name = name
+            self.arguments = [ToolArgument(**arg) for arg in arguments]
+
+    class ToolVaultCommand:
+        def __init__(self, command: str, payload: Any):
+            self.command = command
+            self.payload = payload
+
     class ToolCallResponse:
-        def __init__(self, result: Any, isError: bool = False):
-            self.result = result
+        def __init__(self, result: Dict[str, Any], isError: bool = False):
+            self.result = ToolVaultCommand(**result)
             self.isError = isError
-    
+
     class ErrorResponse:
         def __init__(self, error: str, details: Optional[str] = None):
             self.error = error
@@ -258,25 +286,46 @@ class ToolVaultServer:
         async def call_tool(request: ToolCallRequest):
             """MCP-compatible tool call endpoint."""
             tool_name = request.name
-            
+
             if tool_name not in self.tools_by_name:
                 raise HTTPException(
                     status_code=404,
                     detail=f"Tool '{tool_name}' not found"
                 )
-            
+
             tool = self.tools_by_name[tool_name]
-            
+
             try:
+                # Convert new argument format to keyword arguments
+                kwargs = {}
+                for arg in request.arguments:
+                    kwargs[arg.name] = arg.value
+
                 # Call the tool function with provided arguments
-                result = tool.function(**request.arguments)
-                
-                # Wrap result according to MCP spec
+                result = tool.function(**kwargs)
+
+                # Ensure result is a ToolVault command object
+                if not isinstance(result, dict) or "command" not in result:
+                    # Wrap non-command results as showText for backward compatibility
+                    if isinstance(result, (str, int, float, bool)):
+                        command_result = {
+                            "command": "showText",
+                            "payload": str(result)
+                        }
+                    else:
+                        command_result = {
+                            "command": "showData",
+                            "payload": result
+                        }
+                else:
+                    command_result = result
+
+                # Return according to new schema format
                 return JSONResponse(content={
-                    "result": result,
+                    "result": command_result,
                     "isError": False
                 })
-                
+
             except TypeError as e:
                 # Handle argument validation errors
                 raise HTTPException(

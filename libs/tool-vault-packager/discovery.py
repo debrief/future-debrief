@@ -77,7 +77,7 @@ def extract_type_annotations(func: Callable) -> Dict[str, str]:
         
         # Get parameter types
         sig = inspect.signature(func)
-        for param_name, param in sig.parameters.items():
+        for param_name, _ in sig.parameters.items():
             if param_name in type_hints:
                 annotations[param_name] = str(type_hints[param_name])
             else:
@@ -283,7 +283,7 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
                     # Build parameters schema
                     sig = inspect.signature(func)
                     parameters = {}
-                    for param_name, param in sig.parameters.items():
+                    for param_name, _ in sig.parameters.items():
                         param_type = type_annotations.get(param_name, "object")
                         param_schema = convert_python_type_to_json_schema(param_type)
                         param_schema["description"] = f"Parameter {param_name}"
@@ -406,7 +406,7 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
         # Build parameters schema
         sig = inspect.signature(func)
         parameters = {}
-        for param_name, param in sig.parameters.items():
+        for param_name, _ in sig.parameters.items():
             param_type = type_annotations.get(param_name, "object")
             param_schema = convert_python_type_to_json_schema(param_type)
             param_schema["description"] = f"Parameter {param_name}"
@@ -444,44 +444,93 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
     return tools
 
 
-def generate_index_json(tools: List[ToolMetadata]) -> Dict[str, Any]:
+def generate_tool_schema(tool: ToolMetadata) -> Dict[str, Any]:
     """
-    Generate MCP-compatible index.json from discovered tools.
-    Uses only the first sentence of tool descriptions for brevity.
-    Includes URLs for each tool.json file for SPA navigation.
-    
+    Generate a Tool schema object conforming to shared-types Tool.schema.json.
+
+    Uses the tool's specific return type to create a more precise output schema
+    rather than just pointing to the generic ToolCallResponse result.
+
+    Args:
+        tool: Tool metadata object
+
+    Returns:
+        Dictionary representing a Tool schema
+    """
+    # Generate specific output schema based on the tool's return type
+    output_schema = convert_python_type_to_json_schema(tool.return_type)
+
+    # If the tool returns a Dict[str, Any], we can be more specific about the ToolVault command structure
+    if tool.return_type in ["Dict[str, Any]", "<class 'dict'>", "typing.Dict[str, typing.Any]"]:
+        output_schema = {
+            "type": "object",
+            "properties": {
+                "command": {
+                    "type": "string",
+                    "enum": ["addFeatures", "updateFeatures", "deleteFeatures", "setFeatureCollection",
+                            "showText", "showData", "showImage", "logMessage", "composite"],
+                    "description": "The ToolVault command type"
+                },
+                "payload": {
+                    "description": "The command-specific payload data"
+                }
+            },
+            "required": ["command", "payload"],
+            "additionalProperties": False
+        }
+
+    return {
+        "name": tool.name,
+        "description": tool.description,
+        "inputSchema": {
+            "type": "object",
+            "properties": tool.parameters,
+            "required": list(tool.parameters.keys()),
+            "additionalProperties": False
+        },
+        "outputSchema": output_schema
+    }
+
+
+def generate_tool_list_response(tools: List[ToolMetadata]) -> Dict[str, Any]:
+    """
+    Generate a ToolListResponse conforming to shared-types ToolListResponse.schema.json.
+
     Args:
         tools: List of discovered tool metadata
-        
+
     Returns:
-        Dictionary representing the index.json structure
+        Dictionary representing a ToolListResponse
     """
     tools_list = []
-    
+
     for tool in tools:
-        # Use only the first sentence for the main index
-        short_description = extract_first_sentence(tool.description)
-        
+        tool_schema = generate_tool_schema(tool)
+
         # Get tool directory name from tool_dir path
         tool_dir_name = Path(tool.tool_dir).name
-        
-        tool_schema = {
-            "name": tool.name,
-            "description": short_description,
-            "inputSchema": {
-                "type": "object",
-                "properties": tool.parameters,
-                "required": list(tool.parameters.keys()),
-                "additionalProperties": False
-            },
-            "outputSchema": convert_python_type_to_json_schema(tool.return_type),
-            "tool_url": f"/api/tools/{tool_dir_name}/tool.json"
-        }
-        
+
+        # Add SPA navigation URL as extension
+        tool_schema["tool_url"] = f"/api/tools/{tool_dir_name}/tool.json"
+
         tools_list.append(tool_schema)
-    
+
     return {
         "tools": tools_list,
         "version": "1.0.0",
         "description": "ToolVault packaged tools"
     }
+
+
+def generate_index_json(tools: List[ToolMetadata]) -> Dict[str, Any]:
+    """
+    Generate index.json from discovered tools using new schema format.
+    Maintains backward compatibility while conforming to shared-types schemas.
+
+    Args:
+        tools: List of discovered tool metadata
+
+    Returns:
+        Dictionary representing the index.json structure
+    """
+    return generate_tool_list_response(tools)
