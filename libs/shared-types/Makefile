@@ -89,9 +89,16 @@ $(PYTHON_WHEEL): $(PY_GENERATED_FILES)
 
 ## 
 ## Maintenance Targets:
-clean: ## Clean all generated files
+clean: ## Clean all generated files (preserves validators and hand-written code)
 	@echo "$(RED)Cleaning generated files...$(RESET)"
-	@rm -rf src/types/[!R]*.ts dist/* python-src/debrief/types/[!R]*.py python-src/debrief/types/features/ python-src/debrief/types/states/ python-src/debrief/types/tools/ python-src/debrief/schemas/features/ python-src/debrief/schemas/states/ python-src/debrief/schemas/tools/ build/ *.egg-info/
+	@# Remove generated TypeScript types (preserve validators and index.ts)
+	@rm -rf src/types/
+	@# Remove generated Python types and schemas (preserve validators, README.md, __init__.py)
+	@rm -rf python-src/debrief/types/features/ python-src/debrief/types/states/ python-src/debrief/types/tools/
+	@rm -rf python-src/debrief/schemas/
+	@find python-src/debrief/types/ -maxdepth 1 -name "*.py" ! -name "__init__.py" ! -name "README.md" -delete 2>/dev/null || true
+	@# Remove build artifacts
+	@rm -rf dist/* build/ *.egg-info/
 
 clean-build: clean build ## Force complete rebuild after cleaning
 
@@ -159,9 +166,9 @@ $(GENERATED_FILES): $(SCHEMA_FILES)
 # TypeScript generation rules
 generate-ts-internal:
 	@echo "$(BLUE)Generating TypeScript types...$(RESET)"
+	@# Clean generated directories (preserve validators and index.ts)
+	@rm -rf src/types/ 2>/dev/null || true
 	@NODE_NO_WARNINGS=1 mkdir -p src/types/features src/types/states src/types/tools
-	@# Remove old flat type files (except index.ts)
-	@find src/types/ -maxdepth 1 -name "*.ts" -not -name "index.ts" -delete 2>/dev/null || true
 	@# Generate TypeScript types in parallel by category
 	@for category in features states tools; do \
 		for schema in schemas/$$category/*.json; do \
@@ -175,12 +182,14 @@ generate-ts-internal:
 # Python generation rules
 generate-python-internal:
 	@echo "$(BLUE)Generating Python types...$(RESET)"
+	@# Clean generated directories (preserve hand-written files)
+	@rm -rf python-src/debrief/schemas/ 2>/dev/null || true
+	@rm -rf python-src/debrief/types/features/ python-src/debrief/types/states/ python-src/debrief/types/tools/ 2>/dev/null || true
+	@find python-src/debrief/types/ -maxdepth 1 -name "*.py" ! -name "__init__.py" ! -name "README.md" -delete 2>/dev/null || true
+	@# Create directory structure
 	@NODE_NO_WARNINGS=1 mkdir -p python-src/debrief/types/features python-src/debrief/types/states python-src/debrief/types/tools
 	@NODE_NO_WARNINGS=1 mkdir -p python-src/debrief/schemas/features python-src/debrief/schemas/states python-src/debrief/schemas/tools
 	@echo "$(BLUE)Copying schemas to Python package with folder structure...$(RESET)"
-	@# Remove old flat files
-	@find python-src/debrief/schemas/ -maxdepth 1 -name "*.json" -delete 2>/dev/null || true
-	@find python-src/debrief/types/ -maxdepth 1 -name "*.py" ! -name "__init__.py" ! -name "README.md" -delete 2>/dev/null || true
 	@# Copy schemas with organized structure
 	@for category in features states tools; do \
 		cp schemas/$$category/*.json python-src/debrief/schemas/$$category/ 2>/dev/null || true; \
