@@ -10,7 +10,7 @@
         "command": { "const": "addFeatures" },
         "payload": {
           "type": "array",
-          "items": { "$ref": "https://geojson.org/schema/Feature.json" }
+          "items": { "$ref": "../features/FeatureCollection.schema.json#/$defs/DebriefFeature" }
         }
       },
       "required": ["command", "payload"],
@@ -21,7 +21,7 @@
         "command": { "const": "updateFeatures" },
         "payload": {
           "type": "array",
-          "items": { "$ref": "https://geojson.org/schema/Feature.json" }
+          "items": { "$ref": "../features/FeatureCollection.schema.json#/$defs/DebriefFeature" }
         }
       },
       "required": ["command", "payload"],
@@ -42,7 +42,7 @@
     {
       "properties": {
         "command": { "const": "setFeatureCollection" },
-        "payload": { "$ref": "https://geojson.org/schema/FeatureCollection.json" }
+        "payload": { "$ref": "../features/FeatureCollection.schema.json" }
       },
       "required": ["command", "payload"],
       "additionalProperties": false
@@ -127,7 +127,7 @@
         "command": { "const": "composite" },
         "payload": {
           "type": "array",
-          "items": { "$ref": "https://toolvault.dev/schemas/command.json" }
+          "items": { "$ref": "#" }
         }
       },
       "required": ["command", "payload"],

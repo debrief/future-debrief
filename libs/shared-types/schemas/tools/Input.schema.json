@@ -79,7 +79,7 @@
       }
     },
     "output": {
-      "$ref": "https://toolvault.dev/schemas/command.json"
+      "$ref": "Output.schema.json"
     }
   },
   "required": ["id", "description", "output"],
