@@ -277,7 +277,7 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
                     func_name, func = public_functions[0]
                     
                     # Extract metadata
-                    description = extract_function_docstring(func)
+                    description = extract_first_sentence(extract_function_docstring(func))
                     type_annotations = extract_type_annotations(func)
                     
                     # Build parameters schema
@@ -400,7 +400,7 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
         func_name, func = public_functions[0]
         
         # Extract metadata
-        description = extract_function_docstring(func)
+        description = extract_first_sentence(extract_function_docstring(func))
         type_annotations = extract_type_annotations(func)
         
         # Build parameters schema
