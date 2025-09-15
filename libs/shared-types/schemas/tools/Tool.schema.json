@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$id": "https://schemas.debrief.org/tools/mcptool.schema.json",
-  "title": "MCP Tool",
-  "description": "A Model Context Protocol (MCP) tool definition with input/output schemas",
+  "$id": "https://schemas.debrief.org/tools/tool.schema.json",
+  "title": "Tool",
+  "description": "A tool definition with input/output schemas for maritime analysis",
   "type": "object",
   "properties": {
     "name": {

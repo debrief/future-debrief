@@ -1,16 +1,16 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$id": "https://schemas.debrief.org/tools/mcptoollistresponse.schema.json",
-  "title": "MCP Tool List Response",
-  "description": "Response format for listing available MCP tools",
+  "$id": "https://schemas.debrief.org/tools/toollistresponse.schema.json",
+  "title": "Tool List Response",
+  "description": "Response format for listing available tools",
   "type": "object",
   "properties": {
     "tools": {
       "type": "array",
       "items": {
-        "$ref": "MCPTool.schema.json"
+        "$ref": "Tool.schema.json"
       },
-      "description": "Array of available MCP tools"
+      "description": "Array of available tools"
     },
     "version": {
       "type": "string",

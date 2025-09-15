@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft-07/schema#",
-  "$id": "https://schemas.debrief.org/tools/mcptoolcallrequest.schema.json",
-  "title": "MCP Tool Call Request",
-  "description": "Request format for calling an MCP tool with features and configuration parameters",
+  "$id": "https://schemas.debrief.org/tools/toolcallrequest.schema.json",
+  "title": "Tool Call Request",
+  "description": "Request format for calling a tool with features and configuration parameters",
   "type": "object",
   "properties": {
     "name": {
