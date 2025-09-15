@@ -9,9 +9,9 @@ const getServerBaseUrl = (): string => {
   }
   
   // Check for Vite environment variable
-  const viteBackendUrl = import.meta.env.VITE_MCP_BASE_URL;
+  const viteBackendUrl = import.meta.env.VITE_BACKEND_URL;
   if (viteBackendUrl) {
-    return viteBackendUrl.replace('/tools', '');
+    return viteBackendUrl;
   }
   
   // Auto-detect from current window location (when served from same server)
