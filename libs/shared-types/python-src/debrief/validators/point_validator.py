@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Union
 from datetime import datetime
 
 try:
-    from ..types.point import PointFeature
+    from ..types.features.point import PointFeature
 except ImportError:
     # If import fails, define a minimal type for validation
     class PointFeature:  # type: ignore
