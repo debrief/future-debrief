@@ -29,7 +29,7 @@ PYTHON_CLASS_MAPPING := \
 # File pattern definitions
 SCHEMA_FILES := $(wildcard schemas/features/*.json) $(wildcard schemas/states/*.json) $(wildcard schemas/tools/*.json)
 TS_GENERATED_FILES := src/types/features/featurecollection.ts src/types/features/track.ts src/types/features/point.ts src/types/features/annotation.ts src/types/states/timestate.ts src/types/states/viewportstate.ts src/types/states/selectionstate.ts src/types/states/editorstate.ts src/types/states/currentstate.ts src/types/tools/tool.ts src/types/tools/toollistresponse.ts src/types/tools/toolcallrequest.ts src/types/tools/toolcallresponse.ts src/types/tools/jsonschema.ts src/types/tools/constrainedfeature.ts src/types/tools/input.ts src/types/tools/output.ts
-PY_GENERATED_FILES := python-src/debrief/types/features/track.py python-src/debrief/types/features/point.py python-src/debrief/types/features/annotation.py python-src/debrief/types/features/featurecollection.py python-src/debrief/types/states/TimeState.py python-src/debrief/types/states/ViewportState.py python-src/debrief/types/states/SelectionState.py python-src/debrief/types/states/EditorState.py python-src/debrief/types/tools/Tool.py python-src/debrief/types/tools/ToolListResponse.py python-src/debrief/types/tools/ToolCallRequest.py python-src/debrief/types/tools/ToolCallResponse.py python-src/debrief/types/tools/JSONSchema.py python-src/debrief/types/tools/ConstrainedFeature.py python-src/debrief/types/tools/Input.py python-src/debrief/types/tools/Output.py
+PY_GENERATED_FILES := python-src/debrief/types/features/Track.py python-src/debrief/types/features/Point.py python-src/debrief/types/features/Annotation.py python-src/debrief/types/features/FeatureCollection.py python-src/debrief/types/states/TimeState.py python-src/debrief/types/states/ViewportState.py python-src/debrief/types/states/SelectionState.py python-src/debrief/types/states/EditorState.py python-src/debrief/types/states/CurrentState.py python-src/debrief/types/tools/Tool.py python-src/debrief/types/tools/ToolListResponse.py python-src/debrief/types/tools/ToolCallRequest.py python-src/debrief/types/tools/ToolCallResponse.py python-src/debrief/types/tools/JSONSchema.py python-src/debrief/types/tools/ConstrainedFeature.py python-src/debrief/types/tools/Input.py python-src/debrief/types/tools/Output.py
 GENERATED_FILES := $(TS_GENERATED_FILES) $(PY_GENERATED_FILES)
 COMPILED_FILES := dist/index.js dist/index.d.ts
 PYTHON_WHEEL := dist/python/debrief_types-1.0.0-py3-none-any.whl
@@ -180,29 +180,23 @@ generate-python-internal:
 	@echo "$(BLUE)Copying schemas to Python package with folder structure...$(RESET)"
 	@# Remove old flat files
 	@find python-src/debrief/schemas/ -maxdepth 1 -name "*.json" -delete 2>/dev/null || true
-	@find python-src/debrief/types/ -maxdepth 1 -name "*.py" ! -name "__init__.py" -delete 2>/dev/null || true
+	@find python-src/debrief/types/ -maxdepth 1 -name "*.py" ! -name "__init__.py" ! -name "README.md" -delete 2>/dev/null || true
 	@# Copy schemas with organized structure
 	@for category in features states tools; do \
 		cp schemas/$$category/*.json python-src/debrief/schemas/$$category/ 2>/dev/null || true; \
 	done
-	@# Preserve organized __init__.py if it exists, otherwise create template
-	@if [ ! -f python-src/debrief/types/__init__.py ]; then \
-		printf '"""Generated Python types for Debrief maritime GeoJSON features and application state."""\n\n# Import from organized subpackages\nfrom .features.annotation import AnnotationFeature\nfrom .features.featurecollection import DebriefFeatureCollection\nfrom .features.track import TrackFeature\nfrom .features.point import PointFeature\nfrom .states.EditorState import EditorState\nfrom .states.TimeState import TimeState\nfrom .states.ViewportState import ViewportState\nfrom .states.SelectionState import SelectionState\nfrom .tools.Tool import Tool\nfrom .tools.ToolCallRequest import ToolCallRequest\nfrom .tools.ToolListResponse import ToolListResponse\nfrom .tools.JSONSchema import JSONSchema\n\n__all__ = ["AnnotationFeature", "DebriefFeatureCollection", "TrackFeature", "PointFeature", "EditorState", "TimeState", "ViewportState", "SelectionState", "Tool", "ToolCallRequest", "ToolListResponse", "JSONSchema"]\n' > python-src/debrief/types/__init__.py; \
-	fi
-	@# Generate Python types using mapping
+	@# Generate Python types using mapping with consistent PascalCase filenames
 	@for mapping in $(PYTHON_CLASS_MAPPING); do \
 		schema="$${mapping%:*}"; \
 		class_name="$${mapping##*:}"; \
 		category="$$(echo $$schema | cut -d'/' -f2)"; \
 		basename="$$(basename "$$schema" .schema.json)"; \
-		if [ "$$category" = "states" ]; then \
-			output="python-src/debrief/types/$$category/$$basename.py"; \
-		else \
-			output="python-src/debrief/types/$$category/$$(echo "$$basename" | tr '[:upper:]' '[:lower:]').py"; \
-		fi; \
+		output="python-src/debrief/types/$$category/$$basename.py"; \
 		NODE_NO_WARNINGS=1 quicktype -s schema "$$schema" -o "$$output" --lang python --top-level "$$class_name" & \
 	done; \
 	wait
+	@# Create organized __init__.py with PascalCase imports
+	@printf '"""\nGenerated Python types for Debrief maritime GeoJSON features and application state.\nThese types are generated from JSON schemas and provide type hints and validation.\n"""\n\n# Import from organized subpackages\nfrom .features.Annotation import AnnotationFeature\nfrom .features.FeatureCollection import DebriefFeatureCollection\nfrom .features.Track import TrackFeature\nfrom .features.Point import PointFeature\nfrom .states.EditorState import EditorState\nfrom .states.TimeState import TimeState\nfrom .states.ViewportState import ViewportState\nfrom .states.SelectionState import SelectionState\nfrom .states.CurrentState import CurrentState\nfrom .tools.Tool import Tool\nfrom .tools.ToolCallRequest import ToolCallRequest\nfrom .tools.ToolListResponse import ToolListResponse\nfrom .tools.JSONSchema import JSONSchema\n\n__all__ = ["AnnotationFeature", "DebriefFeatureCollection", "TrackFeature", "PointFeature", "EditorState", "TimeState", "ViewportState", "SelectionState", "CurrentState", "Tool", "ToolCallRequest", "ToolListResponse", "JSONSchema"]\n' > python-src/debrief/types/__init__.py
 	@# Create __init__.py files for subfolders
 	@printf '' > python-src/debrief/types/features/__init__.py
 	@printf '' > python-src/debrief/types/states/__init__.py
