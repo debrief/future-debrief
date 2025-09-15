@@ -14,17 +14,17 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 DERIVED_DIR = PROJECT_ROOT / 'python-src' / 'debrief' / 'types'
 
 EXPECTED_FILES = [
-    'track.py',
-    'point.py',
-    'annotation.py', 
-    'featurecollection.py'
+    'features/track.py',
+    'features/point.py',
+    'features/annotation.py',
+    'features/featurecollection.py'
 ]
 
 EXPECTED_CLASSES = {
-    'track.py': ['TrackFeature'],
-    'point.py': ['PointFeature'],
-    'annotation.py': ['AnnotationFeature'],
-    'featurecollection.py': ['DebriefFeatureCollection']
+    'features/track.py': ['TrackFeature'],
+    'features/point.py': ['PointFeature'],
+    'features/annotation.py': ['AnnotationFeature'],
+    'features/featurecollection.py': ['DebriefFeatureCollection']
 }
 
 

@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.debrief.org/point.schema.json",
+  "title": "Debrief Point Feature",
+  "description": "A GeoJSON Feature representing a point with time properties",
+  "type": "object",
+  "required": ["type", "id", "geometry", "properties"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "const": "Feature"
+    },
+    "id": {
+      "type": ["string", "number"],
+      "description": "Unique identifier for this feature"
+    },
+    "geometry": {
+      "type": "object",
+      "required": ["type", "coordinates"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["Point"]
+        },
+        "coordinates": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 3,
+          "items": {
+            "type": "number"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "properties": {
+      "type": "object",
+      "required": ["dataType"],
+      "properties": {
+        "dataType": {
+          "type": "string",
+          "enum": ["reference-point"],
+          "description": "Discriminator to identify this as a reference point feature"
+        },
+        "time": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Single timestamp for this point"
+        },
+        "timeStart": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Start time for a time range"
+        },
+        "timeEnd": {
+          "type": "string",
+          "format": "date-time",
+          "description": "End time for a time range"
+        },
+        "name": {
+          "type": "string",
+          "description": "Human readable name for this point"
+        },
+        "description": {
+          "type": "string",
+          "description": "Additional description or notes for this point"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

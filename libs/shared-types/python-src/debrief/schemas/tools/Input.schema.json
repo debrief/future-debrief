@@ -1,0 +1,87 @@
+{
+  "$id": "https://toolvault.dev/schemas/tool.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ToolVault Tool Definition",
+  "description": "Schema for defining a ToolVault tool, its inputs, and outputs.",
+  "type": "object",
+  "properties": {
+    "id": { "type": "string" },
+    "description": { "type": "string" },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "title": "Feature input",
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "kind": { "const": "features" },
+              "geometryTypes": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Allowed GeoJSON geometry types"
+              },
+              "dataTypes": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Allowed feature.properties.dataType values"
+              },
+              "required": { "type": "boolean", "default": true },
+              "minItems": { "type": "integer", "minimum": 0 },
+              "maxItems": { "type": "integer", "minimum": 1 }
+            },
+            "required": ["name", "kind"]
+          },
+          {
+            "title": "Number config",
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "kind": { "const": "number" },
+              "required": { "type": "boolean", "default": false },
+              "default": { "type": "number" },
+              "constraints": {
+                "type": "object",
+                "properties": {
+                  "min": { "type": "number" },
+                  "max": { "type": "number" }
+                },
+                "additionalProperties": false
+              }
+            },
+            "required": ["name", "kind"]
+          },
+          {
+            "title": "Enum config",
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "kind": { "const": "enum" },
+              "required": { "type": "boolean", "default": false },
+              "default": { "type": "string" },
+              "constraints": {
+                "type": "object",
+                "properties": {
+                  "values": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "minItems": 1
+                  }
+                },
+                "required": ["values"],
+                "additionalProperties": false
+              }
+            },
+            "required": ["name", "kind", "constraints"]
+          }
+        ]
+      }
+    },
+    "output": {
+      "$ref": "Output.schema.json"
+    }
+  },
+  "required": ["id", "description", "output"],
+  "additionalProperties": false
+}

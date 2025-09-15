@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "CurrentState.json",
+  "title": "CurrentState",
+  "description": "Complete current state information for a Debrief editor including metadata",
+  "type": "object",
+  "properties": {
+    "editorId": {
+      "type": "string",
+      "description": "Unique identifier for the editor"
+    },
+    "filename": {
+      "type": "string", 
+      "description": "Filename of the document being edited"
+    },
+    "editorState": {
+      "$ref": "EditorState.schema.json",
+      "description": "Complete editor state containing all sub-states"
+    },
+    "historyCount": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "History count for this editor"
+    }
+  },
+  "required": ["editorId", "filename", "editorState", "historyCount"],
+  "additionalProperties": false
+}

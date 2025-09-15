@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.debrief.org/tools/constrainedfeature.schema.json",
+  "title": "Constrained Feature",
+  "description": "A DebriefFeature with constraints on geometry type and/or dataType",
+  "$defs": {
+    "TrackFeature": {
+      "allOf": [
+        {
+          "$ref": "../features/FeatureCollection.schema.json#/$defs/DebriefFeature"
+        },
+        {
+          "properties": {
+            "geometry": {
+              "properties": {
+                "type": {
+                  "enum": ["LineString", "MultiLineString"]
+                }
+              }
+            },
+            "properties": {
+              "properties": {
+                "dataType": {
+                  "const": "track"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "PointFeature": {
+      "allOf": [
+        {
+          "$ref": "../features/FeatureCollection.schema.json#/$defs/DebriefFeature"
+        },
+        {
+          "properties": {
+            "geometry": {
+              "properties": {
+                "type": {
+                  "const": "Point"
+                }
+              }
+            },
+            "properties": {
+              "properties": {
+                "dataType": {
+                  "const": "reference-point"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "AnnotationFeature": {
+      "allOf": [
+        {
+          "$ref": "../features/FeatureCollection.schema.json#/$defs/DebriefFeature"
+        },
+        {
+          "properties": {
+            "properties": {
+              "properties": {
+                "dataType": {
+                  "const": "annotation"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "GeometryConstrainedFeature": {
+      "type": "object",
+      "properties": {
+        "allowedGeometryTypes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["Point", "LineString", "MultiLineString", "Polygon", "MultiPolygon"]
+          },
+          "description": "Allowed GeoJSON geometry types"
+        },
+        "allowedDataTypes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["track", "reference-point", "annotation"]
+          },
+          "description": "Allowed feature.properties.dataType values"
+        },
+        "feature": {
+          "$ref": "../features/FeatureCollection.schema.json#/$defs/DebriefFeature"
+        }
+      },
+      "required": ["feature"],
+      "additionalProperties": false
+    }
+  }
+}

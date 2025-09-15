@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://schemas.debrief.org/tools/toolcallresponse.schema.json",
+  "title": "Tool Call Response",
+  "description": "Response format for tool execution results containing ToolVault commands",
+  "type": "object",
+  "properties": {
+    "result": {
+      "$ref": "Output.schema.json",
+      "description": "The ToolVault command result of the tool execution"
+    },
+    "isError": {
+      "type": "boolean",
+      "description": "Optional flag indicating if the result represents an error condition",
+      "default": false
+    }
+  },
+  "required": ["result"],
+  "additionalProperties": false
+}

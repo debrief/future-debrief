@@ -10,17 +10,17 @@ const path = require('path');
 const DERIVED_DIR = path.join(__dirname, '..', '..', 'src', 'types');
 
 const EXPECTED_FILES = [
-  'track.ts',
-  'point.ts', 
-  'annotation.ts',
-  'featurecollection.ts'
+  'features/track.ts',
+  'features/point.ts',
+  'features/annotation.ts',
+  'features/featurecollection.ts'
 ];
 
 const EXPECTED_EXPORTS = {
-  'track.ts': ['DebriefTrackFeature'],
-  'point.ts': ['DebriefPointFeature'], 
-  'annotation.ts': ['DebriefAnnotationFeature'],
-  'featurecollection.ts': ['DebriefFeatureCollection', 'DebriefFeature', 'DebriefTrackFeature', 'DebriefPointFeature', 'DebriefAnnotationFeature']
+  'features/track.ts': ['DebriefTrackFeature'],
+  'features/point.ts': ['DebriefPointFeature'],
+  'features/annotation.ts': ['DebriefAnnotationFeature'],
+  'features/featurecollection.ts': ['DebriefFeatureCollection', 'DebriefFeature', 'DebriefTrackFeature', 'DebriefPointFeature', 'DebriefAnnotationFeature']
 };
 
 function testFileExists(filename) {

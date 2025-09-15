@@ -42,17 +42,26 @@ export {
 } from './validators/featurecollection-validator';
 
 // Re-export types for convenience
-export type { 
-  DebriefTrackFeature, 
-  DebriefPointFeature, 
-  DebriefAnnotationFeature, 
+export type {
+  DebriefTrackFeature,
+  DebriefPointFeature,
+  DebriefAnnotationFeature,
   DebriefFeatureCollection,
-  DebriefFeature 
-} from './types/featurecollection';
+  DebriefFeature
+} from './types/features/featurecollection';
 
 // Re-export state types
-export type { TimeState } from './types/timestate';
-export type { ViewportState } from './types/viewportstate';
-export type { SelectionState } from './types/selectionstate';
-export type { EditorState } from './types/editorstate';
-export type { CurrentState } from './types/currentstate';
+export type { TimeState } from './types/states/timestate';
+export type { ViewportState } from './types/states/viewportstate';
+export type { SelectionState } from './types/states/selectionstate';
+export type { EditorState } from './types/states/editorstate';
+export type { CurrentState } from './types/states/currentstate';
+
+// Re-export tool types
+export type { Tool } from './types/tools/tool';
+export type { ToolListResponse } from './types/tools/toollistresponse';
+export type { ToolCallRequest } from './types/tools/toolcallrequest';
+export type { ToolCallResponse } from './types/tools/toolcallresponse';
+export type { JSONSchema } from './types/tools/jsonschema';
+export type { ConstrainedFeature } from './types/tools/constrainedfeature';
+// Note: Input.ts and Output.ts export specific interfaces, not generic Input/Output types
