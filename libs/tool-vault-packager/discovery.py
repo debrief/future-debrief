@@ -448,8 +448,9 @@ def generate_tool_schema(tool: ToolMetadata) -> Dict[str, Any]:
     """
     Generate a Tool schema object conforming to shared-types Tool.schema.json.
 
-    Uses the tool's specific return type to create a more precise output schema
-    rather than just pointing to the generic ToolCallResponse result.
+    Uses the tool's specific return type to create a more precise output schema.
+    First checks if the tool has a BaseTool-style get_output_schema method,
+    otherwise falls back to analyzing the return type annotation.
 
     Args:
         tool: Tool metadata object
@@ -457,27 +458,47 @@ def generate_tool_schema(tool: ToolMetadata) -> Dict[str, Any]:
     Returns:
         Dictionary representing a Tool schema
     """
-    # Generate specific output schema based on the tool's return type
-    output_schema = convert_python_type_to_json_schema(tool.return_type)
+    # Try to get schema from tool class if it implements BaseTool interface
+    output_schema = None
 
-    # If the tool returns a Dict[str, Any], we can be more specific about the ToolVault command structure
-    if tool.return_type in ["Dict[str, Any]", "<class 'dict'>", "typing.Dict[str, typing.Any]"]:
-        output_schema = {
-            "type": "object",
-            "properties": {
-                "command": {
-                    "type": "string",
-                    "enum": ["addFeatures", "updateFeatures", "deleteFeatures", "setFeatureCollection",
-                            "showText", "showData", "showImage", "logMessage", "composite"],
-                    "description": "The ToolVault command type"
+    # Check if the tool function has a class with get_output_schema method
+    try:
+        # Look for a class in the same module with get_output_schema method
+        import inspect
+        module = inspect.getmodule(tool.function)
+        if module:
+            for name, obj in inspect.getmembers(module, inspect.isclass):
+                if hasattr(obj, 'get_output_schema') and callable(getattr(obj, 'get_output_schema')):
+                    try:
+                        output_schema = obj.get_output_schema()
+                        break
+                    except Exception:
+                        continue
+    except Exception:
+        pass
+
+    # Fall back to analyzing return type annotation
+    if output_schema is None:
+        output_schema = convert_python_type_to_json_schema(tool.return_type)
+
+        # If the tool returns a Dict[str, Any], we can be more specific about the ToolVault command structure
+        if tool.return_type in ["Dict[str, Any]", "<class 'dict'>", "typing.Dict[str, typing.Any]"]:
+            output_schema = {
+                "type": "object",
+                "properties": {
+                    "command": {
+                        "type": "string",
+                        "enum": ["addFeatures", "updateFeatures", "deleteFeatures", "setFeatureCollection",
+                                "showText", "showData", "showImage", "logMessage", "composite"],
+                        "description": "The ToolVault command type"
+                    },
+                    "payload": {
+                        "description": "The command-specific payload data"
+                    }
                 },
-                "payload": {
-                    "description": "The command-specific payload data"
-                }
-            },
-            "required": ["command", "payload"],
-            "additionalProperties": False
-        }
+                "required": ["command", "payload"],
+                "additionalProperties": False
+            }
 
     return {
         "name": tool.name,
