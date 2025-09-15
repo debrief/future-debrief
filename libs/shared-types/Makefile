@@ -6,6 +6,26 @@
 # - Schema changes: Full rebuild with generation + compile + test
 # - Source changes: Compile + test only
 
+# Schema to top-level class name mappings for Python generation
+PYTHON_CLASS_MAPPING := \
+	schemas/features/Track.schema.json:TrackFeature \
+	schemas/features/Point.schema.json:PointFeature \
+	schemas/features/Annotation.schema.json:AnnotationFeature \
+	schemas/features/FeatureCollection.schema.json:DebriefFeatureCollection \
+	schemas/states/TimeState.schema.json:TimeState \
+	schemas/states/ViewportState.schema.json:ViewportState \
+	schemas/states/SelectionState.schema.json:SelectionState \
+	schemas/states/EditorState.schema.json:EditorState \
+	schemas/states/CurrentState.schema.json:CurrentState \
+	schemas/tools/Tool.schema.json:Tool \
+	schemas/tools/ToolListResponse.schema.json:ToolListResponse \
+	schemas/tools/ToolCallRequest.schema.json:ToolCallRequest \
+	schemas/tools/ToolCallResponse.schema.json:ToolCallResponse \
+	schemas/tools/JSONSchema.schema.json:JsonSchema \
+	schemas/tools/ConstrainedFeature.schema.json:ConstrainedFeature \
+	schemas/tools/Input.schema.json:Input \
+	schemas/tools/Output.schema.json:Output
+
 # File pattern definitions
 SCHEMA_FILES := $(wildcard schemas/features/*.json) $(wildcard schemas/states/*.json) $(wildcard schemas/tools/*.json)
 TS_GENERATED_FILES := src/types/features/featurecollection.ts src/types/features/track.ts src/types/features/point.ts src/types/features/annotation.ts src/types/states/timestate.ts src/types/states/viewportstate.ts src/types/states/selectionstate.ts src/types/states/editorstate.ts src/types/states/currentstate.ts src/types/tools/tool.ts src/types/tools/toollistresponse.ts src/types/tools/toolcallrequest.ts src/types/tools/toolcallresponse.ts src/types/tools/jsonschema.ts src/types/tools/constrainedfeature.ts src/types/tools/input.ts src/types/tools/output.ts
@@ -138,70 +158,50 @@ $(GENERATED_FILES): $(SCHEMA_FILES)
 
 # TypeScript generation rules
 generate-ts-internal:
-	@echo "$(BLUE)Generating TypeScript types (17 parallel processes)...$(RESET)"
-	@NODE_NO_WARNINGS=1 mkdir -p src/types/features
-	@NODE_NO_WARNINGS=1 mkdir -p src/types/states
-	@NODE_NO_WARNINGS=1 mkdir -p src/types/tools
+	@echo "$(BLUE)Generating TypeScript types...$(RESET)"
+	@NODE_NO_WARNINGS=1 mkdir -p src/types/features src/types/states src/types/tools
 	@# Remove old flat type files (except index.ts)
 	@find src/types/ -maxdepth 1 -name "*.ts" -not -name "index.ts" -delete 2>/dev/null || true
-	@NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/features/FeatureCollection.schema.json --cwd schemas/features/ > src/types/features/featurecollection.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/features/Track.schema.json --cwd schemas/features/ > src/types/features/track.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/features/Point.schema.json --cwd schemas/features/ > src/types/features/point.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/features/Annotation.schema.json --cwd schemas/features/ > src/types/features/annotation.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/states/TimeState.schema.json --cwd schemas/states/ > src/types/states/timestate.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/states/ViewportState.schema.json --cwd schemas/states/ > src/types/states/viewportstate.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/states/SelectionState.schema.json --cwd schemas/states/ > src/types/states/selectionstate.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/states/EditorState.schema.json --cwd schemas/states/ > src/types/states/editorstate.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/states/CurrentState.schema.json --cwd schemas/states/ > src/types/states/currentstate.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/tools/Tool.schema.json --cwd schemas/tools/ > src/types/tools/tool.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/tools/ToolListResponse.schema.json --cwd schemas/tools/ > src/types/tools/toollistresponse.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/tools/ToolCallRequest.schema.json --cwd schemas/tools/ > src/types/tools/toolcallrequest.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/tools/ToolCallResponse.schema.json --cwd schemas/tools/ > src/types/tools/toolcallresponse.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/tools/JSONSchema.schema.json --cwd schemas/tools/ > src/types/tools/jsonschema.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/tools/ConstrainedFeature.schema.json --cwd schemas/tools/ > src/types/tools/constrainedfeature.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/tools/Input.schema.json --cwd schemas/tools/ > src/types/tools/input.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/tools/Output.schema.json --cwd schemas/tools/ > src/types/tools/output.ts & \
+	@# Generate TypeScript types in parallel by category
+	@for category in features states tools; do \
+		for schema in schemas/$$category/*.json; do \
+			basename=$$(basename "$$schema" .schema.json); \
+			output="src/types/$$category/$$(echo "$$basename" | tr '[:upper:]' '[:lower:]').ts"; \
+			NODE_NO_WARNINGS=1 npx json-schema-to-typescript "$$schema" --cwd "schemas/$$category/" > "$$output" & \
+		done; \
+	done; \
 	wait
 
 # Python generation rules
 generate-python-internal:
-	@echo "$(BLUE)Generating Python types (16 parallel processes)...$(RESET)"
-	@NODE_NO_WARNINGS=1 mkdir -p python-src/debrief/types/features
-	@NODE_NO_WARNINGS=1 mkdir -p python-src/debrief/types/states
-	@NODE_NO_WARNINGS=1 mkdir -p python-src/debrief/types/tools
-	@NODE_NO_WARNINGS=1 mkdir -p python-src/debrief/schemas/features
-	@NODE_NO_WARNINGS=1 mkdir -p python-src/debrief/schemas/states
-	@NODE_NO_WARNINGS=1 mkdir -p python-src/debrief/schemas/tools
+	@echo "$(BLUE)Generating Python types...$(RESET)"
+	@NODE_NO_WARNINGS=1 mkdir -p python-src/debrief/types/features python-src/debrief/types/states python-src/debrief/types/tools
+	@NODE_NO_WARNINGS=1 mkdir -p python-src/debrief/schemas/features python-src/debrief/schemas/states python-src/debrief/schemas/tools
 	@echo "$(BLUE)Copying schemas to Python package with folder structure...$(RESET)"
-	@# Remove old flat schema files (except __init__.py)
+	@# Remove old flat files
 	@find python-src/debrief/schemas/ -maxdepth 1 -name "*.json" -delete 2>/dev/null || true
-	@# Remove old flat type files (except __init__.py and README.md)
 	@find python-src/debrief/types/ -maxdepth 1 -name "*.py" ! -name "__init__.py" -delete 2>/dev/null || true
+	@# Copy schemas with organized structure
+	@for category in features states tools; do \
+		cp schemas/$$category/*.json python-src/debrief/schemas/$$category/ 2>/dev/null || true; \
+	done
 	@# Preserve organized __init__.py if it exists, otherwise create template
 	@if [ ! -f python-src/debrief/types/__init__.py ]; then \
 		printf '"""Generated Python types for Debrief maritime GeoJSON features and application state."""\n\n# Import from organized subpackages\nfrom .features.annotation import AnnotationFeature\nfrom .features.featurecollection import DebriefFeatureCollection\nfrom .features.track import TrackFeature\nfrom .features.point import PointFeature\nfrom .states.EditorState import EditorState\nfrom .states.TimeState import TimeState\nfrom .states.ViewportState import ViewportState\nfrom .states.SelectionState import SelectionState\nfrom .tools.Tool import Tool\nfrom .tools.ToolCallRequest import ToolCallRequest\nfrom .tools.ToolListResponse import ToolListResponse\nfrom .tools.JSONSchema import JSONSchema\n\n__all__ = ["AnnotationFeature", "DebriefFeatureCollection", "TrackFeature", "PointFeature", "EditorState", "TimeState", "ViewportState", "SelectionState", "Tool", "ToolCallRequest", "ToolListResponse", "JSONSchema"]\n' > python-src/debrief/types/__init__.py; \
 	fi
-	@# Copy schemas with organized structure
-	@cp schemas/features/*.json python-src/debrief/schemas/features/ 2>/dev/null || true
-	@cp schemas/states/*.json python-src/debrief/schemas/states/ 2>/dev/null || true
-	@cp schemas/tools/*.json python-src/debrief/schemas/tools/ 2>/dev/null || true
-	@# Generate organized Python types
-	@NODE_NO_WARNINGS=1 quicktype -s schema schemas/features/Track.schema.json -o python-src/debrief/types/features/track.py --lang python --top-level TrackFeature & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/features/Point.schema.json -o python-src/debrief/types/features/point.py --lang python --top-level PointFeature & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/features/Annotation.schema.json -o python-src/debrief/types/features/annotation.py --lang python --top-level AnnotationFeature & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/features/FeatureCollection.schema.json -o python-src/debrief/types/features/featurecollection.py --lang python --top-level DebriefFeatureCollection & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/states/TimeState.schema.json -o python-src/debrief/types/states/TimeState.py --lang python --top-level TimeState & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/states/ViewportState.schema.json -o python-src/debrief/types/states/ViewportState.py --lang python --top-level ViewportState & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/states/SelectionState.schema.json -o python-src/debrief/types/states/SelectionState.py --lang python --top-level SelectionState & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/states/EditorState.schema.json -o python-src/debrief/types/states/EditorState.py --lang python --top-level EditorState & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/tools/Tool.schema.json -o python-src/debrief/types/tools/Tool.py --lang python --top-level Tool & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/tools/ToolListResponse.schema.json -o python-src/debrief/types/tools/ToolListResponse.py --lang python --top-level ToolListResponse & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/tools/ToolCallRequest.schema.json -o python-src/debrief/types/tools/ToolCallRequest.py --lang python --top-level ToolCallRequest & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/tools/ToolCallResponse.schema.json -o python-src/debrief/types/tools/ToolCallResponse.py --lang python --top-level ToolCallResponse & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/tools/JSONSchema.schema.json -o python-src/debrief/types/tools/JSONSchema.py --lang python --top-level JsonSchema & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/tools/ConstrainedFeature.schema.json -o python-src/debrief/types/tools/ConstrainedFeature.py --lang python --top-level ConstrainedFeature & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/tools/Input.schema.json -o python-src/debrief/types/tools/Input.py --lang python --top-level Input & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/tools/Output.schema.json -o python-src/debrief/types/tools/Output.py --lang python --top-level Output & \
+	@# Generate Python types using mapping
+	@for mapping in $(PYTHON_CLASS_MAPPING); do \
+		schema="$${mapping%:*}"; \
+		class_name="$${mapping##*:}"; \
+		category="$$(echo $$schema | cut -d'/' -f2)"; \
+		basename="$$(basename "$$schema" .schema.json)"; \
+		if [ "$$category" = "states" ]; then \
+			output="python-src/debrief/types/$$category/$$basename.py"; \
+		else \
+			output="python-src/debrief/types/$$category/$$(echo "$$basename" | tr '[:upper:]' '[:lower:]').py"; \
+		fi; \
+		NODE_NO_WARNINGS=1 quicktype -s schema "$$schema" -o "$$output" --lang python --top-level "$$class_name" & \
+	done; \
 	wait
 	@# Create __init__.py files for subfolders
 	@printf '' > python-src/debrief/types/features/__init__.py
