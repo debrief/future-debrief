@@ -40,14 +40,47 @@
               },
               {
                 "$ref": "../features/FeatureCollection.schema.json#/$defs/DebriefFeature",
-                "description": "Individual GeoJSON feature (e.g., 'source', 'receiver', 'target')"
+                "description": "Individual GeoJSON feature (any type)"
+              },
+              {
+                "$ref": "ConstrainedFeature.schema.json#/$defs/TrackFeature",
+                "description": "Individual track feature (LineString/MultiLineString with dataType='track')"
+              },
+              {
+                "$ref": "ConstrainedFeature.schema.json#/$defs/PointFeature",
+                "description": "Individual point feature (Point geometry with dataType='reference-point')"
+              },
+              {
+                "$ref": "ConstrainedFeature.schema.json#/$defs/AnnotationFeature",
+                "description": "Individual annotation feature (dataType='annotation')"
               },
               {
                 "type": "array",
                 "items": {
                   "$ref": "../features/FeatureCollection.schema.json#/$defs/DebriefFeature"
                 },
-                "description": "Array of GeoJSON features (e.g., 'tracks', 'waypoints', 'contacts')"
+                "description": "Array of GeoJSON features (any types)"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "ConstrainedFeature.schema.json#/$defs/TrackFeature"
+                },
+                "description": "Array of track features only"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "ConstrainedFeature.schema.json#/$defs/PointFeature"
+                },
+                "description": "Array of point features only"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "ConstrainedFeature.schema.json#/$defs/AnnotationFeature"
+                },
+                "description": "Array of annotation features only"
               }
             ]
           }
