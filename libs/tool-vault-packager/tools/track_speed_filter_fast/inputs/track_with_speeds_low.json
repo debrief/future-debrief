@@ -1,0 +1,30 @@
+{
+  "track_feature": {
+    "type": "Feature",
+    "id": "fast_track_002",
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [
+        [-1.0, 50.5],
+        [-0.9, 50.5],
+        [-0.8, 50.5]
+      ]
+    },
+    "properties": {
+      "dataType": "track",
+      "name": "Low Speed Track",
+      "description": "A track with mostly low speeds for testing threshold filtering",
+      "timestamps": [
+        "2023-01-01T16:00:00Z",
+        "2023-01-01T16:01:00Z",
+        "2023-01-01T16:02:00Z"
+      ],
+      "speeds": [
+        3.2,
+        7.8,
+        5.1
+      ]
+    }
+  },
+  "min_speed": 10.0
+}
