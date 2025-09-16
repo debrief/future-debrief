@@ -4,7 +4,7 @@ import math
 from typing import Dict, Any
 
 
-def track_speed_filter(track_feature: Dict[str, Any], min_speed: float) -> Dict[str, Any]:
+def track_speed_filter(track_feature: Dict[str, Any], min_speed: float = 10.0) -> Dict[str, Any]:
     """
     Find timestamps where track speed equals or exceeds a minimum threshold.
 
@@ -18,7 +18,7 @@ def track_speed_filter(track_feature: Dict[str, Any], min_speed: float) -> Dict[
         track_feature (Dict[str, Any]): A GeoJSON track feature conforming to
                                        DebriefTrackFeature schema with LineString
                                        or MultiLineString geometry
-        min_speed (float): Minimum speed threshold in knots
+        min_speed (float, optional): Minimum speed threshold in knots (default: 10.0)
 
     Returns:
         Dict[str, Any]: ToolVault command object containing filtered timestamps
