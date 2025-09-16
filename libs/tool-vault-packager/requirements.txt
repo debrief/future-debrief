@@ -10,4 +10,5 @@ jsonschema>=4.17.0
 pygments>=2.15.0
 
 # Shared types from monorepo (install locally built wheel)
-../shared-types/dist/python/debrief_types-1.0.0-py3-none-any.whl
+# Note: Temporarily commented out for CI compatibility during Pydantic migration
+# ../shared-types/dist/python/debrief_types-1.0.0-py3-none-any.whl
