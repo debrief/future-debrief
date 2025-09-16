@@ -46,13 +46,6 @@ except ImportError:
         else:
             raise ImportError("Could not locate discovery module")
 
-# Try to import shared-types classes if available
-try:
-    from debrief.types.tools.ToolCallRequest import ToolCallRequest as SharedToolCallRequest
-    from debrief.types.tools.ToolCallResponse import ToolCallResponse as SharedToolCallResponse
-    SHARED_TYPES_AVAILABLE = True
-except ImportError:
-    SHARED_TYPES_AVAILABLE = False
 
 
 # Only define models if BaseModel is available
