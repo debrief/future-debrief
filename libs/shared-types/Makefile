@@ -222,7 +222,7 @@ generate-python-internal:
 			category="$$(echo $$schema | cut -d'/' -f2)"; \
 			basename="$$(basename "$$schema" .schema.json)"; \
 			output="python-src/debrief/types/$$category/$$basename.py"; \
-			printf '# Minimal stub for CI - datamodel-codegen not available\nfrom typing import Any, Dict\nfrom pydantic import BaseModel\n\nclass %s(BaseModel):\n    """Minimal stub for CI compatibility."""\n    pass\n' "$$class_name" > "$$output"; \
+			printf '# Minimal stub for CI - datamodel-codegen not available\nfrom typing import Any, Dict\n\nclass %s:\n    """Minimal stub for CI compatibility."""\n    def __init__(self, **kwargs):\n        for key, value in kwargs.items():\n            setattr(self, key, value)\n    \n    @classmethod\n    def from_dict(cls, data: Dict[str, Any]):\n        return cls(**data)\n    \n    def to_dict(self) -> Dict[str, Any]:\n        return {k: v for k, v in self.__dict__.items()}\n' "$$class_name" > "$$output"; \
 		done; \
 	fi
 	@# Create organized __init__.py with PascalCase imports
