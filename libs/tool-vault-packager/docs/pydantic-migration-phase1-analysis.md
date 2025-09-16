@@ -123,14 +123,15 @@ class WordCountParameters(BaseModel):
     )
 ```
 
-**2. Implement Command Object Schema**
+**2. Simple Command Object Return**
 ```python
-# Enhanced return type with specific ToolVault commands
-from typing import Union
-from libs.shared-types.python-src.debrief.types.tools.ToolCallResponse import ToolCallResponse
-
-def word_count(parameters: WordCountParameters) -> ToolCallResponse:
-    # Implementation returns properly typed command object
+# Direct return of command/payload structure (no need for output schema introspection)
+def word_count(params: WordCountParameters) -> Dict[str, Any]:
+    # ... count logic ...
+    return {
+        "command": "showText",
+        "payload": f"Word count: {count}"
+    }
 ```
 
 **3. JSON Schema Generation**
