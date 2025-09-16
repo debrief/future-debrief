@@ -54,10 +54,8 @@ def toggle_first_feature_color(feature_collection: Dict[str, Any]) -> Dict[str, 
     # Toggle the color property
     current_color = first_feature["properties"].get("color", "blue")
     if current_color == "red":
-        new_color = "blue"
         first_feature["properties"]["color"] = "blue"
     else:
-        new_color = "red"
         first_feature["properties"]["color"] = "red"
 
     # Return ToolVault command to update the feature collection
