@@ -24,7 +24,7 @@ runs:
       working-directory: libs/shared-types
       run: |
         pip install -r requirements.txt
-        make build-python
+        make build-python-wheel
 
     - name: Install Python dependencies
       shell: bash
