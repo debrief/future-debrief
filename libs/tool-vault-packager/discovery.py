@@ -28,7 +28,8 @@ class ToolMetadata:
         sample_inputs: Optional[List[Dict[str, Any]]] = None,
         source_code: Optional[str] = None,
         git_history: Optional[List[Dict[str, Any]]] = None,
-        module=None
+        module=None,
+        pydantic_model: Optional[type] = None
     ):
         self.name = name
         self.function = function
@@ -40,7 +41,8 @@ class ToolMetadata:
         self.sample_inputs = sample_inputs or []
         self.source_code = source_code
         self.git_history = git_history or []
-        self.module = module  # Store module reference for Pydantic detection
+        self.module = module
+        self.pydantic_model = pydantic_model  # Store module reference for Pydantic detection
 
 
 def extract_function_docstring(func: Callable) -> str:
@@ -380,7 +382,8 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
                         sample_inputs=sample_inputs,
                         source_code=module_content,  # Use the extracted module content
                         git_history=[],  # Not available in zip files
-                        module=module  # Store module reference for Pydantic detection
+                        module=module,  # Store module reference for Pydantic detection
+                        pydantic_model=pydantic_model
                     ))
                     
                 finally:
@@ -498,7 +501,8 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
             sample_inputs=sample_inputs,
             source_code=source_code,
             git_history=git_history,
-            module=module
+            module=module,
+            pydantic_model=pydantic_model
         ))
     
     if not tools:
