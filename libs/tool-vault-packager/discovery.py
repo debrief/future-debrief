@@ -190,40 +190,7 @@ def extract_pydantic_parameters(pydantic_model: type) -> Dict[str, Any]:
         raise ToolDiscoveryError(f"Failed to extract Pydantic parameter schema: {e}")
 
 
-def convert_python_type_to_json_schema(type_str: str) -> Dict[str, Any]:
-    """Convert Python type string to JSON Schema format."""
-    type_mapping = {
-        "<class 'str'>": {"type": "string"},
-        "<class 'int'>": {"type": "integer"},
-        "<class 'float'>": {"type": "number"},
-        "<class 'bool'>": {"type": "boolean"},
-        "<class 'list'>": {"type": "array"},
-        "<class 'dict'>": {"type": "object"},
-        "typing.Dict[str, typing.Any]": {"type": "object"},
-        "Dict[str, Any]": {"type": "object"},
-        "typing.Any": {},
-    }
-    
-    # Handle basic types
-    if type_str in type_mapping:
-        return type_mapping[type_str]
-    
-    # Handle more complex typing annotations
-    if "Dict[str, Any]" in type_str or "dict" in type_str.lower():
-        return {"type": "object"}
-    elif "List" in type_str or "list" in type_str.lower():
-        return {"type": "array"}
-    elif "str" in type_str:
-        return {"type": "string"}
-    elif "int" in type_str:
-        return {"type": "integer"}
-    elif "float" in type_str:
-        return {"type": "number"}
-    elif "bool" in type_str:
-        return {"type": "boolean"}
-    
-    # Default to object for complex types
-    return {"type": "object"}
+# Legacy type conversion function removed - all tools now use Pydantic parameter models
 
 
 def load_sample_inputs(inputs_dir: Path) -> List[Dict[str, Any]]:
@@ -554,27 +521,23 @@ def generate_tool_schema(tool: ToolMetadata) -> Dict[str, Any]:
     Returns:
         Dictionary representing a Tool schema
     """
-    # Generate specific output schema based on the tool's return type annotation
-    output_schema = convert_python_type_to_json_schema(tool.return_type)
-
-    # If the tool returns a Dict[str, Any], we can be more specific about the ToolVault command structure
-    if tool.return_type in ["Dict[str, Any]", "<class 'dict'>", "typing.Dict[str, typing.Any]"]:
-        output_schema = {
-            "type": "object",
-            "properties": {
-                "command": {
-                    "type": "string",
-                    "enum": ["addFeatures", "updateFeatures", "deleteFeatures", "setFeatureCollection",
-                            "showText", "showData", "showImage", "logMessage", "composite"],
-                    "description": "The ToolVault command type"
-                },
-                "payload": {
-                    "description": "The command-specific payload data"
-                }
+    # All tools return ToolVault command objects
+    output_schema = {
+        "type": "object",
+        "properties": {
+            "command": {
+                "type": "string",
+                "enum": ["addFeatures", "updateFeatures", "deleteFeatures", "setFeatureCollection",
+                        "showText", "showData", "showImage", "logMessage", "composite"],
+                "description": "The ToolVault command type"
             },
-            "required": ["command", "payload"],
-            "additionalProperties": False
-        }
+            "payload": {
+                "description": "The command-specific payload data"
+            }
+        },
+        "required": ["command", "payload"],
+        "additionalProperties": False
+    }
 
     # For more specific return types like Union[ShowTextResult, SetFeatureCollectionResult],
     # we could parse the Union and create more specific schemas, but for now we'll use the generic approach
