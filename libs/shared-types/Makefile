@@ -192,14 +192,17 @@ generate-python-internal:
 	@for category in features states tools; do \
 		cp schemas/$$category/*.json python-src/debrief/schemas/$$category/ 2>/dev/null || true; \
 	done
-	@# Generate Python types using mapping with consistent PascalCase filenames
+	@# Generate Python types using datamodel-codegen with consistent PascalCase filenames
 	@for mapping in $(PYTHON_CLASS_MAPPING); do \
 		schema="$${mapping%:*}"; \
 		class_name="$${mapping##*:}"; \
 		category="$$(echo $$schema | cut -d'/' -f2)"; \
 		basename="$$(basename "$$schema" .schema.json)"; \
 		output="python-src/debrief/types/$$category/$$basename.py"; \
-		NODE_NO_WARNINGS=1 quicktype -s schema "$$schema" -o "$$output" --lang python --top-level "$$class_name" & \
+		datamodel-codegen --input "$$schema" --output "$$output" --target-python-version 3.9 \
+			--class-name "$$class_name" --use-schema-description --use-field-description \
+			--output-model-type pydantic_v2.BaseModel --disable-appending-item-suffix \
+			--input-file-type jsonschema & \
 	done; \
 	wait
 	@# Create organized __init__.py with PascalCase imports
