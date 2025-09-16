@@ -1,0 +1,27 @@
+{
+  "track_feature": {
+    "type": "Feature",
+    "id": "sample_track_002",
+    "geometry": {
+      "type": "LineString",
+      "coordinates": [
+        [0.0, 51.0],
+        [0.1, 51.0],
+        [0.2, 51.0],
+        [0.3, 51.0]
+      ]
+    },
+    "properties": {
+      "dataType": "track",
+      "name": "Sample High Speed Track",
+      "description": "A track with higher speeds for testing threshold filtering",
+      "timestamps": [
+        "2023-01-01T12:00:00Z",
+        "2023-01-01T12:01:00Z",
+        "2023-01-01T12:02:00Z",
+        "2023-01-01T12:03:00Z"
+      ]
+    }
+  },
+  "min_speed": 10.0
+}
