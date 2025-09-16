@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://example.org/debrief/schemas/tools/ToolCallRequest.schema.json",
+  "title": "Tool Call Request",
+  "description": "Request format for calling a tool with features and configuration parameters",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name of the tool to call"
+    },
+    "arguments": {
+      "type": "array",
+      "description": "Tool arguments as an array of named parameters",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The parameter name (e.g., 'source', 'threshold', 'includeSpeed')"
+          },
+          "value": {
+            "oneOf": [
+              {
+                "type": "string",
+                "description": "String configuration parameter"
+              },
+              {
+                "type": "number",
+                "description": "Numeric configuration parameter"
+              },
+              {
+                "type": "boolean",
+                "description": "Boolean configuration parameter"
+              },
+              {
+                "type": "string",
+                "enum": ["placeholder"],
+                "description": "Enum configuration parameter (values are tool-specific)"
+              },
+              {
+                "$ref": "../features/FeatureCollection.schema.json#/$defs/DebriefFeature",
+                "description": "Individual GeoJSON feature (any type)"
+              },
+              {
+                "$ref": "ConstrainedFeature.schema.json#/$defs/TrackFeature",
+                "description": "Individual track feature (LineString/MultiLineString with dataType='track')"
+              },
+              {
+                "$ref": "ConstrainedFeature.schema.json#/$defs/PointFeature",
+                "description": "Individual point feature (Point geometry with dataType='reference-point')"
+              },
+              {
+                "$ref": "ConstrainedFeature.schema.json#/$defs/AnnotationFeature",
+                "description": "Individual annotation feature (dataType='annotation')"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "../features/FeatureCollection.schema.json#/$defs/DebriefFeature"
+                },
+                "description": "Array of GeoJSON features (any types)"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "ConstrainedFeature.schema.json#/$defs/TrackFeature"
+                },
+                "description": "Array of track features only"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "ConstrainedFeature.schema.json#/$defs/PointFeature"
+                },
+                "description": "Array of point features only"
+              },
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "ConstrainedFeature.schema.json#/$defs/AnnotationFeature"
+                },
+                "description": "Array of annotation features only"
+              }
+            ]
+          }
+        },
+        "required": ["name", "value"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["name", "arguments"],
+  "additionalProperties": false
+}

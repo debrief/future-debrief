@@ -9,9 +9,9 @@ const getServerBaseUrl = (): string => {
   }
   
   // Check for Vite environment variable
-  const viteBackendUrl = import.meta.env.VITE_MCP_BASE_URL;
+  const viteBackendUrl = import.meta.env.VITE_BACKEND_URL;
   if (viteBackendUrl) {
-    return viteBackendUrl.replace('/tools', '');
+    return viteBackendUrl;
   }
   
   // Auto-detect from current window location (when served from same server)
@@ -93,18 +93,27 @@ export class MCPService {
 
   async callTool(request: MCPToolCallRequest): Promise<MCPToolCallResponse> {
     try {
+      // Transform arguments from object format to list format expected by server
+      const transformedRequest = {
+        name: request.name,
+        arguments: Object.entries(request.arguments).map(([name, value]) => ({
+          name,
+          value
+        }))
+      };
+
       const response = await fetch(`${this.baseUrl}/call`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(request),
+        body: JSON.stringify(transformedRequest),
       });
-      
+
       if (!response.ok) {
         throw new Error(`Failed to call tool: ${response.statusText}`);
       }
-      
+
       return await response.json();
     } catch (error) {
       console.error('Error calling tool:', error);

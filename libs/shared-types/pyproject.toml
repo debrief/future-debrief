@@ -52,11 +52,11 @@ Repository = "https://github.com/debrief/future-debrief.git"
 
 [tool.setuptools]
 package-dir = {"" = "python-src"}
-packages = ["debrief", "debrief.types", "debrief.validators", "debrief.schemas"]
+packages = ["debrief", "debrief.types", "debrief.types.features", "debrief.types.states", "debrief.types.tools", "debrief.validators", "debrief.schemas"]
 include-package-data = true
 
 [tool.setuptools.package-data]
-"debrief.schemas" = ["*.json"]
+"debrief.schemas" = ["features/*.json", "states/*.json", "tools/*.json"]
 
 [tool.setuptools.dynamic]
 version = {attr = "debrief.__version__"}

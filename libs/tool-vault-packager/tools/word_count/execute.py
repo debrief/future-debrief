@@ -1,29 +1,35 @@
 """Word counting tool for text analysis."""
 
+from typing import Dict, Any
 
-def word_count(text: str) -> int:
+
+def word_count(text: str) -> Dict[str, Any]:
     """
     Count the number of words in a given block of text.
-    
+
     This function splits the input text by whitespace and returns the count
-    of resulting words. Empty strings and strings containing only whitespace
-    will return 0.
-    
+    of resulting words as a ToolVault command object. Empty strings and strings
+    containing only whitespace will return 0.
+
     Args:
         text (str): The input text block to count words from
-        
+
     Returns:
-        int: The number of words found in the text
-        
+        Dict[str, Any]: ToolVault command object with word count result
+
     Examples:
-        >>> word_count("Hello world")
-        2
-        >>> word_count("The quick brown fox")
-        4
-        >>> word_count("")
-        0
+        >>> result = word_count("Hello world")
+        >>> result["command"]
+        'showText'
+        >>> result["payload"]
+        'Word count: 2'
     """
     if not text or not text.strip():
-        return 0
-    
-    return len(text.strip().split())
+        count = 0
+    else:
+        count = len(text.strip().split())
+
+    return {
+        "command": "showText",
+        "payload": f"Word count: {count}"
+    }

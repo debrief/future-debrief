@@ -6,10 +6,28 @@
 # - Schema changes: Full rebuild with generation + compile + test
 # - Source changes: Compile + test only
 
+# Schema to top-level class name mappings for Python generation
+PYTHON_CLASS_MAPPING := \
+	schemas/features/Track.schema.json:TrackFeature \
+	schemas/features/Point.schema.json:PointFeature \
+	schemas/features/Annotation.schema.json:AnnotationFeature \
+	schemas/features/FeatureCollection.schema.json:DebriefFeatureCollection \
+	schemas/states/TimeState.schema.json:TimeState \
+	schemas/states/ViewportState.schema.json:ViewportState \
+	schemas/states/SelectionState.schema.json:SelectionState \
+	schemas/states/EditorState.schema.json:EditorState \
+	schemas/states/CurrentState.schema.json:CurrentState \
+	schemas/tools/Tool.schema.json:Tool \
+	schemas/tools/ToolListResponse.schema.json:ToolListResponse \
+	schemas/tools/ToolCallRequest.schema.json:ToolCallRequest \
+	schemas/tools/ToolCallResponse.schema.json:ToolCallResponse \
+	schemas/tools/JSONSchema.schema.json:JsonSchema \
+	schemas/tools/ConstrainedFeature.schema.json:ConstrainedFeature
+
 # File pattern definitions
-SCHEMA_FILES := $(wildcard schemas/features/*.json) $(wildcard schemas/states/*.json)
-TS_GENERATED_FILES := src/types/featurecollection.ts src/types/timestate.ts src/types/viewportstate.ts src/types/selectionstate.ts src/types/editorstate.ts src/types/currentstate.ts src/types/track.ts src/types/point.ts src/types/annotation.ts
-PY_GENERATED_FILES := python-src/debrief/types/track.py python-src/debrief/types/point.py python-src/debrief/types/annotation.py python-src/debrief/types/featurecollection.py python-src/debrief/types/TimeState.py python-src/debrief/types/ViewportState.py python-src/debrief/types/SelectionState.py python-src/debrief/types/EditorState.py
+SCHEMA_FILES := $(wildcard schemas/features/*.json) $(wildcard schemas/states/*.json) $(wildcard schemas/tools/*.json)
+TS_GENERATED_FILES := src/types/features/featurecollection.ts src/types/features/track.ts src/types/features/point.ts src/types/features/annotation.ts src/types/states/timestate.ts src/types/states/viewportstate.ts src/types/states/selectionstate.ts src/types/states/editorstate.ts src/types/states/currentstate.ts src/types/tools/tool.ts src/types/tools/toollistresponse.ts src/types/tools/toolcallrequest.ts src/types/tools/toolcallresponse.ts src/types/tools/jsonschema.ts src/types/tools/constrainedfeature.ts
+PY_GENERATED_FILES := python-src/debrief/types/features/Track.py python-src/debrief/types/features/Point.py python-src/debrief/types/features/Annotation.py python-src/debrief/types/features/FeatureCollection.py python-src/debrief/types/states/TimeState.py python-src/debrief/types/states/ViewportState.py python-src/debrief/types/states/SelectionState.py python-src/debrief/types/states/EditorState.py python-src/debrief/types/states/CurrentState.py python-src/debrief/types/tools/Tool.py python-src/debrief/types/tools/ToolListResponse.py python-src/debrief/types/tools/ToolCallRequest.py python-src/debrief/types/tools/ToolCallResponse.py python-src/debrief/types/tools/JSONSchema.py python-src/debrief/types/tools/ConstrainedFeature.py
 GENERATED_FILES := $(TS_GENERATED_FILES) $(PY_GENERATED_FILES)
 COMPILED_FILES := dist/index.js dist/index.d.ts
 PYTHON_WHEEL := dist/python/debrief_types-1.0.0-py3-none-any.whl
@@ -69,9 +87,16 @@ $(PYTHON_WHEEL): $(PY_GENERATED_FILES)
 
 ## 
 ## Maintenance Targets:
-clean: ## Clean all generated files
+clean: ## Clean all generated files (preserves validators and hand-written code)
 	@echo "$(RED)Cleaning generated files...$(RESET)"
-	@rm -rf src/types/[!R]*.ts dist/* python-src/debrief/types/[!R]*.py python-src/debrief/schemas/*.json build/ *.egg-info/
+	@# Remove generated TypeScript types (preserve validators and index.ts)
+	@rm -rf src/types/
+	@# Remove generated Python types and schemas (preserve validators, README.md, __init__.py)
+	@rm -rf python-src/debrief/types/features/ python-src/debrief/types/states/ python-src/debrief/types/tools/
+	@rm -rf python-src/debrief/schemas/
+	@find python-src/debrief/types/ -maxdepth 1 -name "*.py" ! -name "__init__.py" ! -name "README.md" -delete 2>/dev/null || true
+	@# Remove build artifacts
+	@rm -rf dist/* build/ *.egg-info/
 
 clean-build: clean build ## Force complete rebuild after cleaning
 
@@ -136,34 +161,53 @@ $(GENERATED_FILES): $(SCHEMA_FILES)
 	@$(MAKE) generate-python-internal
 	@echo "$(GREEN)✓ Type generation complete$(RESET)"
 
-# TypeScript generation rules  
+# TypeScript generation rules
 generate-ts-internal:
-	@echo "$(BLUE)Generating TypeScript types (6 parallel processes)...$(RESET)"
-	@NODE_NO_WARNINGS=1 mkdir -p src/types
-	@NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/features/FeatureCollection.schema.json --cwd schemas/features/ > src/types/featurecollection.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/states/TimeState.schema.json --cwd schemas/states/ > src/types/timestate.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/states/ViewportState.schema.json --cwd schemas/states/ > src/types/viewportstate.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/states/SelectionState.schema.json --cwd schemas/states/ > src/types/selectionstate.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/states/EditorState.schema.json --cwd schemas/states/ > src/types/editorstate.ts & \
-	NODE_NO_WARNINGS=1 npx json-schema-to-typescript schemas/states/CurrentState.schema.json --cwd schemas/states/ > src/types/currentstate.ts & \
+	@echo "$(BLUE)Generating TypeScript types...$(RESET)"
+	@# Clean generated directories (preserve validators and index.ts)
+	@rm -rf src/types/ 2>/dev/null || true
+	@NODE_NO_WARNINGS=1 mkdir -p src/types/features src/types/states src/types/tools
+	@# Generate TypeScript types in parallel by category
+	@for category in features states tools; do \
+		for schema in schemas/$$category/*.json; do \
+			basename=$$(basename "$$schema" .schema.json); \
+			output="src/types/$$category/$$(echo "$$basename" | tr '[:upper:]' '[:lower:]').ts"; \
+			NODE_NO_WARNINGS=1 npx json-schema-to-typescript "$$schema" --cwd "schemas/$$category/" > "$$output" & \
+		done; \
+	done; \
 	wait
-	@printf '// Re-export from featurecollection to avoid duplication\nexport { DebriefTrackFeature } from "./featurecollection";\n' > src/types/track.ts
-	@printf '// Re-export from featurecollection to avoid duplication\nexport { DebriefPointFeature } from "./featurecollection";\n' > src/types/point.ts
-	@printf '// Re-export from featurecollection to avoid duplication\nexport { DebriefAnnotationFeature } from "./featurecollection";\n' > src/types/annotation.ts
 
 # Python generation rules
 generate-python-internal:
-	@echo "$(BLUE)Generating Python types (8 parallel processes)...$(RESET)"
-	@NODE_NO_WARNINGS=1 mkdir -p python-src/debrief/types
-	@NODE_NO_WARNINGS=1 quicktype -s schema schemas/features/Track.schema.json -o python-src/debrief/types/track.py --lang python --top-level TrackFeature & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/features/Point.schema.json -o python-src/debrief/types/point.py --lang python --top-level PointFeature & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/features/Annotation.schema.json -o python-src/debrief/types/annotation.py --lang python --top-level AnnotationFeature & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/features/FeatureCollection.schema.json -o python-src/debrief/types/featurecollection.py --lang python --top-level DebriefFeatureCollection & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/states/TimeState.schema.json -o python-src/debrief/types/TimeState.py --lang python --top-level TimeState & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/states/ViewportState.schema.json -o python-src/debrief/types/ViewportState.py --lang python --top-level ViewportState & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/states/SelectionState.schema.json -o python-src/debrief/types/SelectionState.py --lang python --top-level SelectionState & \
-	NODE_NO_WARNINGS=1 quicktype -s schema schemas/states/EditorState.schema.json -o python-src/debrief/types/EditorState.py --lang python --top-level EditorState & \
+	@echo "$(BLUE)Generating Python types...$(RESET)"
+	@# Clean generated directories (preserve hand-written files)
+	@rm -rf python-src/debrief/schemas/ 2>/dev/null || true
+	@rm -rf python-src/debrief/types/features/ python-src/debrief/types/states/ python-src/debrief/types/tools/ 2>/dev/null || true
+	@find python-src/debrief/types/ -maxdepth 1 -name "*.py" ! -name "__init__.py" ! -name "README.md" -delete 2>/dev/null || true
+	@# Create directory structure
+	@NODE_NO_WARNINGS=1 mkdir -p python-src/debrief/types/features python-src/debrief/types/states python-src/debrief/types/tools
+	@NODE_NO_WARNINGS=1 mkdir -p python-src/debrief/schemas/features python-src/debrief/schemas/states python-src/debrief/schemas/tools
+	@echo "$(BLUE)Copying schemas to Python package with folder structure...$(RESET)"
+	@# Copy schemas with organized structure
+	@for category in features states tools; do \
+		cp schemas/$$category/*.json python-src/debrief/schemas/$$category/ 2>/dev/null || true; \
+	done
+	@# Generate Python types using mapping with consistent PascalCase filenames
+	@for mapping in $(PYTHON_CLASS_MAPPING); do \
+		schema="$${mapping%:*}"; \
+		class_name="$${mapping##*:}"; \
+		category="$$(echo $$schema | cut -d'/' -f2)"; \
+		basename="$$(basename "$$schema" .schema.json)"; \
+		output="python-src/debrief/types/$$category/$$basename.py"; \
+		NODE_NO_WARNINGS=1 quicktype -s schema "$$schema" -o "$$output" --lang python --top-level "$$class_name" & \
+	done; \
 	wait
+	@# Create organized __init__.py with PascalCase imports
+	@printf '"""\nGenerated Python types for Debrief maritime GeoJSON features and application state.\nThese types are generated from JSON schemas and provide type hints and validation.\n"""\n\n# Import from organized subpackages\nfrom .features.Annotation import AnnotationFeature\nfrom .features.FeatureCollection import DebriefFeatureCollection\nfrom .features.Track import TrackFeature\nfrom .features.Point import PointFeature\nfrom .states.EditorState import EditorState\nfrom .states.TimeState import TimeState\nfrom .states.ViewportState import ViewportState\nfrom .states.SelectionState import SelectionState\nfrom .states.CurrentState import CurrentState\nfrom .tools.Tool import Tool\nfrom .tools.ToolCallRequest import ToolCallRequest\nfrom .tools.ToolCallResponse import ToolCallResponse\nfrom .tools.ToolListResponse import ToolListResponse\nfrom .tools.JSONSchema import JSONSchema\nfrom .tools.ConstrainedFeature import ConstrainedFeature\n\n__all__ = ["AnnotationFeature", "DebriefFeatureCollection", "TrackFeature", "PointFeature", "EditorState", "TimeState", "ViewportState", "SelectionState", "CurrentState", "Tool", "ToolCallRequest", "ToolCallResponse", "ToolListResponse", "JSONSchema", "ConstrainedFeature"]\n' > python-src/debrief/types/__init__.py
+	@# Create __init__.py files for subfolders
+	@printf '' > python-src/debrief/types/features/__init__.py
+	@printf '' > python-src/debrief/types/states/__init__.py
+	@printf '' > python-src/debrief/types/tools/__init__.py
 
 # Rule 2: Compile distribution if any generated file is newer than compiled output
 $(COMPILED_FILES): $(GENERATED_FILES)
