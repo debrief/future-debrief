@@ -49,6 +49,25 @@
 - **File Association**: `.plot.json` files automatically open in custom editor
 - **Error Handling**: Detailed validation errors with feature-level diagnostics
 
+### ToolVault Pydantic Migration - Issue #113 Phase 2 ✅
+**Decision**: Successfully migrated from pydoc-derived parameter schemas to Pydantic models with JSON Schema generation
+- **Problem**: Generic parameter descriptions, limited validation, no shared-types composition
+- **Solution**: Schema-first approach using Pydantic models with `.model_json_schema()` generation
+- **Pilot Tool**: `word_count` tool successfully migrated with backward compatibility
+- **Location**: `libs/tool-vault-packager/tools/word_count/execute.py` - Pydantic models defined inline
+- **Key Files Modified**:
+  - `discovery.py`: Added `detect_pydantic_parameter_model()` and `extract_pydantic_parameters()` functions
+  - `cli.py`: Added `call_tool_with_pydantic_support()` for dual parameter handling
+  - `tools/word_count/execute.py`: Added `WordCountParameters` Pydantic model for input validation
+- **Migration Pattern**: Tools with `*Parameters` Pydantic models automatically detected and used
+- **Rich Schema Features**: Parameter descriptions, validation rules (minLength), examples array, required fields
+- **Clean Implementation**: Pure Pydantic parameter model approach (no legacy compatibility needed pre-production)
+- **CLI Integration**: Both development and packaged (.pyz) versions support Pydantic parameter validation
+- **Before/After Comparison**:
+  - Legacy: `{"params": {"type": "string", "description": "Parameter params"}}`
+  - Pydantic: `{"text": {"type": "string", "description": "The input text block to count words from", "examples": [...], "minLength": 0, "required": true}}`
+- **Success Metrics**: Rich JSON Schema generation, runtime parameter validation, VS Code client compatibility, CLI execution working
+
 ### PropertiesView Web Component Integration - Issue #45 ✅
 **Decision**: Replace custom HTML properties viewer with standardized PropertiesView React component
 - **Problem**: Custom HTML template in `propertiesViewProvider.ts` was difficult to maintain and inconsistent with other components
