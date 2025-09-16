@@ -1,50 +1,98 @@
 """Fast track speed filtering tool using pre-calculated speeds."""
 
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field, model_validator
 from debrief.types import TrackFeature
 
 
-def _track_with_speeds_schema() -> Dict[str, Any]:
-    """Generate JSON Schema for Track with required speeds property."""
-    return {
-        "allOf": [
-            {
-                "$ref": "https://example.org/debrief/schemas/features/Track.schema.json"
-            },
-            {
-                "type": "object",
-                "properties": {
-                    "properties": {
-                        "type": "object",
-                        "required": ["dataType", "speeds"],
-                        "properties": {
-                            "speeds": {
-                                "type": "array",
-                                "description": "Array of pre-calculated speeds in knots corresponding to each coordinate point",
-                                "items": {
-                                    "type": "number",
-                                    "minimum": 0
-                                },
-                                "examples": [
-                                    [15.2, 18.7, 12.3, 20.1],
-                                    [5.0, 10.5, 8.2]
-                                ]
-                            }
-                        }
-                    }
-                }
-            }
-        ]
-    }
+class TrackFeatureWithSpeeds(BaseModel):
+    """A Track feature that extends the base Track with REQUIRED speeds array."""
+
+    # Accept the raw dict input, then validate and convert
+    track_data: Dict[str, Any] = Field(
+        description="Raw track feature data that will be validated as Track + speeds constraint"
+    )
+
+    # Store the validated shared-types TrackFeature
+    _validated_track: Optional[TrackFeature] = None
+
+    @model_validator(mode='after')
+    def validate_track_with_speeds(self):
+        """Validate as base Track AND ensure speeds array exists."""
+        track_data = self.track_data
+
+        # First validate with shared-types TrackFeature
+        try:
+            base_track = TrackFeature.from_dict(track_data)
+            self._validated_track = base_track
+        except Exception as e:
+            raise ValueError(f"Invalid Track feature structure: {e}")
+
+        # Additional constraint: require speeds array
+        properties = track_data.get("properties", {})
+        speeds = properties.get("speeds")
+
+        if speeds is None:
+            raise ValueError("Track feature must have a 'speeds' array in properties for fast filtering")
+
+        if not isinstance(speeds, list):
+            raise ValueError("speeds property must be a list")
+
+        if not speeds:  # Empty list
+            raise ValueError("speeds array cannot be empty")
+
+        if not all(isinstance(s, (int, float)) and s >= 0 for s in speeds):
+            raise ValueError("All speeds must be non-negative numbers")
+
+        # Validate array length alignment
+        geometry = track_data.get("geometry", {})
+        geom_type = geometry.get("type")
+        coordinates = geometry.get("coordinates", [])
+
+        if geom_type == "LineString":
+            coord_count = len(coordinates)
+        elif geom_type == "MultiLineString":
+            coord_count = sum(len(line) for line in coordinates)
+        else:
+            raise ValueError(f"Unsupported geometry type: {geom_type}")
+
+        timestamps = properties.get("timestamps", [])
+
+        if len(speeds) != coord_count:
+            raise ValueError(f"speeds array length ({len(speeds)}) must match coordinate count ({coord_count})")
+
+        if len(timestamps) != coord_count:
+            raise ValueError(f"timestamps array length ({len(timestamps)}) must match coordinate count ({coord_count})")
+
+        return self
+
+    @property
+    def base_track(self) -> TrackFeature:
+        """Get the validated shared-types TrackFeature."""
+        if self._validated_track is None:
+            raise ValueError("Track not yet validated")
+        return self._validated_track
+
+    @property
+    def speeds(self) -> List[float]:
+        """Get the speeds array."""
+        return self.track_data["properties"]["speeds"]
+
+    @property
+    def timestamps(self) -> List[str]:
+        """Get the timestamps as strings."""
+        # Convert datetime objects to strings if needed
+        timestamps = self.track_data["properties"]["timestamps"]
+        if timestamps and hasattr(timestamps[0], 'isoformat'):
+            return [ts.isoformat() for ts in timestamps]
+        return timestamps
 
 
 class TrackSpeedFilterFastParameters(BaseModel):
     """Parameters for the track_speed_filter_fast tool."""
 
     track_feature: Dict[str, Any] = Field(
-        json_schema_extra=_track_with_speeds_schema(),
-        description="A Track feature with pre-calculated speeds array in properties.speeds",
+        description="A Track feature conforming to shared-types Track schema, with additional required 'speeds' array in properties",
         examples=[
             {
                 "type": "Feature",
@@ -64,6 +112,14 @@ class TrackSpeedFilterFastParameters(BaseModel):
         ]
     )
 
+    @model_validator(mode='after')
+    def validate_track_feature_with_speeds(self):
+        """Create and validate the constrained TrackFeatureWithSpeeds."""
+        # Use our constrained wrapper for validation
+        constrained_track = TrackFeatureWithSpeeds(track_data=self.track_feature)
+        self._constrained_track = constrained_track
+        return self
+
     min_speed: float = Field(
         default=10.0,
         description="Minimum speed threshold in knots",
@@ -71,46 +127,6 @@ class TrackSpeedFilterFastParameters(BaseModel):
         examples=[5.0, 10.0, 15.0, 20.0]
     )
 
-    @model_validator(mode='after')
-    def validate_track_with_speeds(self):
-        """Validate Track feature and ensure it has speeds array."""
-        track_data = self.track_feature
-
-        # Convert to shared-types TrackFeature for basic validation
-        try:
-            track_feature_obj = TrackFeature.from_dict(track_data)
-            self._track_feature_obj = track_feature_obj
-        except Exception as e:
-            raise ValueError(f"Invalid track feature structure: {e}")
-
-        # Additional validation for speeds array
-        properties = track_data.get("properties", {})
-        speeds = properties.get("speeds")
-
-        if speeds is None:
-            raise ValueError("Track feature must have a 'speeds' array in properties for fast filtering")
-
-        if not isinstance(speeds, list):
-            raise ValueError("speeds property must be an array")
-
-        if not all(isinstance(s, (int, float)) and s >= 0 for s in speeds):
-            raise ValueError("All speeds must be non-negative numbers")
-
-        # Check that speeds array length matches coordinates
-        geometry = track_data.get("geometry", {})
-        coordinates = geometry.get("coordinates", [])
-
-        if geometry.get("type") == "LineString":
-            coord_count = len(coordinates)
-        elif geometry.get("type") == "MultiLineString":
-            coord_count = sum(len(line) for line in coordinates)
-        else:
-            coord_count = 0
-
-        if len(speeds) != coord_count:
-            raise ValueError(f"speeds array length ({len(speeds)}) must match coordinate count ({coord_count})")
-
-        return self
 
 
 def track_speed_filter_fast(params: TrackSpeedFilterFastParameters) -> Dict[str, Any]:
@@ -151,34 +167,20 @@ def track_speed_filter_fast(params: TrackSpeedFilterFastParameters) -> Dict[str,
         >>> result["command"]
         'showText'
     """
-    # Extract validated parameters
-    track_feature = params._track_feature_obj
+    # Access the constrained track wrapper created during validation
+    constrained_track = params._constrained_track
     min_speed = params.min_speed
 
-    properties = track_feature.properties
-    speeds = params.track_feature["properties"]["speeds"]  # Use raw dict for speeds
-    timestamps = properties.timestamps
-
-    if timestamps is None:
-        return {
-            "command": "showText",
-            "payload": "Track feature must have timestamps for speed filtering"
-        }
-
-    if len(timestamps) != len(speeds):
-        return {
-            "command": "showText",
-            "payload": f"Timestamp count ({len(timestamps)}) must match speeds count ({len(speeds)})"
-        }
+    # Get speeds and timestamps from the wrapper's convenience properties
+    speeds = constrained_track.speeds  # List[float] - guaranteed to exist and be valid
+    timestamps = constrained_track.timestamps  # List[str] - guaranteed to match speeds length
 
     # Find timestamps where speed meets or exceeds threshold
     high_speed_times = []
 
     for i, speed in enumerate(speeds):
         if speed >= min_speed:
-            # Convert datetime to ISO string for display
-            timestamp_str = timestamps[i].isoformat() if hasattr(timestamps[i], 'isoformat') else str(timestamps[i])
-            high_speed_times.append(timestamp_str)
+            high_speed_times.append(timestamps[i])
 
     if not high_speed_times:
         return {
