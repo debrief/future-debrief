@@ -2,9 +2,51 @@
 
 import copy
 from typing import Dict, Any
+from pydantic import BaseModel, Field, model_validator
 
 
-def toggle_first_feature_color(feature_collection: Dict[str, Any]) -> Dict[str, Any]:
+class ToggleFirstFeatureColorParameters(BaseModel):
+    """Parameters for the toggle_first_feature_color tool."""
+
+    feature_collection: Dict[str, Any] = Field(
+        description="A GeoJSON FeatureCollection object conforming to the Debrief FeatureCollection schema",
+        examples=[
+            {
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "id": "feature_001",
+                        "properties": {"color": "red"},
+                        "geometry": {"type": "Point", "coordinates": [0, 0]}
+                    }
+                ]
+            }
+        ]
+    )
+
+    @model_validator(mode='after')
+    def validate_feature_collection(self):
+        """Validate basic GeoJSON FeatureCollection structure."""
+        fc_data = self.feature_collection
+
+        # Basic validation for GeoJSON FeatureCollection
+        if not isinstance(fc_data, dict):
+            raise ValueError("Feature collection must be a dictionary")
+
+        if fc_data.get("type") != "FeatureCollection":
+            raise ValueError("Feature collection must have type 'FeatureCollection'")
+
+        if "features" not in fc_data:
+            raise ValueError("Feature collection must have 'features' array")
+
+        if not isinstance(fc_data["features"], list):
+            raise ValueError("Features must be an array")
+
+        return self
+
+
+def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Dict[str, Any]:
     """
     Toggle the color property of the first feature in a GeoJSON FeatureCollection.
 
@@ -15,28 +57,30 @@ def toggle_first_feature_color(feature_collection: Dict[str, Any]) -> Dict[str, 
     update the features.
 
     Args:
-        feature_collection (Dict[str, Any]): A GeoJSON FeatureCollection object
-                                           conforming to the Debrief FeatureCollection schema
+        params: ToggleFirstFeatureColorParameters containing feature_collection
 
     Returns:
         Dict[str, Any]: ToolVault command object containing the modified FeatureCollection
                        or appropriate message
 
     Examples:
-        >>> fc = {
-        ...     "type": "FeatureCollection",
-        ...     "features": [{
-        ...         "type": "Feature",
-        ...         "properties": {"color": "red"},
-        ...         "geometry": {"type": "Point", "coordinates": [0, 0]}
-        ...     }]
-        ... }
-        >>> result = toggle_first_feature_color(fc)
+        >>> from pydantic import ValidationError
+        >>> params = ToggleFirstFeatureColorParameters(
+        ...     feature_collection={
+        ...         "type": "FeatureCollection",
+        ...         "features": [{
+        ...             "type": "Feature",
+        ...             "properties": {"color": "red"},
+        ...             "geometry": {"type": "Point", "coordinates": [0, 0]}
+        ...         }]
+        ...     }
+        ... )
+        >>> result = toggle_first_feature_color(params)
         >>> result["command"]
         'setFeatureCollection'
     """
     # Create a deep copy to avoid modifying the original
-    result = copy.deepcopy(feature_collection)
+    result = copy.deepcopy(params.feature_collection)
 
     # Check if the collection has features
     if not result.get("features") or len(result["features"]) == 0:
