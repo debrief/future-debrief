@@ -56,3 +56,6 @@ yarn-error.log*
 build/
 *.egg-info/
 dist/python/
+
+# Build lockfiles
+.generation-lock
