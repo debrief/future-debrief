@@ -18,7 +18,14 @@ runs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-    
+
+    - name: Build shared-types dependency
+      shell: bash
+      working-directory: libs/shared-types
+      run: |
+        pip install -r requirements.txt
+        make build-python
+
     - name: Install Python dependencies
       shell: bash
       working-directory: libs/tool-vault-packager
