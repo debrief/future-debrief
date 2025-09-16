@@ -9,6 +9,9 @@ class ToggleFirstFeatureColorParameters(BaseModel):
     """Parameters for the toggle_first_feature_color tool."""
 
     feature_collection: Dict[str, Any] = Field(
+        json_schema_extra={
+            "$ref": "https://example.org/debrief/schemas/features/FeatureCollection.schema.json"
+        },
         description="A GeoJSON FeatureCollection object conforming to the Debrief FeatureCollection schema",
         examples=[
             {

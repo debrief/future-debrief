@@ -1,7 +1,7 @@
 """Track speed filtering tool for maritime analysis."""
 
 import math
-from typing import Dict, Any, Union, Literal, List
+from typing import Dict, Any
 from pydantic import BaseModel, Field, model_validator
 from debrief.types import TrackFeature
 
@@ -10,6 +10,9 @@ class TrackSpeedFilterParameters(BaseModel):
     """Parameters for the track_speed_filter tool."""
 
     track_feature: Dict[str, Any] = Field(
+        json_schema_extra={
+            "$ref": "https://example.org/debrief/schemas/features/Track.schema.json"
+        },
         description="A GeoJSON track feature conforming to DebriefTrackFeature schema with LineString or MultiLineString geometry",
         examples=[
             {
