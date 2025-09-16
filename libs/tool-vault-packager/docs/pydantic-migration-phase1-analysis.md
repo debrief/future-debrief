@@ -112,14 +112,14 @@ def word_count(text: str) -> Dict[str, Any]:
 
 **1. Create Pydantic Parameter Model**
 ```python
-# New file: libs/tool-vault-packager/tools/word_count/parameters.py
+# In libs/tool-vault-packager/tools/word_count/execute.py
 from pydantic import BaseModel, Field
 
 class WordCountParameters(BaseModel):
     text: str = Field(
         description="The input text block to count words from",
         min_length=0,
-        example="Hello world this is a test"
+        examples=["Hello world this is a test"]
     )
 ```
 
