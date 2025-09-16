@@ -4,7 +4,7 @@ import importlib.util
 import inspect
 import json
 import subprocess
-from typing import Dict, Any, List, Callable, get_type_hints, Optional
+from typing import Dict, Any, List, Callable, get_type_hints, Optional, Union
 from pathlib import Path
 
 
@@ -15,7 +15,7 @@ class ToolDiscoveryError(Exception):
 
 class ToolMetadata:
     """Metadata for a discovered tool."""
-    
+
     def __init__(
         self,
         name: str,
@@ -27,7 +27,8 @@ class ToolMetadata:
         tool_dir: str,
         sample_inputs: Optional[List[Dict[str, Any]]] = None,
         source_code: Optional[str] = None,
-        git_history: Optional[List[Dict[str, Any]]] = None
+        git_history: Optional[List[Dict[str, Any]]] = None,
+        module=None
     ):
         self.name = name
         self.function = function
@@ -39,6 +40,7 @@ class ToolMetadata:
         self.sample_inputs = sample_inputs or []
         self.source_code = source_code
         self.git_history = git_history or []
+        self.module = module  # Store module reference for Pydantic detection
 
 
 def extract_function_docstring(func: Callable) -> str:
@@ -96,6 +98,96 @@ def extract_type_annotations(func: Callable) -> Dict[str, str]:
         return annotations
     except Exception as e:
         raise ToolDiscoveryError(f"Failed to extract type annotations from '{func.__name__}': {e}")
+
+
+def detect_pydantic_parameter_model(func: Callable, module=None) -> Optional[type]:
+    """
+    Detect if a function uses a Pydantic parameter model.
+
+    Looks for classes defined in the same module that inherit from BaseModel
+    and have names ending in 'Parameters'. Also checks if the function's
+    type annotations reference a Pydantic model.
+
+    Args:
+        func: The function to analyze
+
+    Returns:
+        The Pydantic parameter model class if found, None otherwise
+    """
+    try:
+        # Get the module where the function is defined
+        if module is None:
+            module = inspect.getmodule(func)
+
+        if not module:
+            return None
+
+        # Get type hints to see if any parameter uses a Pydantic model
+        try:
+            type_hints = get_type_hints(func)
+        except Exception:
+            type_hints = {}
+
+        # Look for classes in the module that could be parameter models
+        pydantic_models = []
+        for name, obj in inspect.getmembers(module, inspect.isclass):
+            # Check if it's a Pydantic BaseModel
+            if hasattr(obj, '__bases__'):
+                for base in obj.__mro__:  # Method resolution order includes all base classes
+                    if base.__name__ == 'BaseModel' and hasattr(base, 'model_json_schema'):
+                        # Found a Pydantic BaseModel, check if it's a parameter model
+                        if name.endswith('Parameters'):
+                            pydantic_models.append(obj)
+                            break
+
+        # If we found Pydantic parameter models, check if they're used in function annotations
+        for model in pydantic_models:
+            for param_name, param_type in type_hints.items():
+                if param_name == 'return':
+                    continue
+
+                # Check if the parameter type annotation references our Pydantic model
+                # Handle Union types like Union[WordCountParameters, str] (for backward compatibility)
+                if hasattr(param_type, '__origin__') and param_type.__origin__ is Union:
+                    # Check if any of the Union types is our Pydantic model
+                    for union_type in param_type.__args__:
+                        if union_type is model or (hasattr(union_type, '__name__') and hasattr(model, '__name__') and union_type.__name__ == model.__name__):
+                            return model
+                elif param_type is model or (hasattr(param_type, '__name__') and hasattr(model, '__name__') and param_type.__name__ == model.__name__):
+                    return model
+
+        # If no direct annotation match, return the first parameter model if any
+        return pydantic_models[0] if pydantic_models else None
+
+    except Exception:
+        return None
+
+
+def extract_pydantic_parameters(pydantic_model: type) -> Dict[str, Any]:
+    """
+    Extract parameter schema from a Pydantic model.
+
+    Args:
+        pydantic_model: The Pydantic BaseModel class
+
+    Returns:
+        Dictionary containing the parameter schema
+    """
+    try:
+        # Generate JSON Schema from Pydantic model
+        schema = pydantic_model.model_json_schema()
+
+        # Extract properties (parameters) from the schema
+        parameters = schema.get('properties', {})
+
+        # Add required field information to each parameter
+        required_fields = schema.get('required', [])
+        for param_name, param_schema in parameters.items():
+            param_schema['required'] = param_name in required_fields
+
+        return parameters
+    except Exception as e:
+        raise ToolDiscoveryError(f"Failed to extract Pydantic parameter schema: {e}")
 
 
 def convert_python_type_to_json_schema(type_str: str) -> Dict[str, Any]:
@@ -280,14 +372,15 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
                     description = extract_first_sentence(extract_function_docstring(func))
                     type_annotations = extract_type_annotations(func)
                     
-                    # Build parameters schema
-                    sig = inspect.signature(func)
-                    parameters = {}
-                    for param_name, _ in sig.parameters.items():
-                        param_type = type_annotations.get(param_name, "object")
-                        param_schema = convert_python_type_to_json_schema(param_type)
-                        param_schema["description"] = f"Parameter {param_name}"
-                        parameters[param_name] = param_schema
+                    # Build parameters schema from Pydantic model
+                    pydantic_model = detect_pydantic_parameter_model(func, module)
+                    if pydantic_model:
+                        # Use Pydantic model for parameter schema generation
+                        parameters = extract_pydantic_parameters(pydantic_model)
+                    else:
+                        # No Pydantic model found - tool needs to be migrated
+                        print(f"Warning: Tool '{func_name}' does not have a Pydantic parameter model. Skipping.")
+                        continue
                     
                     # Load sample inputs from zip
                     sample_inputs = []
@@ -319,7 +412,8 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
                         tool_dir=f'tools/{tool_name}',
                         sample_inputs=sample_inputs,
                         source_code=module_content,  # Use the extracted module content
-                        git_history=[]  # Not available in zip files
+                        git_history=[],  # Not available in zip files
+                        module=module  # Store module reference for Pydantic detection
                     ))
                     
                 finally:
@@ -403,14 +497,15 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
         description = extract_first_sentence(extract_function_docstring(func))
         type_annotations = extract_type_annotations(func)
         
-        # Build parameters schema
-        sig = inspect.signature(func)
-        parameters = {}
-        for param_name, _ in sig.parameters.items():
-            param_type = type_annotations.get(param_name, "object")
-            param_schema = convert_python_type_to_json_schema(param_type)
-            param_schema["description"] = f"Parameter {param_name}"
-            parameters[param_name] = param_schema
+        # Build parameters schema from Pydantic model
+        pydantic_model = detect_pydantic_parameter_model(func, module)
+        if pydantic_model:
+            # Use Pydantic model for parameter schema generation
+            parameters = extract_pydantic_parameters(pydantic_model)
+        else:
+            # No Pydantic model found - skip this tool (for demo purposes)
+            print(f"Skipping tool '{func_name}' - no Pydantic parameter model found")
+            continue
         
         # Get return type
         return_type = type_annotations.get('return', 'object')
@@ -435,7 +530,8 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
             tool_dir=str(tool_dir),
             sample_inputs=sample_inputs,
             source_code=source_code,
-            git_history=git_history
+            git_history=git_history,
+            module=module
         ))
     
     if not tools:
