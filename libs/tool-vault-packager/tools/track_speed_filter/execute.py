@@ -171,8 +171,13 @@ def track_speed_filter(params: TrackSpeedFilterParameters) -> Dict[str, Any]:
             "payload": f"No timestamps found where speed >= {min_speed} knots"
         }
 
+    # Return structured data for better visualization
     return {
-        "command": "showText",
-        "payload": f"Found {len(high_speed_times)} timestamps with speed >= {min_speed} knots:\n" +
-                  "\n".join(high_speed_times)
+        "command": "showData",
+        "payload": {
+            "title": f"Track Speed Filter Results (>= {min_speed} knots)",
+            "count": len(high_speed_times),
+            "min_speed_threshold": min_speed,
+            "timestamps": high_speed_times
+        }
     }
