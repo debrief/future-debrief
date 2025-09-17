@@ -7,6 +7,18 @@ import subprocess
 from typing import Dict, Any, List, Callable, get_type_hints, Optional, Union
 from pathlib import Path
 
+from debrief.types.tools import (
+    ToolMetadataModel,
+    ToolIndexModel,
+    GlobalToolIndexModel,
+    ToolFilesCollection,
+    ToolStatsModel,
+    ToolFileReference,
+    SampleInputReference,
+    GitHistoryEntry,
+    SampleInputData,
+)
+
 
 class ToolDiscoveryError(Exception):
     """Raised when tool discovery encounters an error."""
@@ -43,6 +55,36 @@ class ToolMetadata:
         self.git_history = git_history or []
         self.module = module
         self.pydantic_model = pydantic_model  # Store module reference for Pydantic detection
+
+    def to_typed_model(self) -> ToolMetadataModel:
+        """Convert to typed Pydantic model for enhanced type safety."""
+        # Convert git history to typed GitHistoryEntry objects
+        typed_git_history = []
+        for commit in self.git_history:
+            if isinstance(commit, dict):
+                typed_git_history.append(GitHistoryEntry(**commit))
+            else:
+                typed_git_history.append(commit)
+
+        # Convert sample inputs to typed SampleInputData objects
+        typed_sample_inputs = []
+        for sample in self.sample_inputs:
+            if isinstance(sample, dict):
+                typed_sample_inputs.append(SampleInputData(**sample))
+            else:
+                typed_sample_inputs.append(sample)
+
+        return ToolMetadataModel(
+            name=self.name,
+            description=self.description,
+            parameters=self.parameters,
+            return_type=self.return_type,
+            module_path=self.module_path,
+            tool_dir=self.tool_dir,
+            sample_inputs=typed_sample_inputs,
+            source_code=self.source_code,
+            git_history=typed_git_history,
+        )
 
 
 def extract_function_docstring(func: Callable) -> str:
@@ -559,34 +601,77 @@ def generate_tool_schema(tool: ToolMetadata) -> Dict[str, Any]:
     }
 
 
-def generate_tool_list_response(tools: List[ToolMetadata]) -> Dict[str, Any]:
+def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexModel:
     """
-    Generate a ToolListResponse conforming to shared-types ToolListResponse.schema.json.
+    Generate a GlobalToolIndexModel conforming to shared-types GlobalToolIndexModel.
 
     Args:
         tools: List of discovered tool metadata
 
     Returns:
-        Dictionary representing a ToolListResponse
+        GlobalToolIndexModel instance with typed tools
     """
+    from debrief.types.tools import Tool, JSONSchema
+
     tools_list = []
 
     for tool in tools:
-        tool_schema = generate_tool_schema(tool)
-
         # Get tool directory name from tool_dir path
         tool_dir_name = Path(tool.tool_dir).name
 
-        # Add SPA navigation URL as extension
-        tool_schema["tool_url"] = f"/api/tools/{tool_dir_name}/tool.json"
+        # Create typed Tool instance with proper JSONSchema conversion
+        from debrief.types.tools import JSONSchemaProperty
 
-        tools_list.append(tool_schema)
+        # Convert parameters to properly typed JSONSchemaProperty objects
+        json_properties = {}
+        required_fields = []
 
-    return {
-        "tools": tools_list,
-        "version": "1.0.0",
-        "description": "ToolVault packaged tools"
-    }
+        if tool.parameters:
+            for param_name, param_schema in tool.parameters.items():
+                # Extract required field and remove it from the property schema
+                param_copy = param_schema.copy()
+                is_required = param_copy.pop('required', False)
+                if is_required:
+                    required_fields.append(param_name)
+
+                # Create JSONSchemaProperty from the remaining schema
+                json_properties[param_name] = JSONSchemaProperty(**param_copy)
+
+        tool_instance = Tool(
+            name=tool.name,
+            description=tool.description,
+            inputSchema=JSONSchema(
+                type="object",
+                properties=json_properties,
+                required=required_fields,
+                additionalProperties=False
+            ),
+            outputSchema=JSONSchema(
+                type="object",
+                properties={
+                    "command": JSONSchemaProperty(
+                        type="string",
+                        enum=["addFeatures", "updateFeatures", "deleteFeatures", "setFeatureCollection",
+                              "showText", "showData", "showImage", "logMessage", "composite"],
+                        description="The ToolVault command type"
+                    ),
+                    "payload": JSONSchemaProperty(
+                        description="The command-specific payload data"
+                    )
+                },
+                required=["command", "payload"],
+                additionalProperties=False
+            ),
+            tool_url=f"/api/tools/{tool_dir_name}/tool.json"
+        )
+
+        tools_list.append(tool_instance)
+
+    return GlobalToolIndexModel(
+        tools=tools_list,
+        version="1.0.0",
+        description="ToolVault packaged tools"
+    )
 
 
 def generate_index_json(tools: List[ToolMetadata]) -> Dict[str, Any]:
@@ -600,4 +685,5 @@ def generate_index_json(tools: List[ToolMetadata]) -> Dict[str, Any]:
     Returns:
         Dictionary representing the index.json structure
     """
-    return generate_tool_list_response(tools)
+    global_tool_index = generate_tool_list_response(tools)
+    return global_tool_index.model_dump()

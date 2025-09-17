@@ -5,6 +5,8 @@ import traceback
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 
+from debrief.types.tools import GlobalToolIndexModel, ToolIndexModel
+
 try:
     from fastapi import FastAPI, HTTPException
     from fastapi.responses import JSONResponse, HTMLResponse, PlainTextResponse

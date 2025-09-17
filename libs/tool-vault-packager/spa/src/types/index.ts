@@ -1,44 +1,15 @@
-interface JSONSchemaProperty {
-  type?: string;
-  description?: string;
-  enum?: unknown[];
-  items?: JSONSchemaProperty;
-  properties?: Record<string, JSONSchemaProperty>;
-  required?: string[];
-  additionalProperties?: boolean | JSONSchemaProperty;
-  default?: unknown;
-}
+// Import types from generated shared-types
+import type { JSONSchema, JSONSchemaProperty } from '../../../shared-types/src/types/JSONSchema';
+import type { Tool } from '../../../shared-types/src/types/Tool';
+import type { ToolListResponse } from '../../../shared-types/src/types/ToolListResponse';
+import type { ToolCallRequest } from '../../../shared-types/src/types/ToolCallRequest';
+import type { ToolCallResponse } from '../../../shared-types/src/types/ToolCallResponse';
 
-interface JSONSchema {
-  type?: string;
-  properties?: Record<string, JSONSchemaProperty>;
-  required?: string[];
-  additionalProperties?: boolean;
-  description?: string;
-}
-
-export interface MCPTool {
-  name: string;
-  description: string;
-  inputSchema: JSONSchema;
-  outputSchema?: JSONSchema;
-}
-
-export interface MCPToolListResponse {
-  tools: MCPTool[];
-  version?: string;
-  description?: string;
-}
-
-export interface MCPToolCallRequest {
-  name: string;
-  arguments: Record<string, unknown>;
-}
-
-export interface MCPToolCallResponse {
-  result: unknown;
-  isError?: boolean;
-}
+// Re-export with legacy names for backward compatibility
+export type MCPTool = Tool;
+export type MCPToolListResponse = ToolListResponse;
+export type MCPToolCallRequest = ToolCallRequest;
+export type MCPToolCallResponse = ToolCallResponse;
 
 export interface ToolVaultRootResponse {
   name: string;
@@ -51,53 +22,21 @@ export interface ToolVaultRootResponse {
   };
 }
 
-export interface GlobalIndex {
-  tools: MCPTool[];
-  version: string;
-  description: string;
-  packageInfo?: {
-    buildDate: string;
-    commit: string;
-    author: string;
-  };
-}
+// Import additional types from shared-types
+import type { GlobalToolIndexModel } from '../../../shared-types/src/types/GlobalToolIndexModel';
+import type { ToolIndexModel } from '../../../shared-types/src/types/ToolIndexModel';
+import type { ToolFileReference } from '../../../shared-types/src/types/ToolFileReference';
+import type { SampleInputReference } from '../../../shared-types/src/types/SampleInputReference';
+import type { GitHistoryEntry } from '../../../shared-types/src/types/GitHistoryEntry';
+import type { GitHistory } from '../../../shared-types/src/types/GitHistory';
 
-export interface FileReference {
-  path: string;
-  description: string;
-  type: 'python' | 'html' | 'json';
-}
-
-export interface InputFileReference extends FileReference {
-  name: string;
-}
-
-export interface ToolIndex {
-  tool_name: string;
-  description: string;
-  files: {
-    execute: FileReference;
-    source_code: FileReference;
-    git_history: FileReference;
-    inputs: InputFileReference[];
-  };
-  stats: {
-    sample_inputs_count: number;
-    git_commits_count: number;
-    source_code_length: number;
-  };
-}
-
-export interface GitCommit {
-  hash: string;
-  author: string | { name: string; email: string };
-  date: string;
-  message: string;
-}
-
-export interface GitHistory {
-  commits: GitCommit[];
-}
+// Re-export with legacy names for backward compatibility
+export type GlobalIndex = GlobalToolIndexModel;
+export type ToolIndex = ToolIndexModel;
+export type FileReference = ToolFileReference;
+export type InputFileReference = SampleInputReference;
+export type GitCommit = GitHistoryEntry;
+export { GitHistory };
 
 export interface AppState {
   loading: boolean;
