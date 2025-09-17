@@ -15,11 +15,11 @@ pnpm build:status          # Check what would be rebuilt and why
 pnpm build                 # Smart conditional build (only builds what changed)
 pnpm build:ci              # Clean build for CI/CD environments
 
-# Generate all types from schemas (most important command)
+# Generate all types from Pydantic models (most important command)
 pnpm generate:types
 
 # Development with watch mode
-pnpm dev    # Watches schema/ and schemas/ directories
+pnpm dev    # Watches pydantic_models/ directory for changes
 
 # Testing
 pnpm test                  # Run all tests
@@ -35,7 +35,7 @@ pnpm lint                 # ESLint + typecheck
 ### Conditional Build Performance
 The package includes an intelligent conditional build system for improved developer productivity:
 - **No changes**: ~1.5 seconds (85% improvement over unconditional build)
-- **Schema changes**: Full regeneration (~13 seconds) 
+- **Pydantic model changes**: Full regeneration (~13 seconds)
 - **Source changes**: Compilation only (~3.5 seconds)
 
 ### Package-Specific Commands
@@ -49,7 +49,7 @@ pnpm generate:python
 # Clean generated files
 pnpm clean
 
-# Smart clean (only if schemas changed)
+# Smart clean (only if Pydantic models changed)
 pnpm clean:smart
 ```
 
@@ -75,7 +75,6 @@ Key directories:
 - `derived/typescript/` - Generated TypeScript types
 - `src/types/` - Generated TypeScript interfaces (compatibility)
 - `src/validators/` - Manual validation functions
-- `schemas-backup/` - Backup of original JSON Schema files
 
 ### Key Design Principles
 
@@ -129,17 +128,20 @@ import { TimeState } from './src/types/timestate';
 
 **From consuming packages** (like `../../apps/vs-code`):
 ```typescript
-// State types from schemas/
+// State types (generated from pydantic_models/states/)
 import { TimeState } from '@debrief/shared-types/src/types/timestate';
 import { ViewportState } from '@debrief/shared-types/src/types/viewportstate';
 import { SelectionState } from '@debrief/shared-types/src/types/selectionstate';
 import { EditorState } from '@debrief/shared-types/src/types/editorstate';
 import { CurrentState } from '@debrief/shared-types/src/types/currentstate';
 
-// Feature types from schema/
+// Feature types (generated from pydantic_models/features/)
 import { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types/src/types/featurecollection';
 
-// Validators 
+// Tool types (generated from pydantic_models/tools/)
+import { ToolIndexModel, GlobalToolIndexModel } from '@debrief/shared-types/src/types/tools';
+
+// Validators
 import { validateFeatureCollectionComprehensive, validateFeatureByType, classifyFeature } from '@debrief/shared-types/src/validators';
 ```
 
@@ -158,12 +160,12 @@ from debrief.types.TimeState import TimeState
 ## Common Issues
 
 ### Build Failures
-- Ensure schemas are valid JSON before running type generation
-- Check that all schema `$ref` dependencies exist
+- Ensure Pydantic models are valid before running type generation
+- Check that all model imports and dependencies are correct
 - Verify Node.js >=16.0.0 and Python >=3.8
 
 ### Type Inconsistencies
-- Always regenerate types after schema changes: `pnpm generate:types`
+- Always regenerate types after Pydantic model changes: `pnpm generate:types`
 - Check that TypeScript and Python validators handle equivalent cases
 - Ensure test data covers edge cases for both languages
 
