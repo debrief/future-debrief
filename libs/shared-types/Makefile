@@ -218,7 +218,7 @@ generate-python-internal:
 			echo "# Alias for cross-reference compatibility" >> "$$output_file"; \
 			echo "Schema = $$class_name" >> "$$output_file"; \
 			sed -i '' 's/, discriminator=.*properties\/dataType.*//' "$$output_file"; \
-			if [[ "$$category" != "features" ]]; then \
+			if [ "$$category" != "features" ]; then \
 				python3 fix_imports.py "$$output_file"; \
 			fi; \
 			rm -f "$$temp_file"; \
@@ -233,7 +233,7 @@ generate-python-internal:
 				if [ -f "$$temp_dir/__init__.py" ]; then \
 					cp "$$temp_dir/__init__.py" "$$output_file"; \
 					sed -i '' 's/, discriminator=.*properties\/dataType.*//' "$$output_file"; \
-					if [[ "$$category" != "features" ]]; then \
+					if [ "$$category" != "features" ]; then \
 						sed -i '' 's/from \. import \([^,]*Annotation[^,]*\)/from ..features import \1/g' "$$output_file"; \
 						sed -i '' 's/from \. import \([^,]*Point[^,]*\)/from ..features import \1/g' "$$output_file"; \
 						sed -i '' 's/from \. import \([^,]*Track[^,]*\)/from ..features import \1/g' "$$output_file"; \
@@ -245,7 +245,7 @@ generate-python-internal:
 					if [ -f "$$generated_file" ]; then \
 						cp "$$generated_file" "$$output_file"; \
 						sed -i '' 's/, discriminator=.*properties\/dataType.*//' "$$output_file"; \
-						if [[ "$$category" != "features" ]]; then \
+						if [ "$$category" != "features" ]; then \
 							sed -i '' 's/from \. import \([^,]*Annotation[^,]*\)/from ..features import \1/g' "$$output_file"; \
 							sed -i '' 's/from \. import \([^,]*Point[^,]*\)/from ..features import \1/g' "$$output_file"; \
 							sed -i '' 's/from \. import \([^,]*Track[^,]*\)/from ..features import \1/g' "$$output_file"; \
@@ -298,10 +298,19 @@ generate-python-internal:
 			python3 fix_imports.py "$$file"; \
 		fi; \
 	done
-	@# Fix EditorState import in CurrentState.py specifically
-	@if [ -f "python-src/debrief/types/states/CurrentState.py" ]; then \
-		sed -i '' 's/from \.\.features import \([^,]*\), EditorState, \([^,]*\)/from ..features import \1, \2\nfrom .EditorState import EditorState/g' python-src/debrief/types/states/CurrentState.py; \
-	fi
+	@# Fix .Schema references to use direct class names instead
+	@for file in python-src/debrief/types/states/EditorState.py python-src/debrief/types/states/CurrentState.py; do \
+		if [ -f "$$file" ]; then \
+			sed -i '' 's/FeatureCollection\.Schema/FeatureCollection/g' "$$file"; \
+			sed -i '' 's/TimeState\.Schema/TimeState/g' "$$file"; \
+			sed -i '' 's/ViewportState\.Schema/ViewportState/g' "$$file"; \
+			sed -i '' 's/SelectionState\.Schema/SelectionState/g' "$$file"; \
+			sed -i '' 's/EditorState\.Schema/EditorState/g' "$$file"; \
+			sed -i '' 's/Track\.Schema/TrackFeature/g' "$$file"; \
+			sed -i '' 's/Point\.Schema/PointFeature/g' "$$file"; \
+			sed -i '' 's/Annotation\.Schema/AnnotationFeature/g' "$$file"; \
+		fi; \
+	done
 
 # Rule 2: Compile distribution if any generated file is newer than compiled output
 $(COMPILED_FILES): $(GENERATED_FILES)
