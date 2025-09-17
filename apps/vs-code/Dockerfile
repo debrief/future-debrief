@@ -65,7 +65,8 @@ RUN cd /home/coder/workspace/tests && \
     if ls /home/coder/project/python/*.whl 1> /dev/null 2>&1; then \
         venv/bin/pip install /home/coder/project/python/*.whl; \
     else \
-        echo "Warning: No Python wheel found, skipping installation"; \
+        echo "Error: debrief-types wheel not found. Verify shared-types build step." >&2 && \
+        exit 1; \
     fi
 
 # Create a simple README for the workspace
