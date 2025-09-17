@@ -57,11 +57,16 @@ runs:
         echo "🐍 Installing Python dependencies for shared-types build..."
         pip install -r libs/shared-types/requirements.txt
 
+    - name: Install Node.js dependencies
+      shell: bash
+      run: |
+        echo "📦 Installing Node.js dependencies..."
+        pnpm install --frozen-lockfile
+
     - name: Build shared-types package
       shell: bash
       run: |
         echo "📦 Building shared-types package to create Python wheel..."
-        pnpm install --frozen-lockfile
         # Clean any stale generation locks before building
         rm -f libs/shared-types/.generation-lock
         pnpm --filter @debrief/shared-types build

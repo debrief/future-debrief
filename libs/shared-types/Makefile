@@ -201,6 +201,12 @@ generate-python-internal:
 	done
 	@# Generate Python types using datamodel-codegen with consistent PascalCase filenames
 	@echo "$(GREEN)Using datamodel-codegen for Python generation...$(RESET)"
+	@# Check if datamodel-codegen is available
+	@if ! command -v datamodel-codegen >/dev/null 2>&1; then \
+		echo "$(RED)❌ Error: datamodel-codegen not found$(RESET)"; \
+		echo "$(RED)Please install it with: pip install datamodel-code-generator>=0.25.0$(RESET)"; \
+		exit 1; \
+	fi
 	@for mapping in $(PYTHON_CLASS_MAPPING); do \
 		schema="$${mapping%:*}"; \
 		class_name="$${mapping##*:}"; \
