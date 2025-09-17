@@ -3,7 +3,7 @@
  * These validators work with the generated types and provide additional validation logic
  */
 
-import { DebriefAnnotationFeature } from '../types/features/featurecollection';
+import { DebriefAnnotationFeature } from '../types/FeatureCollection';
 
 /**
  * Type-safe helper to check if a value is a non-null object
@@ -172,7 +172,7 @@ export function validateMultiPolygonCoordinates(coordinates: unknown): boolean {
 /**
  * Validates geometry coordinates based on type
  */
-export function validateGeometryCoordinates(geometry: { type: string; coordinates: unknown }): boolean {
+export function validateGeometryCoordinates(geometry: any): boolean {
   switch (geometry.type) {
     case 'Point':
       return validatePointCoordinates(geometry.coordinates);
