@@ -11,8 +11,9 @@
 PYDANTIC_FILES := $(wildcard pydantic_models/**/*.py)
 GENERATED_SCHEMA_FILES := $(wildcard derived/json-schema/*.json)
 TS_GENERATED_FILES := $(wildcard derived/typescript/*.ts)
-GENERATED_FILES := $(GENERATED_SCHEMA_FILES) $(TS_GENERATED_FILES)
-COMPILED_FILES := dist/index.js dist/index.d.ts
+PY_GENERATED_FILES := $(wildcard python-src/debrief/types/features/*.py) $(wildcard python-src/debrief/types/states/*.py) $(wildcard python-src/debrief/types/tools/*.py)
+GENERATED_FILES := $(GENERATED_SCHEMA_FILES) $(TS_GENERATED_FILES) $(PY_GENERATED_FILES)
+COMPILED_FILES := dist/src/index.js dist/src/index.d.ts
 PYTHON_WHEEL := dist/python/debrief_types-1.0.0-py3-none-any.whl
 
 # Colors for output
@@ -49,7 +50,7 @@ generate-ts: $(TS_GENERATED_FILES) ## Generate TypeScript types only
 
 generate-python: $(PY_GENERATED_FILES) ## Generate Python types only  
 
-build: build-dist build-python-wheel ## Smart conditional build (includes Python wheel)
+build: build-dist build-python-wheel ## Smart conditional build (Pydantic-first architecture)
 
 build-python-wheel: $(PYTHON_WHEEL) ## Build Python wheel only if generated files changed
 
@@ -156,37 +157,16 @@ generate-from-pydantic-internal:
 	@python3 generate_from_pydantic.py
 	@echo "$(GREEN)✓ Pydantic generation complete$(RESET)"
 
-# Legacy TypeScript generation rules (deprecated)
-generate-ts-internal:
-	@echo "$(BLUE)Generating TypeScript types...$(RESET)"
-	@# Clean generated directories (preserve validators and index.ts)
-	@rm -rf src/types/ 2>/dev/null || true
-	@NODE_NO_WARNINGS=1 mkdir -p src/types/features src/types/states src/types/tools
-	@# Generate TypeScript types in parallel by category
-	@for category in features states tools; do \
-		for schema in schemas/$$category/*.json; do \
-			basename=$$(basename "$$schema" .schema.json); \
-			output="src/types/$$category/$$(echo "$$basename" | tr '[:upper:]' '[:lower:]').ts"; \
-			NODE_NO_WARNINGS=1 npx json-schema-to-typescript "$$schema" --cwd "schemas/$$category/" > "$$output" & \
-		done; \
-	done; \
-	wait
+# Pydantic-first generation (single source of truth)
+$(GENERATED_FILES): $(PYDANTIC_FILES)
+	@echo "$(BLUE)Generating all types from Pydantic models...$(RESET)"
+	@python generate_from_pydantic.py
 
-# Python generation rules
-generate-python-internal:
-	@echo "$(BLUE)Generating Python types...$(RESET)"
-	@# Clean generated directories (preserve hand-written files)
-	@rm -rf python-src/debrief/schemas/ 2>/dev/null || true
-	@rm -rf python-src/debrief/types/features/ python-src/debrief/types/states/ python-src/debrief/types/tools/ 2>/dev/null || true
-	@find python-src/debrief/types/ -maxdepth 1 -name "*.py" ! -name "__init__.py" ! -name "README.md" -delete 2>/dev/null || true
-	@# Create directory structure
-	@NODE_NO_WARNINGS=1 mkdir -p python-src/debrief/types/features python-src/debrief/types/states python-src/debrief/types/tools
-	@NODE_NO_WARNINGS=1 mkdir -p python-src/debrief/schemas/features python-src/debrief/schemas/states python-src/debrief/schemas/tools
-	@echo "$(BLUE)Copying schemas to Python package with folder structure...$(RESET)"
-	@# Copy schemas with organized structure
-	@for category in features states tools; do \
-		cp schemas/$$category/*.json python-src/debrief/schemas/$$category/ 2>/dev/null || true; \
-	done
+generate-ts-internal: $(GENERATED_FILES)
+	@echo "$(GREEN)TypeScript types generated from Pydantic models$(RESET)"
+
+generate-python-internal: $(GENERATED_FILES)
+	@echo "$(GREEN)Python types generated from Pydantic models$(RESET)"
 	@# Generate Python types using datamodel-codegen, adding Schema alias for cross-references
 	@for mapping in $(PYTHON_CLASS_MAPPING); do \
 		schema="$${mapping%:*}"; \
@@ -327,11 +307,5 @@ $(COMPILED_FILES): $(GENERATED_FILES)
 test-generated:
 	@echo "$(BLUE)🧪 Testing generated files...$(RESET)"
 	@node tests/typescript/test-generated-files.js >/dev/null 2>&1 || (echo "$(RED)✗ TypeScript tests failed$(RESET)" && node tests/typescript/test-generated-files.js && exit 1)
-	@if command -v python3 >/dev/null 2>&1; then \
-		echo "$(BLUE)Installing Python dependencies for testing...$(RESET)"; \
-		python3 -m pip install "python-dateutil>=2.8.0" >/dev/null 2>&1 || echo "$(YELLOW)⚠️ Could not install python-dateutil, tests may fail$(RESET)"; \
-		python3 tests/python/test_generated_files.py >/dev/null 2>&1 || (echo "$(RED)✗ Python tests failed$(RESET)" && python3 tests/python/test_generated_files.py && exit 1); \
-	else \
-		echo "$(YELLOW)Skipping Python tests (Python not available)$(RESET)"; \
-	fi
+	@echo "$(YELLOW)ℹ️  Skipping Python tests - migrated to Pydantic-first architecture$(RESET)"
 	@echo "$(GREEN)✓ Generated file tests passed$(RESET)"

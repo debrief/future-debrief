@@ -24,6 +24,12 @@ from pydantic_models import (
     SelectionState,
     EditorState,
     CurrentState,
+    JSONSchema,
+    Tool,
+    ToolCallRequest,
+    ToolCallResponse,
+    ToolListResponse,
+    GeometryConstrainedFeature,
 )
 
 
@@ -46,6 +52,14 @@ def generate_json_schemas():
         "SelectionState.schema.json": SelectionState,
         "EditorState.schema.json": EditorState,
         "CurrentState.schema.json": CurrentState,
+
+        # Tools
+        "JSONSchema.schema.json": JSONSchema,
+        "Tool.schema.json": Tool,
+        "ToolCallRequest.schema.json": ToolCallRequest,
+        "ToolCallResponse.schema.json": ToolCallResponse,
+        "ToolListResponse.schema.json": ToolListResponse,
+        "ConstrainedFeature.schema.json": GeometryConstrainedFeature,
     }
 
     print("Generating JSON Schema files...")
@@ -113,7 +127,46 @@ def main():
         shutil.copy2(ts_file, src_types_dir / ts_file.name)
         print(f"Copied: {ts_file.name} -> src/types/")
 
+    # Copy Pydantic models to Python source directory for packaging
+    print("Copying Pydantic models to python-src for packaging...")
+    copy_pydantic_to_python_src()
+
     print("Generation complete!")
+
+
+def copy_pydantic_to_python_src():
+    """Copy Pydantic models to python-src directory structure for packaging."""
+    import shutil
+
+    # Create the target directory structure
+    python_src_dir = Path("python-src/debrief/types")
+
+    # Create directories
+    (python_src_dir / "features").mkdir(parents=True, exist_ok=True)
+    (python_src_dir / "states").mkdir(parents=True, exist_ok=True)
+    (python_src_dir / "tools").mkdir(parents=True, exist_ok=True)
+
+    # Copy Pydantic model files
+    pydantic_dir = Path("pydantic_models")
+
+    for category in ["features", "states", "tools"]:
+        src_category_dir = pydantic_dir / category
+        dest_category_dir = python_src_dir / category
+
+        if src_category_dir.exists():
+            for py_file in src_category_dir.glob("*.py"):
+                if py_file.name != "__init__.py":  # Skip __init__.py files
+                    shutil.copy2(py_file, dest_category_dir / py_file.name)
+                    print(f"Copied: {py_file.name} -> python-src/debrief/types/{category}/")
+
+    # Create __init__.py files
+    for category in ["features", "states", "tools"]:
+        init_file = python_src_dir / category / "__init__.py"
+        init_file.write_text(f'"""Generated {category} types from Pydantic models."""\n')
+
+    # Create main types __init__.py
+    main_init = python_src_dir / "__init__.py"
+    main_init.write_text('"""Generated types from Pydantic models."""\n')
 
 
 if __name__ == "__main__":
