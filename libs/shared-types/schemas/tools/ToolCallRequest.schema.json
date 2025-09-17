@@ -15,7 +15,8 @@
         },
         "value": {
           "title": "Value",
-          "description": "The parameter value (accepts any type)"
+          "description": "The parameter value (accepts any type)",
+          "type": ["string", "number", "boolean", "object", "array", "null"]
         }
       },
       "required": ["name", "value"],
