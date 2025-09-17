@@ -69,13 +69,13 @@ runs:
         # Package the extension with pnpm workspace compatibility
         # Use --no-dependencies to skip npm list validation since we're using pnpm
         if which vsce > /dev/null 2>&1; then
-          vsce package --out extension.vsix --no-dependencies
+          vsce package --out vs-code-0.0.1.vsix --no-dependencies
         else
-          npx vsce package --out extension.vsix --no-dependencies
+          npx vsce package --out vs-code-0.0.1.vsix --no-dependencies
         fi
-        
+
         # Verify package was created
-        if [ -f extension.vsix ]; then
+        if [ -f vs-code-0.0.1.vsix ]; then
           echo "✅ Extension packaged successfully"
           ls -la *.vsix
         else
@@ -87,5 +87,5 @@ runs:
       uses: actions/upload-artifact@v4
       with:
         name: debrief-vsix
-        path: apps/vs-code/extension.vsix
+        path: apps/vs-code/vs-code-0.0.1.vsix
         retention-days: ${{ inputs.artifact_retention_days }}
