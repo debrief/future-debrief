@@ -79,6 +79,7 @@ temp/
 tmp/
 debug-package-contents/
 tmp_package_contents/
+shared-types/
 
 # Logs
 *.log
