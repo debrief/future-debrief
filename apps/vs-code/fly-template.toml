@@ -15,7 +15,6 @@ primary_region = "dfw"
   auto_stop_machines = "stop"
   auto_start_machines = true
   min_machines_running = 1
-  processes = ["app"]
 
 
 [[vm]]
@@ -39,5 +38,4 @@ primary_region = "dfw"
 # No persistent storage - stateless operation as required
 # All data is ephemeral and reset with each deployment
 
-# Remove processes section - let Dockerfile CMD handle the startup
-# This prevents conflicts and uses the container's defined entry point
+# Let the Dockerfile CMD handle the startup so Fly uses the container's entry point

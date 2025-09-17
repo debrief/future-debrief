@@ -66,11 +66,11 @@ runs:
         APP_NAME="${{ inputs.app_name }}"
         
         # Check if app exists, create if it doesn't
-        if ! flyctl apps list | grep -q "^${APP_NAME}"; then
+        if flyctl apps show "${APP_NAME}" >/dev/null 2>&1; then
+          echo "App ${APP_NAME} already exists, updating..."
+        else
           echo "Creating new app: ${APP_NAME}"
           flyctl apps create "${APP_NAME}" --org personal
-        else
-          echo "App ${APP_NAME} already exists, updating..."
         fi
         
         # Prepare build args
