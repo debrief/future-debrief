@@ -19,6 +19,12 @@ from .constrained_feature import (
     GeometryType,
     DataType
 )
+from .tool_file_reference import ToolFileReference, SampleInputReference
+from .git_history import GitHistoryEntry, GitAuthor, GitHistory
+from .tool_stats import ToolStatsModel
+from .tool_index import ToolIndexModel, ToolFilesCollection
+from .global_tool_index import GlobalToolIndexModel, PackageInfo
+from .tool_metadata import ToolMetadataModel, SampleInputData
 
 __all__ = [
     "JSONSchema",
@@ -38,5 +44,17 @@ __all__ = [
     "ToolListResponse",
     "GeometryConstrainedFeature",
     "GeometryType",
-    "DataType"
+    "DataType",
+    "ToolFileReference",
+    "SampleInputReference",
+    "GitHistoryEntry",
+    "GitAuthor",
+    "GitHistory",
+    "ToolStatsModel",
+    "ToolIndexModel",
+    "ToolFilesCollection",
+    "GlobalToolIndexModel",
+    "PackageInfo",
+    "ToolMetadataModel",
+    "SampleInputData"
 ]
