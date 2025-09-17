@@ -217,6 +217,10 @@ generate-python-internal:
 			cp "$$temp_file" "$$output_file"; \
 			echo "# Alias for cross-reference compatibility" >> "$$output_file"; \
 			echo "Schema = $$class_name" >> "$$output_file"; \
+			sed -i '' 's/, discriminator=.*properties\/dataType.*//' "$$output_file"; \
+			if [[ "$$category" != "features" ]]; then \
+				python3 fix_imports.py "$$output_file"; \
+			fi; \
 			rm -f "$$temp_file"; \
 			echo "Successfully generated $$schema using single-file mode"; \
 		else \
@@ -228,11 +232,25 @@ generate-python-internal:
 				--input-file-type jsonschema; then \
 				if [ -f "$$temp_dir/__init__.py" ]; then \
 					cp "$$temp_dir/__init__.py" "$$output_file"; \
+					sed -i '' 's/, discriminator=.*properties\/dataType.*//' "$$output_file"; \
+					if [[ "$$category" != "features" ]]; then \
+						sed -i '' 's/from \. import \([^,]*Annotation[^,]*\)/from ..features import \1/g' "$$output_file"; \
+						sed -i '' 's/from \. import \([^,]*Point[^,]*\)/from ..features import \1/g' "$$output_file"; \
+						sed -i '' 's/from \. import \([^,]*Track[^,]*\)/from ..features import \1/g' "$$output_file"; \
+						sed -i '' 's/from \. import \([^,]*FeatureCollection[^,]*\)/from ..features import \1/g' "$$output_file"; \
+					fi; \
 					echo "Successfully generated $$schema using directory mode (from __init__.py)"; \
 				else \
 					generated_file=$$(find "$$temp_dir" -name "*.py" | head -1); \
 					if [ -f "$$generated_file" ]; then \
 						cp "$$generated_file" "$$output_file"; \
+						sed -i '' 's/, discriminator=.*properties\/dataType.*//' "$$output_file"; \
+						if [[ "$$category" != "features" ]]; then \
+							sed -i '' 's/from \. import \([^,]*Annotation[^,]*\)/from ..features import \1/g' "$$output_file"; \
+							sed -i '' 's/from \. import \([^,]*Point[^,]*\)/from ..features import \1/g' "$$output_file"; \
+							sed -i '' 's/from \. import \([^,]*Track[^,]*\)/from ..features import \1/g' "$$output_file"; \
+							sed -i '' 's/from \. import \([^,]*FeatureCollection[^,]*\)/from ..features import \1/g' "$$output_file"; \
+						fi; \
 						echo "Successfully generated $$schema using directory mode (from $$generated_file)"; \
 					else \
 						echo "ERROR: No Python files found in $$temp_dir"; \
@@ -270,6 +288,20 @@ generate-python-internal:
 	@printf '' > python-src/debrief/types/features/__init__.py
 	@printf '' > python-src/debrief/types/states/__init__.py
 	@printf '' > python-src/debrief/types/tools/__init__.py
+	@# Add Schema aliases to any files that are missing them
+	@echo "$(BLUE)Adding Schema aliases to generated files...$(RESET)"
+	@python3 add_schema_alias.py python-src/debrief/types
+	@# Fix complex import issues in files using directory mode generation
+	@echo "$(BLUE)Fixing import paths in complex generated files...$(RESET)"
+	@for file in python-src/debrief/types/states/EditorState.py python-src/debrief/types/states/CurrentState.py; do \
+		if [ -f "$$file" ]; then \
+			python3 fix_imports.py "$$file"; \
+		fi; \
+	done
+	@# Fix EditorState import in CurrentState.py specifically
+	@if [ -f "python-src/debrief/types/states/CurrentState.py" ]; then \
+		sed -i '' 's/from \.\.features import \([^,]*\), EditorState, \([^,]*\)/from ..features import \1, \2\nfrom .EditorState import EditorState/g' python-src/debrief/types/states/CurrentState.py; \
+	fi
 
 # Rule 2: Compile distribution if any generated file is newer than compiled output
 $(COMPILED_FILES): $(GENERATED_FILES)
