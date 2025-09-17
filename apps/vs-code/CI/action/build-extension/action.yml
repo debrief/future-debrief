@@ -19,13 +19,14 @@ runs:
   using: 'composite'
   steps:
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: '20'
-    
+        node-version-file: '.nvmrc'
+
     - name: Install pnpm
-      shell: bash
-      run: npm install -g pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
     
     - name: Setup Python for wheel building
       uses: actions/setup-python@v4
@@ -47,7 +48,7 @@ runs:
     
     - name: Install dependencies
       shell: bash
-      run: pnpm install --no-frozen-lockfile
+      run: pnpm install --frozen-lockfile
     
     - name: Build VS Code extension and dependencies
       shell: bash
