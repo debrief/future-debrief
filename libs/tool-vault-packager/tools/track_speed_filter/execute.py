@@ -103,11 +103,12 @@ def track_speed_filter(params: TrackSpeedFilterParameters) -> Dict[str, Any]:
     # Extract coordinates based on geometry type
     coordinates = []
     if geometry.type.value == "LineString":
-        coordinates = geometry.coordinates
+        # coordinates is a List[Coordinate], where Coordinate.root is List[float]
+        coordinates = [coord.root for coord in geometry.coordinates]
     elif geometry.type.value == "MultiLineString":
         # For MultiLineString, concatenate all coordinate arrays
         for line_coords in geometry.coordinates:
-            coordinates.extend(line_coords)
+            coordinates.extend([coord.root for coord in line_coords.root])
 
     if len(coordinates) < 2:
         return {
@@ -135,6 +136,12 @@ def track_speed_filter(params: TrackSpeedFilterParameters) -> Dict[str, Any]:
         # Get consecutive coordinate pairs
         coord1 = coordinates[i]
         coord2 = coordinates[i + 1]
+
+        # Handle both list and Coordinate object formats defensively
+        if hasattr(coord1, 'root'):
+            coord1 = coord1.root
+        if hasattr(coord2, 'root'):
+            coord2 = coord2.root
 
         if len(coord1) < 2 or len(coord2) < 2:
             continue

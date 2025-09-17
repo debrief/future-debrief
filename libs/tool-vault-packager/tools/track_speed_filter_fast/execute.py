@@ -23,7 +23,7 @@ class TrackFeatureWithSpeeds(BaseModel):
 
         # First validate with shared-types TrackFeature
         try:
-            base_track = TrackFeature.from_dict(track_data)
+            base_track = TrackFeature.model_validate(track_data)
             self._validated_track = base_track
         except Exception as e:
             raise ValueError(f"Invalid Track feature structure: {e}")
