@@ -51,11 +51,19 @@ runs:
       with:
         version: 10.14.0
 
+    - name: Install Python dependencies for shared-types
+      shell: bash
+      run: |
+        echo "🐍 Installing Python dependencies for shared-types build..."
+        pip install -r libs/shared-types/requirements.txt
+
     - name: Build shared-types package
       shell: bash
       run: |
         echo "📦 Building shared-types package to create Python wheel..."
         pnpm install --frozen-lockfile
+        # Clean any stale generation locks before building
+        rm -f libs/shared-types/.generation-lock
         pnpm --filter @debrief/shared-types build
         echo "✅ Shared-types build completed"
         ls -la libs/shared-types/dist/python/ || echo "Python dist directory not found"
