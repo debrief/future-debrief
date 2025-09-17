@@ -1,25 +1,30 @@
-ARG GITHUB_REPO=https://github.com/debrief/future-debrief-parent.git
 ARG GITHUB_SHA=main
+ARG PR_NUMBER=local
 
 FROM python:3.11-slim AS shared-types-builder
-ARG GITHUB_REPO
-ARG GITHUB_SHA
+WORKDIR /tmp/repo
 
-RUN apt-get update && apt-get install -y git make && \
+RUN apt-get update && apt-get install -y make && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-RUN git clone "${GITHUB_REPO}" /tmp/repo && \
-    cd /tmp/repo && \
-    git checkout "${GITHUB_SHA}"
+COPY libs/shared-types/ ./libs/shared-types/
 
-RUN cd /tmp/repo/libs/shared-types && \
-    pip install --no-cache-dir -r requirements.txt && \
+WORKDIR /tmp/repo/libs/shared-types
+
+RUN pip install --no-cache-dir -r requirements.txt && \
     python copy_python_models.py && \
     python -m build --wheel --outdir /tmp/wheels
 
 # Use the official code-server image as the base
 FROM codercom/code-server:latest
 ARG GITHUB_SHA
+ARG PR_NUMBER
+
+LABEL org.opencontainers.image.revision="${GITHUB_SHA}" \
+      org.opencontainers.image.version="pr-preview"
+
+ENV GITHUB_SHA=${GITHUB_SHA} \
+    PR_NUMBER=${PR_NUMBER}
 
 # Set the working directory
 WORKDIR /home/coder
