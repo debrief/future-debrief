@@ -617,7 +617,7 @@ class DebriefAPI:
         command = {
             "command": "set_time",
             "params": {
-                "timeState": time_state.model_dump(),
+                "timeState": time_state.model_dump(mode='json'),
                 "filename": filename
             }
         }
@@ -665,7 +665,7 @@ class DebriefAPI:
         command = {
             "command": "set_viewport",
             "params": {
-                "viewportState": viewport_state.model_dump(),
+                "viewportState": viewport_state.model_dump(mode='json'),
                 "filename": filename
             }
         }
