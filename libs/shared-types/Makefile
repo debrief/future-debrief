@@ -324,11 +324,11 @@ generate-python-internal:
 			python3 fix_imports.py "$$file"; \
 		fi; \
 	done
-	@# Fix .Schema references to use direct class names instead
+	@# Fix .Schema references and import issues to use direct class names instead
 	@for file in python-src/debrief/types/states/EditorState.py python-src/debrief/types/states/CurrentState.py; do \
 		if [ -f "$$file" ]; then \
 			if command -v gsed >/dev/null 2>&1; then \
-				gsed -i 's/FeatureCollection\.Schema/FeatureCollection/g' "$$file"; \
+				gsed -i 's/FeatureCollection\.Schema/DebriefFeatureCollection/g' "$$file"; \
 				gsed -i 's/TimeState\.Schema/TimeState/g' "$$file"; \
 				gsed -i 's/ViewportState\.Schema/ViewportState/g' "$$file"; \
 				gsed -i 's/SelectionState\.Schema/SelectionState/g' "$$file"; \
@@ -336,8 +336,20 @@ generate-python-internal:
 				gsed -i 's/Track\.Schema/TrackFeature/g' "$$file"; \
 				gsed -i 's/Point\.Schema/PointFeature/g' "$$file"; \
 				gsed -i 's/Annotation\.Schema/AnnotationFeature/g' "$$file"; \
+				gsed -i 's/from \.\.features import (/from ..features.Annotation import AnnotationFeature\nfrom ..features.FeatureCollection import DebriefFeatureCollection\nfrom ..features.Point import PointFeature\nfrom ..features.Track import TrackFeature\n#REMOVED(/g' "$$file"; \
+				gsed -i 's/from \. import (/from .SelectionState import SelectionState\nfrom .TimeState import TimeState\nfrom .ViewportState import ViewportState\n#REMOVED(/g' "$$file"; \
+				gsed -i '/^[[:space:]]*Annotation,/d' "$$file"; \
+				gsed -i '/^[[:space:]]*FeatureCollection,/d' "$$file"; \
+				gsed -i '/^[[:space:]]*Point,/d' "$$file"; \
+				gsed -i '/^[[:space:]]*Track,/d' "$$file"; \
+				gsed -i '/^[[:space:]]*SelectionState,/d' "$$file"; \
+				gsed -i '/^[[:space:]]*TimeState,/d' "$$file"; \
+				gsed -i '/^[[:space:]]*ViewportState,/d' "$$file"; \
+				gsed -i '/^#REMOVED(/d' "$$file"; \
+				gsed -i '/^[[:space:]]*)/d' "$$file"; \
+				gsed -i 's/from \.\.features import Annotation, EditorState, Point, Track/from ..features.Annotation import AnnotationFeature\nfrom ..features.Point import PointFeature\nfrom ..features.Track import TrackFeature\nfrom .EditorState import EditorState/g' "$$file"; \
 			else \
-				sed -i.bak 's/FeatureCollection\.Schema/FeatureCollection/g' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak 's/FeatureCollection\.Schema/DebriefFeatureCollection/g' "$$file" && rm -f "$${file}.bak"; \
 				sed -i.bak 's/TimeState\.Schema/TimeState/g' "$$file" && rm -f "$${file}.bak"; \
 				sed -i.bak 's/ViewportState\.Schema/ViewportState/g' "$$file" && rm -f "$${file}.bak"; \
 				sed -i.bak 's/SelectionState\.Schema/SelectionState/g' "$$file" && rm -f "$${file}.bak"; \
@@ -345,6 +357,18 @@ generate-python-internal:
 				sed -i.bak 's/Track\.Schema/TrackFeature/g' "$$file" && rm -f "$${file}.bak"; \
 				sed -i.bak 's/Point\.Schema/PointFeature/g' "$$file" && rm -f "$${file}.bak"; \
 				sed -i.bak 's/Annotation\.Schema/AnnotationFeature/g' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak 's/from \.\.features import (/from ..features.Annotation import AnnotationFeature\nfrom ..features.FeatureCollection import DebriefFeatureCollection\nfrom ..features.Point import PointFeature\nfrom ..features.Track import TrackFeature\n#REMOVED(/g' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak 's/from \. import (/from .SelectionState import SelectionState\nfrom .TimeState import TimeState\nfrom .ViewportState import ViewportState\n#REMOVED(/g' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak '/^[[:space:]]*Annotation,/d' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak '/^[[:space:]]*FeatureCollection,/d' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak '/^[[:space:]]*Point,/d' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak '/^[[:space:]]*Track,/d' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak '/^[[:space:]]*SelectionState,/d' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak '/^[[:space:]]*TimeState,/d' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak '/^[[:space:]]*ViewportState,/d' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak '/^#REMOVED(/d' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak '/^[[:space:]]*)/d' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak 's/from \.\.features import Annotation, EditorState, Point, Track/from ..features.Annotation import AnnotationFeature\nfrom ..features.Point import PointFeature\nfrom ..features.Track import TrackFeature\nfrom .EditorState import EditorState/g' "$$file" && rm -f "$${file}.bak"; \
 			fi; \
 		fi; \
 	done
