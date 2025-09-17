@@ -55,6 +55,11 @@ runs:
         
         echo "Final deployment configuration:"
         cat fly.toml
+
+        echo "Preparing shared-types source for Docker build..."
+        rm -rf libs/shared-types
+        mkdir -p libs
+        rsync -a --delete --exclude node_modules --exclude dist --exclude build --exclude .git ../../libs/shared-types/ libs/shared-types/
     
     - name: Deploy to Fly.io
       id: deploy
