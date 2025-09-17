@@ -101,14 +101,26 @@ def track_speed_filter(params: TrackSpeedFilterParameters) -> Dict[str, Any]:
     properties = track_feature.properties
 
     # Extract coordinates based on geometry type
+    # Convert all coordinate structures to List[List[float]] format
     coordinates = []
     if geometry.type.value == "LineString":
-        # coordinates is a List[Coordinate], where Coordinate.root is List[float]
-        coordinates = [coord.root for coord in geometry.coordinates]
+        # LineString: List[Coordinate] where Coordinate.root is List[float]
+        for coord in geometry.coordinates:
+            coordinates.append(coord.root)
     elif geometry.type.value == "MultiLineString":
-        # For MultiLineString, concatenate all coordinate arrays
-        for line_coords in geometry.coordinates:
-            coordinates.extend([coord.root for coord in line_coords.root])
+        # MultiLineString: List[Coordinate1] where Coordinate1.root is List[Coordinate11] where Coordinate11.root is List[float]
+        for line_coord1 in geometry.coordinates:
+            for coord11 in line_coord1.root:
+                # coord11 should be a Coordinate11 object with .root as List[float]
+                # But handle defensive cases where it might be different types
+                if hasattr(coord11, 'root') and not isinstance(coord11, (int, float, str)):
+                    coordinates.append(coord11.root)
+                elif isinstance(coord11, list):
+                    # If coord11 is already a list, use it directly
+                    coordinates.append(coord11)
+                else:
+                    # Skip invalid coordinate data
+                    continue
 
     if len(coordinates) < 2:
         return {
@@ -137,16 +149,11 @@ def track_speed_filter(params: TrackSpeedFilterParameters) -> Dict[str, Any]:
         coord1 = coordinates[i]
         coord2 = coordinates[i + 1]
 
-        # Handle both list and Coordinate object formats defensively
-        if hasattr(coord1, 'root'):
-            coord1 = coord1.root
-        if hasattr(coord2, 'root'):
-            coord2 = coord2.root
-
         if len(coord1) < 2 or len(coord2) < 2:
             continue
 
         # Calculate distance using haversine formula
+        # coordinates is now List[List[float]], so coord1 and coord2 are List[float]
         lat1, lon1 = math.radians(coord1[1]), math.radians(coord1[0])
         lat2, lon2 = math.radians(coord2[1]), math.radians(coord2[0])
 
