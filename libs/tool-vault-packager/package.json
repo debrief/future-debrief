@@ -26,6 +26,9 @@
   ],
   "author": "ToolVault",
   "license": "MIT",
+  "dependencies": {
+    "@debrief/shared-types": "workspace:^1.0.0"
+  },
   "devDependencies": {
     "@playwright/test": "^1.55.0",
     "typescript": "^5.0.0"
