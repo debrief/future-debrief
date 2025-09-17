@@ -171,5 +171,8 @@ schemas/
 # Generated Python wheel (copied during build)  
 python/
 
+# Staged shared-types source for Docker builds
+libs/
+
 # VS Code extension package (build artifact)
 *.vsix

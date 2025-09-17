@@ -55,62 +55,69 @@ pnpm clean:smart
 
 ## Architecture
 
-### Schema-First Type Generation
+### Pydantic-First Type Generation
 
-This package follows a **build-based type generation approach** where JSON schemas are the single source of truth:
+This package follows a **Pydantic-first type generation approach** where Pydantic models are the single source of truth:
 
 ```
-JSON Schema (schema/ + schemas/) → json-schema-to-typescript → TypeScript types (src/types/)
-JSON Schema (schema/ + schemas/) → quicktype → Python types (python-src/debrief/types/)
+Pydantic Models (pydantic_models/) → JSON Schema (derived/json-schema/) → TypeScript types (derived/typescript/ + src/types/)
 ```
 
-**Critical**: Generated files are placed in language-specific directories and are excluded from version control. All types must be regenerated on build.
+**Critical**: Generated files are placed in language-specific directories and are excluded from version control. All types must be regenerated on build from Pydantic models.
 
 ### Directory Structure
 
 **For detailed package structure information, see [README.md](README.md#package-structure).**
 
 Key directories:
-- `schema/` + `schemas/` - JSON Schema source files
-- `src/types/` - Generated TypeScript interfaces
-- `python-src/debrief/types/` - Generated Python classes
-- `src/validators/` + `python-src/debrief/validators/` - Manual validation functions
+- `pydantic_models/` - Pydantic model source files (single source of truth)
+- `derived/json-schema/` - Generated JSON Schema files
+- `derived/typescript/` - Generated TypeScript types
+- `src/types/` - Generated TypeScript interfaces (compatibility)
+- `src/validators/` - Manual validation functions
+- `schemas-backup/` - Backup of original JSON Schema files
 
 ### Key Design Principles
 
-1. **Schema-First**: JSON schemas are authoritative, types are derived
-2. **Discriminated Unions**: TypeScript uses `json-schema-to-typescript` for proper union types with literal discriminators (e.g., `featureType: "track"`)
-3. **Cross-Field Validation**: Manual validators handle logic beyond JSON schema capabilities (timestamp array length matching coordinates, geographic bounds, etc.)
-4. **Language Parity**: TypeScript and Python validators provide equivalent behavior
+1. **Pydantic-First**: Pydantic models are authoritative, all other artifacts are derived
+2. **Discriminated Unions**: TypeScript uses `json-schema-to-typescript` for proper union types with literal discriminators (e.g., `dataType: "track"`)
+3. **Cross-Field Validation**: Manual validators handle logic beyond schema capabilities (timestamp array length matching coordinates, geographic bounds, etc.)
+4. **Type Safety**: Pydantic provides runtime validation and type checking at the source
 5. **Build Dependencies**: Always run `pnpm generate:types` before TypeScript compilation
 
 ### Type Generation Details
 
-**TypeScript Generation** (`json-schema-to-typescript`):
+**Pydantic Models**:
+- Define data structures with runtime validation
+- Support complex types, unions, and constraints
+- Provide automatic JSON schema generation
+- Enable type-safe Python development
+
+**Generated JSON Schema**:
+- Derived automatically from Pydantic models
+- Used for validation and documentation
+- Compatible with existing tooling
+
+**Generated TypeScript** (`json-schema-to-typescript`):
 - Creates discriminated unions with literal types
 - Enables automatic type narrowing in consuming code
 - Generates interfaces with proper inheritance relationships
 
-**Python Generation** (`quicktype`):
-- Creates dataclasses with type annotations
-- Generates factory methods and serialization support
-- Compatible with Pydantic for runtime validation
-
 ## Development Workflow
 
-### Making Schema Changes
-1. Edit JSON schemas in `schema/` or `schemas/`
-2. Run `pnpm generate:types` to regenerate derived types
+### Making Model Changes
+1. Edit Pydantic models in `pydantic_models/features/`, `pydantic_models/states/`, or `pydantic_models/tools/`
+2. Run `pnpm generate:types` to regenerate JSON Schema and TypeScript types
 3. Update validators if cross-field validation logic changes
-4. Run `pnpm test` to ensure consistency across languages
+4. Run `pnpm typecheck` to ensure TypeScript compatibility
 5. Build consuming packages that depend on changed types
 
 ### Adding New Feature Types
-1. Create new JSON schema file in `schema/`
-2. Add schema reference to `featurecollection.schema.json` oneOf array
-3. Add post-processing rules in `generate:ts:post-process` script if needed
-4. Create corresponding validator files in both `validators/typescript/` and `validators/python/`
-5. Add test data in `tests/json/data/`
+1. Create new Pydantic model file in `pydantic_models/features/`
+2. Add to `pydantic_models/__init__.py` exports
+3. Update `generate_from_pydantic.py` to include the new model
+4. Create corresponding validator files in `src/validators/`
+5. Add test data and update tests as needed
 
 ### Working with Generated Types
 

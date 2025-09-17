@@ -1,5 +1,30 @@
+ARG GITHUB_SHA=main
+ARG PR_NUMBER=local
+
+FROM python:3.11-slim AS shared-types-builder
+WORKDIR /tmp/repo
+
+RUN apt-get update && apt-get install -y make && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+COPY libs/shared-types/ ./libs/shared-types/
+
+WORKDIR /tmp/repo/libs/shared-types
+
+RUN pip install --no-cache-dir -r requirements.txt && \
+    python copy_python_models.py && \
+    python -m build --wheel --outdir /tmp/wheels
+
 # Use the official code-server image as the base
 FROM codercom/code-server:latest
+ARG GITHUB_SHA
+ARG PR_NUMBER
+
+LABEL org.opencontainers.image.revision="${GITHUB_SHA}" \
+      org.opencontainers.image.version="pr-preview"
+
+ENV GITHUB_SHA=${GITHUB_SHA} \
+    PR_NUMBER=${PR_NUMBER}
 
 # Set the working directory
 WORKDIR /home/coder
@@ -25,6 +50,9 @@ RUN mkdir -p /home/coder/workspace /home/coder/project
 # Copy the VS Code extension files (including pre-built VSIX)
 COPY --chown=coder:coder . /home/coder/project/
 
+# Copy the shared-types wheel produced in the builder stage
+COPY --chown=coder:coder --from=shared-types-builder /tmp/wheels/ /home/coder/project/python/
+
 # Switch to project directory for extension installation
 WORKDIR /home/coder/project
 
@@ -48,7 +76,12 @@ RUN mkdir -p /home/coder/workspace/.vscode && \
 RUN cd /home/coder/workspace/tests && \
     python3 -m venv venv && \
     venv/bin/pip install -r requirements.txt && \
-    venv/bin/pip install /home/coder/project/python/*.whl
+    if ls /home/coder/project/python/*.whl 1> /dev/null 2>&1; then \
+        venv/bin/pip install /home/coder/project/python/*.whl; \
+    else \
+        echo "Error: debrief-types wheel not found. Verify shared-types build step." >&2 && \
+        exit 1; \
+    fi
 
 # Create a simple README for the workspace
 RUN echo "# Debrief Extension Preview\n\nThis is a preview environment for the Debrief VS Code extension.\n\n## Sample Files\n\n- \`*.rep\` files: Debrief replay files\n- \`*.plot.json\` files: Plot data visualization files\n\n## Usage\n\n1. Open any .plot.json file to see the custom Plot JSON editor\n2. Use Ctrl+Shift+P to access the 'Hello World' command\n3. Check the 'Hello World' view in the Explorer panel\n\n## Python Scripts\n\nPython scripts can be run directly with F5 or using the Run button in VS Code. The environment is pre-configured to use the virtual environment automatically.\n\nAlternatively, you can run scripts manually:\n\n\`\`\`bash\ncd tests\n./venv/bin/python move_point_north_simple.py\n\`\`\`\n\nThis environment includes sample data files for testing the extension features." > /home/coder/workspace/README.md

@@ -46,22 +46,23 @@ export type {
   DebriefTrackFeature,
   DebriefPointFeature,
   DebriefAnnotationFeature,
-  DebriefFeatureCollection,
-  DebriefFeature
-} from './types/features/featurecollection';
+  DebriefFeatureCollection
+} from './types/FeatureCollection';
 
 // Re-export state types
-export type { TimeState } from './types/states/timestate';
-export type { ViewportState } from './types/states/viewportstate';
-export type { SelectionState } from './types/states/selectionstate';
-export type { EditorState } from './types/states/editorstate';
-export type { CurrentState } from './types/states/currentstate';
+export type { TimeState } from './types/TimeState';
+export type { ViewportState } from './types/ViewportState';
+export type { SelectionState } from './types/SelectionState';
+export type { EditorState } from './types/EditorState';
+export type { CurrentState } from './types/CurrentState';
 
-// Re-export tool types
-export type { Tool } from './types/tools/tool';
-export type { ToolListResponse } from './types/tools/toollistresponse';
-export type { ToolCallRequest } from './types/tools/toolcallrequest';
-export type { ToolCallResponse } from './types/tools/toolcallresponse';
-export type { JSONSchema } from './types/tools/jsonschema';
-export type { ConstrainedFeature } from './types/tools/constrainedfeature';
+// Import types for union
+import type {
+  DebriefTrackFeature,
+  DebriefPointFeature,
+  DebriefAnnotationFeature
+} from './types/FeatureCollection';
+
+// Union type for any Debrief feature
+export type DebriefFeature = DebriefTrackFeature | DebriefPointFeature | DebriefAnnotationFeature;
 // Note: Input.ts and Output.ts export specific interfaces, not generic Input/Output types

@@ -10,17 +10,27 @@ const path = require('path');
 const DERIVED_DIR = path.join(__dirname, '..', '..', 'src', 'types');
 
 const EXPECTED_FILES = [
-  'features/track.ts',
-  'features/point.ts',
-  'features/annotation.ts',
-  'features/featurecollection.ts'
+  'Track.ts',
+  'Point.ts',
+  'Annotation.ts',
+  'FeatureCollection.ts',
+  'TimeState.ts',
+  'ViewportState.ts',
+  'SelectionState.ts',
+  'EditorState.ts',
+  'CurrentState.ts'
 ];
 
 const EXPECTED_EXPORTS = {
-  'features/track.ts': ['DebriefTrackFeature'],
-  'features/point.ts': ['DebriefPointFeature'],
-  'features/annotation.ts': ['DebriefAnnotationFeature'],
-  'features/featurecollection.ts': ['DebriefFeatureCollection', 'DebriefFeature', 'DebriefTrackFeature', 'DebriefPointFeature', 'DebriefAnnotationFeature']
+  'Track.ts': ['DebriefTrackFeature'],
+  'Point.ts': ['DebriefPointFeature'],
+  'Annotation.ts': ['DebriefAnnotationFeature'],
+  'FeatureCollection.ts': ['DebriefFeatureCollection', 'DebriefTrackFeature', 'DebriefPointFeature', 'DebriefAnnotationFeature'],
+  'TimeState.ts': ['TimeState'],
+  'ViewportState.ts': ['ViewportState'],
+  'SelectionState.ts': ['SelectionState'],
+  'EditorState.ts': ['EditorState'],
+  'CurrentState.ts': ['CurrentState']
 };
 
 function testFileExists(filename) {

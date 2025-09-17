@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://example.org/debrief/schemas/tools/JSONSchema.schema.json",
+  "title": "JSON Schema",
+  "description": "A JSON Schema object for defining data structure constraints",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["string", "number", "integer", "boolean", "object", "array", "null"]
+    },
+    "properties": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/JSONSchemaProperty"
+      }
+    },
+    "required": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "additionalProperties": {
+      "oneOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "$ref": "#/$defs/JSONSchemaProperty"
+        }
+      ]
+    },
+    "description": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "JSONSchemaProperty": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "number", "integer", "boolean", "object", "array", "null"]
+        },
+        "description": {
+          "type": "string"
+        },
+        "enum": {
+          "type": "array",
+          "items": {}
+        },
+        "items": {
+          "$ref": "#/$defs/JSONSchemaProperty"
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JSONSchemaProperty"
+          }
+        },
+        "required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/JSONSchemaProperty"
+            }
+          ]
+        },
+        "default": {}
+      },
+      "additionalProperties": true
+    }
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://example.org/debrief/schemas/features/FeatureCollection.schema.json",
+  "title": "Debrief FeatureCollection",
+  "description": "A GeoJSON FeatureCollection containing mixed feature types for maritime analysis",
+  "type": "object",
+  "required": ["type", "features"],
+  "$defs": {
+    "DebriefFeature": {
+      "title": "Debrief Feature",
+      "description": "Union type representing any valid Debrief feature (track, point, or annotation)",
+      "oneOf": [
+        {
+          "$ref": "Track.schema.json"
+        },
+        {
+          "$ref": "Point.schema.json"
+        },
+        {
+          "$ref": "Annotation.schema.json"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "properties/dataType"
+      }
+    }
+  },
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["FeatureCollection"]
+    },
+    "features": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DebriefFeature"
+      }
+    },
+    "bbox": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 6,
+      "items": {
+        "type": "number"
+      },
+      "description": "Bounding box of the feature collection"
+    },
+    "properties": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Human readable name for this collection"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of this feature collection"
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When this collection was created"
+        },
+        "modified": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When this collection was last modified"
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of this collection"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}
