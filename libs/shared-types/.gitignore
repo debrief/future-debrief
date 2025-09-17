@@ -59,3 +59,4 @@ dist/python/
 
 # Build lockfiles
 .generation-lock
+.python-models-copied
