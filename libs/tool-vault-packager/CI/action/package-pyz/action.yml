@@ -56,18 +56,3 @@ runs:
           exit 1
         fi
 
-    - name: Post failure comment
-      if: failure() && github.event_name == 'pull_request'
-      shell: bash
-      run: |
-        COMMIT_SHA=${{ github.sha }}
-        SHORT_SHA=${COMMIT_SHA:0:7}
-
-        gh pr comment ${{ github.event.pull_request.number }} --body "## ToolVault Build ❌ Failed
-
-        **Commit:** \`${SHORT_SHA}\`
-        **Status:** ToolVault package build failed
-
-        Please check the [CI logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
