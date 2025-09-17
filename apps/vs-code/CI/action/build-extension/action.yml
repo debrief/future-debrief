@@ -37,15 +37,16 @@ runs:
       shell: bash
       run: pip install build wheel
 
-    - name: Install shared-types Python dependencies
-      shell: bash
-      working-directory: libs/shared-types
-      run: pip install -r requirements.txt
-
     - name: Install global Node.js tools
       shell: bash
       run: npm install -g quicktype
-    
+
+    - name: Install Python dependencies for shared-types
+      shell: bash
+      run: |
+        echo "🐍 Installing Python dependencies for shared-types build..."
+        pip install -r libs/shared-types/requirements.txt
+
     - name: Install dependencies
       shell: bash
       run: pnpm install --frozen-lockfile

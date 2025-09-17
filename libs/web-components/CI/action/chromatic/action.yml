@@ -28,6 +28,12 @@ runs:
       shell: bash
       run: pnpm install --frozen-lockfile
 
+    - name: Install Python dependencies for shared-types
+      shell: bash
+      run: |
+        echo "🐍 Installing Python dependencies for shared-types build..."
+        pip install -r libs/shared-types/requirements.txt
+
     - name: Build shared types
       shell: bash
       run: pnpm --filter @debrief/shared-types build:ci
