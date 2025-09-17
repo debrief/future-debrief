@@ -15,7 +15,7 @@ WORKDIR /app
 # Copy entire directory structure
 COPY . .
 
-# Always install Python dependencies (needed even for pre-built .pyz)
+# Install Python dependencies (wheel staged by CI at shared-types/dist/python/)
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Build script that handles both CI (.pyz exists) and local (build from source) scenarios  
