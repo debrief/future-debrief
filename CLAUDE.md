@@ -221,6 +221,6 @@ cd libs/tool-vault-packager && npm run test:playwright
 
 ### GitHub Actions Requirements
 - Use `actions/setup-node@v4` with `node-version-file: '.nvmrc'`
-- Use `pnpm/action-setup@v2` with version 8
+- Use `pnpm/action-setup@v2` with version matching `packageManager` in root package.json (currently 10.14.0)
 - Ensure build order: shared-types → other packages
-- Never hardcode Node.js versions in CI action files
+- Never hardcode Node.js or pnpm versions in CI action files
