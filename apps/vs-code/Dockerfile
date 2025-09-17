@@ -1,5 +1,25 @@
+ARG GITHUB_REPO=https://github.com/debrief/future-debrief-parent.git
+ARG GITHUB_SHA=main
+
+FROM python:3.11-slim AS shared-types-builder
+ARG GITHUB_REPO
+ARG GITHUB_SHA
+
+RUN apt-get update && apt-get install -y git make && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN git clone "${GITHUB_REPO}" /tmp/repo && \
+    cd /tmp/repo && \
+    git checkout "${GITHUB_SHA}"
+
+RUN cd /tmp/repo/libs/shared-types && \
+    pip install --no-cache-dir -r requirements.txt && \
+    python copy_python_models.py && \
+    python -m build --wheel --outdir /tmp/wheels
+
 # Use the official code-server image as the base
 FROM codercom/code-server:latest
+ARG GITHUB_SHA
 
 # Set the working directory
 WORKDIR /home/coder
@@ -25,6 +45,9 @@ RUN mkdir -p /home/coder/workspace /home/coder/project
 # Copy the VS Code extension files (including pre-built VSIX)
 COPY --chown=coder:coder . /home/coder/project/
 
+# Copy the shared-types wheel produced in the builder stage
+COPY --chown=coder:coder --from=shared-types-builder /tmp/wheels/ /home/coder/project/python/
+
 # Switch to project directory for extension installation
 WORKDIR /home/coder/project
 
@@ -43,20 +66,6 @@ RUN cp -r workspace/* /home/coder/workspace/ 2>/dev/null || true
 # Create VS Code settings to use virtual environment Python
 RUN mkdir -p /home/coder/workspace/.vscode && \
     echo '{\n  "python.defaultInterpreterPath": "/home/coder/workspace/tests/venv/bin/python"\n}' > /home/coder/workspace/.vscode/settings.json
-
-# Build shared-types Python wheel
-RUN cd /home/coder/project && \
-    if [ -d "libs/shared-types" ]; then \
-        echo "Building shared-types Python wheel..." && \
-        cd libs/shared-types && \
-        pip install build wheel pydantic && \
-        make .python-models-copied && \
-        python -m build --wheel --outdir /tmp/wheels && \
-        mkdir -p /home/coder/project/python && \
-        cp /tmp/wheels/*.whl /home/coder/project/python/; \
-    else \
-        echo "Warning: libs/shared-types not found, skipping wheel build"; \
-    fi
 
 # Create and activate virtual environment, then install Python test requirements
 RUN cd /home/coder/workspace/tests && \
