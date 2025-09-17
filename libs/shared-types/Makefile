@@ -199,7 +199,7 @@ generate-python-internal:
 	@for category in features states tools; do \
 		cp schemas/$$category/*.json python-src/debrief/schemas/$$category/ 2>/dev/null || true; \
 	done
-	@# Generate Python types using datamodel-codegen, handling each schema individually
+	@# Generate Python types using datamodel-codegen, adding Schema alias for cross-references
 	@for mapping in $(PYTHON_CLASS_MAPPING); do \
 		schema="$${mapping%:*}"; \
 		class_name="$${mapping##*:}"; \
@@ -215,7 +215,10 @@ generate-python-internal:
 			--output-model-type pydantic_v2.BaseModel --disable-appending-item-suffix \
 			--input-file-type jsonschema 2>/dev/null; then \
 			cp "$$temp_file" "$$output_file"; \
+			echo "# Alias for cross-reference compatibility" >> "$$output_file"; \
+			echo "Schema = $$class_name" >> "$$output_file"; \
 			rm -f "$$temp_file"; \
+			echo "Successfully generated $$schema using single-file mode"; \
 		else \
 			echo "Retrying with directory output for $$schema (has modular references)"; \
 			mkdir -p "$$temp_dir"; \
