@@ -20,7 +20,7 @@ YELLOW := \033[33m
 RED := \033[31m
 RESET := \033[0m
 
-.PHONY: help clean build generate test dev force-generate generate-schemas generate-typescript copy-typescript copy-python-models
+.PHONY: help clean build build-dist generate test dev force-generate generate-schemas generate-typescript copy-typescript copy-python-models
 
 # Default target
 help: ## Show this help message
@@ -32,7 +32,7 @@ help: ## Show this help message
 
 clean: ## Clean all generated files
 	@echo "$(YELLOW)Cleaning generated files...$(RESET)"
-	@rm -rf derived/ dist/ src/types/ python-src/debrief/types/features/ python-src/debrief/types/states/ python-src/debrief/types/tools/ 2>/dev/null || true
+	@rm -rf derived/ dist/ src/types/ python-src/debrief/types/ .python-models-copied 2>/dev/null || true
 	@echo "$(GREEN)✓ Clean complete$(RESET)"
 
 # JSON Schema generation from Pydantic models
@@ -54,19 +54,12 @@ src/types/%.ts: derived/typescript/%.ts
 	@cp "$<" "$@"
 
 # Python model copying for wheel building
-python-src/debrief/types/features/track.py: $(PYDANTIC_FILES)
+.python-models-copied: $(PYDANTIC_FILES)
 	@echo "$(BLUE)Copying Python models for wheel building...$(RESET)"
-	@mkdir -p python-src/debrief/types/features python-src/debrief/types/states python-src/debrief/types/tools
-	@cp pydantic_models/features/*.py python-src/debrief/types/features/ 2>/dev/null || true
-	@cp pydantic_models/states/*.py python-src/debrief/types/states/ 2>/dev/null || true
-	@cp pydantic_models/tools/*.py python-src/debrief/types/tools/ 2>/dev/null || true
-	@# Remove __init__.py files that were copied (we'll create our own)
-	@rm -f python-src/debrief/types/features/__init__.py python-src/debrief/types/states/__init__.py python-src/debrief/types/tools/__init__.py 2>/dev/null || true
-	@# Create proper __init__.py files
-	@echo '"""Generated features types from Pydantic models."""' > python-src/debrief/types/features/__init__.py
-	@echo '"""Generated states types from Pydantic models."""' > python-src/debrief/types/states/__init__.py
-	@echo '"""Generated tools types from Pydantic models."""' > python-src/debrief/types/tools/__init__.py
+	@mkdir -p python-src/debrief
+	@cp -r pydantic_models python-src/debrief/types
 	@echo '"""Generated types from Pydantic models."""' > python-src/debrief/types/__init__.py
+	@touch .python-models-copied
 	@echo "$(GREEN)✓ Python model copying complete$(RESET)"
 
 # Convenience targets
@@ -76,13 +69,13 @@ generate-typescript: $(foreach model,$(SCHEMA_MODELS),derived/typescript/$(model
 
 copy-typescript: $(foreach model,$(SCHEMA_MODELS),src/types/$(model).ts) ## Copy TypeScript files to src/types
 
-copy-python-models: python-src/debrief/types/features/track.py ## Copy Python models for wheel building
+copy-python-models: .python-models-copied ## Copy Python models for wheel building
 
 generate: generate-schemas generate-typescript copy-typescript copy-python-models ## Generate all types and copy files
 
 force-generate: ## Force regeneration of all types
 	@echo "$(BLUE)Force regenerating all types...$(RESET)"
-	@rm -rf derived/ src/types/ python-src/debrief/types/features/ python-src/debrief/types/states/ python-src/debrief/types/tools/
+	@rm -rf derived/ src/types/ python-src/debrief/types/ .python-models-copied
 	@$(MAKE) generate
 	@echo "$(GREEN)✓ Force generation complete$(RESET)"
 
@@ -93,13 +86,19 @@ $(COMPILED_TS): $(foreach model,$(SCHEMA_MODELS),src/types/$(model).ts) tsconfig
 	@echo "$(GREEN)✓ TypeScript compilation complete$(RESET)"
 
 # Python wheel depends on copied Python models
-$(PYTHON_WHEEL): python-src/debrief/types/features/track.py pyproject.toml setup.py
+$(PYTHON_WHEEL): .python-models-copied pyproject.toml setup.py
 	@echo "$(BLUE)Building Python wheel...$(RESET)"
 	@mkdir -p dist/python && python -m build --wheel --outdir dist/python
 	@echo "$(GREEN)✓ Python wheel build complete$(RESET)"
 
 build: $(COMPILED_TS) $(PYTHON_WHEEL) ## Build TypeScript and Python wheel (conditional)
 	@echo "$(GREEN)✓ Build complete$(RESET)"
+
+build-dist: ## Generate all assets and build distribution artifacts (CI safe)
+	@echo "$(BLUE)Starting full distribution build...$(RESET)"
+	@$(MAKE) --no-print-directory generate
+	@$(MAKE) --no-print-directory build
+	@echo "$(GREEN)✓ Distribution build complete$(RESET)"
 
 test: ## Run tests
 	@echo "$(BLUE)Running tests...$(RESET)"
