@@ -217,7 +217,11 @@ generate-python-internal:
 			cp "$$temp_file" "$$output_file"; \
 			echo "# Alias for cross-reference compatibility" >> "$$output_file"; \
 			echo "Schema = $$class_name" >> "$$output_file"; \
-			sed -i '' 's/, discriminator=.*properties\/dataType.*//' "$$output_file"; \
+			if command -v gsed >/dev/null 2>&1; then \
+				gsed -i 's/, discriminator=.*properties\/dataType.*//' "$$output_file"; \
+			else \
+				sed -i.bak 's/, discriminator=.*properties\/dataType.*//' "$$output_file" && rm -f "$${output_file}.bak"; \
+			fi; \
 			if [ "$$category" != "features" ]; then \
 				python3 fix_imports.py "$$output_file"; \
 			fi; \
@@ -232,24 +236,46 @@ generate-python-internal:
 				--input-file-type jsonschema; then \
 				if [ -f "$$temp_dir/__init__.py" ]; then \
 					cp "$$temp_dir/__init__.py" "$$output_file"; \
-					sed -i '' 's/, discriminator=.*properties\/dataType.*//' "$$output_file"; \
+					if command -v gsed >/dev/null 2>&1; then \
+						gsed -i 's/, discriminator=.*properties\/dataType.*//' "$$output_file"; \
+					else \
+						sed -i.bak 's/, discriminator=.*properties\/dataType.*//' "$$output_file" && rm -f "$${output_file}.bak"; \
+					fi; \
 					if [ "$$category" != "features" ]; then \
-						sed -i '' 's/from \. import \([^,]*Annotation[^,]*\)/from ..features import \1/g' "$$output_file"; \
-						sed -i '' 's/from \. import \([^,]*Point[^,]*\)/from ..features import \1/g' "$$output_file"; \
-						sed -i '' 's/from \. import \([^,]*Track[^,]*\)/from ..features import \1/g' "$$output_file"; \
-						sed -i '' 's/from \. import \([^,]*FeatureCollection[^,]*\)/from ..features import \1/g' "$$output_file"; \
+						if command -v gsed >/dev/null 2>&1; then \
+							gsed -i 's/from \. import \([^,]*Annotation[^,]*\)/from ..features import \1/g' "$$output_file"; \
+							gsed -i 's/from \. import \([^,]*Point[^,]*\)/from ..features import \1/g' "$$output_file"; \
+							gsed -i 's/from \. import \([^,]*Track[^,]*\)/from ..features import \1/g' "$$output_file"; \
+							gsed -i 's/from \. import \([^,]*FeatureCollection[^,]*\)/from ..features import \1/g' "$$output_file"; \
+						else \
+							sed -i.bak 's/from \. import \([^,]*Annotation[^,]*\)/from ..features import \1/g' "$$output_file" && rm -f "$${output_file}.bak"; \
+							sed -i.bak 's/from \. import \([^,]*Point[^,]*\)/from ..features import \1/g' "$$output_file" && rm -f "$${output_file}.bak"; \
+							sed -i.bak 's/from \. import \([^,]*Track[^,]*\)/from ..features import \1/g' "$$output_file" && rm -f "$${output_file}.bak"; \
+							sed -i.bak 's/from \. import \([^,]*FeatureCollection[^,]*\)/from ..features import \1/g' "$$output_file" && rm -f "$${output_file}.bak"; \
+						fi; \
 					fi; \
 					echo "Successfully generated $$schema using directory mode (from __init__.py)"; \
 				else \
 					generated_file=$$(find "$$temp_dir" -name "*.py" | head -1); \
 					if [ -f "$$generated_file" ]; then \
 						cp "$$generated_file" "$$output_file"; \
-						sed -i '' 's/, discriminator=.*properties\/dataType.*//' "$$output_file"; \
+						if command -v gsed >/dev/null 2>&1; then \
+							gsed -i 's/, discriminator=.*properties\/dataType.*//' "$$output_file"; \
+						else \
+							sed -i.bak 's/, discriminator=.*properties\/dataType.*//' "$$output_file" && rm -f "$${output_file}.bak"; \
+						fi; \
 						if [ "$$category" != "features" ]; then \
-							sed -i '' 's/from \. import \([^,]*Annotation[^,]*\)/from ..features import \1/g' "$$output_file"; \
-							sed -i '' 's/from \. import \([^,]*Point[^,]*\)/from ..features import \1/g' "$$output_file"; \
-							sed -i '' 's/from \. import \([^,]*Track[^,]*\)/from ..features import \1/g' "$$output_file"; \
-							sed -i '' 's/from \. import \([^,]*FeatureCollection[^,]*\)/from ..features import \1/g' "$$output_file"; \
+							if command -v gsed >/dev/null 2>&1; then \
+								gsed -i 's/from \. import \([^,]*Annotation[^,]*\)/from ..features import \1/g' "$$output_file"; \
+								gsed -i 's/from \. import \([^,]*Point[^,]*\)/from ..features import \1/g' "$$output_file"; \
+								gsed -i 's/from \. import \([^,]*Track[^,]*\)/from ..features import \1/g' "$$output_file"; \
+								gsed -i 's/from \. import \([^,]*FeatureCollection[^,]*\)/from ..features import \1/g' "$$output_file"; \
+							else \
+								sed -i.bak 's/from \. import \([^,]*Annotation[^,]*\)/from ..features import \1/g' "$$output_file" && rm -f "$${output_file}.bak"; \
+								sed -i.bak 's/from \. import \([^,]*Point[^,]*\)/from ..features import \1/g' "$$output_file" && rm -f "$${output_file}.bak"; \
+								sed -i.bak 's/from \. import \([^,]*Track[^,]*\)/from ..features import \1/g' "$$output_file" && rm -f "$${output_file}.bak"; \
+								sed -i.bak 's/from \. import \([^,]*FeatureCollection[^,]*\)/from ..features import \1/g' "$$output_file" && rm -f "$${output_file}.bak"; \
+							fi; \
 						fi; \
 						echo "Successfully generated $$schema using directory mode (from $$generated_file)"; \
 					else \
@@ -301,14 +327,25 @@ generate-python-internal:
 	@# Fix .Schema references to use direct class names instead
 	@for file in python-src/debrief/types/states/EditorState.py python-src/debrief/types/states/CurrentState.py; do \
 		if [ -f "$$file" ]; then \
-			sed -i '' 's/FeatureCollection\.Schema/FeatureCollection/g' "$$file"; \
-			sed -i '' 's/TimeState\.Schema/TimeState/g' "$$file"; \
-			sed -i '' 's/ViewportState\.Schema/ViewportState/g' "$$file"; \
-			sed -i '' 's/SelectionState\.Schema/SelectionState/g' "$$file"; \
-			sed -i '' 's/EditorState\.Schema/EditorState/g' "$$file"; \
-			sed -i '' 's/Track\.Schema/TrackFeature/g' "$$file"; \
-			sed -i '' 's/Point\.Schema/PointFeature/g' "$$file"; \
-			sed -i '' 's/Annotation\.Schema/AnnotationFeature/g' "$$file"; \
+			if command -v gsed >/dev/null 2>&1; then \
+				gsed -i 's/FeatureCollection\.Schema/FeatureCollection/g' "$$file"; \
+				gsed -i 's/TimeState\.Schema/TimeState/g' "$$file"; \
+				gsed -i 's/ViewportState\.Schema/ViewportState/g' "$$file"; \
+				gsed -i 's/SelectionState\.Schema/SelectionState/g' "$$file"; \
+				gsed -i 's/EditorState\.Schema/EditorState/g' "$$file"; \
+				gsed -i 's/Track\.Schema/TrackFeature/g' "$$file"; \
+				gsed -i 's/Point\.Schema/PointFeature/g' "$$file"; \
+				gsed -i 's/Annotation\.Schema/AnnotationFeature/g' "$$file"; \
+			else \
+				sed -i.bak 's/FeatureCollection\.Schema/FeatureCollection/g' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak 's/TimeState\.Schema/TimeState/g' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak 's/ViewportState\.Schema/ViewportState/g' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak 's/SelectionState\.Schema/SelectionState/g' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak 's/EditorState\.Schema/EditorState/g' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak 's/Track\.Schema/TrackFeature/g' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak 's/Point\.Schema/PointFeature/g' "$$file" && rm -f "$${file}.bak"; \
+				sed -i.bak 's/Annotation\.Schema/AnnotationFeature/g' "$$file" && rm -f "$${file}.bak"; \
+			fi; \
 		fi; \
 	done
 
