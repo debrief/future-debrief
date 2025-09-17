@@ -210,3 +210,17 @@ cd libs/tool-vault-packager && npm run test:playwright
 - React components for maritime visualization
 - Vanilla JS bundles for non-React applications
 - Leaflet-based mapping with maritime-specific layers and interactions
+
+## CI/CD Standards
+
+### Node.js Version Management
+- **Standard Version**: Defined in `.nvmrc` file at repository root
+- **CI/CD Actions**: Always use `node-version-file: '.nvmrc'` instead of hardcoded versions
+- **Local Development**: Use `nvm use` to match the standard version
+- **Build Dependencies**: shared-types must build before tool-vault-packager to create required Python wheel
+
+### GitHub Actions Requirements
+- Use `actions/setup-node@v4` with `node-version-file: '.nvmrc'`
+- Use `pnpm/action-setup@v2` with version 8
+- Ensure build order: shared-types → other packages
+- Never hardcode Node.js versions in CI action files
