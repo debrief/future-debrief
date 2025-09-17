@@ -54,11 +54,9 @@ src/types/%.ts: derived/typescript/%.ts
 	@cp "$<" "$@"
 
 # Python model copying for wheel building
-.python-models-copied: $(PYDANTIC_FILES)
+.python-models-copied: $(PYDANTIC_FILES) copy_python_models.py
 	@echo "$(BLUE)Copying Python models for wheel building...$(RESET)"
-	@mkdir -p python-src/debrief
-	@cp -r pydantic_models python-src/debrief/types
-	@echo '"""Generated types from Pydantic models."""' > python-src/debrief/types/__init__.py
+	@python3 copy_python_models.py
 	@touch .python-models-copied
 	@echo "$(GREEN)✓ Python model copying complete$(RESET)"
 
