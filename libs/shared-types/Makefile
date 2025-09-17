@@ -200,31 +200,19 @@ generate-python-internal:
 		cp schemas/$$category/*.json python-src/debrief/schemas/$$category/ 2>/dev/null || true; \
 	done
 	@# Generate Python types using datamodel-codegen with consistent PascalCase filenames
-	@if command -v datamodel-codegen >/dev/null 2>&1; then \
-		echo "$(GREEN)Using datamodel-codegen for Python generation...$(RESET)"; \
-		for mapping in $(PYTHON_CLASS_MAPPING); do \
-			schema="$${mapping%:*}"; \
-			class_name="$${mapping##*:}"; \
-			category="$$(echo $$schema | cut -d'/' -f2)"; \
-			basename="$$(basename "$$schema" .schema.json)"; \
-			output="python-src/debrief/types/$$category/$$basename.py"; \
-			datamodel-codegen --input "$$schema" --output "$$output" --target-python-version 3.9 \
-				--class-name "$$class_name" --use-schema-description --use-field-description \
-				--output-model-type pydantic_v2.BaseModel --disable-appending-item-suffix \
-				--input-file-type jsonschema & \
-		done; \
-		wait; \
-	else \
-		echo "$(YELLOW)⚠️ datamodel-codegen not found, creating minimal Python stubs for CI...$(RESET)"; \
-		for mapping in $(PYTHON_CLASS_MAPPING); do \
-			schema="$${mapping%:*}"; \
-			class_name="$${mapping##*:}"; \
-			category="$$(echo $$schema | cut -d'/' -f2)"; \
-			basename="$$(basename "$$schema" .schema.json)"; \
-			output="python-src/debrief/types/$$category/$$basename.py"; \
-			printf '# Minimal stub for CI - datamodel-codegen not available\nfrom typing import Any, Dict\n\nclass %s:\n    """Minimal stub for CI compatibility."""\n    def __init__(self, **kwargs):\n        for key, value in kwargs.items():\n            setattr(self, key, value)\n    \n    @classmethod\n    def from_dict(cls, data: Dict[str, Any]):\n        return cls(**data)\n    \n    def to_dict(self) -> Dict[str, Any]:\n        return {k: v for k, v in self.__dict__.items()}\n' "$$class_name" > "$$output"; \
-		done; \
-	fi
+	@echo "$(GREEN)Using datamodel-codegen for Python generation...$(RESET)"
+	@for mapping in $(PYTHON_CLASS_MAPPING); do \
+		schema="$${mapping%:*}"; \
+		class_name="$${mapping##*:}"; \
+		category="$$(echo $$schema | cut -d'/' -f2)"; \
+		basename="$$(basename "$$schema" .schema.json)"; \
+		output="python-src/debrief/types/$$category/$$basename.py"; \
+		datamodel-codegen --input "$$schema" --output "$$output" --target-python-version 3.9 \
+			--class-name "$$class_name" --use-schema-description --use-field-description \
+			--output-model-type pydantic_v2.BaseModel --disable-appending-item-suffix \
+			--input-file-type jsonschema & \
+	done; \
+	wait
 	@# Create organized __init__.py with PascalCase imports
 	@printf '"""\nGenerated Python types for Debrief maritime GeoJSON features and application state.\nThese types are generated from JSON schemas and provide type hints and validation.\n"""\n\n# Import from organized subpackages\nfrom .features.Annotation import AnnotationFeature\nfrom .features.FeatureCollection import DebriefFeatureCollection\nfrom .features.Track import TrackFeature\nfrom .features.Point import PointFeature\nfrom .states.EditorState import EditorState\nfrom .states.TimeState import TimeState\nfrom .states.ViewportState import ViewportState\nfrom .states.SelectionState import SelectionState\nfrom .states.CurrentState import CurrentState\nfrom .tools.Tool import Tool\nfrom .tools.ToolCallRequest import ToolCallRequest\nfrom .tools.ToolCallResponse import ToolCallResponse\nfrom .tools.ToolListResponse import ToolListResponse\nfrom .tools.JSONSchema import JSONSchema\nfrom .tools.ConstrainedFeature import ConstrainedFeature\n\n__all__ = ["AnnotationFeature", "DebriefFeatureCollection", "TrackFeature", "PointFeature", "EditorState", "TimeState", "ViewportState", "SelectionState", "CurrentState", "Tool", "ToolCallRequest", "ToolCallResponse", "ToolListResponse", "JSONSchema", "ConstrainedFeature"]\n' > python-src/debrief/types/__init__.py
 	@# Create __init__.py files for subfolders

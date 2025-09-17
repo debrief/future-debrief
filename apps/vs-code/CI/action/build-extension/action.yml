@@ -35,7 +35,12 @@ runs:
     - name: Install Python build dependencies
       shell: bash
       run: pip install build wheel
-    
+
+    - name: Install shared-types Python dependencies
+      shell: bash
+      working-directory: libs/shared-types
+      run: pip install -r requirements.txt
+
     - name: Install global Node.js tools
       shell: bash
       run: npm install -g quicktype
