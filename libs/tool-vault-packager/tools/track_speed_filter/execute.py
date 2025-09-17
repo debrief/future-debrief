@@ -39,7 +39,7 @@ class TrackSpeedFilterParameters(BaseModel):
 
         # Convert to shared-types TrackFeature for validation and processing
         try:
-            track_feature_obj = TrackFeature.from_dict(track_data)
+            track_feature_obj = TrackFeature.model_validate(track_data)
             # Store both dict (for schema) and object (for processing)
             self._track_feature_obj = track_feature_obj
         except Exception as e:
