@@ -199,26 +199,48 @@ generate-python-internal:
 	@for category in features states tools; do \
 		cp schemas/$$category/*.json python-src/debrief/schemas/$$category/ 2>/dev/null || true; \
 	done
-	@# Generate Python types using datamodel-codegen with consistent PascalCase filenames
-	@echo "$(GREEN)Using datamodel-codegen for Python generation...$(RESET)"
-	@# Check if datamodel-codegen is available
-	@if ! command -v datamodel-codegen >/dev/null 2>&1; then \
-		echo "$(RED)❌ Error: datamodel-codegen not found$(RESET)"; \
-		echo "$(RED)Please install it with: pip install datamodel-code-generator>=0.25.0$(RESET)"; \
-		exit 1; \
-	fi
+	@# Generate Python types using datamodel-codegen, handling each schema individually
 	@for mapping in $(PYTHON_CLASS_MAPPING); do \
 		schema="$${mapping%:*}"; \
 		class_name="$${mapping##*:}"; \
 		category="$$(echo $$schema | cut -d'/' -f2)"; \
 		basename="$$(basename "$$schema" .schema.json)"; \
-		output="python-src/debrief/types/$$category/$$basename.py"; \
-		datamodel-codegen --input "$$schema" --output "$$output" --target-python-version 3.9 \
+		temp_file="/tmp/datamodel_$${category}_$${basename}.py"; \
+		temp_dir="/tmp/datamodel_$${category}_$${basename}_dir"; \
+		output_file="python-src/debrief/types/$$category/$$basename.py"; \
+		echo "Processing $$schema -> $$output_file"; \
+		rm -rf "$$temp_dir" "$$temp_file"; \
+		if datamodel-codegen --input "$$schema" --output "$$temp_file" --target-python-version 3.9 \
 			--class-name "$$class_name" --use-schema-description --use-field-description \
 			--output-model-type pydantic_v2.BaseModel --disable-appending-item-suffix \
-			--input-file-type jsonschema & \
-	done; \
-	wait
+			--input-file-type jsonschema 2>/dev/null; then \
+			cp "$$temp_file" "$$output_file"; \
+			rm -f "$$temp_file"; \
+		else \
+			echo "Retrying with directory output for $$schema (has modular references)"; \
+			mkdir -p "$$temp_dir"; \
+			if datamodel-codegen --input "$$schema" --output "$$temp_dir" --target-python-version 3.9 \
+				--class-name "$$class_name" --use-schema-description --use-field-description \
+				--output-model-type pydantic_v2.BaseModel --disable-appending-item-suffix \
+				--input-file-type jsonschema; then \
+				if [ -f "$$temp_dir/__init__.py" ]; then \
+					cp "$$temp_dir/__init__.py" "$$output_file"; \
+					echo "Successfully generated $$schema using directory mode (from __init__.py)"; \
+				else \
+					generated_file=$$(find "$$temp_dir" -name "*.py" | head -1); \
+					if [ -f "$$generated_file" ]; then \
+						cp "$$generated_file" "$$output_file"; \
+						echo "Successfully generated $$schema using directory mode (from $$generated_file)"; \
+					else \
+						echo "ERROR: No Python files found in $$temp_dir"; \
+					fi; \
+				fi; \
+			else \
+				echo "ERROR: Failed to generate $$schema even with directory output"; \
+			fi; \
+			rm -rf "$$temp_dir"; \
+		fi; \
+	done
 	@# Create organized __init__.py with dynamic imports from PYTHON_CLASS_MAPPING
 	@printf '"""\nGenerated Python types for Debrief maritime GeoJSON features and application state.\nThese types are generated from JSON schemas and provide type hints and validation.\n"""\n\n# Import from organized subpackages\n' > python-src/debrief/types/__init__.py
 	@# Generate imports dynamically from PYTHON_CLASS_MAPPING
