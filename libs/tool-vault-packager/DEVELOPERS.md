@@ -36,11 +36,18 @@ def word_count(text: str) -> int:
 ## Docker Development
 
 ### Local Development Build
-```bash
-# Build Docker image (builds from source)
-docker build -t toolvault .
+Before building the Docker image locally, make sure the shared-types wheel is present inside this package directory so Docker can access it.
 
-# Run container
+```bash
+# 1. Build the shared-types wheel (only needed when schemas change)
+pnpm --filter @debrief/shared-types build
+
+# 2. Copy the wheel into the Docker build context
+mkdir -p shared-types/dist/python
+cp ../shared-types/dist/python/debrief_types-*.whl shared-types/dist/python/
+
+# 3. Build and run the container
+docker build -t toolvault .
 docker run -p 5000:5000 toolvault
 ```
 
