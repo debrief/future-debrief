@@ -21,9 +21,7 @@ except ImportError:
 
 # Import State classes from the debrief-types package
 try:
-    from debrief.types.TimeState import TimeState
-    from debrief.types.ViewportState import ViewportState  
-    from debrief.types.SelectionState import SelectionState
+    from debrief.types import TimeState, ViewportState, SelectionState
 except ImportError as e:
     raise ImportError(
         "debrief-types package is required. Install it with: pip install debrief-types\n"
@@ -441,7 +439,7 @@ class DebriefAPI:
             for feature in result:
                 if isinstance(feature, dict) and 'id' in feature:
                     selected_ids.append(feature['id'])
-        return SelectionState(selected_ids)
+        return SelectionState(selectedIds=selected_ids)
     
     def set_selected_features(self, selection_state: SelectionState, filename: Optional[str] = None) -> None:
         """
@@ -460,7 +458,7 @@ class DebriefAPI:
         command = {
             "command": "set_selected_features",
             "params": {
-                "ids": selection_state.selected_ids,
+                "ids": selection_state.selectedIds,
                 "filename": filename
             }
         }
@@ -600,7 +598,7 @@ class DebriefAPI:
         result = response.get('result')
         if result is None:
             return None
-        return TimeState.from_dict(result)
+        return TimeState.model_validate(result)
     
     def set_time(self, time_state: TimeState, filename: Optional[str] = None) -> None:
         """
@@ -619,7 +617,7 @@ class DebriefAPI:
         command = {
             "command": "set_time",
             "params": {
-                "timeState": time_state.to_dict(),
+                "timeState": time_state.model_dump(mode='json'),
                 "filename": filename
             }
         }
@@ -648,7 +646,7 @@ class DebriefAPI:
         result = response.get('result')
         if result is None:
             return None
-        return ViewportState.from_dict(result)
+        return ViewportState.model_validate(result)
     
     def set_viewport(self, viewport_state: ViewportState, filename: Optional[str] = None) -> None:
         """
@@ -667,7 +665,7 @@ class DebriefAPI:
         command = {
             "command": "set_viewport",
             "params": {
-                "viewportState": viewport_state.to_dict(),
+                "viewportState": viewport_state.model_dump(mode='json'),
                 "filename": filename
             }
         }

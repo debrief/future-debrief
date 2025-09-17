@@ -55,6 +55,34 @@ runs:
         
         echo "Final deployment configuration:"
         cat fly.toml
+
+    - name: Stage shared-types wheel for Docker build
+      shell: bash
+      working-directory: .
+      run: |
+        set -euo pipefail
+
+        SRC_DIR="libs/shared-types/dist/python"
+        DEST_DIR="libs/tool-vault-packager/shared-types/dist/python"
+
+        if [ ! -d "${SRC_DIR}" ]; then
+          echo "Shared-types dist directory not found at ${SRC_DIR}." >&2
+          echo "Run the shared-types build before deploying." >&2
+          exit 1
+        fi
+
+        WHEEL_PATH=$(find "${SRC_DIR}" -maxdepth 1 -name 'debrief_types-*.whl' -print -quit)
+
+        if [ -z "${WHEEL_PATH}" ]; then
+          echo "No debrief_types wheel found in ${SRC_DIR}." >&2
+          exit 1
+        fi
+
+        mkdir -p "${DEST_DIR}"
+        rm -f "${DEST_DIR}"/debrief_types-*.whl
+        cp "${WHEEL_PATH}" "${DEST_DIR}/"
+
+        echo "Copied $(basename "${WHEEL_PATH}") into ${DEST_DIR}"
     
     - name: Deploy to Fly.io
       id: deploy

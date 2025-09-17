@@ -1,9 +1,25 @@
 """Word counting tool for text analysis."""
 
 from typing import Dict, Any
+from pydantic import BaseModel, Field
 
 
-def word_count(text: str) -> Dict[str, Any]:
+class WordCountParameters(BaseModel):
+    """Parameters for the word_count tool."""
+
+    text: str = Field(
+        description="The input text block to count words from",
+        min_length=0,
+        examples=[
+            "Hello world",
+            "This is a longer text with multiple words to count",
+            "",
+            "Single"
+        ]
+    )
+
+
+def word_count(params: WordCountParameters) -> Dict[str, Any]:
     """
     Count the number of words in a given block of text.
 
@@ -12,23 +28,29 @@ def word_count(text: str) -> Dict[str, Any]:
     containing only whitespace will return 0.
 
     Args:
-        text (str): The input text block to count words from
+        params: WordCountParameters object with text field
 
     Returns:
         Dict[str, Any]: ToolVault command object with word count result
 
     Examples:
-        >>> result = word_count("Hello world")
+        >>> params = WordCountParameters(text="Hello world")
+        >>> result = word_count(params)
         >>> result["command"]
         'showText'
         >>> result["payload"]
         'Word count: 2'
     """
+    # Extract text from Pydantic parameters
+    text = params.text
+
+    # Count words
     if not text or not text.strip():
         count = 0
     else:
         count = len(text.strip().split())
 
+    # Return simple command/payload structure
     return {
         "command": "showText",
         "payload": f"Word count: {count}"

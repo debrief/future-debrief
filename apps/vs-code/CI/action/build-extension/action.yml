@@ -19,13 +19,14 @@ runs:
   using: 'composite'
   steps:
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: '20'
-    
+        node-version-file: '.nvmrc'
+
     - name: Install pnpm
-      shell: bash
-      run: npm install -g pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 10.14.0
     
     - name: Setup Python for wheel building
       uses: actions/setup-python@v4
@@ -35,14 +36,20 @@ runs:
     - name: Install Python build dependencies
       shell: bash
       run: pip install build wheel
-    
+
     - name: Install global Node.js tools
       shell: bash
       run: npm install -g quicktype
-    
+
+    - name: Install Python dependencies for shared-types
+      shell: bash
+      run: |
+        echo "🐍 Installing Python dependencies for shared-types build..."
+        pip install -r libs/shared-types/requirements.txt
+
     - name: Install dependencies
       shell: bash
-      run: pnpm install --no-frozen-lockfile
+      run: pnpm install --frozen-lockfile
     
     - name: Build VS Code extension and dependencies
       shell: bash

@@ -1,9 +1,62 @@
 """Viewport grid generator tool for maritime analysis."""
 
 from typing import Dict, Any, List
+from pydantic import BaseModel, Field, field_validator
 
 
-def viewport_grid_generator(viewport_bounds: List[float], lat_interval: float, lon_interval: float) -> Dict[str, Any]:
+class ViewportGridGeneratorParameters(BaseModel):
+    """Parameters for the viewport_grid_generator tool."""
+
+    viewport_bounds: List[float] = Field(
+        description="Viewport bounds as [west, south, east, north] in decimal degrees",
+        min_length=4,
+        max_length=4,
+        examples=[
+            [-1.0, -1.0, 1.0, 1.0],
+            [-122.5, 37.7, -122.3, 37.9],
+            [0.0, 50.0, 2.0, 52.0]
+        ]
+    )
+
+    lat_interval: float = Field(
+        description="Latitude interval between grid points in decimal degrees",
+        gt=0.0,
+        examples=[0.1, 0.5, 1.0]
+    )
+
+    lon_interval: float = Field(
+        description="Longitude interval between grid points in decimal degrees",
+        gt=0.0,
+        examples=[0.1, 0.5, 1.0]
+    )
+
+    @field_validator('viewport_bounds')
+    @classmethod
+    def validate_viewport_bounds(cls, v):
+        """Validate viewport bounds structure and values."""
+        if len(v) != 4:
+            raise ValueError("viewport_bounds must contain exactly 4 values [west, south, east, north]")
+
+        west, south, east, north = v
+
+        if west >= east:
+            raise ValueError("west must be less than east")
+
+        if south >= north:
+            raise ValueError("south must be less than north")
+
+        # Basic longitude range check
+        if west < -180 or east > 180 or west > 180 or east < -180:
+            raise ValueError("longitude values must be between -180 and 180")
+
+        # Basic latitude range check
+        if south < -90 or north > 90 or south > 90 or north < -90:
+            raise ValueError("latitude values must be between -90 and 90")
+
+        return v
+
+
+def viewport_grid_generator(params: ViewportGridGeneratorParameters) -> Dict[str, Any]:
     """
     Generate a grid of points within a viewport area at specified intervals.
 
@@ -13,18 +66,20 @@ def viewport_grid_generator(viewport_bounds: List[float], lat_interval: float, l
     regular intervals starting from the southwest corner of the viewport.
 
     Args:
-        viewport_bounds (List[float]): Viewport bounds as [west, south, east, north]
-                                      in decimal degrees
-        lat_interval (float): Latitude interval between grid points in decimal degrees
-        lon_interval (float): Longitude interval between grid points in decimal degrees
+        params: ViewportGridGeneratorParameters containing viewport_bounds, lat_interval, and lon_interval
 
     Returns:
         Dict[str, Any]: ToolVault command object to add the generated MultiPoint
                        feature to the current feature collection
 
     Examples:
-        >>> bounds = [-1.0, -1.0, 1.0, 1.0]
-        >>> result = viewport_grid_generator(bounds, 0.5, 0.5)
+        >>> from pydantic import ValidationError
+        >>> params = ViewportGridGeneratorParameters(
+        ...     viewport_bounds=[-1.0, -1.0, 1.0, 1.0],
+        ...     lat_interval=0.5,
+        ...     lon_interval=0.5
+        ... )
+        >>> result = viewport_grid_generator(params)
         >>> result["command"]
         'addFeatures'
         >>> len(result["payload"])
@@ -32,45 +87,12 @@ def viewport_grid_generator(viewport_bounds: List[float], lat_interval: float, l
         >>> result["payload"][0]["geometry"]["type"]
         'MultiPoint'
     """
-    # Validate input parameters
-    if not isinstance(viewport_bounds, list) or len(viewport_bounds) != 4:
-        return {
-            "command": "showText",
-            "payload": "Invalid viewport_bounds: must be a list of 4 numbers [west, south, east, north]"
-        }
+    # Extract validated parameters
+    viewport_bounds = params.viewport_bounds
+    lat_interval = params.lat_interval
+    lon_interval = params.lon_interval
 
-    try:
-        west, south, east, north = viewport_bounds
-        west, south, east, north = float(west), float(south), float(east), float(north)
-    except (ValueError, TypeError):
-        return {
-            "command": "showText",
-            "payload": "Invalid viewport_bounds: all values must be numeric"
-        }
-
-    if west >= east:
-        return {
-            "command": "showText",
-            "payload": "Invalid viewport_bounds: west must be less than east"
-        }
-
-    if south >= north:
-        return {
-            "command": "showText",
-            "payload": "Invalid viewport_bounds: south must be less than north"
-        }
-
-    if not isinstance(lat_interval, (int, float)) or lat_interval <= 0:
-        return {
-            "command": "showText",
-            "payload": "Invalid lat_interval: must be a positive number"
-        }
-
-    if not isinstance(lon_interval, (int, float)) or lon_interval <= 0:
-        return {
-            "command": "showText",
-            "payload": "Invalid lon_interval: must be a positive number"
-        }
+    west, south, east, north = viewport_bounds
 
     # Check for reasonable intervals to prevent excessive point generation
     max_points = 10000  # Reasonable limit to prevent browser overload

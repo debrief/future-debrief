@@ -18,11 +18,50 @@ runs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-    
+
+    - name: Clean up previous ToolVault comments
+      shell: bash
+      run: |
+        # Delete previous ToolVault CI comments to avoid clutter
+        if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+          echo "🧹 Cleaning up previous ToolVault comments..."
+          gh api repos/$GITHUB_REPOSITORY/issues/${{ github.event.pull_request.number }}/comments \
+            --jq '.[] | select(.body | contains("## ToolVault Build")) | .id' | \
+            xargs -I {} gh api repos/$GITHUB_REPOSITORY/issues/comments/{} -X DELETE || echo "No previous comments to delete"
+        else
+          echo "Not a pull request, skipping comment cleanup"
+        fi
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+
     - name: Install Python dependencies
       shell: bash
       working-directory: libs/tool-vault-packager
       run: |
+        set -euo pipefail
+
+        SRC_DIR="../shared-types/dist/python"
+        DEST_DIR="shared-types/dist/python"
+
+        if [ ! -d "${SRC_DIR}" ]; then
+          echo "Shared-types dist directory not found at ${SRC_DIR}." >&2
+          echo "Run the shared-types build before packaging." >&2
+          exit 1
+        fi
+
+        WHEEL_PATH=$(find "${SRC_DIR}" -maxdepth 1 -name 'debrief_types-*.whl' -print -quit)
+
+        if [ -z "${WHEEL_PATH}" ]; then
+          echo "No debrief_types wheel found in ${SRC_DIR}." >&2
+          exit 1
+        fi
+
+        mkdir -p "${DEST_DIR}"
+        rm -f "${DEST_DIR}"/debrief_types-*.whl
+        cp "${WHEEL_PATH}" "${DEST_DIR}/"
+
+        echo "Copied $(basename "${WHEEL_PATH}") into ${DEST_DIR}"
+
         pip install -r requirements.txt
     
     - name: Package PYZ
@@ -30,7 +69,7 @@ runs:
       working-directory: libs/tool-vault-packager
       run: |
         npm run build
-        
+
         # Verify PYZ was created
         if [ -f "toolvault.pyz" ]; then
           echo "✅ PYZ packaged successfully"

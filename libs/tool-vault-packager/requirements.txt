@@ -9,6 +9,5 @@ jsonschema>=4.17.0
 # Syntax highlighting for source code
 pygments>=2.15.0
 
-# Shared types from monorepo (install locally built wheel)
-# This will be installed from ../shared-types/dist/python/debrief_types-1.0.0-py3-none-any.whl
-# During development, ensure shared-types has been built first
+# Shared types from monorepo (wheel copied into local build context during CI)
+./shared-types/dist/python/debrief_types-1.0.0-py3-none-any.whl

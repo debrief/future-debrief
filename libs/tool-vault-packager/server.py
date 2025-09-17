@@ -289,13 +289,13 @@ class ToolVaultServer:
             tool = self.tools_by_name[tool_name]
 
             try:
-                # Convert new argument format to keyword arguments
+                # Convert arguments to Pydantic parameter object
                 kwargs = {}
                 for arg in request.arguments:
                     kwargs[arg.name] = arg.value
-
-                # Call the tool function with provided arguments
-                result = tool.function(**kwargs)
+                # Create Pydantic parameter object and call function
+                params_obj = tool.pydantic_model(**kwargs)
+                result = tool.function(params_obj)
 
                 # Ensure result is a ToolVault command object
                 if not isinstance(result, dict) or "command" not in result:

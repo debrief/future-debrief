@@ -17,16 +17,22 @@ runs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20'
+        node-version-file: '.nvmrc'
         
     - name: Setup pnpm
-      uses: pnpm/action-setup@v4
+      uses: pnpm/action-setup@v2
       with:
         version: 10.14.0
 
     - name: Install dependencies
       shell: bash
-      run: pnpm install --no-frozen-lockfile
+      run: pnpm install --frozen-lockfile
+
+    - name: Install Python dependencies for shared-types
+      shell: bash
+      run: |
+        echo "🐍 Installing Python dependencies for shared-types build..."
+        pip install -r libs/shared-types/requirements.txt
 
     - name: Build shared types
       shell: bash

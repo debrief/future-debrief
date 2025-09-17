@@ -157,8 +157,15 @@ check-status: ## Show detailed build status and what would be rebuilt
 # Rule 1: Generate types if any schema is newer than any generated file
 $(GENERATED_FILES): $(SCHEMA_FILES)
 	@echo "$(YELLOW)📝 Schema changes detected - regenerating all types...$(RESET)"
-	@$(MAKE) generate-ts-internal
-	@$(MAKE) generate-python-internal
+	@# Create lockfile to prevent recursive builds
+	@if [ -f ".generation-lock" ]; then \
+		echo "$(RED)Generation already in progress, skipping...$(RESET)"; \
+		exit 0; \
+	fi
+	@touch .generation-lock
+	@$(MAKE) generate-ts-internal || (rm -f .generation-lock && exit 1)
+	@$(MAKE) generate-python-internal || (rm -f .generation-lock && exit 1)
+	@rm -f .generation-lock
 	@echo "$(GREEN)✓ Type generation complete$(RESET)"
 
 # TypeScript generation rules
@@ -192,22 +199,134 @@ generate-python-internal:
 	@for category in features states tools; do \
 		cp schemas/$$category/*.json python-src/debrief/schemas/$$category/ 2>/dev/null || true; \
 	done
-	@# Generate Python types using mapping with consistent PascalCase filenames
+	@# Generate Python types using datamodel-codegen, adding Schema alias for cross-references
 	@for mapping in $(PYTHON_CLASS_MAPPING); do \
 		schema="$${mapping%:*}"; \
 		class_name="$${mapping##*:}"; \
 		category="$$(echo $$schema | cut -d'/' -f2)"; \
 		basename="$$(basename "$$schema" .schema.json)"; \
-		output="python-src/debrief/types/$$category/$$basename.py"; \
-		NODE_NO_WARNINGS=1 quicktype -s schema "$$schema" -o "$$output" --lang python --top-level "$$class_name" & \
-	done; \
-	wait
-	@# Create organized __init__.py with PascalCase imports
-	@printf '"""\nGenerated Python types for Debrief maritime GeoJSON features and application state.\nThese types are generated from JSON schemas and provide type hints and validation.\n"""\n\n# Import from organized subpackages\nfrom .features.Annotation import AnnotationFeature\nfrom .features.FeatureCollection import DebriefFeatureCollection\nfrom .features.Track import TrackFeature\nfrom .features.Point import PointFeature\nfrom .states.EditorState import EditorState\nfrom .states.TimeState import TimeState\nfrom .states.ViewportState import ViewportState\nfrom .states.SelectionState import SelectionState\nfrom .states.CurrentState import CurrentState\nfrom .tools.Tool import Tool\nfrom .tools.ToolCallRequest import ToolCallRequest\nfrom .tools.ToolCallResponse import ToolCallResponse\nfrom .tools.ToolListResponse import ToolListResponse\nfrom .tools.JSONSchema import JSONSchema\nfrom .tools.ConstrainedFeature import ConstrainedFeature\n\n__all__ = ["AnnotationFeature", "DebriefFeatureCollection", "TrackFeature", "PointFeature", "EditorState", "TimeState", "ViewportState", "SelectionState", "CurrentState", "Tool", "ToolCallRequest", "ToolCallResponse", "ToolListResponse", "JSONSchema", "ConstrainedFeature"]\n' > python-src/debrief/types/__init__.py
+		temp_file="/tmp/datamodel_$${category}_$${basename}.py"; \
+		temp_dir="/tmp/datamodel_$${category}_$${basename}_dir"; \
+		output_file="python-src/debrief/types/$$category/$$basename.py"; \
+		echo "Processing $$schema -> $$output_file"; \
+		rm -rf "$$temp_dir" "$$temp_file"; \
+		if datamodel-codegen --input "$$schema" --output "$$temp_file" --target-python-version 3.9 \
+			--class-name "$$class_name" --use-schema-description --use-field-description \
+			--output-model-type pydantic_v2.BaseModel --disable-appending-item-suffix \
+			--input-file-type jsonschema 2>/dev/null; then \
+			cp "$$temp_file" "$$output_file"; \
+			echo "# Alias for cross-reference compatibility" >> "$$output_file"; \
+			echo "Schema = $$class_name" >> "$$output_file"; \
+			if command -v gsed >/dev/null 2>&1; then \
+				gsed -i 's/, discriminator=.*properties\/dataType.*//' "$$output_file"; \
+			else \
+				sed -i.bak 's/, discriminator=.*properties\/dataType.*//' "$$output_file" && rm -f "$${output_file}.bak"; \
+			fi; \
+			if [ "$$category" != "features" ]; then \
+				python3 fix_imports.py "$$output_file"; \
+			fi; \
+			rm -f "$$temp_file"; \
+			echo "Successfully generated $$schema using single-file mode"; \
+		else \
+			echo "Retrying with directory output for $$schema (has modular references)"; \
+			mkdir -p "$$temp_dir"; \
+			if datamodel-codegen --input "$$schema" --output "$$temp_dir" --target-python-version 3.9 \
+				--class-name "$$class_name" --use-schema-description --use-field-description \
+				--output-model-type pydantic_v2.BaseModel --disable-appending-item-suffix \
+				--input-file-type jsonschema; then \
+				if [ -f "$$temp_dir/__init__.py" ]; then \
+					cp "$$temp_dir/__init__.py" "$$output_file"; \
+					if command -v gsed >/dev/null 2>&1; then \
+						gsed -i 's/, discriminator=.*properties\/dataType.*//' "$$output_file"; \
+					else \
+						sed -i.bak 's/, discriminator=.*properties\/dataType.*//' "$$output_file" && rm -f "$${output_file}.bak"; \
+					fi; \
+					if [ "$$category" != "features" ]; then \
+						if command -v gsed >/dev/null 2>&1; then \
+							gsed -i 's/from \. import \([^,]*Annotation[^,]*\)/from ..features import \1/g' "$$output_file"; \
+							gsed -i 's/from \. import \([^,]*Point[^,]*\)/from ..features import \1/g' "$$output_file"; \
+							gsed -i 's/from \. import \([^,]*Track[^,]*\)/from ..features import \1/g' "$$output_file"; \
+							gsed -i 's/from \. import \([^,]*FeatureCollection[^,]*\)/from ..features import \1/g' "$$output_file"; \
+						else \
+							sed -i.bak 's/from \. import \([^,]*Annotation[^,]*\)/from ..features import \1/g' "$$output_file" && rm -f "$${output_file}.bak"; \
+							sed -i.bak 's/from \. import \([^,]*Point[^,]*\)/from ..features import \1/g' "$$output_file" && rm -f "$${output_file}.bak"; \
+							sed -i.bak 's/from \. import \([^,]*Track[^,]*\)/from ..features import \1/g' "$$output_file" && rm -f "$${output_file}.bak"; \
+							sed -i.bak 's/from \. import \([^,]*FeatureCollection[^,]*\)/from ..features import \1/g' "$$output_file" && rm -f "$${output_file}.bak"; \
+						fi; \
+					fi; \
+					echo "Successfully generated $$schema using directory mode (from __init__.py)"; \
+				else \
+					generated_file=$$(find "$$temp_dir" -name "*.py" | head -1); \
+					if [ -f "$$generated_file" ]; then \
+						cp "$$generated_file" "$$output_file"; \
+						if command -v gsed >/dev/null 2>&1; then \
+							gsed -i 's/, discriminator=.*properties\/dataType.*//' "$$output_file"; \
+						else \
+							sed -i.bak 's/, discriminator=.*properties\/dataType.*//' "$$output_file" && rm -f "$${output_file}.bak"; \
+						fi; \
+						if [ "$$category" != "features" ]; then \
+							if command -v gsed >/dev/null 2>&1; then \
+								gsed -i 's/from \. import \([^,]*Annotation[^,]*\)/from ..features import \1/g' "$$output_file"; \
+								gsed -i 's/from \. import \([^,]*Point[^,]*\)/from ..features import \1/g' "$$output_file"; \
+								gsed -i 's/from \. import \([^,]*Track[^,]*\)/from ..features import \1/g' "$$output_file"; \
+								gsed -i 's/from \. import \([^,]*FeatureCollection[^,]*\)/from ..features import \1/g' "$$output_file"; \
+							else \
+								sed -i.bak 's/from \. import \([^,]*Annotation[^,]*\)/from ..features import \1/g' "$$output_file" && rm -f "$${output_file}.bak"; \
+								sed -i.bak 's/from \. import \([^,]*Point[^,]*\)/from ..features import \1/g' "$$output_file" && rm -f "$${output_file}.bak"; \
+								sed -i.bak 's/from \. import \([^,]*Track[^,]*\)/from ..features import \1/g' "$$output_file" && rm -f "$${output_file}.bak"; \
+								sed -i.bak 's/from \. import \([^,]*FeatureCollection[^,]*\)/from ..features import \1/g' "$$output_file" && rm -f "$${output_file}.bak"; \
+							fi; \
+						fi; \
+						echo "Successfully generated $$schema using directory mode (from $$generated_file)"; \
+					else \
+						echo "ERROR: No Python files found in $$temp_dir"; \
+					fi; \
+				fi; \
+			else \
+				echo "ERROR: Failed to generate $$schema even with directory output"; \
+			fi; \
+			rm -rf "$$temp_dir"; \
+		fi; \
+	done
+	@# Create organized __init__.py with dynamic imports from PYTHON_CLASS_MAPPING
+	@printf '"""\nGenerated Python types for Debrief maritime GeoJSON features and application state.\nThese types are generated from JSON schemas and provide type hints and validation.\n"""\n\n# Import from organized subpackages\n' > python-src/debrief/types/__init__.py
+	@# Generate imports dynamically from PYTHON_CLASS_MAPPING
+	@for mapping in $(PYTHON_CLASS_MAPPING); do \
+		schema="$${mapping%:*}"; \
+		class_name="$${mapping##*:}"; \
+		category="$$(echo $$schema | cut -d'/' -f2)"; \
+		basename="$$(basename "$$schema" .schema.json)"; \
+		printf "from .%s.%s import %s\n" "$$category" "$$basename" "$$class_name" >> python-src/debrief/types/__init__.py; \
+	done
+	@# Generate __all__ list dynamically
+	@printf '\n__all__ = [' >> python-src/debrief/types/__init__.py
+	@first=true; for mapping in $(PYTHON_CLASS_MAPPING); do \
+		class_name="$${mapping##*:}"; \
+		if [ "$$first" = true ]; then \
+			printf '"%s"' "$$class_name" >> python-src/debrief/types/__init__.py; \
+			first=false; \
+		else \
+			printf ', "%s"' "$$class_name" >> python-src/debrief/types/__init__.py; \
+		fi; \
+	done
+	@printf ']\n' >> python-src/debrief/types/__init__.py
 	@# Create __init__.py files for subfolders
 	@printf '' > python-src/debrief/types/features/__init__.py
 	@printf '' > python-src/debrief/types/states/__init__.py
 	@printf '' > python-src/debrief/types/tools/__init__.py
+	@# Add Schema aliases to any files that are missing them
+	@echo "$(BLUE)Adding Schema aliases to generated files...$(RESET)"
+	@python3 add_schema_alias.py python-src/debrief/types
+	@# Fix complex import issues in files using directory mode generation
+	@echo "$(BLUE)Fixing import paths in complex generated files...$(RESET)"
+	@for file in python-src/debrief/types/states/EditorState.py python-src/debrief/types/states/CurrentState.py; do \
+		if [ -f "$$file" ]; then \
+			python3 fix_imports.py "$$file"; \
+		fi; \
+	done
+	@# Fix complex import and Schema reference issues using Python script
+	@echo "$(BLUE)Fixing generated import and Schema reference issues...$(RESET)"
+	@python3 fix_generated_imports.py python-src/debrief/types
 
 # Rule 2: Compile distribution if any generated file is newer than compiled output
 $(COMPILED_FILES): $(GENERATED_FILES)

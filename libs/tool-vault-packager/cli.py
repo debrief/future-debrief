@@ -68,29 +68,56 @@ def list_tools_command(tools_path: str):
         sys.exit(1)
 
 
+def call_tool_with_pydantic_support(tool, arguments: Dict[str, Any]):
+    """
+    Call a tool function with Pydantic parameter models.
+
+    Args:
+        tool: ToolMetadata object
+        arguments: Dictionary of arguments from CLI
+
+    Returns:
+        Tool execution result
+    """
+    from discovery import detect_pydantic_parameter_model
+
+    # All tools should have Pydantic parameter models
+    pydantic_model = detect_pydantic_parameter_model(tool.function, tool.module)
+
+    if not pydantic_model:
+        raise ValueError(f"Tool '{tool.name}' does not have a Pydantic parameter model")
+
+    # Create Pydantic parameter object from arguments
+    try:
+        params = pydantic_model(**arguments)
+        return tool.function(params)
+    except Exception as e:
+        raise ValueError(f"Invalid parameters for Pydantic model: {e}")
+
+
 def call_tool_command(tools_path: str, tool_name: str, arguments: Dict[str, Any]):
     """Call a specific tool with provided arguments."""
     try:
         tools = discover_tools(tools_path)
         tools_by_name = {tool.name: tool for tool in tools}
-        
+
         if tool_name not in tools_by_name:
             print(f"Error: Tool '{tool_name}' not found", file=sys.stderr)
             print("Available tools:", ", ".join(tools_by_name.keys()))
             sys.exit(1)
-        
+
         tool = tools_by_name[tool_name]
-        
-        # Execute the tool
-        result = tool.function(**arguments)
-        
+
+        # Execute the tool with Pydantic support
+        result = call_tool_with_pydantic_support(tool, arguments)
+
         # Print result as JSON
         output = {
             "result": result,
             "isError": False
         }
         print(json.dumps(output, indent=2, default=str))
-        
+
     except TypeError as e:
         print(f"Error: Invalid arguments for tool '{tool_name}': {e}", file=sys.stderr)
         sys.exit(1)

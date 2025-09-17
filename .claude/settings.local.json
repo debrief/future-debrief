@@ -171,7 +171,10 @@
       "Bash(TEST_MODE=dev npx playwright test tests/integration/server-integration.spec.ts --grep \"should have Vite dev server running with hot reload\" --timeout=30000)",
       "Bash(TEST_MODE=dev npx playwright test tests/ui/word-count-tool.spec.ts --grep \"should have Execute tab with functional word-count execution\" --timeout=30000)",
       "Bash(make:*)",
-      "Bash(open http://localhost:5173)"
+      "Bash(open http://localhost:5173)",
+      "Bash(for:*)",
+      "Bash(do echo \"=== $file ===\")",
+      "Bash(done)"
     ]
   }
 }
