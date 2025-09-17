@@ -41,11 +41,31 @@ runs:
         echo "**Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
     
+    - name: Setup Node.js for shared-types build
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+
+    - name: Build shared-types package
+      shell: bash
+      run: |
+        echo "📦 Building shared-types package to create Python wheel..."
+        cd libs/shared-types
+        pnpm install --frozen-lockfile
+        pnpm build
+        echo "✅ Shared-types build completed"
+        ls -la dist/python/ || echo "Python dist directory not found"
+
     - name: Build SPA
       uses: ./libs/tool-vault-packager/CI/action/build-spa
       with:
         ref: ${{ github.sha }}
-    
+
     - name: Package PYZ
       uses: ./libs/tool-vault-packager/CI/action/package-pyz
       with:
