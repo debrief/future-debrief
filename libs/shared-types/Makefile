@@ -216,7 +216,7 @@ generate-python-internal:
 		datamodel-codegen --input "$$schema" --output "$$output" --target-python-version 3.9 \
 			--class-name "$$class_name" --use-schema-description --use-field-description \
 			--output-model-type pydantic_v2.BaseModel --disable-appending-item-suffix \
-			--input-file-type jsonschema & \
+			--input-file-type jsonschema --disable-modular & \
 	done; \
 	wait
 	@# Create organized __init__.py with dynamic imports from PYTHON_CLASS_MAPPING
