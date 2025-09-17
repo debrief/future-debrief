@@ -44,7 +44,7 @@ runs:
     - name: Setup Node.js for shared-types build
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version-file: '.nvmrc'
 
     - name: Install pnpm
       uses: pnpm/action-setup@v2
@@ -55,11 +55,10 @@ runs:
       shell: bash
       run: |
         echo "📦 Building shared-types package to create Python wheel..."
-        cd libs/shared-types
-        pnpm install --no-frozen-lockfile
-        pnpm build
+        pnpm install --frozen-lockfile
+        pnpm --filter @debrief/shared-types build
         echo "✅ Shared-types build completed"
-        ls -la dist/python/ || echo "Python dist directory not found"
+        ls -la libs/shared-types/dist/python/ || echo "Python dist directory not found"
 
     - name: Build SPA
       uses: ./libs/tool-vault-packager/CI/action/build-spa
