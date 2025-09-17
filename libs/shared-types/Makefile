@@ -94,10 +94,7 @@ $(PYTHON_WHEEL): .python-models-copied pyproject.toml setup.py
 build: $(COMPILED_TS) $(PYTHON_WHEEL) ## Build TypeScript and Python wheel (conditional)
 	@echo "$(GREEN)✓ Build complete$(RESET)"
 
-build-dist: ## Generate all assets and build distribution artifacts (CI safe)
-	@echo "$(BLUE)Starting full distribution build...$(RESET)"
-	@$(MAKE) --no-print-directory generate
-	@$(MAKE) --no-print-directory build
+build-dist: generate $(COMPILED_TS) $(PYTHON_WHEEL) ## Generate all assets and build distribution artifacts (CI safe)
 	@echo "$(GREEN)✓ Distribution build complete$(RESET)"
 
 test: ## Run tests
