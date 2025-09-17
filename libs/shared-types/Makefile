@@ -1,34 +1,17 @@
 # Makefile for @debrief/shared-types
 # Provides intelligent conditional build logic to optimize development workflow
+# UPDATED: Now uses Pydantic models as single source of truth
 #
 # Key Performance Targets:
 # - No changes: < 2 seconds (vs 10+ seconds unconditional)
-# - Schema changes: Full rebuild with generation + compile + test
+# - Pydantic model changes: Full rebuild with generation + compile + test
 # - Source changes: Compile + test only
 
-# Schema to top-level class name mappings for Python generation
-PYTHON_CLASS_MAPPING := \
-	schemas/features/Track.schema.json:TrackFeature \
-	schemas/features/Point.schema.json:PointFeature \
-	schemas/features/Annotation.schema.json:AnnotationFeature \
-	schemas/features/FeatureCollection.schema.json:DebriefFeatureCollection \
-	schemas/states/TimeState.schema.json:TimeState \
-	schemas/states/ViewportState.schema.json:ViewportState \
-	schemas/states/SelectionState.schema.json:SelectionState \
-	schemas/states/EditorState.schema.json:EditorState \
-	schemas/states/CurrentState.schema.json:CurrentState \
-	schemas/tools/Tool.schema.json:Tool \
-	schemas/tools/ToolListResponse.schema.json:ToolListResponse \
-	schemas/tools/ToolCallRequest.schema.json:ToolCallRequest \
-	schemas/tools/ToolCallResponse.schema.json:ToolCallResponse \
-	schemas/tools/JSONSchema.schema.json:JsonSchema \
-	schemas/tools/ConstrainedFeature.schema.json:ConstrainedFeature
-
-# File pattern definitions
-SCHEMA_FILES := $(wildcard schemas/features/*.json) $(wildcard schemas/states/*.json) $(wildcard schemas/tools/*.json)
-TS_GENERATED_FILES := src/types/features/featurecollection.ts src/types/features/track.ts src/types/features/point.ts src/types/features/annotation.ts src/types/states/timestate.ts src/types/states/viewportstate.ts src/types/states/selectionstate.ts src/types/states/editorstate.ts src/types/states/currentstate.ts src/types/tools/tool.ts src/types/tools/toollistresponse.ts src/types/tools/toolcallrequest.ts src/types/tools/toolcallresponse.ts src/types/tools/jsonschema.ts src/types/tools/constrainedfeature.ts
-PY_GENERATED_FILES := python-src/debrief/types/features/Track.py python-src/debrief/types/features/Point.py python-src/debrief/types/features/Annotation.py python-src/debrief/types/features/FeatureCollection.py python-src/debrief/types/states/TimeState.py python-src/debrief/types/states/ViewportState.py python-src/debrief/types/states/SelectionState.py python-src/debrief/types/states/EditorState.py python-src/debrief/types/states/CurrentState.py python-src/debrief/types/tools/Tool.py python-src/debrief/types/tools/ToolListResponse.py python-src/debrief/types/tools/ToolCallRequest.py python-src/debrief/types/tools/ToolCallResponse.py python-src/debrief/types/tools/JSONSchema.py python-src/debrief/types/tools/ConstrainedFeature.py
-GENERATED_FILES := $(TS_GENERATED_FILES) $(PY_GENERATED_FILES)
+# File pattern definitions - Updated for Pydantic-first approach
+PYDANTIC_FILES := $(wildcard pydantic_models/**/*.py)
+GENERATED_SCHEMA_FILES := $(wildcard derived/json-schema/*.json)
+TS_GENERATED_FILES := $(wildcard derived/typescript/*.ts)
+GENERATED_FILES := $(GENERATED_SCHEMA_FILES) $(TS_GENERATED_FILES)
 COMPILED_FILES := dist/index.js dist/index.d.ts
 PYTHON_WHEEL := dist/python/debrief_types-1.0.0-py3-none-any.whl
 
@@ -154,21 +137,26 @@ check-status: ## Show detailed build status and what would be rebuilt
 		echo "  2. $(YELLOW)🔄 Will recompile$(RESET) - source newer than compiled output"; \
 	fi
 
-# Rule 1: Generate types if any schema is newer than any generated file
-$(GENERATED_FILES): $(SCHEMA_FILES)
-	@echo "$(YELLOW)📝 Schema changes detected - regenerating all types...$(RESET)"
+# Rule 1: Generate types if any Pydantic model is newer than any generated file
+$(GENERATED_FILES): $(PYDANTIC_FILES) generate_from_pydantic.py
+	@echo "$(YELLOW)📝 Pydantic model changes detected - regenerating all types...$(RESET)"
 	@# Create lockfile to prevent recursive builds
 	@if [ -f ".generation-lock" ]; then \
 		echo "$(RED)Generation already in progress, skipping...$(RESET)"; \
 		exit 0; \
 	fi
 	@touch .generation-lock
-	@$(MAKE) generate-ts-internal || (rm -f .generation-lock && exit 1)
-	@$(MAKE) generate-python-internal || (rm -f .generation-lock && exit 1)
+	@$(MAKE) generate-from-pydantic-internal || (rm -f .generation-lock && exit 1)
 	@rm -f .generation-lock
 	@echo "$(GREEN)✓ Type generation complete$(RESET)"
 
-# TypeScript generation rules
+# Pydantic-based generation rules
+generate-from-pydantic-internal:
+	@echo "$(BLUE)Generating JSON Schema and TypeScript from Pydantic models...$(RESET)"
+	@python3 generate_from_pydantic.py
+	@echo "$(GREEN)✓ Pydantic generation complete$(RESET)"
+
+# Legacy TypeScript generation rules (deprecated)
 generate-ts-internal:
 	@echo "$(BLUE)Generating TypeScript types...$(RESET)"
 	@# Clean generated directories (preserve validators and index.ts)
