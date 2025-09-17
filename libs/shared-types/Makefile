@@ -213,8 +213,28 @@ generate-python-internal:
 			--input-file-type jsonschema & \
 	done; \
 	wait
-	@# Create organized __init__.py with PascalCase imports
-	@printf '"""\nGenerated Python types for Debrief maritime GeoJSON features and application state.\nThese types are generated from JSON schemas and provide type hints and validation.\n"""\n\n# Import from organized subpackages\nfrom .features.Annotation import AnnotationFeature\nfrom .features.FeatureCollection import DebriefFeatureCollection\nfrom .features.Track import TrackFeature\nfrom .features.Point import PointFeature\nfrom .states.EditorState import EditorState\nfrom .states.TimeState import TimeState\nfrom .states.ViewportState import ViewportState\nfrom .states.SelectionState import SelectionState\nfrom .states.CurrentState import CurrentState\nfrom .tools.Tool import Tool\nfrom .tools.ToolCallRequest import ToolCallRequest\nfrom .tools.ToolCallResponse import ToolCallResponse\nfrom .tools.ToolListResponse import ToolListResponse\nfrom .tools.JSONSchema import JSONSchema\nfrom .tools.ConstrainedFeature import ConstrainedFeature\n\n__all__ = ["AnnotationFeature", "DebriefFeatureCollection", "TrackFeature", "PointFeature", "EditorState", "TimeState", "ViewportState", "SelectionState", "CurrentState", "Tool", "ToolCallRequest", "ToolCallResponse", "ToolListResponse", "JSONSchema", "ConstrainedFeature"]\n' > python-src/debrief/types/__init__.py
+	@# Create organized __init__.py with dynamic imports from PYTHON_CLASS_MAPPING
+	@printf '"""\nGenerated Python types for Debrief maritime GeoJSON features and application state.\nThese types are generated from JSON schemas and provide type hints and validation.\n"""\n\n# Import from organized subpackages\n' > python-src/debrief/types/__init__.py
+	@# Generate imports dynamically from PYTHON_CLASS_MAPPING
+	@for mapping in $(PYTHON_CLASS_MAPPING); do \
+		schema="$${mapping%:*}"; \
+		class_name="$${mapping##*:}"; \
+		category="$$(echo $$schema | cut -d'/' -f2)"; \
+		basename="$$(basename "$$schema" .schema.json)"; \
+		printf "from .%s.%s import %s\n" "$$category" "$$basename" "$$class_name" >> python-src/debrief/types/__init__.py; \
+	done
+	@# Generate __all__ list dynamically
+	@printf '\n__all__ = [' >> python-src/debrief/types/__init__.py
+	@first=true; for mapping in $(PYTHON_CLASS_MAPPING); do \
+		class_name="$${mapping##*:}"; \
+		if [ "$$first" = true ]; then \
+			printf '"%s"' "$$class_name" >> python-src/debrief/types/__init__.py; \
+			first=false; \
+		else \
+			printf ', "%s"' "$$class_name" >> python-src/debrief/types/__init__.py; \
+		fi; \
+	done
+	@printf ']\n' >> python-src/debrief/types/__init__.py
 	@# Create __init__.py files for subfolders
 	@printf '' > python-src/debrief/types/features/__init__.py
 	@printf '' > python-src/debrief/types/states/__init__.py
