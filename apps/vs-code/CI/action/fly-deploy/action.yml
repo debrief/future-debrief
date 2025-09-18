@@ -75,13 +75,25 @@ runs:
         if flyctl apps show "${APP_NAME}" >/dev/null 2>&1; then
           echo "✅ App ${APP_NAME} already exists, proceeding with deployment..."
         else
-          if OUTPUT=$(flyctl apps create "${APP_NAME}" --org personal 2>&1); then
+          echo "ℹ️  App ${APP_NAME} not found via flyctl, attempting to create it"
+
+          CREATE_OUTPUT=""
+          if CREATE_OUTPUT=$(flyctl apps create "${APP_NAME}" --org personal 2>&1); then
             echo "✅ Successfully created new app: ${APP_NAME}"
-          elif echo "$OUTPUT" | grep -q "Name has already been taken\|already exists"; then
-            echo "✅ App ${APP_NAME} already exists, proceeding with deployment..."
           else
-            echo "❌ Failed to create or verify app ${APP_NAME}"
-            echo "$OUTPUT"
+            echo "⚠️  flyctl apps create output:"
+            echo "$CREATE_OUTPUT"
+            if ! echo "$CREATE_OUTPUT" | grep -q "Name has already been taken\|already exists"; then
+              echo "❌ Failed to create app ${APP_NAME}"
+              exit 1
+            fi
+          fi
+
+          if flyctl apps show "${APP_NAME}" >/dev/null 2>&1; then
+            echo "✅ App ${APP_NAME} confirmed reachable after creation attempt"
+          else
+            echo "❌ App ${APP_NAME} is still not accessible after attempting to create it"
+            echo "    The Fly name may be reserved in another organization or cleanup is still in progress."
             exit 1
           fi
         fi
