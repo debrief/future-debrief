@@ -262,15 +262,15 @@ def load_sample_inputs(inputs_dir: Path) -> List[Dict[str, Any]]:
 
 
 def get_pretty_printed_source(func: Callable, file_path: Path) -> str:
-    """Extract and format the source code for a function."""
+    """Extract and format the complete source file."""
     try:
-        # Get the source code of the function
-        source = inspect.getsource(func)
-        return source.strip()
+        # Primary: read the entire file for complete context
+        return file_path.read_text(encoding='utf-8')
     except Exception as e:
-        # Fallback: read the entire file if we can't get function source
+        # Fallback: get just the function if file read fails
         try:
-            return file_path.read_text(encoding='utf-8')
+            source = inspect.getsource(func)
+            return f"# Note: Full file unavailable, showing function only\n\n{source.strip()}"
         except Exception:
             return f"# Error extracting source code: {e}"
 
