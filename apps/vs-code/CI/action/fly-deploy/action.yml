@@ -72,18 +72,75 @@ runs:
         
         # Ensure app exists before deploying
         echo "Ensuring app ${APP_NAME} exists..."
-        if flyctl apps show "${APP_NAME}" >/dev/null 2>&1; then
-          echo "✅ App ${APP_NAME} already exists, proceeding with deployment..."
-        else
-          if OUTPUT=$(flyctl apps create "${APP_NAME}" --org personal 2>&1); then
-            echo "✅ Successfully created new app: ${APP_NAME}"
-          elif echo "$OUTPUT" | grep -q "Name has already been taken\|already exists"; then
-            echo "✅ App ${APP_NAME} already exists, proceeding with deployment..."
+        fly_app_exists() {
+          local NAME="$1"
+          local QUIET="${2:-}"
+          local TMP_OUT
+          local TMP_ERR
+
+          TMP_OUT=$(mktemp)
+          TMP_ERR=$(mktemp)
+
+          if flyctl apps list --org personal >"${TMP_OUT}" 2>"${TMP_ERR}"; then
+            if awk 'NR>1 {print $1}' "${TMP_OUT}" | grep -Fxq "${NAME}"; then
+              rm -f "${TMP_OUT}" "${TMP_ERR}" >/dev/null 2>&1 || true
+              return 0
+            fi
+            if [ -z "${QUIET}" ]; then
+              echo "ℹ️  App ${NAME} not present in flyctl apps list output:"
+              cat "${TMP_OUT}" || true
+            fi
           else
-            echo "❌ Failed to create or verify app ${APP_NAME}"
-            echo "$OUTPUT"
+            echo "⚠️  flyctl apps list failed while checking for ${NAME}:"
+            cat "${TMP_ERR}" || true
+          fi
+
+          rm -f "${TMP_OUT}" "${TMP_ERR}" >/dev/null 2>&1 || true
+          return 1
+        }
+
+        NEED_CREATE=0
+        if fly_app_exists "${APP_NAME}"; then
+          echo "✅ App ${APP_NAME} already exists in Fly org"
+        else
+          echo "ℹ️  App ${APP_NAME} not found in Fly org listing"
+          NEED_CREATE=1
+        fi
+
+        if [ "${NEED_CREATE}" -eq 1 ]; then
+          echo "Attempting to create Fly app ${APP_NAME}..."
+          CREATE_OUTPUT=""
+          if CREATE_OUTPUT=$(flyctl apps create "${APP_NAME}" --org personal 2>&1); then
+            echo "✅ Successfully created new app: ${APP_NAME}"
+          else
+            echo "⚠️  flyctl apps create output:"
+            echo "$CREATE_OUTPUT"
+            if ! echo "$CREATE_OUTPUT" | grep -q "Name has already been taken\|already exists"; then
+              echo "❌ Failed to create app ${APP_NAME}"
+              exit 1
+            fi
+          fi
+
+          echo "Verifying app availability after creation..."
+          ATTEMPTS=0
+          APP_READY=0
+          MAX_ATTEMPTS=12
+          while [ ${ATTEMPTS} -lt ${MAX_ATTEMPTS} ]; do
+            if fly_app_exists "${APP_NAME}" quiet; then
+              APP_READY=1
+              break
+            fi
+            ATTEMPTS=$((ATTEMPTS + 1))
+            echo "Waiting for ${APP_NAME} to become visible... (attempt ${ATTEMPTS}/${MAX_ATTEMPTS})"
+            sleep 5
+          done
+
+          if [ ${APP_READY} -ne 1 ]; then
+            echo "❌ App ${APP_NAME} is still not accessible after creation attempt"
+            echo "    The Fly name may be reserved in another organization or cleanup is still in progress."
             exit 1
           fi
+          echo "✅ App ${APP_NAME} confirmed available after creation"
         fi
         
         # Prepare build args
@@ -100,16 +157,26 @@ runs:
         echo "Build args: $BUILD_ARGS"
         
         # Deploy with timeout protection (all settings unified)
+        set +e
         timeout 600 flyctl deploy --app "${APP_NAME}" --dockerfile ./Dockerfile \
           $BUILD_ARGS \
           --wait-timeout 300 \
           --strategy immediate \
-          --verbose || {
-            echo "Deployment timed out or failed after 10 minutes"
-            echo "Checking app status..."
-            flyctl status --app "${APP_NAME}" || true
-            exit 1
-          }
+          --verbose
+        DEPLOY_EXIT=$?
+        set -e
+
+        if [ ${DEPLOY_EXIT} -ne 0 ]; then
+          echo "Deployment timed out or failed after 10 minutes"
+          echo "Checking app status..."
+          flyctl status --app "${APP_NAME}" || true
+
+          echo "Fetching recent Fly logs (builder + app if available)..."
+          flyctl logs --app "${APP_NAME}" --limit 200 --origin builder || true
+          flyctl logs --app "${APP_NAME}" --limit 200 || true
+
+          exit ${DEPLOY_EXIT}
+        fi
         
         echo "Deployment completed at $(date)"
         

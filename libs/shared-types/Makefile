@@ -11,7 +11,7 @@ COMPILED_TS := dist/src/index.js dist/src/index.d.ts
 PYTHON_WHEEL := dist/python/debrief_types-1.0.0-py3-none-any.whl
 
 # Schema generation models mapping
-SCHEMA_MODELS := Track Point Annotation FeatureCollection TimeState ViewportState SelectionState EditorState CurrentState JSONSchema Tool ToolCallRequest ToolCallResponse ToolListResponse ConstrainedFeature
+SCHEMA_MODELS := Track Point Annotation FeatureCollection TimeState ViewportState SelectionState EditorState CurrentState JSONSchema Tool ToolCallRequest ToolCallResponse ToolListResponse ConstrainedFeature ToolFileReference SampleInputReference GitHistoryEntry GitAuthor GitHistory ToolStatsModel ToolIndexModel ToolFilesCollection GlobalToolIndexModel PackageInfo ToolMetadataModel SampleInputData
 
 # Colors for output
 BLUE := \033[34m

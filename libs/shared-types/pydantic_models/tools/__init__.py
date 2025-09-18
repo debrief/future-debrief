@@ -19,6 +19,35 @@ from .constrained_feature import (
     GeometryType,
     DataType
 )
+from .tool_file_reference import ToolFileReference, SampleInputReference
+from .git_history import GitHistoryEntry, GitAuthor, GitHistory
+from .tool_stats import ToolStatsModel
+from .tool_index import ToolIndexModel, ToolFilesCollection
+from .global_tool_index import GlobalToolIndexModel, PackageInfo
+from .tool_metadata import ToolMetadataModel, SampleInputData
+from .commands import (
+    AddFeaturesCommand,
+    UpdateFeaturesCommand,
+    DeleteFeaturesCommand,
+    SetFeatureCollectionCommand,
+    ShowTextCommand,
+    ShowDataCommand,
+    ShowImageCommand,
+    LogMessageCommand,
+    LogLevel,
+    LogMessagePayload,
+    SpecificCommand,
+    # Factory functions
+    show_text,
+    show_data,
+    add_features,
+    update_features,
+    delete_features,
+    set_feature_collection,
+    show_image,
+    log_message,
+    composite,
+)
 
 __all__ = [
     "JSONSchema",
@@ -38,5 +67,39 @@ __all__ = [
     "ToolListResponse",
     "GeometryConstrainedFeature",
     "GeometryType",
-    "DataType"
+    "DataType",
+    "ToolFileReference",
+    "SampleInputReference",
+    "GitHistoryEntry",
+    "GitAuthor",
+    "GitHistory",
+    "ToolStatsModel",
+    "ToolIndexModel",
+    "ToolFilesCollection",
+    "GlobalToolIndexModel",
+    "PackageInfo",
+    "ToolMetadataModel",
+    "SampleInputData",
+    # Typed commands
+    "AddFeaturesCommand",
+    "UpdateFeaturesCommand",
+    "DeleteFeaturesCommand",
+    "SetFeatureCollectionCommand",
+    "ShowTextCommand",
+    "ShowDataCommand",
+    "ShowImageCommand",
+    "LogMessageCommand",
+    "LogLevel",
+    "LogMessagePayload",
+    "SpecificCommand",
+    # Command factory functions
+    "show_text",
+    "show_data",
+    "add_features",
+    "update_features",
+    "delete_features",
+    "set_feature_collection",
+    "show_image",
+    "log_message",
+    "composite",
 ]

@@ -1,23 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-
-interface JSONSchemaProperty {
-  type?: string;
-  description?: string;
-  enum?: unknown[];
-  items?: JSONSchemaProperty;
-  properties?: Record<string, JSONSchemaProperty>;
-  required?: string[];
-  additionalProperties?: boolean | JSONSchemaProperty;
-  default?: unknown;
-}
-
-interface JSONSchema {
-  type?: string;
-  properties?: Record<string, JSONSchemaProperty>;
-  required?: string[];
-  additionalProperties?: boolean;
-  description?: string;
-}
+import type { JSONSchema, JSONSchemaProperty } from '../types';
 
 interface SchemaFormProps {
   schema: JSONSchema;

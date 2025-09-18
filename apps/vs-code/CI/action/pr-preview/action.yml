@@ -28,6 +28,7 @@ runs:
         build_args: |
           GITHUB_SHA=${{ inputs.pr_sha }}
           PR_NUMBER=${{ inputs.pr_number }}
+          STATUS_WEBHOOK=https://ntfy.sh/iancc2025
         github_sha: ${{ inputs.pr_sha }}
         fly_api_token: ${{ inputs.fly_api_token }}
     

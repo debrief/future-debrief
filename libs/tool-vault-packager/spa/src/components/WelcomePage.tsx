@@ -1,8 +1,8 @@
-import type { GlobalIndex, MCPTool } from '../types';
+import type { GlobalToolIndexModel, Tool } from '../types';
 
 interface WelcomePageProps {
-  globalIndex: GlobalIndex | null;
-  tools: MCPTool[];
+  globalIndex: GlobalToolIndexModel | null;
+  tools: Tool[];
   loading: boolean;
 }
 

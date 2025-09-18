@@ -18,6 +18,7 @@ from pydantic_models import (
     DebriefPointFeature,
     DebriefAnnotationFeature,
     DebriefFeatureCollection,
+    DebriefFeature,
     TimeState,
     ViewportState,
     SelectionState,
@@ -29,6 +30,28 @@ from pydantic_models import (
     ToolCallResponse,
     ToolListResponse,
     GeometryConstrainedFeature,
+    ToolFileReference,
+    SampleInputReference,
+    GitHistoryEntry,
+    GitAuthor,
+    GitHistory,
+    ToolStatsModel,
+    ToolIndexModel,
+    ToolFilesCollection,
+    GlobalToolIndexModel,
+    PackageInfo,
+    ToolMetadataModel,
+    SampleInputData,
+    # Command models
+    AddFeaturesCommand,
+    UpdateFeaturesCommand,
+    DeleteFeaturesCommand,
+    SetFeatureCollectionCommand,
+    ShowTextCommand,
+    ShowDataCommand,
+    ShowImageCommand,
+    LogMessageCommand,
+    LogMessagePayload,
 )
 
 
@@ -62,13 +85,38 @@ def main():
         "derived/json-schema/EditorState.schema.json": EditorState,
         "derived/json-schema/CurrentState.schema.json": CurrentState,
 
-        # Tools
+        # Tools - Basic
         "derived/json-schema/JSONSchema.schema.json": JSONSchema,
         "derived/json-schema/Tool.schema.json": Tool,
         "derived/json-schema/ToolCallRequest.schema.json": ToolCallRequest,
         "derived/json-schema/ToolCallResponse.schema.json": ToolCallResponse,
         "derived/json-schema/ToolListResponse.schema.json": ToolListResponse,
         "derived/json-schema/ConstrainedFeature.schema.json": GeometryConstrainedFeature,
+
+        # Tools - New Index Models
+        "derived/json-schema/ToolFileReference.schema.json": ToolFileReference,
+        "derived/json-schema/SampleInputReference.schema.json": SampleInputReference,
+        "derived/json-schema/GitHistoryEntry.schema.json": GitHistoryEntry,
+        "derived/json-schema/GitAuthor.schema.json": GitAuthor,
+        "derived/json-schema/GitHistory.schema.json": GitHistory,
+        "derived/json-schema/ToolStatsModel.schema.json": ToolStatsModel,
+        "derived/json-schema/ToolIndexModel.schema.json": ToolIndexModel,
+        "derived/json-schema/ToolFilesCollection.schema.json": ToolFilesCollection,
+        "derived/json-schema/GlobalToolIndexModel.schema.json": GlobalToolIndexModel,
+        "derived/json-schema/PackageInfo.schema.json": PackageInfo,
+        "derived/json-schema/ToolMetadataModel.schema.json": ToolMetadataModel,
+        "derived/json-schema/SampleInputData.schema.json": SampleInputData,
+
+        # Tools - Command Models
+        "derived/json-schema/AddFeaturesCommand.schema.json": AddFeaturesCommand,
+        "derived/json-schema/UpdateFeaturesCommand.schema.json": UpdateFeaturesCommand,
+        "derived/json-schema/DeleteFeaturesCommand.schema.json": DeleteFeaturesCommand,
+        "derived/json-schema/SetFeatureCollectionCommand.schema.json": SetFeatureCollectionCommand,
+        "derived/json-schema/ShowTextCommand.schema.json": ShowTextCommand,
+        "derived/json-schema/ShowDataCommand.schema.json": ShowDataCommand,
+        "derived/json-schema/ShowImageCommand.schema.json": ShowImageCommand,
+        "derived/json-schema/LogMessageCommand.schema.json": LogMessageCommand,
+        "derived/json-schema/LogMessagePayload.schema.json": LogMessagePayload,
     }
 
     print("Generating JSON Schema files from Pydantic models...")

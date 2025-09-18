@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { MCPTool, AppState } from './types';
+import type { Tool, AppState } from './types';
 import { mcpService } from './services/mcpService';
 import { Sidebar } from './components/Sidebar';
 import { WelcomePage } from './components/WelcomePage';
@@ -60,7 +60,7 @@ function App() {
     }
   };
 
-  const handleToolSelect = (tool: MCPTool | null) => {
+  const handleToolSelect = (tool: Tool | null) => {
     setState(prev => ({
       ...prev,
       selectedTool: tool,

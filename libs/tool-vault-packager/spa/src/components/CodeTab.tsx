@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { MCPTool, ToolIndex } from '../types';
+import type { Tool, ToolIndexModel } from '../types';
 import { mcpService } from '../services/mcpService';
 import { NoDataWarning, LoadingError } from './Warning';
 
 interface CodeTabProps {
-  tool: MCPTool;
-  toolIndex: ToolIndex | null;
+  tool: Tool;
+  toolIndex: ToolIndexModel | null;
   loading: boolean;
 }
 

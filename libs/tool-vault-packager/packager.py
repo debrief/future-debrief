@@ -8,6 +8,14 @@ import tempfile
 from pathlib import Path
 from typing import Dict, Any, List
 
+from debrief.types.tools import (
+    ToolIndexModel,
+    ToolFilesCollection,
+    ToolStatsModel,
+    ToolFileReference,
+    SampleInputReference,
+)
+
 try:
     from pygments import highlight
     from pygments.lexers import PythonLexer
@@ -354,49 +362,53 @@ def package_toolvault(
                     f.write(html_content)
                 
             
-            # Create tool-specific tool.json for SPA navigation
-            tool_index = {
-                "tool_name": tool.name,
-                "description": tool.description,
-                "files": {
-                    "execute": {
-                        "path": "execute.py",
-                        "description": "Main tool implementation",
-                        "type": "python"
-                    },
-                    "source_code": {
-                        "path": "metadata/source_code.html",
-                        "description": "Pretty-printed source code",
-                        "type": "html"
-                    },
-                    "git_history": {
-                        "path": "metadata/git_history.json",
-                        "description": "Git commit history",
-                        "type": "json"
-                    },
-                    "inputs": []
-                },
-                "stats": {
-                    "sample_inputs_count": len(tool.sample_inputs),
-                    "git_commits_count": len(tool.git_history),
-                    "source_code_length": len(tool.source_code) if tool.source_code else 0
-                }
-            }
-            
-            # Add sample input files to index
+            # Create tool-specific tool.json for SPA navigation using typed models
+            sample_input_refs = []
             for sample_input in tool.sample_inputs:
-                tool_index["files"]["inputs"].append({
-                    "name": sample_input["name"],
-                    "path": f"inputs/{sample_input['file']}",
-                    "description": f"Sample input: {sample_input['name']}",
-                    "type": "json"
-                })
-            
+                sample_input_refs.append(SampleInputReference(
+                    name=sample_input["name"],
+                    path=f"inputs/{sample_input['file']}",
+                    description=f"Sample input: {sample_input['name']}",
+                    type="json"
+                ))
+
+            tool_files = ToolFilesCollection(
+                execute=ToolFileReference(
+                    path="execute.py",
+                    description="Main tool implementation",
+                    type="python"
+                ),
+                source_code=ToolFileReference(
+                    path="metadata/source_code.html",
+                    description="Pretty-printed source code",
+                    type="html"
+                ),
+                git_history=ToolFileReference(
+                    path="metadata/git_history.json",
+                    description="Git commit history",
+                    type="json"
+                ),
+                inputs=sample_input_refs
+            )
+
+            tool_stats = ToolStatsModel(
+                sample_inputs_count=len(tool.sample_inputs),
+                git_commits_count=len(tool.git_history),
+                source_code_length=len(tool.source_code) if tool.source_code else 0
+            )
+
+            tool_index_model = ToolIndexModel(
+                tool_name=tool.name,
+                description=tool.description,
+                files=tool_files,
+                stats=tool_stats
+            )
+
             # Save tool index in the package directory
             package_tool_dir = package_dir / "tools" / Path(tool.tool_dir).name
             package_tool_index_file = package_tool_dir / "tool.json"
             with open(package_tool_index_file, 'w') as f:
-                json.dump(tool_index, f, indent=2)
+                json.dump(tool_index_model.model_dump(), f, indent=2)
             
         print(f"Package contents created in {package_dir}")
         print(f"Tool metadata saved in metadata/ subdirectories")

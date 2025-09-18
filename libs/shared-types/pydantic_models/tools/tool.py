@@ -24,6 +24,10 @@ class Tool(BaseModel):
         None,
         description="Optional JSON Schema defining the expected output format"
     )
+    tool_url: Optional[str] = Field(
+        None,
+        description="Optional URL for SPA navigation to tool details"
+    )
 
     class Config:
         extra = "forbid"  # No additional properties

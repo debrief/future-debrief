@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { MCPTool, ToolIndex, GitHistory, GitCommit } from '../types';
+import type { Tool, ToolIndexModel, GitHistory, GitHistoryEntry } from '../types';
 import { mcpService } from '../services/mcpService';
 
 interface InfoTabProps {
-  tool: MCPTool;
-  toolIndex: ToolIndex | null;
+  tool: Tool;
+  toolIndex: ToolIndexModel | null;
   loading: boolean;
 }
 
@@ -19,7 +19,7 @@ export function InfoTab({ tool, toolIndex, loading }: InfoTabProps) {
     try {
       const history = await mcpService.loadGitHistory(toolIndex.files.git_history.path, tool.name);
       // Backend returns array directly, wrap it in GitHistory format
-      setGitHistory({ commits: history as GitCommit[] });
+      setGitHistory({ commits: history as GitHistoryEntry[] });
     } catch (err) {
       console.warn('Could not load git history:', err);
       setGitHistory(null);
@@ -72,7 +72,7 @@ export function InfoTab({ tool, toolIndex, loading }: InfoTabProps) {
             <div>Loading git history...</div>
           ) : gitHistory?.commits ? (
             <div className="git-commits">
-              {gitHistory.commits.slice(0, 10).map((commit, index) => (
+              {gitHistory.commits.slice(0, 10).map((commit: any, index: number) => (
                 <div key={index} className="commit-item">
                   <div className="commit-hash">{commit.hash.substring(0, 8)}</div>
                   <div className="commit-info">
