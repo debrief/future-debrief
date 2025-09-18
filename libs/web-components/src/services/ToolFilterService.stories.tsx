@@ -101,406 +101,328 @@ const mockTools: { [key: string]: Tool } = {
 interface ToolFilterDemoProps {
   features: DebriefFeature[];
   toolIndex: ToolIndexModel;
-  toolName: string;
+  toolName?: string;
 }
 
-const ToolFilterDemo: React.FC<ToolFilterDemoProps> = ({ features, toolIndex, toolName }) => {
-  const [selectedFeatures, setSelectedFeatures] = useState<DebriefFeature[]>([]);
-  const [filterService] = useState(() => new ToolFilterService());
+function ToolFilterDemo({ features, toolIndex, toolName }: ToolFilterDemoProps) {
+  const [service] = useState(() => new ToolFilterService());
   const [result, setResult] = useState<ReturnType<ToolFilterService['getApplicableTools']> | null>(null);
-  const [cacheStats, setCacheStats] = useState<ReturnType<ToolFilterService['getCacheStats']> | null>(null);
-
-  // Mock the extractToolsFromIndex method to return our predefined tools
-  useEffect(() => {
-    // Override the private method for demo purposes
-    (filterService as any).extractToolsFromIndex = () => {
-      return toolName in mockTools ? [mockTools[toolName]] : [mockTools['track-analyzer']];
-    };
-  }, [filterService, toolName]);
 
   useEffect(() => {
-    if (selectedFeatures.length >= 0) {
-      const filterResult = filterService.getApplicableTools(selectedFeatures, toolIndex);
-      setResult(filterResult);
-      setCacheStats(filterService.getCacheStats());
+    // Use the toolIndex directly (it's already a ToolIndexModel)
+    const filterResult = service.getApplicableTools(features, toolIndex);
+    setResult(filterResult);
+  }, [features, toolIndex, service]);
+
+  return (
+    <div style={{ border: '1px solid #ccc', padding: '16px', margin: '8px 0', borderRadius: '8px' }}>
+      <h4>{toolName || toolIndex.tool_name} Tool Filter Demo</h4>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <div>
+          <h5>Input Features ({features.length})</h5>
+          {features.map((feature, index) => (
+            <div key={index} style={{ fontSize: '0.85em', margin: '4px 0', padding: '4px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+              <strong>{feature.properties?.dataType || 'unknown'}:</strong> {feature.properties?.name || feature.id || `Feature ${index + 1}`}
+            </div>
+          ))}
+        </div>
+        <div>
+          <h5>Filter Results</h5>
+          {result && (
+            <div>
+              <p><strong>Applicable:</strong> {(result.tools && result.tools.length > 0) ? 'Yes' : 'No'}</p>
+              <p><strong>Matching tools:</strong> {result.tools ? result.tools.length : 0}</p>
+              <p><strong>Has errors:</strong> {result.errors && result.errors.length > 0 ? 'Yes' : 'No'}</p>
+              {result.warnings && result.warnings.length > 0 && (
+                <div>
+                  <strong>Warnings:</strong>
+                  <ul style={{ fontSize: '0.8em', margin: '4px 0' }}>
+                    {result.warnings.map((warning, idx) => (
+                      <li key={idx}>
+                        ⚠️ {warning}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {result.errors && result.errors.length > 0 && (
+                <div>
+                  <strong>Errors:</strong>
+                  <ul style={{ fontSize: '0.8em', margin: '4px 0' }}>
+                    {result.errors.map((error, idx) => (
+                      <li key={idx}>
+                        ❌ {error.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Sample feature creation helper
+const createSampleFeatures = (): DebriefFeature[] => [
+  {
+    type: 'Feature',
+    id: 'track_001',
+    geometry: {
+      type: 'LineString',
+      coordinates: [[0, 0], [1, 1], [2, 2]]
+    },
+    properties: {
+      dataType: 'track',
+      name: 'Sample Track',
+      timestamps: ['2023-01-01T10:00:00Z', '2023-01-01T11:00:00Z', '2023-01-01T12:00:00Z']
     }
-  }, [selectedFeatures, toolIndex, filterService]);
+  },
+  {
+    type: 'Feature',
+    id: 'point_001',
+    geometry: {
+      type: 'Point',
+      coordinates: [0.5, 0.5]
+    },
+    properties: {
+      dataType: 'reference-point',
+      name: 'Sample Point',
+      timestamp: '2023-01-01T10:30:00Z'
+    }
+  },
+  {
+    type: 'Feature',
+    id: 'zone_001',
+    geometry: {
+      type: 'Polygon',
+      coordinates: [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]]
+    },
+    properties: {
+      dataType: 'zone',
+      name: 'Sample Zone',
+      zoneType: 'restricted'
+    }
+  }
+];
 
-  const handleFeatureToggle = (feature: DebriefFeature) => {
-    setSelectedFeatures(prev => {
-      const featureId = 'id' in feature ? feature.id : Math.random().toString();
-      const exists = prev.some(f => ('id' in f ? f.id : Math.random()) === featureId);
-
-      if (exists) {
-        return prev.filter(f => ('id' in f ? f.id : Math.random()) !== featureId);
-      } else {
-        return [...prev, feature];
+// Story configuration
+const meta: Meta<typeof ToolFilterDemo> = {
+  title: 'Services/ToolFilterService',
+  component: ToolFilterDemo,
+  parameters: {
+    layout: 'padded',
+    docs: {
+      description: {
+        component: 'Interactive demonstration of the ToolFilterService for intelligent tool-feature matching'
       }
-    });
+    }
+  }
+};
+
+export default meta;
+type Story = StoryObj<typeof ToolFilterDemo>;
+
+// Basic stories
+export const TrackAnalyzer: Story = {
+  args: {
+    features: createSampleFeatures().filter(f => f.properties?.dataType === 'track'),
+    toolIndex: createMockToolIndex('track-analyzer', 'Analyzes vessel tracks'),
+    toolName: 'Track Analyzer'
+  }
+};
+
+export const PointProcessor: Story = {
+  args: {
+    features: createSampleFeatures().filter(f => f.properties?.dataType === 'reference-point'),
+    toolIndex: createMockToolIndex('point-processor', 'Processes individual points'),
+    toolName: 'Point Processor'
+  }
+};
+
+export const MultiFeatureCorrelator: Story = {
+  args: {
+    features: createSampleFeatures(),
+    toolIndex: createMockToolIndex('multi-feature-correlator', 'Correlates multiple features'),
+    toolName: 'Multi Feature Correlator'
+  }
+};
+
+export const NoCompatibleFeatures: Story = {
+  args: {
+    features: createSampleFeatures().filter(f => f.properties?.dataType === 'zone'),
+    toolIndex: createMockToolIndex('track-analyzer', 'Track analyzer with no tracks'),
+    toolName: 'Track Analyzer (No Tracks)'
+  }
+};
+
+export const EmptyFeatures: Story = {
+  args: {
+    features: [],
+    toolIndex: createMockToolIndex('track-analyzer', 'Track analyzer with empty input'),
+    toolName: 'Track Analyzer (Empty Input)'
+  }
+};
+
+// Advanced caching demonstration
+const CachingDemoComponent: React.FC = () => {
+  const [service] = useState(() => new ToolFilterService());
+  const [features] = useState(() => createSampleFeatures());
+  const [results, setResults] = useState<Array<{
+    run: number;
+    fromCache: boolean;
+    timestamp: string;
+  }>>([]);
+
+  const runFilter = () => {
+    const toolIndex = {
+      tools: [mockTools['track-analyzer']],
+      version: '1.0.0',
+      description: 'Caching demo'
+    };
+
+    const result = service.getApplicableTools(features, toolIndex);
+    setResults(prev => [...prev, {
+      run: prev.length + 1,
+      fromCache: result.fromCache,
+      timestamp: new Date().toLocaleTimeString()
+    }]);
   };
 
-  const clearCache = () => {
-    filterService.clearCache();
-    setCacheStats(filterService.getCacheStats());
-  };
-
-  const clearExpiredCache = () => {
-    filterService.clearExpiredCache();
-    setCacheStats(filterService.getCacheStats());
+  const clearResults = () => {
+    setResults([]);
   };
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'monospace' }}>
-      <h2>ToolFilterService Interactive Demo</h2>
+    <div style={{ padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
+      <h3>Caching Demonstration</h3>
+      <p>The ToolFilterService caches results for 60 seconds. Run the filter multiple times to see caching in action.</p>
 
-      <div style={{ marginBottom: '20px' }}>
-        <h3>Tool Index Information</h3>
-        <div style={{ backgroundColor: '#f0f0f0', padding: '10px', borderRadius: '4px' }}>
-          <strong>Tool:</strong> {toolIndex.tool_name}<br />
-          <strong>Description:</strong> {toolIndex.description}<br />
-          <strong>Stats:</strong> {toolIndex.stats.sample_inputs_count} samples, {toolIndex.stats.git_commits_count} commits
-        </div>
+      <div style={{ margin: '20px 0' }}>
+        <button onClick={runFilter} style={{ marginRight: '10px', padding: '8px 16px' }}>
+          Run Filter
+        </button>
+        <button onClick={clearResults} style={{ padding: '8px 16px' }}>
+          Clear Results
+        </button>
       </div>
-
-      <div style={{ marginBottom: '20px' }}>
-        <h3>Available Features ({features.length})</h3>
-        <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #ccc', padding: '10px' }}>
-          {features.map((feature, index) => {
-            const featureId = 'id' in feature ? feature.id : `feature-${index}`;
-            const isSelected = selectedFeatures.some(f => ('id' in f ? f.id : `feature-${index}`) === featureId);
-            const featureName = feature.properties && typeof feature.properties === 'object' && 'name' in feature.properties
-              ? String(feature.properties.name)
-              : `${feature.geometry?.type || 'Unknown'} ${index + 1}`;
-
-            return (
-              <label key={index} style={{ display: 'block', marginBottom: '8px', cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={isSelected}
-                  onChange={() => handleFeatureToggle(feature)}
-                  style={{ marginRight: '8px' }}
-                />
-                <strong>{featureName}</strong> ({feature.geometry?.type})
-                {feature.properties && typeof feature.properties === 'object' && 'dataType' in feature.properties && (
-                  <em> - {String(feature.properties.dataType)}</em>
-                )}
-              </label>
-            );
-          })}
-        </div>
-      </div>
-
-      <div style={{ marginBottom: '20px' }}>
-        <h3>Selected Features ({selectedFeatures.length})</h3>
-        {selectedFeatures.length === 0 ? (
-          <p><em>No features selected</em></p>
-        ) : (
-          <ul>
-            {selectedFeatures.map((feature, index) => {
-              const featureName = feature.properties && typeof feature.properties === 'object' && 'name' in feature.properties
-                ? String(feature.properties.name)
-                : `Feature ${index + 1}`;
-              return (
-                <li key={index}>
-                  <strong>{featureName}</strong> ({feature.geometry?.type})
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
-
-      {result && (
-        <div style={{ marginBottom: '20px' }}>
-          <h3>Filter Results</h3>
-
-          <div style={{ marginBottom: '10px' }}>
-            <h4>Applicable Tools ({result.tools.length})</h4>
-            {result.tools.length === 0 ? (
-              <p><em>No applicable tools found</em></p>
-            ) : (
-              <ul>
-                {result.tools.map((tool, index) => (
-                  <li key={index} style={{ marginBottom: '8px' }}>
-                    <strong>{tool.name}</strong>: {tool.description}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {result.warnings.length > 0 && (
-            <div style={{ marginBottom: '10px' }}>
-              <h4>Warnings ({result.warnings.length})</h4>
-              <ul style={{ color: '#ff8800' }}>
-                {result.warnings.map((warning, index) => (
-                  <li key={index}>{warning}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {result.errors.length > 0 && (
-            <div style={{ marginBottom: '10px' }}>
-              <h4>Errors ({result.errors.length})</h4>
-              <ul style={{ color: '#cc0000' }}>
-                {result.errors.map((error, index) => (
-                  <li key={index}>{error.message}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-
-      {cacheStats && (
-        <div style={{ marginBottom: '20px' }}>
-          <h3>Cache Statistics</h3>
-          <div style={{ backgroundColor: '#f0f0f0', padding: '10px', borderRadius: '4px' }}>
-            <strong>Total entries:</strong> {cacheStats.size}<br />
-            <strong>Valid entries:</strong> {cacheStats.validEntries}<br />
-            <strong>Expired entries:</strong> {cacheStats.expiredEntries}<br />
-            <div style={{ marginTop: '10px' }}>
-              <button onClick={clearCache} style={{ marginRight: '10px' }}>
-                Clear All Cache
-              </button>
-              <button onClick={clearExpiredCache}>
-                Clear Expired Cache
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div>
-        <h3>Instructions</h3>
-        <p>
-          1. Select features from the list above to see which tools can process them.<br />
-          2. The filter service uses validation matrix logic to match features with tool requirements.<br />
-          3. Cache statistics show how the service optimizes repeated queries.<br />
-          4. Different tool types have different feature requirements - experiment with selections!
-        </p>
+        <h4>Results History:</h4>
+        {results.length === 0 ? (
+          <p>No results yet. Click "Run Filter" to start.</p>
+        ) : (
+          <ul>
+            {results.map((result, index) => (
+              <li key={index}>
+                Run #{result.run} at {result.timestamp}: {result.fromCache ? '🟢 Cache Hit' : '🔴 Cache Miss'}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </div>
   );
 };
 
-// Create sample features for demonstration
-const createSampleFeatures = (): DebriefFeature[] => [
-  // Track feature
-  {
-    type: 'Feature',
-    id: 'vessel-track-1',
-    geometry: {
-      type: 'LineString',
-      coordinates: [
-        [-1.0, 52.0],
-        [-1.1, 52.1],
-        [-1.2, 52.2],
-        [-1.3, 52.3]
-      ]
-    },
-    properties: {
-      dataType: 'track',
-      name: 'HMS Victory Track',
-      timestamps: [
-        '2024-01-01T00:00:00Z',
-        '2024-01-01T00:15:00Z',
-        '2024-01-01T00:30:00Z',
-        '2024-01-01T00:45:00Z'
-      ]
-    }
-  },
-  // Point feature
-  {
-    type: 'Feature',
-    id: 'reference-point-1',
-    geometry: {
-      type: 'Point',
-      coordinates: [-1.15, 52.15]
-    },
-    properties: {
-      dataType: 'reference-point',
-      name: 'Navigation Buoy',
-      timestamp: '2024-01-01T00:30:00Z'
-    }
-  },
-  // Multi-LineString track
-  {
-    type: 'Feature',
-    id: 'patrol-route',
-    geometry: {
-      type: 'MultiLineString',
-      coordinates: [
-        [[-1.5, 52.0], [-1.6, 52.1]],
-        [[-1.7, 52.2], [-1.8, 52.3]]
-      ]
-    },
-    properties: {
-      dataType: 'track',
-      name: 'Patrol Route Alpha',
-      timestamps: [
-        '2024-01-01T01:00:00Z',
-        '2024-01-01T01:15:00Z'
-      ]
-    }
-  },
-  // Annotation/Zone
-  {
-    type: 'Feature',
-    id: 'search-zone',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [[
-        [-1.0, 52.0],
-        [-1.2, 52.0],
-        [-1.2, 52.2],
-        [-1.0, 52.2],
-        [-1.0, 52.0]
-      ]]
-    },
-    properties: {
-      dataType: 'zone',
-      name: 'Search Area Bravo',
-      color: '#FF0000',
-      annotationType: 'area'
-    }
-  }
-];
-
-const meta: Meta<typeof ToolFilterDemo> = {
-  title: 'Services/ToolFilterService',
-  component: ToolFilterDemo,
-  parameters: {
-    layout: 'fullscreen',
-  },
-  tags: ['autodocs'],
+export const CachingDemo: Story = {
+  render: () => <CachingDemoComponent />
 };
 
-export default meta;
-type Story = StoryObj<typeof meta>;
-
-// Story for track analysis tool
-export const TrackAnalyzer: Story = {
-  args: {
-    features: createSampleFeatures(),
-    toolIndex: createMockToolIndex('track-analyzer', 'Analyzes vessel tracks for speed, bearing, and anomalies'),
-    toolName: 'track-analyzer'
-  },
-};
-
-// Story for point processing tool
-export const PointProcessor: Story = {
-  args: {
-    features: createSampleFeatures(),
-    toolIndex: createMockToolIndex('point-processor', 'Processes individual points for location validation'),
-    toolName: 'point-processor'
-  },
-};
-
-// Story for multi-feature tool
-export const MultiFeatureCorrelator: Story = {
-  args: {
-    features: createSampleFeatures(),
-    toolIndex: createMockToolIndex('multi-feature-correlator', 'Correlates multiple features for spatial-temporal analysis'),
-    toolName: 'multi-feature-correlator'
-  },
-};
-
-// Story for zone analysis tool
-export const ZoneAnalyzer: Story = {
-  args: {
-    features: createSampleFeatures(),
-    toolIndex: createMockToolIndex('zone-analyzer', 'Analyzes polygon zones and areas'),
-    toolName: 'zone-analyzer'
-  },
-};
-
-// Story with real data from large-sample.plot.json (if available)
+// Real data demonstration
 const WithRealDataComponent: React.FC = () => {
-    const [realFeatures, setRealFeatures] = useState<DebriefFeature[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [realFeatures, setRealFeatures] = useState<DebriefFeature[]>([]);
+  const [realToolIndex, setRealToolIndex] = useState<any>(null);
 
-    useEffect(() => {
-      // Try to load real data from large-sample.plot.json
-      fetch('/large-sample.plot.json')
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Failed to load sample data');
-          }
-          return response.json();
-        })
-        .then((data: DebriefFeatureCollection) => {
-          setRealFeatures(data.features || []);
-          setLoading(false);
-        })
-        .catch(err => {
-          console.warn('Could not load real data, using sample data:', err);
+  useEffect(() => {
+    Promise.all([
+      fetch('/large-sample.plot.json').then(res => res.json()),
+      fetch('/tool-index.json').then(res => res.json())
+    ])
+      .then(([plotData, toolData]) => {
+        if (plotData?.features) {
+          setRealFeatures(plotData.features);
+        } else {
           setRealFeatures(createSampleFeatures());
-          setError('Using sample data (could not load large-sample.plot.json)');
-          setLoading(false);
-        });
-    }, []);
+          setError('Plot data missing features, using sample data');
+        }
 
-    if (loading) {
-      return <div style={{ padding: '20px' }}>Loading real data...</div>;
-    }
+        if (toolData?.tools) {
+          setRealToolIndex(toolData);
+        } else {
+          setRealToolIndex(null);
+          setError(error + ' | Tool data missing tools array');
+        }
 
-    return (
-      <div>
-        {error && (
-          <div style={{
-            backgroundColor: '#fff3cd',
-            color: '#856404',
-            padding: '10px',
-            marginBottom: '20px',
-            borderRadius: '4px'
-          }}>
-            {error}
+        setLoading(false);
+      })
+      .catch(err => {
+        console.warn('Could not load real data, using sample data:', err);
+        setRealFeatures(createSampleFeatures());
+        setRealToolIndex(null);
+        setError('Using sample data (could not load real data files)');
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) {
+    return <div style={{ padding: '20px' }}>Loading real data...</div>;
+  }
+
+  return (
+    <div>
+      {error && (
+        <div style={{
+          backgroundColor: '#fff3cd',
+          border: '1px solid #ffeaa7',
+          color: '#856404',
+          padding: '12px',
+          borderRadius: '4px',
+          marginBottom: '20px'
+        }}>
+          ⚠️ {error}
+        </div>
+      )}
+
+      {realToolIndex ? (
+        <div>
+          <h3>Real Tool Index Data ({realToolIndex.tools?.length || 0} tools found)</h3>
+          {realToolIndex.tools?.slice(0, 3).map((tool: any, _index: number) => (
+            <div key={tool.name} style={{ marginBottom: '30px', border: '1px solid #ddd', borderRadius: '8px', padding: '15px' }}>
+              <h4>{tool.name}</h4>
+              <p><em>{tool.description}</em></p>
+              <ToolFilterDemo
+                features={realFeatures.slice(0, 8)}
+                toolIndex={createMockToolIndex(tool.name, tool.description)}
+                toolName={tool.name}
+              />
+            </div>
+          ))}
+          <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+            <strong>Real Data Summary:</strong>
+            <br />• Features: {realFeatures.length} maritime features loaded
+            <br />• Tools: {realToolIndex.tools?.length || 0} real tools from tool vault
+            <br />• Showing: First 3 tools with first 8 features for performance
           </div>
-        )}
-        <ToolFilterDemo
-          features={realFeatures.slice(0, 10)} // Limit to first 10 for performance
-          toolIndex={createMockToolIndex('maritime-analyzer', 'Advanced maritime analysis tool for real operational data')}
-          toolName='track-analyzer'
-        />
-      </div>
-    );
+        </div>
+      ) : (
+        <div>
+          <h3>Sample Data (Real data unavailable)</h3>
+          <ToolFilterDemo
+            features={realFeatures.slice(0, 5)}
+            toolIndex={createMockToolIndex('sample-tool', 'Sample tool for demonstration')}
+            toolName="Sample Tool"
+          />
+        </div>
+      )}
+    </div>
+  );
 };
 
 export const WithRealData: Story = {
-  render: () => <WithRealDataComponent />,
-};
-
-// Story demonstrating caching behavior
-const CachingDemoComponent: React.FC = () => {
-  const [features] = useState(createSampleFeatures());
-  const [toolIndex] = useState(createMockToolIndex('caching-demo', 'Tool to demonstrate caching behavior'));
-
-  return (
-      <div style={{ padding: '20px' }}>
-        <div style={{
-          backgroundColor: '#e1f5fe',
-          padding: '15px',
-          marginBottom: '20px',
-          borderRadius: '4px'
-        }}>
-          <h3>Caching Demonstration</h3>
-          <p>
-            This demo shows how the ToolFilterService caches results for improved performance.
-            Try selecting the same combination of features multiple times and observe the cache statistics.
-          </p>
-        </div>
-        <ToolFilterDemo
-          features={features}
-          toolIndex={toolIndex}
-          toolName='track-analyzer'
-        />
-      </div>
-    );
-};
-
-export const CachingDemo: Story = {
-  render: () => <CachingDemoComponent />,
+  render: () => <WithRealDataComponent />
 };
