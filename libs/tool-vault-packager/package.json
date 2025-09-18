@@ -4,10 +4,10 @@
   "description": "ToolVault packaging system for creating deployable .pyz files",
   "main": "cli.py",
   "scripts": {
-    "clean": "rm -rf dist && rm -rf tmp_package_contents && rm -rf node_modules/@debrief",
-    "prepare-deps": "mkdir -p node_modules/@debrief && if [ -d \"shared-types\" ]; then ln -sf \"$(pwd)/shared-types\" node_modules/@debrief/shared-types; else ln -sf \"$(cd ../.. && pwd)/libs/shared-types\" node_modules/@debrief/shared-types; fi",
+    "clean": "rm -rf dist && rm -rf tmp_package_contents && rm -rf shared-types",
+    "copy-shared-types": "set -euo pipefail && mkdir -p shared-types && echo \"Copying shared-types...\" && if [ -d \"../shared-types\" ]; then echo \"Using ../shared-types\" && cp -r ../shared-types/* shared-types/; elif [ -d \"../../libs/shared-types\" ]; then echo \"Using ../../libs/shared-types\" && cp -r ../../libs/shared-types/* shared-types/; else echo \"ERROR: shared-types not found in ../shared-types or ../../libs/shared-types\" && exit 1; fi && echo \"Copied shared-types successfully\" && ls -la shared-types/",
     "build": "mkdir -p dist && python packager.py tools --output dist/toolvault.pyz",
-    "build:spa": "npm run prepare-deps && cd spa && npm run prepare-deps && cp package.json package.json.bak && sed 's|\"workspace:\\^1\\.0\\.0\"|\"file:../shared-types\"|g' package.json.bak > package.json && npm install && npm run build && mv package.json.bak package.json",
+    "build:spa": "npm run copy-shared-types && cd spa && npm install && npm run build",
     "prebuild": "npm run clean && npm run build:spa",
     "serve": "python cli.py serve",
     "dev:spa": "cd spa && npm run dev",
@@ -28,7 +28,7 @@
   "author": "ToolVault",
   "license": "MIT",
   "dependencies": {
-    "@debrief/shared-types": "workspace:^1.0.0"
+    "@debrief/shared-types": "file:./shared-types"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",

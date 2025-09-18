@@ -28,7 +28,7 @@ runs:
         echo "Node version: $(node --version)"
         echo "NPM version: $(npm --version)"
 
-        # Use the main build script which handles all dependency preparation
+        # Build SPA (copies shared-types and builds automatically)
         npm run build:spa
 
         # Verify SPA was built

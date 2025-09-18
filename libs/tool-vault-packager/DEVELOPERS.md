@@ -36,19 +36,27 @@ def word_count(text: str) -> int:
 ## Docker Development
 
 ### Local Development Build
-Before building the Docker image locally, make sure the shared-types wheel is present inside this package directory so Docker can access it.
+The Docker build process now uses the automated build system that handles shared-types dependencies automatically.
 
 ```bash
-# 1. Build the shared-types wheel (only needed when schemas change)
+# 1. Build the shared-types package (only needed when schemas change)
 pnpm --filter @debrief/shared-types build
 
-# 2. Copy the wheel into the Docker build context
-mkdir -p shared-types/dist/python
-cp ../shared-types/dist/python/debrief_types-*.whl shared-types/dist/python/
-
-# 3. Build and run the container
+# 2. Build and run the container (uses npm run build:spa internally)
 docker build -t toolvault .
 docker run -p 5000:5000 toolvault
+```
+
+**Note**: The Dockerfile now uses `npm run build:spa` which automatically:
+- Creates context-appropriate symlinks to shared-types
+- Handles workspace→file dependency conversion
+- Manages temporary package.json modifications
+
+For manual shared-types staging (legacy approach):
+```bash
+# Manual staging (only if needed for debugging)
+mkdir -p shared-types
+cp -r ../shared-types/{package.json,dist,src,derived} shared-types/
 ```
 
 ### CI/Production Build (Optimized)

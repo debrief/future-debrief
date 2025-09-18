@@ -8,11 +8,10 @@
     "dev:with-backend": "VITE_BACKEND_URL=http://localhost:8000 vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "prepare-deps": "mkdir -p node_modules/@debrief && if [ -d \"../shared-types\" ]; then ln -sf \"$(cd .. && pwd)/shared-types\" node_modules/@debrief/shared-types; else ln -sf \"$(cd ../../.. && pwd)/libs/shared-types\" node_modules/@debrief/shared-types; fi"
+    "preview": "vite preview"
   },
   "dependencies": {
-    "@debrief/shared-types": "workspace:^1.0.0",
+    "@debrief/shared-types": "file:../shared-types",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },

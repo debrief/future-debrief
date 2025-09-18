@@ -56,56 +56,30 @@ runs:
         echo "Final deployment configuration:"
         cat fly.toml
 
-    - name: Stage shared-types for Docker build
+    - name: Verify shared-types staging
       shell: bash
-      working-directory: .
+      working-directory: libs/tool-vault-packager
       run: |
-        set -euo pipefail
-
-        SRC_DIR="libs/shared-types"
-        DEST_DIR="libs/tool-vault-packager/shared-types"
-
-        if [ ! -d "${SRC_DIR}" ]; then
-          echo "Shared-types directory not found at ${SRC_DIR}." >&2
-          echo "Run the shared-types build before deploying." >&2
+        # Verify that shared-types was staged by the main pipeline
+        if [ ! -d "shared-types" ]; then
+          echo "shared-types directory not found. Should have been staged by main pipeline." >&2
           exit 1
         fi
 
-        # Copy complete shared-types package for Docker build context
-        echo "Copying shared-types package for Docker build..."
-        rm -rf "${DEST_DIR}"
-        mkdir -p "${DEST_DIR}"
-
-        # Copy package files needed for TypeScript builds
-        cp "${SRC_DIR}/package.json" "${DEST_DIR}/"
-
-        # Copy built TypeScript artifacts
-        if [ -d "${SRC_DIR}/dist" ]; then
-          cp -r "${SRC_DIR}/dist" "${DEST_DIR}/"
-        fi
-
-        if [ -d "${SRC_DIR}/src" ]; then
-          cp -r "${SRC_DIR}/src" "${DEST_DIR}/"
-        fi
-
-        if [ -d "${SRC_DIR}/derived" ]; then
-          cp -r "${SRC_DIR}/derived" "${DEST_DIR}/"
-        fi
-
-        # Verify Python wheel exists
-        PYTHON_DIST="${DEST_DIR}/dist/python"
+        # Verify Python wheel exists for Docker build
+        PYTHON_DIST="shared-types/dist/python"
         if [ ! -d "${PYTHON_DIST}" ]; then
-          echo "Python dist directory not found after copy." >&2
+          echo "Python dist directory not found in staged shared-types." >&2
           exit 1
         fi
 
         WHEEL_PATH=$(find "${PYTHON_DIST}" -maxdepth 1 -name 'debrief_types-*.whl' -print -quit)
         if [ -z "${WHEEL_PATH}" ]; then
-          echo "No debrief_types wheel found after copy." >&2
+          echo "No debrief_types wheel found in staged shared-types." >&2
           exit 1
         fi
 
-        echo "Staged shared-types package with wheel: $(basename "${WHEEL_PATH}")"
+        echo "✅ Shared-types staging verified with wheel: $(basename "${WHEEL_PATH}")"
     
     - name: Deploy to Fly.io
       id: deploy
