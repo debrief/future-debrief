@@ -1,15 +1,15 @@
 // Import types from generated shared-types
-import type { JSONSchema, JSONSchemaProperty } from '../../../../shared-types/src/types/tools/json_schema';
-import type { Tool } from '../../../../shared-types/src/types/tools/tool';
-import type { ToolListResponse } from '../../../../shared-types/src/types/tools/tool_list_response';
-import type { ToolCallRequest } from '../../../../shared-types/src/types/tools/tool_call_request';
-import type { ToolCallResponse } from '../../../../shared-types/src/types/tools/tool_call_response';
-import type { GlobalToolIndexModel } from '../../../../shared-types/src/types/tools/global_tool_index';
-import type { ToolIndexModel } from '../../../../shared-types/src/types/tools/tool_index';
-import type { ToolFileReference } from '../../../../shared-types/src/types/tools/tool_file_reference';
-import type { SampleInputReference } from '../../../../shared-types/src/types/tools/sample_input_reference';
-import type { GitHistoryEntry } from '../../../../shared-types/src/types/tools/git_history_entry';
-import type { GitHistory } from '../../../../shared-types/src/types/tools/git_history';
+import type { JSONSchema, JSONSchemaProperty } from '@debrief/shared-types/src/types/tools/json_schema';
+import type { Tool } from '@debrief/shared-types/src/types/tools/tool';
+import type { ToolListResponse } from '@debrief/shared-types/src/types/tools/tool_list_response';
+import type { ToolCallRequest } from '@debrief/shared-types/src/types/tools/tool_call_request';
+import type { ToolCallResponse } from '@debrief/shared-types/src/types/tools/tool_call_response';
+import type { GlobalToolIndexModel } from '@debrief/shared-types/src/types/tools/global_tool_index';
+import type { ToolIndexModel } from '@debrief/shared-types/src/types/tools/tool_index';
+import type { ToolFileReference } from '@debrief/shared-types/src/types/tools/tool_file_reference';
+import type { SampleInputReference } from '@debrief/shared-types/src/types/tools/sample_input_reference';
+import type { GitHistoryEntry } from '@debrief/shared-types/src/types/tools/git_history_entry';
+import type { GitHistory } from '@debrief/shared-types/src/types/tools/git_history';
 
 // Export shared-types directly
 export type { JSONSchema, JSONSchemaProperty };
