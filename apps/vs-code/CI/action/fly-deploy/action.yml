@@ -143,6 +143,32 @@ runs:
           echo "✅ App ${APP_NAME} confirmed available after creation"
         fi
         
+        # Prepare Fly logs capability detection
+        LOGS_HELP="$(flyctl logs --help 2>&1 || true)"
+        LOG_LIMIT_FLAG=""
+        if echo "${LOGS_HELP}" | grep -q -- '--limit'; then
+          LOG_LIMIT_FLAG="--limit"
+        elif echo "${LOGS_HELP}" | grep -q -- '--max'; then
+          LOG_LIMIT_FLAG="--max"
+        fi
+
+        LOG_ORIGIN_SUPPORTED="0"
+        if echo "${LOGS_HELP}" | grep -q -- '--origin'; then
+          LOG_ORIGIN_SUPPORTED="1"
+        fi
+
+        fetch_logs() {
+          local limit="${1:-}"
+          shift || true
+
+          local args=(--no-tail)
+          if [ -n "${limit}" ] && [ -n "${LOG_LIMIT_FLAG}" ]; then
+            args=("${LOG_LIMIT_FLAG}" "${limit}" "${args[@]}")
+          fi
+
+          flyctl logs --app "${APP_NAME}" "${args[@]}" "$@" || true
+        }
+
         # Prepare build args
         BUILD_ARGS=""
         while IFS= read -r line; do
@@ -172,8 +198,12 @@ runs:
           flyctl status --app "${APP_NAME}" || true
 
           echo "Fetching recent Fly logs (builder + app if available)..."
-          flyctl logs --app "${APP_NAME}" --limit 200 --origin builder || true
-          flyctl logs --app "${APP_NAME}" --limit 200 || true
+          if [ "${LOG_ORIGIN_SUPPORTED}" = "1" ]; then
+            fetch_logs 200 --origin builder
+          else
+            echo "Current flyctl version does not support filtering logs by origin; skipping builder log fetch."
+          fi
+          fetch_logs 200
 
           exit ${DEPLOY_EXIT}
         fi
@@ -186,7 +216,7 @@ runs:
         
         # Check recent logs for any startup issues
         echo "Checking recent logs..."
-        flyctl logs --app "${APP_NAME}" --limit 50 || true
+        fetch_logs 50
         
         # Give the app time to fully start (unified timing)
         echo "Waiting for app to fully initialize..."
@@ -204,6 +234,6 @@ runs:
           echo "⚠️  App deployed but not responding at ${APP_URL}"
           echo "Checking final app status and logs..."
           flyctl status --app "${APP_NAME}" || true
-          flyctl logs --app "${APP_NAME}" --limit 20 || true
+          fetch_logs 20
           echo "deployment_status=partial" >> $GITHUB_OUTPUT
         fi
