@@ -73,6 +73,28 @@ runs:
         echo "✅ Shared-types build completed"
         ls -la libs/shared-types/dist/python/ || echo "Python dist directory not found"
 
+    - name: Stage shared-types for Docker build
+      shell: bash
+      working-directory: .
+      run: |
+        echo "Staging shared-types for Docker build context..."
+
+        SRC_DIR="libs/shared-types"
+        DEST_DIR="libs/tool-vault-packager/shared-types"
+
+        if [ ! -d "${SRC_DIR}" ]; then
+          echo "ERROR: shared-types directory not found at ${SRC_DIR}"
+          exit 1
+        fi
+
+        # Copy complete shared-types package for Docker build context
+        rm -rf "${DEST_DIR}"
+        mkdir -p "${DEST_DIR}"
+        cp -r "${SRC_DIR}"/* "${DEST_DIR}/"
+
+        echo "✅ Staged shared-types for Docker build"
+        echo "Contents:" && ls -la "${DEST_DIR}/"
+
     - name: Build SPA
       uses: ./libs/tool-vault-packager/CI/action/build-spa
       with:
