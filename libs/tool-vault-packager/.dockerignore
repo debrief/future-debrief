@@ -1,0 +1,40 @@
+# Reduce Docker build context to avoid slow uploads to Fly remote builders
+.git
+.gitignore
+CI/
+docs/
+tests/
+.vscode/
+.claude/
+.turbo/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+*.tmp
+*.log
+*.DS_Store
+
+# Node tooling artifacts not needed inside the container
+node_modules/
+spa/node_modules/
+spa/.cache/
+spa/.turbo/
+spa/.next/
+spa/.vite/
+spa/playwright-report/
+spa/test-results/
+
+# Python virtual environments and build leftovers
+.venv/
+.eggs/
+*.egg-info/
+__pycache__/
+
+# Test and CI artifacts
+playwright-report/
+test-results/
+.tmp/
+coverage/
