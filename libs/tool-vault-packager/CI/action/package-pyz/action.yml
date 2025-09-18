@@ -9,7 +9,7 @@ inputs:
 outputs:
   pyz_path:
     description: 'Path to the generated .pyz file'
-    value: 'libs/tool-vault-packager/toolvault.pyz'
+    value: 'libs/tool-vault-packager/dist/toolvault.pyz'
 
 runs:
   using: 'composite'
@@ -71,10 +71,10 @@ runs:
         npm run build
 
         # Verify PYZ was created
-        if [ -f "toolvault.pyz" ]; then
+        if [ -f "dist/toolvault.pyz" ]; then
           echo "✅ PYZ packaged successfully"
-          ls -la toolvault.pyz
-          echo "PYZ file size: $(du -h toolvault.pyz | cut -f1)"
+          ls -la dist/toolvault.pyz
+          echo "PYZ file size: $(du -h dist/toolvault.pyz | cut -f1)"
         else
           echo "❌ PYZ packaging failed"
           exit 1
