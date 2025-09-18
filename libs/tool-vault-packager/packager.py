@@ -66,7 +66,7 @@ def generate_highlighted_source_html(tool_name: str, source_code: str) -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{tool_name} - Source Code</title>
+    <title>{tool_name} - Complete Source File</title>
     <style>
         body {{ 
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
@@ -122,7 +122,7 @@ def generate_highlighted_source_html(tool_name: str, source_code: str) -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{tool_name} - Source Code</title>
+    <title>{tool_name} - Complete Source File</title>
     <style>
         body {{ 
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
