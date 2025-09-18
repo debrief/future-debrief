@@ -2,8 +2,8 @@
 # Pydantic-first architecture - simplified build system
 
 # File pattern definitions
-PYDANTIC_FILES := $(shell find pydantic_models -name "*.py" -type f 2>/dev/null || true)
-SCHEMA_FILES := $(patsubst pydantic_models/%.py,derived/json-schema/%.schema.json,$(PYDANTIC_FILES))
+PYDANTIC_FILES := $(shell find python-src/debrief/types -name "*.py" -type f 2>/dev/null || true)
+SCHEMA_FILES := $(patsubst python-src/debrief/types/%.py,derived/json-schema/%.schema.json,$(PYDANTIC_FILES))
 TS_FILES := $(patsubst derived/json-schema/%.schema.json,derived/typescript/%.ts,$(wildcard derived/json-schema/*.json))
 COPIED_TS_FILES := $(patsubst derived/typescript/%.ts,src/types/%.ts,$(TS_FILES))
 PYTHON_MODEL_FILES := $(wildcard python-src/debrief/types/*/*.py)
@@ -20,7 +20,7 @@ YELLOW := \033[33m
 RED := \033[31m
 RESET := \033[0m
 
-.PHONY: help clean build build-dist generate test dev force-generate generate-schemas generate-typescript copy-typescript copy-python-models
+.PHONY: help clean build build-dist generate test dev force-generate generate-schemas generate-typescript copy-typescript
 
 # Default target
 help: ## Show this help message
@@ -32,7 +32,7 @@ help: ## Show this help message
 
 clean: ## Clean all generated files
 	@echo "$(YELLOW)Cleaning generated files...$(RESET)"
-	@rm -rf derived/ dist/ src/types/ python-src/debrief/types/ .python-models-copied 2>/dev/null || true
+	@rm -rf derived/ dist/ src/types/ 2>/dev/null || true
 	@echo "$(GREEN)✓ Clean complete$(RESET)"
 
 # JSON Schema generation from Pydantic models
@@ -53,12 +53,6 @@ src/types/%.ts: derived/typescript/%.ts
 	@mkdir -p src/types
 	@cp "$<" "$@"
 
-# Python model copying for wheel building
-.python-models-copied: $(PYDANTIC_FILES) copy_python_models.py
-	@echo "$(BLUE)Copying Python models for wheel building...$(RESET)"
-	@python3 copy_python_models.py
-	@touch .python-models-copied
-	@echo "$(GREEN)✓ Python model copying complete$(RESET)"
 
 # Convenience targets
 generate-schemas: $(foreach model,$(SCHEMA_MODELS),derived/json-schema/$(model).schema.json) ## Generate all JSON schemas
@@ -67,13 +61,11 @@ generate-typescript: $(foreach model,$(SCHEMA_MODELS),derived/typescript/$(model
 
 copy-typescript: $(foreach model,$(SCHEMA_MODELS),src/types/$(model).ts) ## Copy TypeScript files to src/types
 
-copy-python-models: .python-models-copied ## Copy Python models for wheel building
-
-generate: generate-schemas generate-typescript copy-typescript copy-python-models ## Generate all types and copy files
+generate: generate-schemas generate-typescript copy-typescript ## Generate all types and copy files
 
 force-generate: ## Force regeneration of all types
 	@echo "$(BLUE)Force regenerating all types...$(RESET)"
-	@rm -rf derived/ src/types/ python-src/debrief/types/ .python-models-copied
+	@rm -rf derived/ src/types/
 	@$(MAKE) generate
 	@echo "$(GREEN)✓ Force generation complete$(RESET)"
 
@@ -83,8 +75,8 @@ $(COMPILED_TS): $(foreach model,$(SCHEMA_MODELS),src/types/$(model).ts) tsconfig
 	@npx tsc
 	@echo "$(GREEN)✓ TypeScript compilation complete$(RESET)"
 
-# Python wheel depends on copied Python models
-$(PYTHON_WHEEL): .python-models-copied pyproject.toml setup.py
+# Python wheel depends on source Python models
+$(PYTHON_WHEEL): $(PYDANTIC_FILES) pyproject.toml setup.py
 	@echo "$(BLUE)Building Python wheel...$(RESET)"
 	@mkdir -p dist/python && python -m build --wheel --outdir dist/python
 	@echo "$(GREEN)✓ Python wheel build complete$(RESET)"
@@ -102,4 +94,4 @@ test: ## Run tests
 
 dev: ## Watch mode for development
 	@echo "$(BLUE)Starting development watch mode...$(RESET)"
-	@npx concurrently "npx nodemon --watch pydantic_models --ext 'py' --exec 'python3 generate_from_pydantic.py'" "npx tsc --watch --preserveWatchOutput"
+	@npx concurrently "npx nodemon --watch python-src/debrief/types --ext 'py' --exec 'python3 generate_schemas.py'" "npx tsc --watch --preserveWatchOutput"
