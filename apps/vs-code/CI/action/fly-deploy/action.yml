@@ -114,16 +114,31 @@ runs:
         echo "Build args: $BUILD_ARGS"
         
         # Deploy with timeout protection (all settings unified)
+        set +e
         timeout 600 flyctl deploy --app "${APP_NAME}" --dockerfile ./Dockerfile \
           $BUILD_ARGS \
           --wait-timeout 300 \
           --strategy immediate \
-          --verbose || {
-            echo "Deployment timed out or failed after 10 minutes"
-            echo "Checking app status..."
-            flyctl status --app "${APP_NAME}" || true
-            exit 1
-          }
+          --verbose
+        DEPLOY_EXIT=$?
+        set -e
+
+        if [ ${DEPLOY_EXIT} -ne 0 ]; then
+          echo "Deployment timed out or failed after 10 minutes"
+          echo "Checking app status..."
+          flyctl status --app "${APP_NAME}" || true
+
+          echo "Fetching most recent Fly build logs..."
+          LAST_BUILD_ID=$(flyctl builds list --app "${APP_NAME}" --limit 1 --json | jq -r '.[0].id // ""')
+          if [ -n "${LAST_BUILD_ID}" ]; then
+            echo "Latest build id: ${LAST_BUILD_ID}"
+            flyctl builds logs "${LAST_BUILD_ID}" || true
+          else
+            echo "No build records found for ${APP_NAME}"
+          fi
+
+          exit ${DEPLOY_EXIT}
+        fi
         
         echo "Deployment completed at $(date)"
         
