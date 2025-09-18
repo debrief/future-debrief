@@ -34,34 +34,32 @@ runs:
       env:
         GITHUB_TOKEN: ${{ github.token }}
 
+    - name: Verify staged shared-types wheel
+      shell: bash
+      working-directory: libs/tool-vault-packager
+      run: |
+        # Verify that shared-types was staged by the main pipeline
+        WHEEL_DIR="shared-types/dist/python"
+
+        if [ ! -d "${WHEEL_DIR}" ]; then
+          echo "Shared-types wheel directory not found at ${WHEEL_DIR}." >&2
+          echo "Should have been staged by main pipeline." >&2
+          exit 1
+        fi
+
+        WHEEL_PATH=$(find "${WHEEL_DIR}" -maxdepth 1 -name 'debrief_types-*.whl' -print -quit)
+
+        if [ -z "${WHEEL_PATH}" ]; then
+          echo "No debrief_types wheel found in ${WHEEL_DIR}." >&2
+          exit 1
+        fi
+
+        echo "✅ Verified staged wheel: $(basename "${WHEEL_PATH}")"
+
     - name: Install Python dependencies
       shell: bash
       working-directory: libs/tool-vault-packager
       run: |
-        set -euo pipefail
-
-        SRC_DIR="../shared-types/dist/python"
-        DEST_DIR="shared-types/dist/python"
-
-        if [ ! -d "${SRC_DIR}" ]; then
-          echo "Shared-types dist directory not found at ${SRC_DIR}." >&2
-          echo "Run the shared-types build before packaging." >&2
-          exit 1
-        fi
-
-        WHEEL_PATH=$(find "${SRC_DIR}" -maxdepth 1 -name 'debrief_types-*.whl' -print -quit)
-
-        if [ -z "${WHEEL_PATH}" ]; then
-          echo "No debrief_types wheel found in ${SRC_DIR}." >&2
-          exit 1
-        fi
-
-        mkdir -p "${DEST_DIR}"
-        rm -f "${DEST_DIR}"/debrief_types-*.whl
-        cp "${WHEEL_PATH}" "${DEST_DIR}/"
-
-        echo "Copied $(basename "${WHEEL_PATH}") into ${DEST_DIR}"
-
         pip install -r requirements.txt
     
     - name: Package PYZ
