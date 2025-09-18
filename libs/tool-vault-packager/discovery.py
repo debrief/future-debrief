@@ -17,6 +17,7 @@ from debrief.types.tools import (
     SampleInputReference,
     GitHistoryEntry,
     SampleInputData,
+    CommandType,
 )
 
 
@@ -637,6 +638,10 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
                 # Create JSONSchemaProperty from the remaining schema
                 json_properties[param_name] = JSONSchemaProperty(**param_copy)
 
+        # Get the ToolVaultCommand schema as the output schema
+        from .tool_call_response import ToolVaultCommand
+        command_schema = ToolVaultCommand.model_json_schema()
+
         tool_instance = Tool(
             name=tool.name,
             description=tool.description,
@@ -646,22 +651,7 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
                 required=required_fields,
                 additionalProperties=False
             ),
-            outputSchema=JSONSchema(
-                type="object",
-                properties={
-                    "command": JSONSchemaProperty(
-                        type="string",
-                        enum=["addFeatures", "updateFeatures", "deleteFeatures", "setFeatureCollection",
-                              "showText", "showData", "showImage", "logMessage", "composite"],
-                        description="The ToolVault command type"
-                    ),
-                    "payload": JSONSchemaProperty(
-                        description="The command-specific payload data"
-                    )
-                },
-                required=["command", "payload"],
-                additionalProperties=False
-            ),
+            outputSchema=JSONSchema(**command_schema),
             tool_url=f"/api/tools/{tool_dir_name}/tool.json"
         )
 
