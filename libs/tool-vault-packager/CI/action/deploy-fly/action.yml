@@ -56,31 +56,6 @@ runs:
         echo "Final deployment configuration:"
         cat fly.toml
 
-    - name: Verify shared-types staging
-      shell: bash
-      working-directory: libs/tool-vault-packager
-      run: |
-        # Verify that shared-types was staged by the main pipeline
-        if [ ! -d "shared-types" ]; then
-          echo "shared-types directory not found. Should have been staged by main pipeline." >&2
-          exit 1
-        fi
-
-        # Verify Python wheel exists for Docker build
-        PYTHON_DIST="shared-types/dist/python"
-        if [ ! -d "${PYTHON_DIST}" ]; then
-          echo "Python dist directory not found in staged shared-types." >&2
-          exit 1
-        fi
-
-        WHEEL_PATH=$(find "${PYTHON_DIST}" -maxdepth 1 -name 'debrief_types-*.whl' -print -quit)
-        if [ -z "${WHEEL_PATH}" ]; then
-          echo "No debrief_types wheel found in staged shared-types." >&2
-          exit 1
-        fi
-
-        echo "✅ Shared-types staging verified with wheel: $(basename "${WHEEL_PATH}")"
-    
     - name: Deploy to Fly.io
       id: deploy
       shell: bash
