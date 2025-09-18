@@ -18,6 +18,7 @@ from debrief.types.tools import (
     GitHistoryEntry,
     SampleInputData,
     ToolVaultCommand,
+    JSONSchemaType,
 )
 
 
