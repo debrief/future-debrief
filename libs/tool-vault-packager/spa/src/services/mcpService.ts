@@ -1,4 +1,4 @@
-import type { MCPToolListResponse, MCPToolCallRequest, MCPToolCallResponse, ToolIndex, ToolVaultRootResponse } from '../types';
+import type { ToolListResponse, ToolCallResponse, ToolIndexModel, ToolVaultRootResponse, SPAToolCallRequest } from '../types';
 
 // Auto-detect server URL or use environment variable override
 const getServerBaseUrl = (): string => {
@@ -73,7 +73,7 @@ export class MCPService {
     }
   }
 
-  async listTools(): Promise<MCPToolListResponse> {
+  async listTools(): Promise<ToolListResponse> {
     try {
       // Ensure we've discovered endpoints first
       if (!this.toolsListUrl) {
@@ -91,7 +91,7 @@ export class MCPService {
     }
   }
 
-  async callTool(request: MCPToolCallRequest): Promise<MCPToolCallResponse> {
+  async callTool(request: SPAToolCallRequest): Promise<ToolCallResponse> {
     try {
       // Transform arguments from object format to list format expected by server
       const transformedRequest = {
@@ -121,7 +121,7 @@ export class MCPService {
     }
   }
 
-  async loadToolIndex(toolName: string, indexPath?: string): Promise<ToolIndex> {
+  async loadToolIndex(toolName: string, indexPath?: string): Promise<ToolIndexModel> {
     const path = indexPath || `${SERVER_BASE_URL}/api/tools/${toolName}/tool.json`;
     try {
       const response = await fetch(path);

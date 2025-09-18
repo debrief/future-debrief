@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import type { MCPTool } from '../types';
+import type { Tool } from '../types';
 
 interface SidebarProps {
-  tools: MCPTool[];
-  selectedTool: MCPTool | null;
-  onToolSelect: (tool: MCPTool | null) => void;
+  tools: Tool[];
+  selectedTool: Tool | null;
+  onToolSelect: (tool: Tool | null) => void;
   loading: boolean;
 }
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { MCPTool, ToolIndex, TabType } from '../types';
+import type { Tool, ToolIndexModel, TabType } from '../types';
 import { mcpService } from '../services/mcpService';
 import { InfoTab } from './InfoTab';
 import { ExecuteTab } from './ExecuteTab';
@@ -7,12 +7,12 @@ import { CodeTab } from './CodeTab';
 import { LoadingError } from './Warning';
 
 interface ToolViewProps {
-  tool: MCPTool;
+  tool: Tool;
 }
 
 export function ToolView({ tool }: ToolViewProps) {
   const [activeTab, setActiveTab] = useState<TabType>('info');
-  const [toolIndex, setToolIndex] = useState<ToolIndex | null>(null);
+  const [toolIndex, setToolIndex] = useState<ToolIndexModel | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

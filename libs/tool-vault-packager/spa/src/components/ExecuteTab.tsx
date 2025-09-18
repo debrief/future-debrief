@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import type { MCPTool, ToolIndex, ExecutionResult } from '../types';
+import type { Tool, ToolIndexModel, ExecutionResult } from '../types';
 import { mcpService } from '../services/mcpService';
 import { SchemaForm } from './SchemaForm';
 import { NoDataWarning, LoadingError } from './Warning';
 
 interface ExecuteTabProps {
-  tool: MCPTool;
-  toolIndex: ToolIndex | null;
+  tool: Tool;
+  toolIndex: ToolIndexModel | null;
   loading: boolean;
 }
 
@@ -28,7 +28,7 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
     setSamplesLoading(true);
     setSamplesError(null);
     try {
-      const samplePromises = toolIndex.files.inputs.map(async (inputFile) => {
+      const samplePromises = toolIndex.files.inputs.map(async (inputFile: any) => {
         try {
           const content = await mcpService.loadSampleInput(inputFile.path, tool.name);
           return { name: inputFile.name || inputFile.description, content };
@@ -39,7 +39,7 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
       });
 
       const loadedSamples = (await Promise.all(samplePromises))
-        .filter(sample => sample !== null) as Array<{name: string, content: Record<string, unknown>}>;
+        .filter((sample: any) => sample !== null) as Array<{name: string, content: Record<string, unknown>}>;
       
       setSamples(loadedSamples);
       
