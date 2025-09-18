@@ -79,8 +79,10 @@ runs:
 
           CREATE_OUTPUT=""
           if CREATE_OUTPUT=$(flyctl apps create "${APP_NAME}" --org personal 2>&1); then
+            echo "CREATE_OUTPUT: ${CREATE_OUTPUT}"
             echo "✅ Successfully created new app: ${APP_NAME}"
           else
+            echo "CREATE_OUTPUT: ${CREATE_OUTPUT}"
             echo "⚠️  flyctl apps create output:"
             echo "$CREATE_OUTPUT"
             if ! echo "$CREATE_OUTPUT" | grep -q "Name has already been taken\|already exists"; then
