@@ -6,7 +6,7 @@ from typing import Optional
 from .time_state import TimeState
 from .viewport_state import ViewportState
 from .selection_state import SelectionState
-from ..features.feature_collection import DebriefFeatureCollection
+from ..features.debrief_feature_collection import DebriefFeatureCollection
 
 
 class EditorState(BaseModel):

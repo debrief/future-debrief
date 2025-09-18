@@ -1,26 +1,13 @@
 """Point Pydantic model for maritime reference point features."""
 
 from datetime import datetime
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Union, Literal, Optional
+from geojson_pydantic import Feature, Point
 
 
-class PointGeometry(BaseModel):
-    """Point geometry for reference point features."""
-    type: Literal["Point"] = "Point"
-    coordinates: List[float] = Field(
-        ...,
-        min_length=2,
-        max_length=3,
-        description="Coordinate position [longitude, latitude, elevation?]"
-    )
-
-    @validator('coordinates')
-    def validate_coordinates(cls, v):
-        """Validate coordinate array structure."""
-        if len(v) < 2 or len(v) > 3:
-            raise ValueError('Coordinates must have 2 or 3 elements (lon, lat, [elevation])')
-        return v
+# Point geometry is now provided by geojson-pydantic
+# Point is imported from geojson_pydantic
 
 
 class PointProperties(BaseModel):
@@ -54,16 +41,13 @@ class PointProperties(BaseModel):
         extra = "allow"  # Allow additional properties
 
 
-class DebriefPointFeature(BaseModel):
+class DebriefPointFeature(Feature[Point, PointProperties]):
     """A GeoJSON Feature representing a point with time properties."""
 
-    type: Literal["Feature"] = "Feature"
-    id: Union[str, int] = Field(
-        ...,
-        description="Unique identifier for this feature"
-    )
-    geometry: PointGeometry
-    properties: PointProperties
-
-    class Config:
-        extra = "forbid"  # No additional properties at top level
+    @field_validator('geometry')
+    @classmethod
+    def validate_point_geometry(cls, v):
+        """Ensure geometry is Point."""
+        if not isinstance(v, Point):
+            raise ValueError('Point features must have Point geometry')
+        return v
