@@ -9,5 +9,8 @@ jsonschema>=4.17.0
 # Syntax highlighting for source code
 pygments>=2.15.0
 
+# Pretty-print JSON schemas for human-readable documentation
+json-schema-for-humans>=0.47.0
+
 # Shared types from monorepo (wheel staged by CI)
 shared-types/dist/python/debrief_types-1.0.0-py3-none-any.whl
