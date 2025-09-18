@@ -20,7 +20,7 @@ This package provides:
 **Important**: This package follows a **Pydantic-first approach** where Pydantic models are the single source of truth. All other artifacts are generated from these models:
 
 ```
-Pydantic Models (pydantic_models/) → JSON Schema (derived/json-schema/) → TypeScript Types (derived/typescript/ + src/types/)
+Pydantic Models (python-src/debrief/types/) → JSON Schema (derived/json-schema/) → TypeScript Types (derived/typescript/ + src/types/)
 ```
 
 **TypeScript Discriminated Unions**: TypeScript generation uses json-schema-to-typescript which properly handles oneOf schemas to create discriminated union types with literal discriminator properties (e.g., `featureType: "track"` instead of `featureType: string`), enabling automatic type narrowing.
@@ -33,11 +33,11 @@ npm run build:python # Generate Python types only
 
 ### Pydantic Model-Driven Development
 
-All types are derived from Pydantic model definitions in `pydantic_models/`:
+All types are derived from Pydantic model definitions in `python-src/debrief/types/`:
 
-- `pydantic_models/features/` - Maritime GeoJSON features (Track, Point, Annotation, FeatureCollection)
-- `pydantic_models/states/` - Application state models (TimeState, ViewportState, etc.)
-- `pydantic_models/tools/` - Tool metadata and index structures
+- `python-src/debrief/types/features/` - Maritime GeoJSON features (Track, Point, Annotation, FeatureCollection)
+- `python-src/debrief/types/states/` - Application state models (TimeState, ViewportState, etc.)
+- `python-src/debrief/types/tools/` - Tool metadata and index structures
 
 ### Cross-Field Validation
 
@@ -185,18 +185,17 @@ npm run test:schemas    # Validate schemas and test data
 
 ```
 libs/shared-types/
-├── pydantic_models/           # Pydantic model source files (source of truth)
-│   ├── features/             # Maritime GeoJSON feature models
-│   ├── states/               # Application state models
-│   └── tools/                # Tool metadata and index models
+├── python-src/                # Python package structure
+│   └── debrief/
+│       ├── types/            # Pydantic model source files (source of truth)
+│       │   ├── features/     # Maritime GeoJSON feature models
+│       │   ├── states/       # Application state models
+│       │   └── tools/        # Tool metadata and index models
+│       ├── schemas/          # Python schema utilities
+│       └── validators/       # Manual Python validators
 ├── derived/                   # Generated artifacts (not committed)
 │   ├── json-schema/          # Generated JSON Schema files
 │   └── typescript/           # Generated TypeScript types
-├── python-src/                # Python package structure
-│   └── debrief/
-│       ├── types/            # Generated Python models (not committed)
-│       ├── schemas/          # Python schema utilities
-│       └── validators/       # Manual Python validators
 ├── src/                      # TypeScript package structure
 │   ├── types/               # Generated TypeScript interfaces (not committed)
 │   └── validators/          # Manual TypeScript validators
@@ -226,7 +225,7 @@ MIT
 
 ## Contributing
 
-1. Modify Pydantic models in `pydantic_models/features/`, `pydantic_models/states/`, or `pydantic_models/tools/` directories
+1. Modify Pydantic models in `python-src/debrief/types/features/`, `python-src/debrief/types/states/`, or `python-src/debrief/types/tools/` directories
 2. Run `npm run build` to regenerate JSON schemas and types
 3. Update validators in `src/validators/` or `python-src/debrief/validators/` if needed (manual)
 4. Run `npm run test` to ensure everything works

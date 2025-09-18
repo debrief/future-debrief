@@ -60,7 +60,7 @@ pnpm clean:smart
 This package follows a **Pydantic-first type generation approach** where Pydantic models are the single source of truth:
 
 ```
-Pydantic Models (pydantic_models/) → JSON Schema (derived/json-schema/) → TypeScript types (derived/typescript/ + src/types/)
+Pydantic Models (python-src/debrief/types/) → JSON Schema (derived/json-schema/) → TypeScript types (derived/typescript/ + src/types/)
 ```
 
 **Critical**: Generated files are placed in language-specific directories and are excluded from version control. All types must be regenerated on build from Pydantic models.
@@ -70,7 +70,7 @@ Pydantic Models (pydantic_models/) → JSON Schema (derived/json-schema/) → Ty
 **For detailed package structure information, see [README.md](README.md#package-structure).**
 
 Key directories:
-- `pydantic_models/` - Pydantic model source files (single source of truth)
+- `python-src/debrief/types/` - Pydantic model source files (single source of truth)
 - `derived/json-schema/` - Generated JSON Schema files
 - `derived/typescript/` - Generated TypeScript types
 - `src/types/` - Generated TypeScript interfaces (compatibility)
@@ -105,15 +105,15 @@ Key directories:
 ## Development Workflow
 
 ### Making Model Changes
-1. Edit Pydantic models in `pydantic_models/features/`, `pydantic_models/states/`, or `pydantic_models/tools/`
+1. Edit Pydantic models in `python-src/debrief/types/features/`, `python-src/debrief/types/states/`, or `python-src/debrief/types/tools/`
 2. Run `pnpm generate:types` to regenerate JSON Schema and TypeScript types
 3. Update validators if cross-field validation logic changes
 4. Run `pnpm typecheck` to ensure TypeScript compatibility
 5. Build consuming packages that depend on changed types
 
 ### Adding New Feature Types
-1. Create new Pydantic model file in `pydantic_models/features/`
-2. Add to `pydantic_models/__init__.py` exports
+1. Create new Pydantic model file in `python-src/debrief/types/features/`
+2. Add to `python-src/debrief/types/__init__.py` exports
 3. Update `generate_from_pydantic.py` to include the new model
 4. Create corresponding validator files in `src/validators/`
 5. Add test data and update tests as needed
