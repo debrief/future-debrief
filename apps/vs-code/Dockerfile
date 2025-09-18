@@ -20,7 +20,6 @@ WORKDIR /tmp/repo/libs/shared-types
 
 RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: shared-types build starting" "${STATUS_WEBHOOK}" || true; fi && \
     pip install --no-cache-dir -r requirements.txt && \
-    python copy_python_models.py && \
     python -m build --wheel --outdir /tmp/wheels && \
     if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: shared-types wheel ready" "${STATUS_WEBHOOK}" || true; fi
 
