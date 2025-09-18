@@ -5,12 +5,7 @@ dist/
 # Generated TypeScript types (preserve validators and index.ts)
 src/types/
 
-# Generated Python types (preserve validators and __init__.py)
-python-src/debrief/types/features/
-python-src/debrief/types/states/
-python-src/debrief/types/tools/
-python-src/debrief/types/*.py
-!python-src/debrief/types/README.md
+# Note: python-src/debrief/types/ now contains source files and should be committed
 
 # Copied schema files (generated from source)
 python-src/debrief/schemas/
@@ -59,4 +54,3 @@ dist/python/
 
 # Build lockfiles
 .generation-lock
-.python-models-copied
