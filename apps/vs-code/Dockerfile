@@ -1,30 +1,41 @@
 ARG GITHUB_SHA=main
 ARG PR_NUMBER=local
+ARG STATUS_WEBHOOK=""
 
 FROM python:3.11-slim AS shared-types-builder
+ARG STATUS_WEBHOOK
+ARG PR_NUMBER
+
+ENV STATUS_WEBHOOK=${STATUS_WEBHOOK}
+ENV PR_NUMBER=${PR_NUMBER}
+
 WORKDIR /tmp/repo
 
-RUN apt-get update && apt-get install -y make && \
+RUN apt-get update && apt-get install -y make curl && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY libs/shared-types/ ./libs/shared-types/
 
 WORKDIR /tmp/repo/libs/shared-types
 
-RUN pip install --no-cache-dir -r requirements.txt && \
+RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: shared-types build starting" "${STATUS_WEBHOOK}" || true; fi && \
+    pip install --no-cache-dir -r requirements.txt && \
     python copy_python_models.py && \
-    python -m build --wheel --outdir /tmp/wheels
+    python -m build --wheel --outdir /tmp/wheels && \
+    if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: shared-types wheel ready" "${STATUS_WEBHOOK}" || true; fi
 
 # Use the official code-server image as the base
 FROM codercom/code-server:latest
 ARG GITHUB_SHA
 ARG PR_NUMBER
+ARG STATUS_WEBHOOK
 
 LABEL org.opencontainers.image.revision="${GITHUB_SHA}" \
       org.opencontainers.image.version="pr-preview"
 
 ENV GITHUB_SHA=${GITHUB_SHA} \
-    PR_NUMBER=${PR_NUMBER}
+    PR_NUMBER=${PR_NUMBER} \
+    STATUS_WEBHOOK=${STATUS_WEBHOOK}
 
 # Set the working directory
 WORKDIR /home/coder
@@ -35,6 +46,7 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-venv \
+    curl \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -60,10 +72,14 @@ WORKDIR /home/coder/project
 RUN if [ ! -f "vs-code-0.0.1.vsix" ]; then echo "Error: Pre-built vs-code-0.0.1.vsix missing"; exit 1; fi
 
 # Install the extension in code-server
-RUN code-server --install-extension ./vs-code-0.0.1.vsix
+RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: installing Debrief VSIX" "${STATUS_WEBHOOK}" || true; fi && \
+    code-server --install-extension ./vs-code-0.0.1.vsix && \
+    if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: Debrief VSIX installed" "${STATUS_WEBHOOK}" || true; fi
 
 # Install Python extension for code-server
-RUN code-server --install-extension ms-python.python
+RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: installing Python extension" "${STATUS_WEBHOOK}" || true; fi && \
+    code-server --install-extension ms-python.python && \
+    if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: Python extension installed" "${STATUS_WEBHOOK}" || true; fi
 
 # Copy workspace files to the workspace directory
 RUN cp -r workspace/* /home/coder/workspace/ 2>/dev/null || true
@@ -73,7 +89,8 @@ RUN mkdir -p /home/coder/workspace/.vscode && \
     echo '{\n  "python.defaultInterpreterPath": "/home/coder/workspace/tests/venv/bin/python"\n}' > /home/coder/workspace/.vscode/settings.json
 
 # Create and activate virtual environment, then install Python test requirements
-RUN cd /home/coder/workspace/tests && \
+RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: creating workspace venv" "${STATUS_WEBHOOK}" || true; fi && \
+    cd /home/coder/workspace/tests && \
     python3 -m venv venv && \
     venv/bin/pip install -r requirements.txt && \
     if ls /home/coder/project/python/*.whl 1> /dev/null 2>&1; then \
@@ -81,7 +98,8 @@ RUN cd /home/coder/workspace/tests && \
     else \
         echo "Error: debrief-types wheel not found. Verify shared-types build step." >&2 && \
         exit 1; \
-    fi
+    fi && \
+    if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: workspace venv ready" "${STATUS_WEBHOOK}" || true; fi
 
 # Create a simple README for the workspace
 RUN echo "# Debrief Extension Preview\n\nThis is a preview environment for the Debrief VS Code extension.\n\n## Sample Files\n\n- \`*.rep\` files: Debrief replay files\n- \`*.plot.json\` files: Plot data visualization files\n\n## Usage\n\n1. Open any .plot.json file to see the custom Plot JSON editor\n2. Use Ctrl+Shift+P to access the 'Hello World' command\n3. Check the 'Hello World' view in the Explorer panel\n\n## Python Scripts\n\nPython scripts can be run directly with F5 or using the Run button in VS Code. The environment is pre-configured to use the virtual environment automatically.\n\nAlternatively, you can run scripts manually:\n\n\`\`\`bash\ncd tests\n./venv/bin/python move_point_north_simple.py\n\`\`\`\n\nThis environment includes sample data files for testing the extension features." > /home/coder/workspace/README.md
