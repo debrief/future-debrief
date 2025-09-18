@@ -45,7 +45,7 @@ derived/json-schema/%.schema.json: $(PYDANTIC_FILES) generate_schemas.py
 derived/typescript/%.ts: derived/json-schema/%.schema.json
 	@echo "$(BLUE)Generating TypeScript for $<...$(RESET)"
 	@mkdir -p derived/typescript
-	@npx json-schema-to-typescript "$<" --output "$@"
+	@NODE_NO_WARNINGS=1 npx json-schema-to-typescript "$<" --output "$@"
 
 # Copy TypeScript files to src/types for compatibility
 src/types/%.ts: derived/typescript/%.ts
@@ -72,7 +72,7 @@ force-generate: ## Force regeneration of all types
 # TypeScript compilation depends on copied TypeScript files
 $(COMPILED_TS): $(foreach model,$(SCHEMA_MODELS),src/types/$(model).ts) tsconfig.json
 	@echo "$(BLUE)Compiling TypeScript...$(RESET)"
-	@npx tsc
+	@NODE_NO_WARNINGS=1 npx tsc
 	@echo "$(GREEN)✓ TypeScript compilation complete$(RESET)"
 
 # Python wheel depends on source Python models
@@ -94,4 +94,4 @@ test: ## Run tests
 
 dev: ## Watch mode for development
 	@echo "$(BLUE)Starting development watch mode...$(RESET)"
-	@npx concurrently "npx nodemon --watch python-src/debrief/types --ext 'py' --exec 'python3 generate_schemas.py'" "npx tsc --watch --preserveWatchOutput"
+	@NODE_NO_WARNINGS=1 npx concurrently "npx nodemon --watch python-src/debrief/types --ext 'py' --exec 'python3 generate_schemas.py'" "NODE_NO_WARNINGS=1 npx tsc --watch --preserveWatchOutput"
