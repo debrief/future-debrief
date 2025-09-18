@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Tool, ToolIndexModel, GitHistory, GitHistoryEntry } from '../types';
 import { mcpService } from '../services/mcpService';
+import { PrettySchemaDisplay } from './PrettySchemaDisplay';
 
 interface InfoTabProps {
   tool: Tool;
@@ -72,7 +73,7 @@ export function InfoTab({ tool, toolIndex, loading }: InfoTabProps) {
             <div>Loading git history...</div>
           ) : gitHistory?.commits ? (
             <div className="git-commits">
-              {gitHistory.commits.slice(0, 10).map((commit: any, index: number) => (
+              {gitHistory.commits.slice(0, 10).map((commit: GitHistoryEntry, index: number) => (
                 <div key={index} className="commit-item">
                   <div className="commit-hash">{commit.hash.substring(0, 8)}</div>
                   <div className="commit-info">
@@ -96,12 +97,11 @@ export function InfoTab({ tool, toolIndex, loading }: InfoTabProps) {
       )}
 
       {tool.inputSchema && (
-        <div className="schema-section">
-          <h3>Input Schema</h3>
-          <pre className="schema-display">
-            {JSON.stringify(tool.inputSchema, null, 2)}
-          </pre>
-        </div>
+        <PrettySchemaDisplay
+          schema={tool.inputSchema}
+          toolName={tool.name}
+          fallbackToRaw={true}
+        />
       )}
     </div>
   );

@@ -25,6 +25,12 @@ except ImportError:
     PYGMENTS_AVAILABLE = False
 
 try:
+    from json_schema_for_humans import generate_from_schema
+    SCHEMA_FOR_HUMANS_AVAILABLE = True
+except ImportError:
+    SCHEMA_FOR_HUMANS_AVAILABLE = False
+
+try:
     from .discovery import discover_tools, generate_index_json
 except ImportError:
     # Handle case when running as script
@@ -34,6 +40,214 @@ except ImportError:
 class PackagerError(Exception):
     """Raised when packaging encounters an error."""
     pass
+
+
+def generate_schema_documentation_html(tool_name: str, tool_schema: Dict[str, Any]) -> str:
+    """Generate pretty-printed schema documentation HTML using json-schema-for-humans."""
+
+    if not SCHEMA_FOR_HUMANS_AVAILABLE:
+        # Fallback to basic JSON display if json-schema-for-humans is not available
+        schema_json = json.dumps(tool_schema, indent=2)
+        return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{tool_name} - Schema Documentation</title>
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            background-color: #f8f9fa;
+            line-height: 1.4;
+        }}
+        .container {{
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        .header {{
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }}
+        .tool-name {{
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }}
+        .schema-json {{
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            white-space: pre-wrap;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }}
+        .warning {{
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="tool-name">{tool_name} - Schema Documentation</div>
+        </div>
+        <div class="warning">
+            Pretty-printed schema documentation is not available. Install 'json-schema-for-humans' for enhanced display.
+        </div>
+        <div class="schema-json">{schema_json}</div>
+    </div>
+</body>
+</html>"""
+
+    try:
+        # Extract input schema from the tool schema structure
+        input_schema = tool_schema.get('inputSchema', {})
+
+        # Generate pretty-printed documentation using json-schema-for-humans
+        # Use js_offline template for SPA compatibility
+        from json_schema_for_humans.generate import generate_from_schema
+        from json_schema_for_humans.generation_configuration import GenerationConfiguration
+
+        config = GenerationConfiguration(
+            template_name="js_offline",
+            show_breadcrumbs=False,
+            collapse_long_descriptions=False,
+            collapse_long_examples=False,
+            link_to_reused_ref=False,
+            deprecated_from_description=True,
+            default_from_description=True,
+            expand_buttons=True,
+            copy_css=False,
+            copy_js=False
+        )
+
+        # Generate the schema documentation
+        schema_html = generate_from_schema(input_schema, config=config)
+
+        # Wrap in our own container for consistent styling
+        wrapped_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{tool_name} - Schema Documentation</title>
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            background-color: #f8f9fa;
+            line-height: 1.4;
+        }}
+        .container {{
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        .header {{
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }}
+        .tool-name {{
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }}
+        .schema-content {{
+            font-size: 14px;
+        }}
+        /* Override some json-schema-for-humans styles for better integration */
+        .jsfh-root {{ margin: 0 !important; }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="tool-name">{tool_name} - Input Parameters</div>
+        </div>
+        <div class="schema-content">{schema_html}</div>
+    </div>
+</body>
+</html>"""
+
+        return wrapped_html
+
+    except Exception as e:
+        # Fallback to JSON display if schema generation fails
+        schema_json = json.dumps(tool_schema, indent=2)
+        return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{tool_name} - Schema Documentation</title>
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            background-color: #f8f9fa;
+            line-height: 1.4;
+        }}
+        .container {{
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        .header {{
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }}
+        .tool-name {{
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }}
+        .schema-json {{
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            white-space: pre-wrap;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            overflow-x: auto;
+        }}
+        .error {{
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="tool-name">{tool_name} - Schema Documentation</div>
+        </div>
+        <div class="error">
+            Error generating pretty-printed documentation: {str(e)}
+        </div>
+        <div class="schema-json">{schema_json}</div>
+    </div>
+</body>
+</html>"""
 
 
 def generate_highlighted_source_html(tool_name: str, source_code: str) -> str:
@@ -347,19 +561,32 @@ def package_toolvault(
         for tool in tools:
             tool_metadata_dir = package_dir / "tools" / Path(tool.tool_dir).name / "metadata"
             tool_metadata_dir.mkdir(exist_ok=True)
-                
+
             # Save git history
             if tool.git_history:
                 git_history_file = tool_metadata_dir / "git_history.json"
                 with open(git_history_file, 'w') as f:
                     json.dump(tool.git_history, f, indent=2)
-                
+
             # Save source code as HTML with syntax highlighting
             if tool.source_code:
                 source_file = tool_metadata_dir / "source_code.html"
                 html_content = generate_highlighted_source_html(tool.name, tool.source_code)
                 with open(source_file, 'w') as f:
                     f.write(html_content)
+
+            # Generate and save pretty-printed schema documentation
+            try:
+                # Import here to avoid circular import issues
+                from discovery import generate_tool_schema
+                tool_schema = generate_tool_schema(tool)
+                schema_doc_html = generate_schema_documentation_html(tool.name, tool_schema)
+                schema_doc_file = tool_metadata_dir / "schema_docs.html"
+                with open(schema_doc_file, 'w') as f:
+                    f.write(schema_doc_html)
+                print(f"Generated schema documentation for {tool.name}")
+            except Exception as e:
+                print(f"Warning: Failed to generate schema documentation for {tool.name}: {e}")
                 
             
             # Create tool-specific tool.json for SPA navigation using typed models

@@ -305,7 +305,33 @@ class ToolVaultServer:
                         "isError": True
                     }
                 )
-        
+
+        @self.app.get("/api/tools/{tool_name}/schema-docs")
+        async def get_tool_schema_docs(tool_name: str):
+            """Serve pretty-printed schema documentation for a specific tool."""
+            if tool_name not in self.tools_by_name:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Tool '{tool_name}' not found"
+                )
+
+            # Generate schema docs on-the-fly since they're not pre-generated in development
+            try:
+                from discovery import generate_tool_schema
+                from packager import generate_schema_documentation_html
+
+                tool = self.tools_by_name[tool_name]
+                tool_schema = generate_tool_schema(tool)
+                schema_html = generate_schema_documentation_html(tool_name, tool_schema)
+
+                return HTMLResponse(content=schema_html)
+            except Exception as gen_error:
+                # Fallback to simple error message
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to generate schema documentation: {str(gen_error)}"
+                )
+
         @self.app.get("/api/tools/{full_path:path}")
         async def get_tool_file(full_path: str):
             """Serve any file from the tools directory structure."""
