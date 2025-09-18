@@ -31,13 +31,20 @@ runs:
         # Prepare dependencies using symlinks (since pnpm already installed everything)
         npm run prepare-deps
 
-        # Prepare SPA dependencies
+        # Prepare SPA dependencies and modify package.json for npm compatibility
         cd spa
         npm run prepare-deps
 
-        # Install using npm (should work now with symlinks)
+        # Temporarily replace workspace: with file: for npm compatibility
+        cp package.json package.json.bak
+        sed 's|"workspace:\^1\.0\.0"|"file:../shared-types"|g' package.json.bak > package.json
+
+        # Install using npm (should work now with file: paths)
         echo "📦 Installing SPA dependencies with npm..."
-        npm install --production=false
+        npm install
+
+        # Restore original package.json
+        mv package.json.bak package.json
     
     - name: Build SPA
       shell: bash
