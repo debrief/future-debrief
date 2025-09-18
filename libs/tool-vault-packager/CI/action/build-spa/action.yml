@@ -14,58 +14,18 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version-file: '.nvmrc'
-    
-    - name: Install SPA dependencies
-      shell: bash
-      working-directory: libs/tool-vault-packager/spa
-      run: |
-        echo "📦 Installing SPA dependencies..."
-        echo "Working directory: $(pwd)"
-        echo "Node version: $(node --version)"
-        echo "NPM version: $(npm --version)"
-        
-        # Clean npm cache to avoid potential corruption issues
-        npm cache clean --force
-        
-        # Try npm ci first, fallback to regenerating package-lock if needed
-        if ! npm ci; then
-          echo "⚠️  npm ci failed, attempting recovery..."
-          echo "This may be due to corrupted package-lock.json"
-          
-          # Backup the original package-lock.json
-          if [ -f "package-lock.json" ]; then
-            cp package-lock.json package-lock.json.backup
-            echo "📋 Backed up package-lock.json"
-          fi
-          
-          # Try npm install to regenerate the lockfile
-          if ! npm install; then
-            echo "❌ npm install also failed"
-            # If we have a backup, restore it and try again
-            if [ -f "package-lock.json.backup" ]; then
-              echo "🔄 Restoring backup and trying fresh install..."
-              rm -f package-lock.json
-              rm -rf node_modules
-              npm install
-            else
-              echo "❌ No backup available, installation failed"
-              exit 1
-            fi
-          else
-            echo "✅ Successfully recovered with npm install"
-          fi
-        fi
-    
-    - name: Build SPA
+    - name: Build SPA using npm
       shell: bash
       working-directory: libs/tool-vault-packager
       run: |
+        echo "🔗 Building SPA with npm..."
+        echo "Working directory: $(pwd)"
+        echo "Node version: $(node --version)"
+        echo "NPM version: $(npm --version)"
+
+        # Build SPA (copies shared-types and builds automatically)
         npm run build:spa
-        
+
         # Verify SPA was built
         if [ -d "spa/dist" ]; then
           echo "✅ SPA built successfully"

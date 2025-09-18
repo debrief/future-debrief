@@ -29,7 +29,7 @@ runs:
           "commit_hash": "${{ github.sha }}",
           "ref": "${{ github.ref }}",
           "workflow_run_id": "${{ github.run_id }}",
-          "file_size": "$(stat -c%s toolvault.pyz 2>/dev/null || stat -f%z toolvault.pyz)",
+          "file_size": "$(stat -c%s dist/toolvault.pyz 2>/dev/null || stat -f%z dist/toolvault.pyz)",
           "python_version": "$(python --version 2>&1)"
         }
         EOF
@@ -42,7 +42,7 @@ runs:
       with:
         name: toolvault-pyz
         path: |
-          libs/tool-vault-packager/toolvault.pyz
+          libs/tool-vault-packager/dist/toolvault.pyz
           libs/tool-vault-packager/toolvault-metadata.json
         retention-days: ${{ inputs.artifact_retention_days }}
         
@@ -52,6 +52,6 @@ runs:
         echo "### 📦 Tool Vault PYZ Artifact Published" >> $GITHUB_STEP_SUMMARY
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "- **Artifact Name:** toolvault-pyz" >> $GITHUB_STEP_SUMMARY
-        echo "- **File Size:** $(du -h libs/tool-vault-packager/toolvault.pyz | cut -f1)" >> $GITHUB_STEP_SUMMARY
+        echo "- **File Size:** $(du -h libs/tool-vault-packager/dist/toolvault.pyz | cut -f1)" >> $GITHUB_STEP_SUMMARY
         echo "- **Retention:** ${{ inputs.artifact_retention_days }} days" >> $GITHUB_STEP_SUMMARY
         echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

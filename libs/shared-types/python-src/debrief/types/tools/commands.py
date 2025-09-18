@@ -21,7 +21,7 @@ from .tool_call_response import (
 )
 
 # Import Debrief feature types
-from ..features.feature_collection import DebriefFeature, DebriefFeatureCollection
+from ..features.debrief_feature_collection import DebriefFeature, DebriefFeatureCollection
 
 
 # Feature manipulation commands

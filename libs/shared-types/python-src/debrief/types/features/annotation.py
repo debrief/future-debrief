@@ -1,9 +1,10 @@
 """Annotation Pydantic model for maritime zone/annotation features."""
 
 from datetime import datetime
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Union, Literal, Optional
 from enum import Enum
+from geojson_pydantic import Feature, Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon
 
 
 class AnnotationType(str, Enum):
@@ -15,116 +16,8 @@ class AnnotationType(str, Enum):
     BOUNDARY = "boundary"
 
 
-class AnnotationPointGeometry(BaseModel):
-    """Point geometry for annotations."""
-    type: Literal["Point"] = "Point"
-    coordinates: List[float] = Field(
-        ...,
-        min_length=2,
-        max_length=3,
-        description="Coordinate position [longitude, latitude, elevation?]"
-    )
-
-    @validator('coordinates')
-    def validate_coordinates(cls, v):
-        if len(v) < 2 or len(v) > 3:
-            raise ValueError('Coordinates must have 2 or 3 elements')
-        return v
-
-
-class AnnotationLineStringGeometry(BaseModel):
-    """LineString geometry for annotations."""
-    type: Literal["LineString"] = "LineString"
-    coordinates: List[List[float]] = Field(
-        ...,
-        min_length=2,
-        description="Array of coordinate positions"
-    )
-
-    @validator('coordinates')
-    def validate_coordinates(cls, v):
-        for coord in v:
-            if len(coord) < 2 or len(coord) > 3:
-                raise ValueError('Each coordinate must have 2 or 3 elements')
-        return v
-
-
-class AnnotationPolygonGeometry(BaseModel):
-    """Polygon geometry for annotations."""
-    type: Literal["Polygon"] = "Polygon"
-    coordinates: List[List[List[float]]] = Field(
-        ...,
-        min_length=1,
-        description="Array of LinearRing coordinate arrays"
-    )
-
-    @validator('coordinates')
-    def validate_coordinates(cls, v):
-        for ring in v:
-            if len(ring) < 4:
-                raise ValueError('Each LinearRing must have at least 4 coordinate positions')
-            for coord in ring:
-                if len(coord) < 2 or len(coord) > 3:
-                    raise ValueError('Each coordinate must have 2 or 3 elements')
-        return v
-
-
-class AnnotationMultiPointGeometry(BaseModel):
-    """MultiPoint geometry for annotations."""
-    type: Literal["MultiPoint"] = "MultiPoint"
-    coordinates: List[List[float]] = Field(
-        ...,
-        description="Array of coordinate positions"
-    )
-
-    @validator('coordinates')
-    def validate_coordinates(cls, v):
-        for coord in v:
-            if len(coord) < 2 or len(coord) > 3:
-                raise ValueError('Each coordinate must have 2 or 3 elements')
-        return v
-
-
-class AnnotationMultiLineStringGeometry(BaseModel):
-    """MultiLineString geometry for annotations."""
-    type: Literal["MultiLineString"] = "MultiLineString"
-    coordinates: List[List[List[float]]] = Field(
-        ...,
-        min_length=1,
-        description="Array of LineString coordinate arrays"
-    )
-
-    @validator('coordinates')
-    def validate_coordinates(cls, v):
-        for linestring in v:
-            if len(linestring) < 2:
-                raise ValueError('Each LineString must have at least 2 coordinate positions')
-            for coord in linestring:
-                if len(coord) < 2 or len(coord) > 3:
-                    raise ValueError('Each coordinate must have 2 or 3 elements')
-        return v
-
-
-class AnnotationMultiPolygonGeometry(BaseModel):
-    """MultiPolygon geometry for annotations."""
-    type: Literal["MultiPolygon"] = "MultiPolygon"
-    coordinates: List[List[List[List[float]]]] = Field(
-        ...,
-        description="Array of Polygon coordinate arrays"
-    )
-
-    @validator('coordinates')
-    def validate_coordinates(cls, v):
-        for polygon in v:
-            if len(polygon) < 1:
-                raise ValueError('Each Polygon must have at least 1 LinearRing')
-            for ring in polygon:
-                if len(ring) < 4:
-                    raise ValueError('Each LinearRing must have at least 4 coordinate positions')
-                for coord in ring:
-                    if len(coord) < 2 or len(coord) > 3:
-                        raise ValueError('Each coordinate must have 2 or 3 elements')
-        return v
+# All geometry types are now provided by geojson-pydantic
+# Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon are imported from geojson_pydantic
 
 
 class AnnotationProperties(BaseModel):
@@ -163,23 +56,5 @@ class AnnotationProperties(BaseModel):
         extra = "allow"  # Allow additional properties
 
 
-class DebriefAnnotationFeature(BaseModel):
+class DebriefAnnotationFeature(Feature[Union[Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon], AnnotationProperties]):
     """A GeoJSON Feature representing an annotation with any geometry type."""
-
-    type: Literal["Feature"] = "Feature"
-    id: Union[str, int] = Field(
-        ...,
-        description="Unique identifier for this feature"
-    )
-    geometry: Union[
-        AnnotationPointGeometry,
-        AnnotationLineStringGeometry,
-        AnnotationPolygonGeometry,
-        AnnotationMultiPointGeometry,
-        AnnotationMultiLineStringGeometry,
-        AnnotationMultiPolygonGeometry
-    ]
-    properties: AnnotationProperties
-
-    class Config:
-        extra = "forbid"  # No additional properties at top level

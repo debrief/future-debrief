@@ -3,7 +3,7 @@
  * These validators work with the generated types and provide additional validation logic
  */
 
-import { DebriefPointFeature } from '../types/FeatureCollection';
+import { DebriefPointFeature } from '../types/features/debrief_feature_collection';
 
 /**
  * Type-safe helper to check if a value is a non-null object
@@ -25,6 +25,7 @@ function getObjectProperty(obj: Record<string, unknown>, key: string): unknown {
  * Either single time OR time range (start/end) should be provided, not both
  */
 export function validateTimeProperties(feature: DebriefPointFeature): boolean {
+  if (!feature.properties) return false;
   const { time, timeStart, timeEnd } = feature.properties;
   
   // Either single time OR time range (start/end) should be provided, not both
@@ -167,7 +168,7 @@ export function validatePointFeatureComprehensive(feature: unknown): {
   const validatedFeature = feature as DebriefPointFeature;
   
   // Geographic coordinate validation
-  if (!validateGeographicCoordinates(validatedFeature.geometry.coordinates)) {
+  if (!validatedFeature.geometry || !validateGeographicCoordinates(validatedFeature.geometry.coordinates as number[])) {
     errors.push('Coordinates are outside valid geographic ranges');
   }
   
@@ -177,6 +178,7 @@ export function validatePointFeatureComprehensive(feature: unknown): {
   }
   
   // Individual date validation
+  if (!validatedFeature.properties) return { isValid: false, errors: ['Properties are required'] };
   const { time, timeStart, timeEnd } = validatedFeature.properties;
   if (time && !isValidDate(time)) {
     errors.push('Invalid time format');

@@ -3,7 +3,7 @@
  * These validators work with the generated types and provide additional validation logic
  */
 
-import { DebriefFeatureCollection } from '../types/FeatureCollection';
+import { DebriefFeatureCollection } from '../types/features/debrief_feature_collection';
 import { validateTrackFeature } from './track-validator';
 import { validatePointFeature } from './point-validator';
 import { validateAnnotationFeature, validateAnnotationType, validateColorFormat } from './annotation-validator';

@@ -3,7 +3,7 @@
  * These validators work with the generated types and provide additional validation logic
  */
 
-import { DebriefTrackFeature } from '../types/FeatureCollection';
+import { DebriefTrackFeature } from '../types/features/debrief_feature_collection';
 
 /**
  * Type-safe helper to check if a value is a non-null object
@@ -24,10 +24,11 @@ function getObjectProperty(obj: Record<string, unknown>, key: string): unknown {
  * This is the critical cross-field validation not covered by JSON Schema
  */
 export function validateTimestampsLength(feature: DebriefTrackFeature): boolean {
-  if (!feature.properties.timestamps) {
+  if (!feature.properties || !feature.properties.timestamps) {
     return true; // timestamps are optional
   }
-  
+
+  if (!feature.geometry) return false;
   const coordinates = feature.geometry.coordinates;
   
   // Handle LineString geometry
@@ -172,7 +173,9 @@ export function validateTrackFeatureComprehensive(feature: unknown): {
   const validatedFeature = feature as DebriefTrackFeature;
   
   // Detailed coordinate validation
-  if (validatedFeature.geometry.type === 'LineString') {
+  if (!validatedFeature.geometry) {
+    errors.push('Geometry is required');
+  } else if (validatedFeature.geometry.type === 'LineString') {
     if (!validateLineStringCoordinates(validatedFeature.geometry.coordinates)) {
       errors.push('Invalid LineString coordinates');
     }

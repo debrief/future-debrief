@@ -3,7 +3,7 @@
 import math
 from typing import Dict, Any
 from pydantic import BaseModel, Field, model_validator
-from debrief.types import TrackFeature
+from debrief.types import DebriefTrackFeature
 
 
 class TrackSpeedFilterParameters(BaseModel):
@@ -37,9 +37,9 @@ class TrackSpeedFilterParameters(BaseModel):
         """Convert dict to TrackFeature and validate structure."""
         track_data = self.track_feature
 
-        # Convert to shared-types TrackFeature for validation and processing
+        # Convert to shared-types DebriefTrackFeature for validation and processing
         try:
-            track_feature_obj = TrackFeature.model_validate(track_data)
+            track_feature_obj = DebriefTrackFeature.model_validate(track_data)
             # Store both dict (for schema) and object (for processing)
             self._track_feature_obj = track_feature_obj
         except Exception as e:
@@ -75,7 +75,7 @@ def track_speed_filter(params: TrackSpeedFilterParameters) -> Dict[str, Any]:
     Examples:
         >>> from pydantic import ValidationError
         >>> params = TrackSpeedFilterParameters(
-        ...     track_feature=TrackFeature(
+        ...     track_feature=DebriefTrackFeature(
         ...         type="Feature",
         ...         id="test",
         ...         geometry=TrackGeometry(

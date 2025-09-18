@@ -29,7 +29,7 @@ async function runCommand(command, args = [], env = {}) {
 }
 
 async function buildPyzIfNeeded() {
-  if (!fs.existsSync('toolvault.pyz')) {
+  if (!fs.existsSync('dist/toolvault.pyz')) {
     console.log('Building .pyz file...');
     await runCommand('npm', ['run', 'build']);
   } else {

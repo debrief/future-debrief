@@ -3,13 +3,22 @@ Generated Python types for Debrief maritime GeoJSON features and application sta
 These types are generated from JSON schemas and provide type hints and validation.
 """
 
-from .EditorState import EditorState
-from .annotation import AnnotationFeature
-from .featurecollection import DebriefFeatureCollection
-from .track import TrackFeature
-from .TimeState import TimeState
-from .point import PointFeature
-from .ViewportState import ViewportState
-from .SelectionState import SelectionState
+# Feature types
+from .features.track import DebriefTrackFeature
+from .features.point import DebriefPointFeature
+from .features.annotation import DebriefAnnotationFeature
+from .features.debrief_feature_collection import DebriefFeatureCollection
 
-__all__ = ['EditorState', 'AnnotationFeature', 'DebriefFeatureCollection', 'TrackFeature', 'TimeState', 'PointFeature', 'ViewportState', 'SelectionState']
+# State types
+from .states.time_state import TimeState
+from .states.viewport_state import ViewportState
+from .states.selection_state import SelectionState
+from .states.editor_state import EditorState
+from .states.current_state import CurrentState
+
+__all__ = [
+    # Features
+    'DebriefTrackFeature', 'DebriefPointFeature', 'DebriefAnnotationFeature', 'DebriefFeatureCollection',
+    # States
+    'TimeState', 'ViewportState', 'SelectionState', 'EditorState', 'CurrentState'
+]

@@ -9,11 +9,6 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Setup Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
     - name: Test PYZ existence
       shell: bash
       working-directory: libs/tool-vault-packager
@@ -25,7 +20,7 @@ runs:
       working-directory: libs/tool-vault-packager
       run: |
         # Test that the PYZ file is executable
-        if python toolvault.pyz --help > /dev/null 2>&1; then
+        if python dist/toolvault.pyz --help > /dev/null 2>&1; then
           echo "✅ PYZ is executable and responds to --help"
         else
           echo "❌ PYZ is not executable or doesn't respond to --help"
@@ -37,7 +32,7 @@ runs:
       working-directory: libs/tool-vault-packager
       run: |
         # Start server in background and test it responds
-        timeout 10s python toolvault.pyz serve --port 8000 --host 127.0.0.1 &
+        timeout 10s python dist/toolvault.pyz serve --port 8000 --host 127.0.0.1 &
         server_pid=$!
         
         # Wait a moment for server to start

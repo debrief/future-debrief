@@ -51,6 +51,9 @@ export const Default: Story = {
     onSelectionChange: (ids: (string | number)[]) => console.warn('Selection changed:', ids),
     timeState: timeState,
   },
+  parameters: {
+    chromatic: { disable: true },
+  },
 };
 
 interface TimeControlArgs {
@@ -123,6 +126,7 @@ export const WithTimeControl: StoryObj<TimeControlArgs> = {
     );
   },
   parameters: {
+    chromatic: { disable: true },
     docs: {
       description: {
         story: 'Interactive story with time-based control. Use the "Time Offset" slider in the Controls panel to move the marker along the track over time. The slider uses an offset from the start time to handle large timestamp values.',

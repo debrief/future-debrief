@@ -6,6 +6,9 @@ pydantic>=2.0.0
 # JSON schema validation
 jsonschema>=4.17.0
 
+# GeoJSON validation for shared types
+geojson-pydantic>=1.0.0
+
 # Syntax highlighting for source code
 pygments>=2.15.0
 

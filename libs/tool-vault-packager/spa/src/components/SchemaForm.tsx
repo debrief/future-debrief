@@ -38,7 +38,7 @@ function FormField({ name, property, value, onChange, required, path }: FormFiel
             required={required}
           >
             {!required && <option value="">Select...</option>}
-            {property.enum.map((option, index) => (
+            {property.enum.map((option: unknown, index: number) => (
               <option key={index} value={String(option)}>
                 {String(option)}
               </option>

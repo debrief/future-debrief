@@ -18,12 +18,12 @@ COPY . .
 # Install Python dependencies (wheel staged by CI at shared-types/dist/python/)
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Build script that handles both CI (.pyz exists) and local (build from source) scenarios  
+# Build script that handles both CI (.pyz exists) and local (build from source) scenarios
 RUN if [ -f "toolvault.pyz" ]; then \
         echo "Using pre-built .pyz artifact from CI"; \
     else \
         echo "Building from source for local development"; \
-        cd spa && npm ci && npm run build && cd .. && \
+        npm run build:spa && \
         python packager.py tools --output toolvault.pyz; \
     fi
 

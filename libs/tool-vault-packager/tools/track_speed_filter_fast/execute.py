@@ -2,7 +2,7 @@
 
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field, model_validator
-from debrief.types import TrackFeature
+from debrief.types import DebriefTrackFeature
 
 
 class TrackFeatureWithSpeeds(BaseModel):
@@ -13,17 +13,17 @@ class TrackFeatureWithSpeeds(BaseModel):
         description="Raw track feature data that will be validated as Track + speeds constraint"
     )
 
-    # Store the validated shared-types TrackFeature
-    _validated_track: Optional[TrackFeature] = None
+    # Store the validated shared-types DebriefTrackFeature
+    _validated_track: Optional[DebriefTrackFeature] = None
 
     @model_validator(mode='after')
     def validate_track_with_speeds(self):
         """Validate as base Track AND ensure speeds array exists."""
         track_data = self.track_data
 
-        # First validate with shared-types TrackFeature
+        # First validate with shared-types DebriefTrackFeature
         try:
-            base_track = TrackFeature.model_validate(track_data)
+            base_track = DebriefTrackFeature.model_validate(track_data)
             self._validated_track = base_track
         except Exception as e:
             raise ValueError(f"Invalid Track feature structure: {e}")
@@ -67,8 +67,8 @@ class TrackFeatureWithSpeeds(BaseModel):
         return self
 
     @property
-    def base_track(self) -> TrackFeature:
-        """Get the validated shared-types TrackFeature."""
+    def base_track(self) -> DebriefTrackFeature:
+        """Get the validated shared-types DebriefTrackFeature."""
         if self._validated_track is None:
             raise ValueError("Track not yet validated")
         return self._validated_track

@@ -4,14 +4,15 @@
   "description": "ToolVault packaging system for creating deployable .pyz files",
   "main": "cli.py",
   "scripts": {
-    "clean": "rm -f *.pyz && rm -rf tmp_package_contents",
-    "build": "python packager.py tools --output toolvault.pyz",
-    "build:spa": "cd spa && npm install && npm run build",
+    "clean": "rm -rf dist && rm -rf tmp_package_contents && rm -rf shared-types",
+    "copy-shared-types": "bash -c 'set -euo pipefail && echo \"Copying shared-types...\" && if [ -d \"shared-types\" ]; then echo \"Using pre-staged shared-types directory\" && ls -la shared-types/; elif [ -d \"../shared-types\" ]; then echo \"Using ../shared-types\" && mkdir -p shared-types && cp -r ../shared-types/* shared-types/; elif [ -d \"../../libs/shared-types\" ]; then echo \"Using ../../libs/shared-types\" && mkdir -p shared-types && cp -r ../../libs/shared-types/* shared-types/; else echo \"ERROR: shared-types not found in shared-types/, ../shared-types, or ../../libs/shared-types\" && exit 1; fi && echo \"Shared-types ready for build\"'",
+    "build": "mkdir -p dist && python packager.py tools --output dist/toolvault.pyz",
+    "build:spa": "npm run copy-shared-types && cd spa && npm install && npm run build",
     "prebuild": "npm run clean && npm run build:spa",
     "serve": "python cli.py serve",
     "dev:spa": "cd spa && npm run dev",
     "dev:spa:with-backend": "cd spa && npm run dev:with-backend",
-    "test": "test -f toolvault.pyz && echo 'Test passed: toolvault.pyz exists' || (echo 'Test failed: toolvault.pyz not found' && exit 1)",
+    "test": "test -f dist/toolvault.pyz && echo 'Test passed: dist/toolvault.pyz exists' || (echo 'Test failed: dist/toolvault.pyz not found' && exit 1)",
     "test:playwright": "playwright test",
     "test:playwright:ui": "playwright test --ui",
     "test:playwright:debug": "playwright test --debug",
@@ -27,7 +28,7 @@
   "author": "ToolVault",
   "license": "MIT",
   "dependencies": {
-    "@debrief/shared-types": "workspace:^1.0.0"
+    "@debrief/shared-types": "file:./shared-types"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",

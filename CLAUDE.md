@@ -8,7 +8,7 @@ Future Debrief is a maritime analysis platform built as a **pnpm monorepo** with
 
 ## Package Management
 
-**CRITICAL**: This is a **pnpm monorepo** using workspaces for most packages, but **libs/tool-vault-packager uses npm** due to Docker constraints and maintains its own `package-lock.json`. The same applies to `libs/tool-vault-packager/spa/package-lock.json`.
+**CRITICAL**: This is a **pnpm monorepo** using workspaces for most packages, but **libs/tool-vault-packager is excluded from the workspace** and uses npm due to Docker constraints. It maintains its own `package-lock.json` and handles shared-types dependencies by copying source files during build.
 
 ### Installation Commands
 ```bash

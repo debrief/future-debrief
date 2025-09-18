@@ -14,8 +14,9 @@ Refer to README.md for user documentation and DEVELOPERS.md for detailed archite
 
 ### Build System
 - `npm run build` - Full build: clean, build SPA, create toolvault.pyz package
-- `npm run build:spa` - Build only the React SPA frontend
-- `npm run clean` - Remove build artifacts (*.pyz, tmp_package_contents/)
+- `npm run build:spa` - Build SPA with automatic shared-types copying
+- `npm run copy-shared-types` - Copy shared-types package to local directory
+- `npm run clean` - Remove build artifacts (*.pyz, tmp_package_contents/, shared-types/)
 
 ### Development Servers
 - `npm run serve` - Start production server using CLI
@@ -51,6 +52,29 @@ npm run dev          # Standard development
 npm run lint         # ESLint checking
 npm run build        # TypeScript compile + Vite build
 ```
+
+### Shared-Types Dependency Management
+
+**IMPORTANT**: This package uses `file:` dependencies instead of workspace dependencies due to Docker constraints:
+
+- **Dependencies**: Use `file:./shared-types` for npm compatibility
+- **Build process**: Copies shared-types sources before building
+- **Simple approach**: No symlinks or temporary modifications needed
+
+#### Build Process Details
+```bash
+# The build:spa script automatically:
+# 1. Copies shared-types package to local shared-types/ directory
+# 2. Runs npm install (resolves file: dependency)
+# 3. Builds SPA with TypeScript compilation
+
+npm run build:spa    # Handles all dependency copying automatically
+```
+
+#### Dependency Resolution
+- **Local development**: Copies from `../../libs/shared-types`
+- **Docker/CI context**: Uses pre-staged `shared-types` directory
+- **Simple file dependency**: npm understands `file:../shared-types`
 
 ## Architecture
 
