@@ -2,16 +2,14 @@
 
 import copy
 from typing import Dict, Any
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, ValidationError
+from debrief.types import DebriefFeatureCollection
 
 
 class ToggleFirstFeatureColorParameters(BaseModel):
     """Parameters for the toggle_first_feature_color tool."""
 
-    feature_collection: Dict[str, Any] = Field(
-        json_schema_extra={
-            "$ref": "https://example.org/debrief/schemas/features/debrief_feature_collection.schema.json"
-        },
+    feature_collection: DebriefFeatureCollection = Field(
         description="A GeoJSON FeatureCollection object conforming to the Debrief FeatureCollection schema",
         examples=[
             {
@@ -20,33 +18,13 @@ class ToggleFirstFeatureColorParameters(BaseModel):
                     {
                         "type": "Feature",
                         "id": "feature_001",
-                        "properties": {"color": "red"},
+                        "properties": {"color": "red", "dataType": "point"},
                         "geometry": {"type": "Point", "coordinates": [0, 0]}
                     }
                 ]
             }
         ]
     )
-
-    @model_validator(mode='after')
-    def validate_feature_collection(self):
-        """Validate basic GeoJSON FeatureCollection structure."""
-        fc_data = self.feature_collection
-
-        # Basic validation for GeoJSON FeatureCollection
-        if not isinstance(fc_data, dict):
-            raise ValueError("Feature collection must be a dictionary")
-
-        if fc_data.get("type") != "FeatureCollection":
-            raise ValueError("Feature collection must have type 'FeatureCollection'")
-
-        if "features" not in fc_data:
-            raise ValueError("Feature collection must have 'features' array")
-
-        if not isinstance(fc_data["features"], list):
-            raise ValueError("Features must be an array")
-
-        return self
 
 
 def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Dict[str, Any]:
@@ -73,7 +51,7 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Dic
         ...         "type": "FeatureCollection",
         ...         "features": [{
         ...             "type": "Feature",
-        ...             "properties": {"color": "red"},
+        ...             "properties": {"color": "red", "dataType": "point"},
         ...             "geometry": {"type": "Point", "coordinates": [0, 0]}
         ...         }]
         ...     }
@@ -82,31 +60,50 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Dic
         >>> result["command"]
         'setFeatureCollection'
     """
-    # Create a deep copy to avoid modifying the original
-    result = copy.deepcopy(params.feature_collection)
+    try:
+        # Work with the validated DebriefFeatureCollection directly
+        feature_collection = params.feature_collection
 
-    # Check if the collection has features
-    if not result.get("features") or len(result["features"]) == 0:
+        # Check if the collection has features
+        if not feature_collection.features or len(feature_collection.features) == 0:
+            return {
+                "command": "showText",
+                "payload": "No features found in the collection to toggle color"
+            }
+
+        # Convert to dict for modification (since we need to return a dict)
+        result = feature_collection.model_dump()
+        first_feature = result["features"][0]
+
+        # Ensure the feature has properties (it should due to pydantic validation)
+        if "properties" not in first_feature:
+            first_feature["properties"] = {}
+
+        # Toggle the color property
+        current_color = first_feature["properties"].get("color", "blue")
+        if current_color == "red":
+            first_feature["properties"]["color"] = "blue"
+        else:
+            first_feature["properties"]["color"] = "red"
+
+        # Return ToolVault command to update the feature collection
         return {
-            "command": "showText",
-            "payload": "No features found in the collection to toggle color"
+            "command": "setFeatureCollection",
+            "payload": result
         }
 
-    first_feature = result["features"][0]
-
-    # Ensure the feature has properties
-    if "properties" not in first_feature:
-        first_feature["properties"] = {}
-
-    # Toggle the color property
-    current_color = first_feature["properties"].get("color", "blue")
-    if current_color == "red":
-        first_feature["properties"]["color"] = "blue"
-    else:
-        first_feature["properties"]["color"] = "red"
-
-    # Return ToolVault command to update the feature collection
-    return {
-        "command": "setFeatureCollection",
-        "payload": result
-    }
+    except ValidationError as e:
+        return {
+            "command": "showText",
+            "payload": f"Input validation failed: {e.errors()[0]['msg']} at {e.errors()[0]['loc']}"
+        }
+    except ValueError as e:
+        return {
+            "command": "showText",
+            "payload": f"Invalid feature collection data: {str(e)}"
+        }
+    except Exception as e:
+        return {
+            "command": "showText",
+            "payload": f"Color toggle failed: {str(e)}"
+        }
