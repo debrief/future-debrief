@@ -9,7 +9,7 @@ test.describe('Package Structure Verification', () => {
   test('should have proper package structure', async () => {
     if (isPyzMode) {
       // In .pyz mode, only check for the package file itself
-      expect(fs.existsSync('toolvault.pyz')).toBeTruthy();
+      expect(fs.existsSync('dist/toolvault.pyz')).toBeTruthy();
     } else {
       // In dev mode, we check the source structure
       expect(fs.existsSync('tools')).toBeTruthy();

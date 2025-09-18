@@ -66,7 +66,7 @@ copy-typescript: $(COPIED_TS_FILES) ## Copy TypeScript files to src/types
 
 generate: generate-schemas ## Generate all types and copy files
 	@echo "$(BLUE)Generating TypeScript (2) files...$(RESET)"
-	@$(MAKE) generate-typescript-force
+	@$(MAKE) generate-typescript
 	@echo "$(BLUE)Copying TypeScript files...$(RESET)"
 	@$(MAKE) copy-typescript-force
 	@echo "$(GREEN)✓ All type generation complete$(RESET)"
