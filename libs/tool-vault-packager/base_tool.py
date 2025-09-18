@@ -7,7 +7,7 @@ ToolInput = Union[str, int, float, bool, Dict[str, Any], List[Any]]
 
 # Import actual typed classes from shared-types package
 # Fail hard if not available - no fallbacks to prevent downstream errors
-from debrief.types.featurecollection import DebriefFeature, DebriefFeatureCollection
+from debrief.types.features.feature_collection import DebriefFeature, DebriefFeatureCollection
 
 # Structured data type for showData command
 class ShowDataPayload(TypedDict):
