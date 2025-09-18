@@ -9,9 +9,12 @@ All other build logic (TypeScript generation, file copying, etc.) is handled by 
 import json
 import sys
 from pathlib import Path
+import os
 
 # Add python-src to path for new package structure
-sys.path.insert(0, str(Path(__file__).parent / "python-src"))
+script_dir = os.path.dirname(os.path.abspath(__file__))
+python_src_path = os.path.join(script_dir, "python-src")
+sys.path.insert(0, python_src_path)
 
 # Import Pydantic models directly
 from debrief.types.features.track import DebriefTrackFeature

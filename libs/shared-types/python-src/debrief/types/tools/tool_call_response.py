@@ -38,7 +38,7 @@ class ShowDataPayload(BaseModel):
     shape: List[int] = Field(
         ...,
         description="Array shape as list of positive integers",
-        min_items=1
+        min_length=1
     )
     axes: List[DataAxis] = Field(
         ...,
@@ -62,6 +62,10 @@ class ShowImagePayload(BaseModel):
     data: str = Field(
         ...,
         description="Base64-encoded image data"
+    )
+    title: Optional[str] = Field(
+        None,
+        description="Optional title for the image"
     )
 
     class Config:
