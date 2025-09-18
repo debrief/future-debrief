@@ -4,10 +4,10 @@
   "description": "ToolVault packaging system for creating deployable .pyz files",
   "main": "cli.py",
   "scripts": {
-    "clean": "rm -rf dist && rm -rf tmp_package_contents && rm -rf shared-types",
-    "copy-shared-types": "mkdir -p shared-types && cp -r ../shared-types/package.json ../shared-types/dist ../shared-types/src ../shared-types/derived shared-types/",
+    "clean": "rm -rf dist && rm -rf tmp_package_contents && rm -rf node_modules/@debrief",
+    "prepare-deps": "mkdir -p node_modules/@debrief && ln -sf $(readlink -f ../shared-types) node_modules/@debrief/shared-types",
     "build": "mkdir -p dist && python packager.py tools --output dist/toolvault.pyz",
-    "build:spa": "npm run copy-shared-types && cd spa && npm install && npm run build",
+    "build:spa": "npm run prepare-deps && cd spa && npm run prepare-deps && npm install && npm run build",
     "prebuild": "npm run clean && npm run build:spa",
     "serve": "python cli.py serve",
     "dev:spa": "cd spa && npm run dev",
@@ -28,7 +28,7 @@
   "author": "ToolVault",
   "license": "MIT",
   "dependencies": {
-    "@debrief/shared-types": "file:./shared-types"
+    "@debrief/shared-types": "^1.0.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.55.0",
