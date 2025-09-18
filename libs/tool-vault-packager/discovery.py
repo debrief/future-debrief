@@ -17,7 +17,7 @@ from debrief.types.tools import (
     SampleInputReference,
     GitHistoryEntry,
     SampleInputData,
-    CommandType,
+    ToolVaultCommand,
 )
 
 
@@ -639,14 +639,13 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
                 json_properties[param_name] = JSONSchemaProperty(**param_copy)
 
         # Get the ToolVaultCommand schema as the output schema
-        from .tool_call_response import ToolVaultCommand
         command_schema = ToolVaultCommand.model_json_schema()
 
         tool_instance = Tool(
             name=tool.name,
             description=tool.description,
             inputSchema=JSONSchema(
-                type="object",
+                type=JSONSchemaType.OBJECT,
                 properties=json_properties,
                 required=required_fields,
                 additionalProperties=False
@@ -660,7 +659,8 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
     return GlobalToolIndexModel(
         tools=tools_list,
         version="1.0.0",
-        description="ToolVault packaged tools"
+        description="ToolVault packaged tools",
+        packageInfo=None
     )
 
 
