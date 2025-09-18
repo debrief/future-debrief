@@ -5,7 +5,14 @@ import traceback
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 
-from debrief.types.tools import GlobalToolIndexModel, ToolIndexModel
+from debrief.types.tools import (
+    GlobalToolIndexModel,
+    ToolIndexModel,
+    ToolCallRequest,
+    ToolArgument,
+    ToolCallResponse,
+    ToolVaultCommand
+)
 
 try:
     from fastapi import FastAPI, HTTPException
@@ -52,52 +59,12 @@ except ImportError:
 
 # Only define models if BaseModel is available
 if BaseModel is not None:
-    class ToolArgument(BaseModel):
-        """Individual tool argument with name and value."""
-        name: str
-        value: Any
-
-    class ToolCallRequest(BaseModel):
-        """Request model for tool call endpoint matching new schema format."""
-        name: str
-        arguments: List[ToolArgument]
-
-    class ToolVaultCommand(BaseModel):
-        """ToolVault command object for tool responses."""
-        command: str
-        payload: Any
-
-    class ToolCallResponse(BaseModel):
-        """Response model for tool call endpoint matching new schema format."""
-        result: ToolVaultCommand
-        isError: bool = False
-
     class ErrorResponse(BaseModel):
         """Error response model."""
         error: str
         details: Optional[str] = None
 else:
     # Fallback simple classes when Pydantic is not available
-    class ToolArgument:
-        def __init__(self, name: str, value: Any):
-            self.name = name
-            self.value = value
-
-    class ToolCallRequest:
-        def __init__(self, name: str, arguments: List[Dict[str, Any]]):
-            self.name = name
-            self.arguments = [ToolArgument(**arg) for arg in arguments]
-
-    class ToolVaultCommand:
-        def __init__(self, command: str, payload: Any):
-            self.command = command
-            self.payload = payload
-
-    class ToolCallResponse:
-        def __init__(self, result: Dict[str, Any], isError: bool = False):
-            self.result = ToolVaultCommand(**result)
-            self.isError = isError
-
     class ErrorResponse:
         def __init__(self, error: str, details: Optional[str] = None):
             self.error = error
