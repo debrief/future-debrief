@@ -10,10 +10,10 @@ import json
 import sys
 from pathlib import Path
 
-# Add pydantic_models to path
-sys.path.insert(0, str(Path(__file__).parent))
+# Add python-src to path for new package structure
+sys.path.insert(0, str(Path(__file__).parent / "python-src"))
 
-from pydantic_models import (
+from debrief.types import (
     DebriefTrackFeature,
     DebriefPointFeature,
     DebriefAnnotationFeature,
