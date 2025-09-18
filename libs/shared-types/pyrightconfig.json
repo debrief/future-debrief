@@ -1,0 +1,14 @@
+{
+  "include": [
+    "python-src",
+    "generate_schemas.py"
+  ],
+  "extraPaths": [
+    "python-src"
+  ],
+  "pythonVersion": "3.8",
+  "pythonPlatform": "All",
+  "typeCheckingMode": "basic",
+  "reportMissingImports": "warning",
+  "reportMissingTypeStubs": false
+}

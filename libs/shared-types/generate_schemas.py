@@ -9,40 +9,38 @@ All other build logic (TypeScript generation, file copying, etc.) is handled by 
 import json
 import sys
 from pathlib import Path
+import os
 
-# Add pydantic_models to path
-sys.path.insert(0, str(Path(__file__).parent))
+# Add python-src to path for new package structure
+script_dir = os.path.dirname(os.path.abspath(__file__))
+python_src_path = os.path.join(script_dir, "python-src")
+sys.path.insert(0, python_src_path)
 
-from pydantic_models import (
-    DebriefTrackFeature,
-    DebriefPointFeature,
-    DebriefAnnotationFeature,
-    DebriefFeatureCollection,
-    DebriefFeature,
-    TimeState,
-    ViewportState,
-    SelectionState,
-    EditorState,
-    CurrentState,
-    JSONSchema,
-    Tool,
-    ToolCallRequest,
-    ToolCallResponse,
-    ToolListResponse,
-    GeometryConstrainedFeature,
-    ToolFileReference,
-    SampleInputReference,
-    GitHistoryEntry,
-    GitAuthor,
-    GitHistory,
-    ToolStatsModel,
-    ToolIndexModel,
-    ToolFilesCollection,
-    GlobalToolIndexModel,
-    PackageInfo,
-    ToolMetadataModel,
-    SampleInputData,
-    # Command models
+# Import Pydantic models directly
+from debrief.types.features.track import DebriefTrackFeature
+from debrief.types.features.point import DebriefPointFeature
+from debrief.types.features.annotation import DebriefAnnotationFeature
+from debrief.types.features.feature_collection import DebriefFeatureCollection
+
+from debrief.types.states.time_state import TimeState
+from debrief.types.states.viewport_state import ViewportState
+from debrief.types.states.selection_state import SelectionState
+from debrief.types.states.editor_state import EditorState
+from debrief.types.states.current_state import CurrentState
+
+from debrief.types.tools.json_schema import JSONSchema
+from debrief.types.tools.tool import Tool
+from debrief.types.tools.tool_call_request import ToolCallRequest
+from debrief.types.tools.tool_call_response import ToolCallResponse
+from debrief.types.tools.tool_list_response import ToolListResponse
+from debrief.types.tools.constrained_feature import GeometryConstrainedFeature
+from debrief.types.tools.tool_file_reference import ToolFileReference, SampleInputReference
+from debrief.types.tools.git_history import GitHistoryEntry, GitAuthor, GitHistory
+from debrief.types.tools.tool_stats import ToolStatsModel
+from debrief.types.tools.tool_index import ToolIndexModel, ToolFilesCollection
+from debrief.types.tools.global_tool_index import GlobalToolIndexModel, PackageInfo
+from debrief.types.tools.tool_metadata import ToolMetadataModel, SampleInputData
+from debrief.types.tools.commands import (
     AddFeaturesCommand,
     UpdateFeaturesCommand,
     DeleteFeaturesCommand,
