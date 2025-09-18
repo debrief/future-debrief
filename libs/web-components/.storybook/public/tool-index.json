@@ -1,0 +1,601 @@
+{
+  "tools": [
+    {
+      "name": "track_speed_filter",
+      "description": "Find timestamps where track speed equals or exceeds a minimum threshold.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "track_feature": {
+            "type": "object",
+            "description": "A GeoJSON track feature conforming to DebriefTrackFeature schema with LineString or MultiLineString geometry",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": true,
+            "default": null,
+            "$ref": "https://example.org/debrief/schemas/features/Track.schema.json",
+            "examples": [
+              {
+                "geometry": {
+                  "coordinates": [
+                    [
+                      0,
+                      0
+                    ],
+                    [
+                      0.01,
+                      0.01
+                    ],
+                    [
+                      0.02,
+                      0.02
+                    ]
+                  ],
+                  "type": "LineString"
+                },
+                "id": "track_001",
+                "properties": {
+                  "dataType": "track",
+                  "timestamps": [
+                    "2023-01-01T10:00:00Z",
+                    "2023-01-01T10:01:00Z",
+                    "2023-01-01T10:02:00Z"
+                  ],
+                  "name": "Sample Track",
+                  "description": "Test track for speed analysis"
+                },
+                "type": "Feature"
+              }
+            ],
+            "title": "Track Feature"
+          },
+          "min_speed": {
+            "type": "number",
+            "description": "Minimum speed threshold in knots",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": 10.0,
+            "examples": [
+              5.0,
+              10.0,
+              15.0,
+              20.0
+            ],
+            "minimum": 0.0,
+            "title": "Min Speed"
+          }
+        },
+        "required": [
+          "track_feature"
+        ],
+        "additionalProperties": false,
+        "description": null
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": null,
+            "description": "The command type",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "$ref": "#/$defs/CommandType"
+          },
+          "payload": {
+            "type": null,
+            "description": "Command-specific payload",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "title": "Payload"
+          }
+        },
+        "required": [
+          "command",
+          "payload"
+        ],
+        "additionalProperties": false,
+        "description": "A command returned by a ToolVault tool.",
+        "$defs": {
+          "CommandType": {
+            "description": "Valid ToolVault command types.",
+            "enum": [
+              "addFeatures",
+              "updateFeatures",
+              "deleteFeatures",
+              "setFeatureCollection",
+              "showText",
+              "showData",
+              "showImage",
+              "logMessage",
+              "composite"
+            ],
+            "title": "CommandType",
+            "type": "string"
+          }
+        },
+        "title": "ToolVaultCommand"
+      },
+      "tool_url": "/api/tools/track_speed_filter/tool.json"
+    },
+    {
+      "name": "track_speed_filter_fast",
+      "description": "Filter track timestamps using pre-calculated speeds array for fast processing.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "track_feature": {
+            "type": "object",
+            "description": "A Track feature conforming to shared-types Track schema, with additional required 'speeds' array in properties",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": true,
+            "default": null,
+            "examples": [
+              {
+                "geometry": {
+                  "coordinates": [
+                    [
+                      0,
+                      0
+                    ],
+                    [
+                      0.01,
+                      0.01
+                    ],
+                    [
+                      0.02,
+                      0.02
+                    ]
+                  ],
+                  "type": "LineString"
+                },
+                "id": "track_fast_001",
+                "properties": {
+                  "dataType": "track",
+                  "timestamps": [
+                    "2023-01-01T10:00:00Z",
+                    "2023-01-01T10:01:00Z",
+                    "2023-01-01T10:02:00Z"
+                  ],
+                  "speeds": [
+                    15.2,
+                    18.7,
+                    12.3
+                  ],
+                  "name": "High Speed Track",
+                  "description": "Track with pre-calculated speeds"
+                },
+                "type": "Feature"
+              }
+            ],
+            "title": "Track Feature"
+          },
+          "min_speed": {
+            "type": "number",
+            "description": "Minimum speed threshold in knots",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": 10.0,
+            "examples": [
+              5.0,
+              10.0,
+              15.0,
+              20.0
+            ],
+            "minimum": 0.0,
+            "title": "Min Speed"
+          }
+        },
+        "required": [
+          "track_feature"
+        ],
+        "additionalProperties": false,
+        "description": null
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": null,
+            "description": "The command type",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "$ref": "#/$defs/CommandType"
+          },
+          "payload": {
+            "type": null,
+            "description": "Command-specific payload",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "title": "Payload"
+          }
+        },
+        "required": [
+          "command",
+          "payload"
+        ],
+        "additionalProperties": false,
+        "description": "A command returned by a ToolVault tool.",
+        "$defs": {
+          "CommandType": {
+            "description": "Valid ToolVault command types.",
+            "enum": [
+              "addFeatures",
+              "updateFeatures",
+              "deleteFeatures",
+              "setFeatureCollection",
+              "showText",
+              "showData",
+              "showImage",
+              "logMessage",
+              "composite"
+            ],
+            "title": "CommandType",
+            "type": "string"
+          }
+        },
+        "title": "ToolVaultCommand"
+      },
+      "tool_url": "/api/tools/track_speed_filter_fast/tool.json"
+    },
+    {
+      "name": "toggle_first_feature_color",
+      "description": "Toggle the color property of the first feature in a GeoJSON FeatureCollection.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "feature_collection": {
+            "type": "object",
+            "description": "A GeoJSON FeatureCollection object conforming to the Debrief FeatureCollection schema",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": true,
+            "default": null,
+            "$ref": "https://example.org/debrief/schemas/features/FeatureCollection.schema.json",
+            "examples": [
+              {
+                "features": [
+                  {
+                    "geometry": {
+                      "coordinates": [
+                        0,
+                        0
+                      ],
+                      "type": "Point"
+                    },
+                    "id": "feature_001",
+                    "properties": {
+                      "color": "red"
+                    },
+                    "type": "Feature"
+                  }
+                ],
+                "type": "FeatureCollection"
+              }
+            ],
+            "title": "Feature Collection"
+          }
+        },
+        "required": [
+          "feature_collection"
+        ],
+        "additionalProperties": false,
+        "description": null
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": null,
+            "description": "The command type",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "$ref": "#/$defs/CommandType"
+          },
+          "payload": {
+            "type": null,
+            "description": "Command-specific payload",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "title": "Payload"
+          }
+        },
+        "required": [
+          "command",
+          "payload"
+        ],
+        "additionalProperties": false,
+        "description": "A command returned by a ToolVault tool.",
+        "$defs": {
+          "CommandType": {
+            "description": "Valid ToolVault command types.",
+            "enum": [
+              "addFeatures",
+              "updateFeatures",
+              "deleteFeatures",
+              "setFeatureCollection",
+              "showText",
+              "showData",
+              "showImage",
+              "logMessage",
+              "composite"
+            ],
+            "title": "CommandType",
+            "type": "string"
+          }
+        },
+        "title": "ToolVaultCommand"
+      },
+      "tool_url": "/api/tools/toggle_first_feature_color/tool.json"
+    },
+    {
+      "name": "word_count",
+      "description": "Count the number of words in a given block of text.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The input text block to count words from",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "examples": [
+              "Hello world",
+              "This is a longer text with multiple words to count",
+              "",
+              "Single"
+            ],
+            "minLength": 0,
+            "title": "Text"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false,
+        "description": null
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": null,
+            "description": "The command type",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "$ref": "#/$defs/CommandType"
+          },
+          "payload": {
+            "type": null,
+            "description": "Command-specific payload",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "title": "Payload"
+          }
+        },
+        "required": [
+          "command",
+          "payload"
+        ],
+        "additionalProperties": false,
+        "description": "A command returned by a ToolVault tool.",
+        "$defs": {
+          "CommandType": {
+            "description": "Valid ToolVault command types.",
+            "enum": [
+              "addFeatures",
+              "updateFeatures",
+              "deleteFeatures",
+              "setFeatureCollection",
+              "showText",
+              "showData",
+              "showImage",
+              "logMessage",
+              "composite"
+            ],
+            "title": "CommandType",
+            "type": "string"
+          }
+        },
+        "title": "ToolVaultCommand"
+      },
+      "tool_url": "/api/tools/word_count/tool.json"
+    },
+    {
+      "name": "viewport_grid_generator",
+      "description": "Generate a grid of points within a viewport area at specified intervals.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "viewport_bounds": {
+            "type": "array",
+            "description": "Viewport bounds as [west, south, east, north] in decimal degrees",
+            "enum": null,
+            "items": {
+              "type": "number",
+              "description": null,
+              "enum": null,
+              "items": null,
+              "properties": null,
+              "required": null,
+              "additionalProperties": null,
+              "default": null
+            },
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "examples": [
+              [
+                -1.0,
+                -1.0,
+                1.0,
+                1.0
+              ],
+              [
+                -122.5,
+                37.7,
+                -122.3,
+                37.9
+              ],
+              [
+                0.0,
+                50.0,
+                2.0,
+                52.0
+              ]
+            ],
+            "maxItems": 4,
+            "minItems": 4,
+            "title": "Viewport Bounds"
+          },
+          "lat_interval": {
+            "type": "number",
+            "description": "Latitude interval between grid points in decimal degrees",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "examples": [
+              0.1,
+              0.5,
+              1.0
+            ],
+            "exclusiveMinimum": 0.0,
+            "title": "Lat Interval"
+          },
+          "lon_interval": {
+            "type": "number",
+            "description": "Longitude interval between grid points in decimal degrees",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "examples": [
+              0.1,
+              0.5,
+              1.0
+            ],
+            "exclusiveMinimum": 0.0,
+            "title": "Lon Interval"
+          }
+        },
+        "required": [
+          "viewport_bounds",
+          "lat_interval",
+          "lon_interval"
+        ],
+        "additionalProperties": false,
+        "description": null
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": null,
+            "description": "The command type",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "$ref": "#/$defs/CommandType"
+          },
+          "payload": {
+            "type": null,
+            "description": "Command-specific payload",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "title": "Payload"
+          }
+        },
+        "required": [
+          "command",
+          "payload"
+        ],
+        "additionalProperties": false,
+        "description": "A command returned by a ToolVault tool.",
+        "$defs": {
+          "CommandType": {
+            "description": "Valid ToolVault command types.",
+            "enum": [
+              "addFeatures",
+              "updateFeatures",
+              "deleteFeatures",
+              "setFeatureCollection",
+              "showText",
+              "showData",
+              "showImage",
+              "logMessage",
+              "composite"
+            ],
+            "title": "CommandType",
+            "type": "string"
+          }
+        },
+        "title": "ToolVaultCommand"
+      },
+      "tool_url": "/api/tools/viewport_grid_generator/tool.json"
+    }
+  ],
+  "version": "1.0.0",
+  "description": "ToolVault packaged tools",
+  "packageInfo": null
+}
