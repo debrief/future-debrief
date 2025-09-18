@@ -72,19 +72,38 @@ runs:
         
         # Ensure app exists before deploying
         echo "Ensuring app ${APP_NAME} exists..."
-        SHOW_OUTPUT=""
-        NEED_CREATE=0
-        if SHOW_OUTPUT=$(flyctl apps show "${APP_NAME}" --json 2>&1); then
-          if echo "$SHOW_OUTPUT" | jq -e --arg NAME "${APP_NAME}" '.Name? == $NAME' >/dev/null 2>&1; then
-            echo "✅ App ${APP_NAME} already exists (flyctl apps show confirmed)"
+        fly_app_exists() {
+          local NAME="$1"
+          local QUIET="${2:-}"
+          local TMP_OUT
+          local TMP_ERR
+
+          TMP_OUT=$(mktemp)
+          TMP_ERR=$(mktemp)
+
+          if flyctl apps list --org personal >"${TMP_OUT}" 2>"${TMP_ERR}"; then
+            if awk 'NR>1 {print $1}' "${TMP_OUT}" | grep -Fxq "${NAME}"; then
+              rm -f "${TMP_OUT}" "${TMP_ERR}" >/dev/null 2>&1 || true
+              return 0
+            fi
+            if [ -z "${QUIET}" ]; then
+              echo "ℹ️  App ${NAME} not present in flyctl apps list output:"
+              cat "${TMP_OUT}" || true
+            fi
           else
-            echo "ℹ️  flyctl apps show returned unexpected payload for ${APP_NAME}:"
-            echo "$SHOW_OUTPUT"
-            NEED_CREATE=1
+            echo "⚠️  flyctl apps list failed while checking for ${NAME}:"
+            cat "${TMP_ERR}" || true
           fi
+
+          rm -f "${TMP_OUT}" "${TMP_ERR}" >/dev/null 2>&1 || true
+          return 1
+        }
+
+        NEED_CREATE=0
+        if fly_app_exists "${APP_NAME}"; then
+          echo "✅ App ${APP_NAME} already exists in Fly org"
         else
-          echo "ℹ️  flyctl apps show error for ${APP_NAME}:"
-          echo "$SHOW_OUTPUT"
+          echo "ℹ️  App ${APP_NAME} not found in Fly org listing"
           NEED_CREATE=1
         fi
 
@@ -105,17 +124,16 @@ runs:
           echo "Verifying app availability after creation..."
           ATTEMPTS=0
           APP_READY=0
-          while [ ${ATTEMPTS} -lt 6 ]; do
-            if flyctl apps show "${APP_NAME}" --json >/tmp/fly_app_check.json 2>/tmp/fly_app_check.err && \
-               jq -e --arg NAME "${APP_NAME}" '.Name? == $NAME' /tmp/fly_app_check.json >/dev/null 2>&1; then
+          MAX_ATTEMPTS=12
+          while [ ${ATTEMPTS} -lt ${MAX_ATTEMPTS} ]; do
+            if fly_app_exists "${APP_NAME}" quiet; then
               APP_READY=1
               break
             fi
             ATTEMPTS=$((ATTEMPTS + 1))
-            echo "Waiting for ${APP_NAME} to become visible... (attempt ${ATTEMPTS}/6)"
+            echo "Waiting for ${APP_NAME} to become visible... (attempt ${ATTEMPTS}/${MAX_ATTEMPTS})"
             sleep 5
           done
-          rm -f /tmp/fly_app_check.json /tmp/fly_app_check.err || true
 
           if [ ${APP_READY} -ne 1 ]; then
             echo "❌ App ${APP_NAME} is still not accessible after creation attempt"
