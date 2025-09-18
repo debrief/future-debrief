@@ -16,11 +16,18 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 python_src_path = os.path.join(script_dir, "python-src")
 sys.path.insert(0, python_src_path)
 
+# Import base GeoJSON types from geojson-pydantic
+from geojson_pydantic import (
+    Feature, FeatureCollection, Point, LineString, MultiLineString,
+    Polygon, MultiPoint, MultiPolygon
+    # Note: GeometryCollection excluded due to circular reference issues
+)
+
 # Import Pydantic models directly
 from debrief.types.features.track import DebriefTrackFeature
 from debrief.types.features.point import DebriefPointFeature
 from debrief.types.features.annotation import DebriefAnnotationFeature
-from debrief.types.features.feature_collection import DebriefFeatureCollection
+from debrief.types.features.debrief_feature_collection import DebriefFeatureCollection
 
 from debrief.types.states.time_state import TimeState
 from debrief.types.states.viewport_state import ViewportState
@@ -63,58 +70,63 @@ def generate_json_schema(model_class, output_path):
     with open(output_path, 'w') as f:
         json.dump(schema, f, indent=2)
 
-    print(f"Generated: {output_path}")
-
 
 def main():
     """Generate all JSON Schema files from Pydantic models."""
     # Define the models and their output file names
     models = {
-        # Features
-        "derived/json-schema/Track.schema.json": DebriefTrackFeature,
-        "derived/json-schema/Point.schema.json": DebriefPointFeature,
-        "derived/json-schema/Annotation.schema.json": DebriefAnnotationFeature,
-        "derived/json-schema/FeatureCollection.schema.json": DebriefFeatureCollection,
+        # Base GeoJSON types from geojson-pydantic (excluding GeometryCollection due to circular refs)
+        "derived/json-schema/geojson/Feature.schema.json": Feature,
+        "derived/json-schema/geojson/FeatureCollection.schema.json": FeatureCollection,
+        "derived/json-schema/geojson/Point.schema.json": Point,
+        "derived/json-schema/geojson/LineString.schema.json": LineString,
+        "derived/json-schema/geojson/MultiLineString.schema.json": MultiLineString,
+        "derived/json-schema/geojson/Polygon.schema.json": Polygon,
+        "derived/json-schema/geojson/MultiPoint.schema.json": MultiPoint,
+        "derived/json-schema/geojson/MultiPolygon.schema.json": MultiPolygon,
+        # Note: GeometryCollection excluded due to circular reference issues with json-schema-to-typescript
 
-        # States
-        "derived/json-schema/TimeState.schema.json": TimeState,
-        "derived/json-schema/ViewportState.schema.json": ViewportState,
-        "derived/json-schema/SelectionState.schema.json": SelectionState,
-        "derived/json-schema/EditorState.schema.json": EditorState,
-        "derived/json-schema/CurrentState.schema.json": CurrentState,
+        # Features (matching python-src/debrief/types/features/ structure)
+        "derived/json-schema/features/track.schema.json": DebriefTrackFeature,
+        "derived/json-schema/features/point.schema.json": DebriefPointFeature,
+        "derived/json-schema/features/annotation.schema.json": DebriefAnnotationFeature,
+        "derived/json-schema/features/debrief_feature_collection.schema.json": DebriefFeatureCollection,
 
-        # Tools - Basic
-        "derived/json-schema/JSONSchema.schema.json": JSONSchema,
-        "derived/json-schema/Tool.schema.json": Tool,
-        "derived/json-schema/ToolCallRequest.schema.json": ToolCallRequest,
-        "derived/json-schema/ToolCallResponse.schema.json": ToolCallResponse,
-        "derived/json-schema/ToolListResponse.schema.json": ToolListResponse,
-        "derived/json-schema/ConstrainedFeature.schema.json": GeometryConstrainedFeature,
+        # States (matching python-src/debrief/types/states/ structure)
+        "derived/json-schema/states/time_state.schema.json": TimeState,
+        "derived/json-schema/states/viewport_state.schema.json": ViewportState,
+        "derived/json-schema/states/selection_state.schema.json": SelectionState,
+        "derived/json-schema/states/editor_state.schema.json": EditorState,
+        "derived/json-schema/states/current_state.schema.json": CurrentState,
 
-        # Tools - New Index Models
-        "derived/json-schema/ToolFileReference.schema.json": ToolFileReference,
-        "derived/json-schema/SampleInputReference.schema.json": SampleInputReference,
-        "derived/json-schema/GitHistoryEntry.schema.json": GitHistoryEntry,
-        "derived/json-schema/GitAuthor.schema.json": GitAuthor,
-        "derived/json-schema/GitHistory.schema.json": GitHistory,
-        "derived/json-schema/ToolStatsModel.schema.json": ToolStatsModel,
-        "derived/json-schema/ToolIndexModel.schema.json": ToolIndexModel,
-        "derived/json-schema/ToolFilesCollection.schema.json": ToolFilesCollection,
-        "derived/json-schema/GlobalToolIndexModel.schema.json": GlobalToolIndexModel,
-        "derived/json-schema/PackageInfo.schema.json": PackageInfo,
-        "derived/json-schema/ToolMetadataModel.schema.json": ToolMetadataModel,
-        "derived/json-schema/SampleInputData.schema.json": SampleInputData,
-
-        # Tools - Command Models
-        "derived/json-schema/AddFeaturesCommand.schema.json": AddFeaturesCommand,
-        "derived/json-schema/UpdateFeaturesCommand.schema.json": UpdateFeaturesCommand,
-        "derived/json-schema/DeleteFeaturesCommand.schema.json": DeleteFeaturesCommand,
-        "derived/json-schema/SetFeatureCollectionCommand.schema.json": SetFeatureCollectionCommand,
-        "derived/json-schema/ShowTextCommand.schema.json": ShowTextCommand,
-        "derived/json-schema/ShowDataCommand.schema.json": ShowDataCommand,
-        "derived/json-schema/ShowImageCommand.schema.json": ShowImageCommand,
-        "derived/json-schema/LogMessageCommand.schema.json": LogMessageCommand,
-        "derived/json-schema/LogMessagePayload.schema.json": LogMessagePayload,
+        # Tools (matching python-src/debrief/types/tools/ structure)
+        "derived/json-schema/tools/json_schema.schema.json": JSONSchema,
+        "derived/json-schema/tools/tool.schema.json": Tool,
+        "derived/json-schema/tools/tool_call_request.schema.json": ToolCallRequest,
+        "derived/json-schema/tools/tool_call_response.schema.json": ToolCallResponse,
+        "derived/json-schema/tools/tool_list_response.schema.json": ToolListResponse,
+        "derived/json-schema/tools/constrained_feature.schema.json": GeometryConstrainedFeature,
+        "derived/json-schema/tools/tool_file_reference.schema.json": ToolFileReference,
+        "derived/json-schema/tools/sample_input_reference.schema.json": SampleInputReference,
+        "derived/json-schema/tools/git_history_entry.schema.json": GitHistoryEntry,
+        "derived/json-schema/tools/git_author.schema.json": GitAuthor,
+        "derived/json-schema/tools/git_history.schema.json": GitHistory,
+        "derived/json-schema/tools/tool_stats.schema.json": ToolStatsModel,
+        "derived/json-schema/tools/tool_index.schema.json": ToolIndexModel,
+        "derived/json-schema/tools/tool_files_collection.schema.json": ToolFilesCollection,
+        "derived/json-schema/tools/global_tool_index.schema.json": GlobalToolIndexModel,
+        "derived/json-schema/tools/package_info.schema.json": PackageInfo,
+        "derived/json-schema/tools/tool_metadata.schema.json": ToolMetadataModel,
+        "derived/json-schema/tools/sample_input_data.schema.json": SampleInputData,
+        "derived/json-schema/tools/add_features_command.schema.json": AddFeaturesCommand,
+        "derived/json-schema/tools/update_features_command.schema.json": UpdateFeaturesCommand,
+        "derived/json-schema/tools/delete_features_command.schema.json": DeleteFeaturesCommand,
+        "derived/json-schema/tools/set_feature_collection_command.schema.json": SetFeatureCollectionCommand,
+        "derived/json-schema/tools/show_text_command.schema.json": ShowTextCommand,
+        "derived/json-schema/tools/show_data_command.schema.json": ShowDataCommand,
+        "derived/json-schema/tools/show_image_command.schema.json": ShowImageCommand,
+        "derived/json-schema/tools/log_message_command.schema.json": LogMessageCommand,
+        "derived/json-schema/tools/log_message_payload.schema.json": LogMessagePayload,
     }
 
     print("Generating JSON Schema files from Pydantic models...")
