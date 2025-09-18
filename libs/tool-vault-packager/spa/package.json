@@ -12,7 +12,7 @@
     "prepare-deps": "mkdir -p node_modules/@debrief && ln -sf $(readlink -f ../../shared-types) node_modules/@debrief/shared-types"
   },
   "dependencies": {
-    "@debrief/shared-types": "^1.0.0",
+    "@debrief/shared-types": "workspace:^1.0.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },

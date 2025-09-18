@@ -19,46 +19,25 @@ runs:
       with:
         node-version-file: '.nvmrc'
     
-    - name: Install SPA dependencies
+    - name: Prepare dependencies for npm build
       shell: bash
-      working-directory: libs/tool-vault-packager/spa
+      working-directory: libs/tool-vault-packager
       run: |
-        echo "📦 Installing SPA dependencies..."
+        echo "🔗 Preparing dependencies for npm build..."
         echo "Working directory: $(pwd)"
         echo "Node version: $(node --version)"
         echo "NPM version: $(npm --version)"
-        
-        # Clean npm cache to avoid potential corruption issues
-        npm cache clean --force
-        
-        # Try npm ci first, fallback to regenerating package-lock if needed
-        if ! npm ci; then
-          echo "⚠️  npm ci failed, attempting recovery..."
-          echo "This may be due to corrupted package-lock.json"
-          
-          # Backup the original package-lock.json
-          if [ -f "package-lock.json" ]; then
-            cp package-lock.json package-lock.json.backup
-            echo "📋 Backed up package-lock.json"
-          fi
-          
-          # Try npm install to regenerate the lockfile
-          if ! npm install; then
-            echo "❌ npm install also failed"
-            # If we have a backup, restore it and try again
-            if [ -f "package-lock.json.backup" ]; then
-              echo "🔄 Restoring backup and trying fresh install..."
-              rm -f package-lock.json
-              rm -rf node_modules
-              npm install
-            else
-              echo "❌ No backup available, installation failed"
-              exit 1
-            fi
-          else
-            echo "✅ Successfully recovered with npm install"
-          fi
-        fi
+
+        # Prepare dependencies using symlinks (since pnpm already installed everything)
+        npm run prepare-deps
+
+        # Prepare SPA dependencies
+        cd spa
+        npm run prepare-deps
+
+        # Install using npm (should work now with symlinks)
+        echo "📦 Installing SPA dependencies with npm..."
+        npm install --production=false
     
     - name: Build SPA
       shell: bash
