@@ -5,7 +5,7 @@
   "main": "cli.py",
   "scripts": {
     "clean": "rm -rf dist && rm -rf tmp_package_contents && rm -rf node_modules/@debrief",
-    "prepare-deps": "mkdir -p node_modules/@debrief && if [ -d \"shared-types\" ]; then ln -sf $(readlink -f shared-types) node_modules/@debrief/shared-types; else ln -sf $(readlink -f ../shared-types) node_modules/@debrief/shared-types; fi",
+    "prepare-deps": "mkdir -p node_modules/@debrief && if [ -d \"shared-types\" ]; then ln -sf \"$(pwd)/shared-types\" node_modules/@debrief/shared-types; else ln -sf \"$(cd ../.. && pwd)/libs/shared-types\" node_modules/@debrief/shared-types; fi",
     "build": "mkdir -p dist && python packager.py tools --output dist/toolvault.pyz",
     "build:spa": "npm run prepare-deps && cd spa && npm run prepare-deps && cp package.json package.json.bak && sed 's|\"workspace:\\^1\\.0\\.0\"|\"file:../shared-types\"|g' package.json.bak > package.json && npm install && npm run build && mv package.json.bak package.json",
     "prebuild": "npm run clean && npm run build:spa",

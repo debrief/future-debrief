@@ -9,7 +9,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "prepare-deps": "mkdir -p node_modules/@debrief && if [ -d \"../shared-types\" ]; then ln -sf $(readlink -f ../shared-types) node_modules/@debrief/shared-types; else ln -sf $(readlink -f ../../shared-types) node_modules/@debrief/shared-types; fi"
+    "prepare-deps": "mkdir -p node_modules/@debrief && if [ -d \"../shared-types\" ]; then ln -sf \"$(cd .. && pwd)/shared-types\" node_modules/@debrief/shared-types; else ln -sf \"$(cd ../../.. && pwd)/libs/shared-types\" node_modules/@debrief/shared-types; fi"
   },
   "dependencies": {
     "@debrief/shared-types": "workspace:^1.0.0",
