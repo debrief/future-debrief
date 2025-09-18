@@ -25,6 +25,29 @@ from .tool_stats import ToolStatsModel
 from .tool_index import ToolIndexModel, ToolFilesCollection
 from .global_tool_index import GlobalToolIndexModel, PackageInfo
 from .tool_metadata import ToolMetadataModel, SampleInputData
+from .commands import (
+    AddFeaturesCommand,
+    UpdateFeaturesCommand,
+    DeleteFeaturesCommand,
+    SetFeatureCollectionCommand,
+    ShowTextCommand,
+    ShowDataCommand,
+    ShowImageCommand,
+    LogMessageCommand,
+    LogLevel,
+    LogMessagePayload,
+    SpecificCommand,
+    # Factory functions
+    show_text,
+    show_data,
+    add_features,
+    update_features,
+    delete_features,
+    set_feature_collection,
+    show_image,
+    log_message,
+    composite,
+)
 
 __all__ = [
     "JSONSchema",
@@ -56,5 +79,27 @@ __all__ = [
     "GlobalToolIndexModel",
     "PackageInfo",
     "ToolMetadataModel",
-    "SampleInputData"
+    "SampleInputData",
+    # Typed commands
+    "AddFeaturesCommand",
+    "UpdateFeaturesCommand",
+    "DeleteFeaturesCommand",
+    "SetFeatureCollectionCommand",
+    "ShowTextCommand",
+    "ShowDataCommand",
+    "ShowImageCommand",
+    "LogMessageCommand",
+    "LogLevel",
+    "LogMessagePayload",
+    "SpecificCommand",
+    # Command factory functions
+    "show_text",
+    "show_data",
+    "add_features",
+    "update_features",
+    "delete_features",
+    "set_feature_collection",
+    "show_image",
+    "log_message",
+    "composite",
 ]

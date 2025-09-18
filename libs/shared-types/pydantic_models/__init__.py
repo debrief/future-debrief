@@ -3,7 +3,7 @@
 from .features.track import DebriefTrackFeature
 from .features.point import DebriefPointFeature
 from .features.annotation import DebriefAnnotationFeature
-from .features.feature_collection import DebriefFeatureCollection
+from .features.feature_collection import DebriefFeatureCollection, DebriefFeature
 
 from .states.time_state import TimeState
 from .states.viewport_state import ViewportState
@@ -23,6 +23,17 @@ from .tools.tool_stats import ToolStatsModel
 from .tools.tool_index import ToolIndexModel, ToolFilesCollection
 from .tools.global_tool_index import GlobalToolIndexModel, PackageInfo
 from .tools.tool_metadata import ToolMetadataModel, SampleInputData
+from .tools.commands import (
+    AddFeaturesCommand,
+    UpdateFeaturesCommand,
+    DeleteFeaturesCommand,
+    SetFeatureCollectionCommand,
+    ShowTextCommand,
+    ShowDataCommand,
+    ShowImageCommand,
+    LogMessageCommand,
+    LogMessagePayload,
+)
 
 __all__ = [
     # Features
@@ -30,6 +41,7 @@ __all__ = [
     "DebriefPointFeature",
     "DebriefAnnotationFeature",
     "DebriefFeatureCollection",
+    "DebriefFeature",
 
     # States
     "TimeState",
@@ -59,4 +71,15 @@ __all__ = [
     "PackageInfo",
     "ToolMetadataModel",
     "SampleInputData",
+
+    # Tools - Command Models
+    "AddFeaturesCommand",
+    "UpdateFeaturesCommand",
+    "DeleteFeaturesCommand",
+    "SetFeatureCollectionCommand",
+    "ShowTextCommand",
+    "ShowDataCommand",
+    "ShowImageCommand",
+    "LogMessageCommand",
+    "LogMessagePayload",
 ]

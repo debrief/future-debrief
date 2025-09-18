@@ -8,6 +8,9 @@ from .track import DebriefTrackFeature
 from .point import DebriefPointFeature
 from .annotation import DebriefAnnotationFeature
 
+# Define DebriefFeature as a union of all Debrief feature types
+DebriefFeature = Union[DebriefTrackFeature, DebriefPointFeature, DebriefAnnotationFeature]
+
 
 class FeatureCollectionProperties(BaseModel):
     """Properties for FeatureCollection."""
@@ -40,7 +43,7 @@ class DebriefFeatureCollection(BaseModel):
     """A GeoJSON FeatureCollection containing mixed feature types for maritime analysis."""
 
     type: Literal["FeatureCollection"] = "FeatureCollection"
-    features: List[Union[DebriefTrackFeature, DebriefPointFeature, DebriefAnnotationFeature]] = Field(
+    features: List[DebriefFeature] = Field(
         ...,
         description="Array of Debrief features"
     )

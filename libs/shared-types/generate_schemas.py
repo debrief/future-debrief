@@ -18,6 +18,7 @@ from pydantic_models import (
     DebriefPointFeature,
     DebriefAnnotationFeature,
     DebriefFeatureCollection,
+    DebriefFeature,
     TimeState,
     ViewportState,
     SelectionState,
@@ -41,6 +42,16 @@ from pydantic_models import (
     PackageInfo,
     ToolMetadataModel,
     SampleInputData,
+    # Command models
+    AddFeaturesCommand,
+    UpdateFeaturesCommand,
+    DeleteFeaturesCommand,
+    SetFeatureCollectionCommand,
+    ShowTextCommand,
+    ShowDataCommand,
+    ShowImageCommand,
+    LogMessageCommand,
+    LogMessagePayload,
 )
 
 
@@ -95,6 +106,17 @@ def main():
         "derived/json-schema/PackageInfo.schema.json": PackageInfo,
         "derived/json-schema/ToolMetadataModel.schema.json": ToolMetadataModel,
         "derived/json-schema/SampleInputData.schema.json": SampleInputData,
+
+        # Tools - Command Models
+        "derived/json-schema/AddFeaturesCommand.schema.json": AddFeaturesCommand,
+        "derived/json-schema/UpdateFeaturesCommand.schema.json": UpdateFeaturesCommand,
+        "derived/json-schema/DeleteFeaturesCommand.schema.json": DeleteFeaturesCommand,
+        "derived/json-schema/SetFeatureCollectionCommand.schema.json": SetFeatureCollectionCommand,
+        "derived/json-schema/ShowTextCommand.schema.json": ShowTextCommand,
+        "derived/json-schema/ShowDataCommand.schema.json": ShowDataCommand,
+        "derived/json-schema/ShowImageCommand.schema.json": ShowImageCommand,
+        "derived/json-schema/LogMessageCommand.schema.json": LogMessageCommand,
+        "derived/json-schema/LogMessagePayload.schema.json": LogMessagePayload,
     }
 
     print("Generating JSON Schema files from Pydantic models...")
