@@ -56,33 +56,56 @@ runs:
         echo "Final deployment configuration:"
         cat fly.toml
 
-    - name: Stage shared-types wheel for Docker build
+    - name: Stage shared-types for Docker build
       shell: bash
       working-directory: .
       run: |
         set -euo pipefail
 
-        SRC_DIR="libs/shared-types/dist/python"
-        DEST_DIR="libs/tool-vault-packager/shared-types/dist/python"
+        SRC_DIR="libs/shared-types"
+        DEST_DIR="libs/tool-vault-packager/shared-types"
 
         if [ ! -d "${SRC_DIR}" ]; then
-          echo "Shared-types dist directory not found at ${SRC_DIR}." >&2
+          echo "Shared-types directory not found at ${SRC_DIR}." >&2
           echo "Run the shared-types build before deploying." >&2
           exit 1
         fi
 
-        WHEEL_PATH=$(find "${SRC_DIR}" -maxdepth 1 -name 'debrief_types-*.whl' -print -quit)
+        # Copy complete shared-types package for Docker build context
+        echo "Copying shared-types package for Docker build..."
+        rm -rf "${DEST_DIR}"
+        mkdir -p "${DEST_DIR}"
 
-        if [ -z "${WHEEL_PATH}" ]; then
-          echo "No debrief_types wheel found in ${SRC_DIR}." >&2
+        # Copy package files needed for TypeScript builds
+        cp "${SRC_DIR}/package.json" "${DEST_DIR}/"
+
+        # Copy built TypeScript artifacts
+        if [ -d "${SRC_DIR}/dist" ]; then
+          cp -r "${SRC_DIR}/dist" "${DEST_DIR}/"
+        fi
+
+        if [ -d "${SRC_DIR}/src" ]; then
+          cp -r "${SRC_DIR}/src" "${DEST_DIR}/"
+        fi
+
+        if [ -d "${SRC_DIR}/derived" ]; then
+          cp -r "${SRC_DIR}/derived" "${DEST_DIR}/"
+        fi
+
+        # Verify Python wheel exists
+        PYTHON_DIST="${DEST_DIR}/dist/python"
+        if [ ! -d "${PYTHON_DIST}" ]; then
+          echo "Python dist directory not found after copy." >&2
           exit 1
         fi
 
-        mkdir -p "${DEST_DIR}"
-        rm -f "${DEST_DIR}"/debrief_types-*.whl
-        cp "${WHEEL_PATH}" "${DEST_DIR}/"
+        WHEEL_PATH=$(find "${PYTHON_DIST}" -maxdepth 1 -name 'debrief_types-*.whl' -print -quit)
+        if [ -z "${WHEEL_PATH}" ]; then
+          echo "No debrief_types wheel found after copy." >&2
+          exit 1
+        fi
 
-        echo "Copied $(basename "${WHEEL_PATH}") into ${DEST_DIR}"
+        echo "Staged shared-types package with wheel: $(basename "${WHEEL_PATH}")"
     
     - name: Deploy to Fly.io
       id: deploy
