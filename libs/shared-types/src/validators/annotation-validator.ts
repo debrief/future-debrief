@@ -3,7 +3,7 @@
  * These validators work with the generated types and provide additional validation logic
  */
 
-import { DebriefAnnotationFeature } from '../types/FeatureCollection';
+import { DebriefAnnotationFeature } from '../types/features/debrief_feature_collection';
 
 /**
  * Type-safe helper to check if a value is a non-null object
@@ -230,22 +230,27 @@ export function validateAnnotationFeatureComprehensive(feature: unknown): {
   }
   
   const props = validatedFeature.properties;
-  
+
+  if (!props) {
+    errors.push('Properties are required');
+    return { isValid: false, errors };
+  }
+
   // Color validation
   if (props.color && !validateColorFormat(props.color)) {
     errors.push('Invalid color format (must be #RRGGBB)');
   }
-  
+
   // Annotation type validation
   if (props.annotationType && !validateAnnotationType(props.annotationType)) {
     errors.push('Invalid annotation type');
   }
-  
+
   // Time validation
   if (props.time && !isValidDate(props.time)) {
     errors.push('Invalid time format');
   }
-  
+
   // Text validation for certain annotation types
   if (props.annotationType === 'label' && (!props.text || props.text.trim().length === 0)) {
     errors.push('Label annotations must have non-empty text');
