@@ -23,6 +23,12 @@ from .tool_call_response import (
 # Import Debrief feature types
 from ..features.debrief_feature_collection import DebriefFeature, DebriefFeatureCollection
 
+# Import state types
+from ..states.time_state import TimeState
+from ..states.viewport_state import ViewportState
+from ..states.selection_state import SelectionState
+from ..states.editor_state import EditorState
+
 
 # Feature manipulation commands
 class AddFeaturesCommand(ToolVaultCommand):
@@ -58,6 +64,69 @@ class SetFeatureCollectionCommand(ToolVaultCommand):
     payload: DebriefFeatureCollection = Field(
         ...,
         description="Complete Debrief FeatureCollection to replace current features"
+    )
+
+
+# State management commands
+class SetViewportPayload(BaseModel):
+    """Payload for setViewport command."""
+    center: Optional[List[float]] = Field(None, description="Map center as [longitude, latitude]")
+    zoom: Optional[int] = Field(None, description="Map zoom level")
+    bounds: Optional[List[List[float]]] = Field(
+        None,
+        description="Map bounds as [[west, south], [east, north]]"
+    )
+
+    class Config:
+        extra = "forbid"
+
+
+class SetViewportCommand(ToolVaultCommand):
+    """Command to update the map viewport."""
+    command: Literal["setViewport"] = "setViewport"
+    payload: SetViewportPayload = Field(
+        ...,
+        description="Viewport update parameters"
+    )
+
+
+class SetSelectionPayload(BaseModel):
+    """Payload for setSelection command."""
+    featureIds: List[str] = Field(..., description="Array of feature IDs to select")
+    selectionType: Literal["replace", "add", "remove"] = Field(
+        "replace",
+        description="Type of selection operation"
+    )
+
+    class Config:
+        extra = "forbid"
+
+
+class SetSelectionCommand(ToolVaultCommand):
+    """Command to update feature selection."""
+    command: Literal["setSelection"] = "setSelection"
+    payload: SetSelectionPayload = Field(
+        ...,
+        description="Selection update parameters"
+    )
+
+
+class SetStatePayload(BaseModel):
+    """Payload for setState command."""
+    timeState: Optional[TimeState] = Field(None, description="Time state to update")
+    editorState: Optional[EditorState] = Field(None, description="Editor state to update")
+    uiState: Optional[Dict[str, Any]] = Field(None, description="UI state to update")
+
+    class Config:
+        extra = "forbid"
+
+
+class SetStateCommand(ToolVaultCommand):
+    """Command to update multiple state components."""
+    command: Literal["setState"] = "setState"
+    payload: SetStatePayload = Field(
+        ...,
+        description="State update parameters"
     )
 
 
@@ -161,6 +230,35 @@ def set_feature_collection(feature_collection: DebriefFeatureCollection) -> SetF
     return SetFeatureCollectionCommand(payload=feature_collection)
 
 
+def set_viewport(
+    center: Optional[List[float]] = None,
+    zoom: Optional[int] = None,
+    bounds: Optional[List[List[float]]] = None
+) -> SetViewportCommand:
+    """Create a setViewport command."""
+    payload = SetViewportPayload(center=center, zoom=zoom, bounds=bounds)
+    return SetViewportCommand(payload=payload)
+
+
+def set_selection(
+    feature_ids: List[str],
+    selection_type: Literal["replace", "add", "remove"] = "replace"
+) -> SetSelectionCommand:
+    """Create a setSelection command."""
+    payload = SetSelectionPayload(featureIds=feature_ids, selectionType=selection_type)
+    return SetSelectionCommand(payload=payload)
+
+
+def set_state(
+    time_state: Optional[TimeState] = None,
+    editor_state: Optional[EditorState] = None,
+    ui_state: Optional[Dict[str, Any]] = None
+) -> SetStateCommand:
+    """Create a setState command."""
+    payload = SetStatePayload(timeState=time_state, editorState=editor_state, uiState=ui_state)
+    return SetStateCommand(payload=payload)
+
+
 def show_image(media_type: MediaType, data: str, title: Optional[str] = None) -> ShowImageCommand:
     """Create a showImage command."""
     payload = ShowImagePayload(mediaType=media_type, data=data, title=title)
@@ -189,6 +287,9 @@ SpecificCommand = Union[
     UpdateFeaturesCommand,
     DeleteFeaturesCommand,
     SetFeatureCollectionCommand,
+    SetViewportCommand,
+    SetSelectionCommand,
+    SetStateCommand,
     ShowTextCommand,
     ShowDataCommand,
     ShowImageCommand,
