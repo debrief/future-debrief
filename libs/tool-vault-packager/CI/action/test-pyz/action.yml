@@ -14,6 +14,14 @@ runs:
       working-directory: libs/tool-vault-packager
       run: |
         npm run test
+
+    - name: Run tool regression tests
+      shell: bash
+      working-directory: libs/tool-vault-packager
+      run: |
+        echo "🧪 Running tool regression tests..."
+        python -m testing.cli test --save-report test_report.json
+        echo "✅ Tool tests completed"
     
     - name: Test PYZ executability
       shell: bash

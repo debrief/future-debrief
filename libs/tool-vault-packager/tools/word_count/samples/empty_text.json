@@ -1,0 +1,9 @@
+{
+  "input": {
+    "text": ""
+  },
+  "expectedOutput": {
+    "command": "showText",
+    "payload": "Word count: 0"
+  }
+}

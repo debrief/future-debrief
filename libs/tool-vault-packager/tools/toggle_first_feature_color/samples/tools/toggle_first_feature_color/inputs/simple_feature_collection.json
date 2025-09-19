@@ -3,7 +3,7 @@
     "type": "FeatureCollection",
     "features": [
       {
-        "type": "Feature",
+        "type": "Feature", 
         "properties": {
           "color": "red",
           "name": "Test Point"

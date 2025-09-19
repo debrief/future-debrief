@@ -31,6 +31,16 @@ except ImportError:
     # Handle case when running as script
     from discovery import discover_tools, generate_index_json
 
+try:
+    from .testing import TestRunner, TestConfig
+except ImportError:
+    try:
+        from testing import TestRunner, TestConfig
+    except ImportError:
+        # Testing module not available
+        TestRunner = None
+        TestConfig = None
+
 
 class PackagerError(Exception):
     """Raised when packaging encounters an error."""
@@ -254,21 +264,23 @@ def build_spa() -> bool:
 def package_toolvault(
     tools_path: str,
     output_path: str = "toolvault.pyz",
-    python_executable: str = "/usr/bin/env python3"
+    python_executable: str = "/usr/bin/env python3",
+    run_tests: bool = True
 ) -> str:
     """
     Package ToolVault into a self-contained .pyz file.
-    
+
     Args:
         tools_path: Path to the tools directory
         output_path: Path for the output .pyz file
         python_executable: Python executable to use in shebang
-        
+        run_tests: Whether to run tool tests before packaging
+
     Returns:
         Path to the created .pyz file
-        
+
     Raises:
-        PackagerError: If packaging fails
+        PackagerError: If packaging fails or tests fail
     """
     tools_path = Path(tools_path).resolve()
     output_path = Path(output_path).resolve()
@@ -284,9 +296,39 @@ def package_toolvault(
         tools = discover_tools(str(tools_path))
         index_data = generate_index_json(tools)
         print(f"Discovered {len(tools)} tools for packaging")
-        
+
     except Exception as e:
         raise PackagerError(f"Tool discovery failed: {e}")
+
+    # Run tool tests if requested
+    if run_tests:
+        if TestRunner is None or TestConfig is None:
+            print("⚠️ Testing framework not available - skipping tests")
+        else:
+            print("\n" + "="*50)
+            print("Running tool tests before packaging...")
+            print("="*50)
+
+            try:
+                test_config = TestConfig(
+                    tools_directory=str(tools_path),
+                    report_and_continue=True,
+                    fail_on_any_error=True
+                )
+
+                test_runner = TestRunner(test_config)
+                tests_passed = test_runner.run_all_tool_tests()
+
+                if not tests_passed:
+                    raise PackagerError("Tool tests failed. Packaging aborted.")
+
+                print("✓ All tool tests passed. Proceeding with packaging...")
+
+            except Exception as e:
+                if "Tool tests failed" in str(e):
+                    raise  # Re-raise the PackagerError
+                else:
+                    raise PackagerError(f"Testing framework error: {e}")
     
     # Create persistent package directory for building and inspection
     current_dir = Path(__file__).parent
@@ -314,11 +356,22 @@ def package_toolvault(
                 shutil.copy2(source_file, package_dir / module)
             else:
                 print(f"Warning: Core module not found: {module}")
-        
+
+        # Copy testing directory if it exists
+        testing_dir = source_dir / "testing"
+        if testing_dir.exists():
+            testing_dest = package_dir / "testing"
+            shutil.copytree(testing_dir, testing_dest)
+            print("Testing framework copied to package")
+        else:
+            print("Warning: Testing directory not found - test commands may not work in packaged version")
+
         # Copy tools directory with new structure
         tools_dest = package_dir / "tools"
         shutil.copytree(tools_path, tools_dest)
-        
+
+        # Note: Sample data is now included in each tool's samples/ folder
+
         # Copy SPA assets if build was successful
         if spa_build_success:
             spa_dist_dir = Path(__file__).parent / "spa" / "dist"
@@ -368,7 +421,7 @@ def package_toolvault(
             for sample_input in tool.sample_inputs:
                 sample_input_refs.append(SampleInputReference(
                     name=sample_input["name"],
-                    path=f"inputs/{sample_input['file']}",
+                    path=f"samples/{sample_input['file']}",
                     description=f"Sample input: {sample_input['name']}",
                     type="json"
                 ))

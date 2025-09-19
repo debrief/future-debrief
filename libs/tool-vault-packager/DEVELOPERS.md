@@ -11,7 +11,7 @@ Each tool must:
 2. Have exactly one public function
 3. Include complete type annotations for all parameters and return value
 4. Include a docstring describing the tool's purpose. The first sentence of the docstring is used as a short description for that tool.
-5. Tool folders can contain optional `inputs` folder, containing sample input datasets that can be used to explore the behaviour of a tool.
+5. Tool folders can contain optional `samples` folder, containing sample data files with both input and expected output for testing and exploration.
 
 ### Example Tool
 
@@ -200,8 +200,8 @@ curl http://localhost:8000/api/tools/word_count/metadata/source_code.html
 # Access git history
 curl http://localhost:8000/api/tools/word_count/metadata/git_history.json
 
-# Access sample inputs
-curl http://localhost:8000/api/tools/word_count/inputs/simple_text.json
+# Access sample data
+curl http://localhost:8000/api/tools/word_count/samples/simple_text.json
 ```
 
 **Navigation Flow:**
@@ -234,7 +234,7 @@ toolvault.pyz (when extracted):
     ├── word_count/
     │   ├── execute.py          # Tool implementation
     │   ├── tool.json           # Tool-specific navigation index
-    │   ├── inputs/             # Sample input files
+    │   ├── samples/            # Sample data files with input/output
     │   │   ├── empty_text.json
     │   │   ├── simple_text.json
     │   │   └── paragraph_text.json
@@ -299,7 +299,7 @@ Each tool directory contains a navigation index for SPA/analysis integration:
     "inputs": [
       {
         "name": "simple_text",
-        "path": "inputs/simple_text.json",
+        "path": "samples/simple_text.json",
         "description": "Sample input: simple_text",
         "type": "json"
       }
@@ -355,12 +355,18 @@ Styled, browser-ready source code display:
 </html>
 ```
 
-#### Sample Inputs (`inputs/*.json`)
-Test cases and examples for each tool:
+#### Sample Data (`samples/*.json`)
+Test cases and examples for each tool with unified input/output format:
 
 ```json
 {
-  "text": "The quick brown fox jumps over the lazy dog"
+  "input": {
+    "text": "The quick brown fox jumps over the lazy dog"
+  },
+  "expectedOutput": {
+    "command": "showText",
+    "payload": "Word count: 9"
+  }
 }
 ```
 
@@ -370,7 +376,7 @@ Test cases and examples for each tool:
 - **Tool Discovery**: Use global `index.json` for complete tool inventory
 - **Source Analysis**: Access `metadata/source_code.html` for code review
 - **Development History**: Review `metadata/git_history.json` for provenance
-- **Test Data**: Examine `inputs/*.json` for usage patterns
+- **Test Data**: Examine `samples/*.json` for usage patterns and expected outputs
 
 #### For SPA Integration
 - **Navigation**: Use tool-specific `tool.json` files as API endpoints via `tool_url` from global index
@@ -483,6 +489,108 @@ npm run dev:with-backend
 
 ## Testing
 
+### Automated Testing Framework
+
+ToolVault includes a comprehensive testing framework that validates tools during packaging to catch issues before deployment.
+
+#### Framework Components
+
+1. **Tool Tester** (`testing/tool_tester.py`): Core testing logic for individual tools
+2. **Baseline Generator** (`testing/tool_tester.py`): Generates expected outputs from existing input data
+3. **Test Runner** (`testing/test_runner.py`): Orchestrates testing across all tools
+4. **CLI Interface** (`testing/cli.py`): Command-line interface for testing operations
+
+#### Testing Workflow
+
+The testing framework follows a "report and continue" strategy:
+- Tests all tools, logging failures but continuing to completion
+- Fails packaging only if any tool tests fail (configurable)
+- Generates detailed reports with diff information for failures
+
+#### Baseline Generation (Local Development Only)
+
+**IMPORTANT**: Baseline generation is a local development task only. CI systems expect existing baselines to be committed to the repository.
+
+Generate expected outputs for all tools:
+
+```bash
+# Generate baselines for all tools (LOCAL DEVELOPMENT ONLY)
+python -m testing.cli generate-baseline
+
+# Generate baseline for specific tool (LOCAL DEVELOPMENT ONLY)
+python -m testing.cli generate-baseline word_count
+
+# Use npm scripts (LOCAL DEVELOPMENT ONLY)
+npm run test:tools:baseline
+```
+
+This creates unified `sample.json` files in the `samples/` directory with the format:
+
+```json
+{
+  "sample_name": {
+    "input": { "text": "Hello world" },
+    "expectedOutput": { "command": "showText", "payload": "Word count: 2" }
+  }
+}
+```
+
+#### Running Tests
+
+Execute regression tests:
+
+```bash
+# Run all tool tests
+python -m testing.cli test
+
+# Run tests with detailed report
+python -m testing.cli test --save-report test_report.json
+
+# List discovered tools
+python -m testing.cli list-tools
+
+# Use npm scripts
+npm run test:tools
+npm run test:tools:report
+```
+
+#### Packaging Integration
+
+Testing is automatically integrated into the packaging process:
+
+```python
+# In packager.py - testing runs before .pyz creation
+success = test_runner.run_all_tool_tests()
+if not success:
+    raise PackagerError("Tool tests failed. Packaging aborted.")
+```
+
+Disable testing during packaging:
+
+```python
+package_toolvault(tools_path, run_tests=False)
+```
+
+#### SPA Test Mode
+
+The web interface includes interactive test mode:
+
+1. **Test Toggle**: Enable "Test Mode" to compare outputs with baselines
+2. **Run All Tests**: Execute all samples and show pass/fail status
+3. **Visual Diff**: See expected vs actual outputs for failing tests
+4. **Real-time Testing**: Test individual inputs against expected outputs
+
+#### CI Integration
+
+GitHub Actions automatically run tool tests against committed baselines:
+
+```yaml
+# CI/action/test-pyz/action.yml includes:
+- name: Run tool regression tests  # Uses existing baselines from repo
+```
+
+**Note**: CI does not generate baselines - it only runs tests against existing baselines that should be committed to the repository during development.
+
 ### Unit Testing
 Tools can be tested individually:
 
@@ -505,6 +613,23 @@ curl -X POST http://localhost:8000/tools/call \
   -H 'Content-Type: application/json' \
   -d '{"name": "word_count", "arguments": {"text": "test"}}'
 ```
+
+### Testing Best Practices
+
+1. **Generate baselines early**: Create baselines when tools work correctly (local development only)
+2. **Commit baselines to repo**: Generated baselines must be committed for CI to use
+3. **Review test failures**: Failed tests indicate real issues or intentional changes
+4. **Update baselines carefully**: Only regenerate when behavior changes are intentional
+5. **Use test mode in SPA**: Interactive testing during development
+6. **Monitor CI results**: Automated testing catches regressions
+
+### Development Workflow
+
+1. **Tool Development**: Create or modify tools in `tools/` directory
+2. **Generate Baselines**: Run `python -m testing.cli generate-baseline` locally
+3. **Verify Tests**: Run `python -m testing.cli test` to ensure all pass
+4. **Commit Changes**: Commit both tool changes and updated baseline files
+5. **CI Validation**: CI runs tests against committed baselines automatically
 
 ## Future Development Phases
 
