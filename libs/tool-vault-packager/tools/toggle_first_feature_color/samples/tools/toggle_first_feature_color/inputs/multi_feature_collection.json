@@ -1,0 +1,29 @@
+{
+  "feature_collection": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "color": "blue",
+          "name": "First Feature"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [1, 1]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "color": "green",
+          "name": "Second Feature"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [2, 2]
+        }
+      }
+    ]
+  }
+}
