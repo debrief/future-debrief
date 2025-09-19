@@ -1,5 +1,7 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-# Run fast pre-push validation using Makefile verify targets
-./scripts/validate-pre-push-fast.sh
+# Run fast pre-push validation using parallel Makefile verify targets
+echo "🚀 Running pre-push validation..."
+find . -path "*/*/Makefile" -not -path "*/node_modules/*" -exec dirname {} \; | xargs -I {} -P 4 sh -c 'cd "{}" && echo "✅ $(basename $(pwd))" && make verify > /dev/null 2>&1 || (echo "❌ $(basename $(pwd)) failed - run '\''cd {} && make verify'\'' for details" && exit 1)'
+echo "✅ All validations passed!"
