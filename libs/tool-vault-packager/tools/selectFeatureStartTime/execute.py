@@ -53,8 +53,10 @@ def selectFeatureStartTime(params: SelectFeatureStartTimeParameters) -> ToolVaul
 
         for feature in params.features:
             # Get timestamps from feature properties
-            properties = feature.properties or {}
-            timestamps = properties.get('timestamps')
+            properties = feature.properties
+            if not properties:
+                continue
+            timestamps = getattr(properties, 'timestamps', None)
 
             if not timestamps:
                 continue

@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 # Use hierarchical imports from shared-types
 from debrief.types.features import DebriefFeature
+from debrief.types.tools import ToolVaultCommand
 
 
 class FitToSelectionParameters(BaseModel):
@@ -27,7 +28,7 @@ class FitToSelectionParameters(BaseModel):
     )
 
 
-def fit_to_selection(params: FitToSelectionParameters) -> Dict[str, Any]:
+def fit_to_selection(params: FitToSelectionParameters) -> ToolVaultCommand:
     """
     Calculate bounds of features and set viewport to fit them.
 
@@ -69,8 +70,10 @@ def fit_to_selection(params: FitToSelectionParameters) -> Dict[str, Any]:
 
         # Process all feature geometries
         for feature in params.features:
-            geometry = feature.get('geometry', {})
-            coords = geometry.get('coordinates', [])
+            geometry = feature.geometry
+            if not geometry:
+                continue
+            coords = getattr(geometry, 'coordinates', [])
 
             if coords:
                 process_coordinates(coords)

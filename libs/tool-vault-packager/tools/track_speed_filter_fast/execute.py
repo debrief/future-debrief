@@ -2,7 +2,7 @@
 
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field, ValidationError, model_validator
-from debrief.types import DebriefTrackFeature
+from debrief.types.features import DebriefTrackFeature
 
 
 class TrackFeatureWithSpeeds(BaseModel):
