@@ -53,6 +53,44 @@ curl -X POST http://localhost:8000/tools/call \
   -d '{"name": "word_count", "arguments": {"text": "test"}}'
 ```
 
+## Tool Testing Framework
+
+ToolVault includes an automated testing framework that validates tools during packaging to catch issues before deployment.
+
+### Generate Test Baselines
+
+```bash
+# Generate baselines for all tools
+python -m testing.cli generate-baseline
+
+# Generate baseline for a specific tool
+python -m testing.cli generate-baseline word_count
+```
+
+### Run Tool Tests
+
+```bash
+# Run all tool tests
+python -m testing.cli test
+
+# Run tests with detailed report
+python -m testing.cli test --save-report test_report.json
+
+# List discovered tools
+python -m testing.cli list-tools
+```
+
+### Test Mode in Web Interface
+
+The web interface includes a test mode that compares tool outputs against expected baselines:
+
+1. Open the web interface: `http://localhost:8000/ui/`
+2. Select a tool with test data
+3. Enable "Test Mode" to see pass/fail results
+4. Use "Run All Tests" to validate all samples at once
+
+This testing framework ensures tool reliability and catches regressions during development.
+
 ## Developer Documentation
 
 For detailed information about:

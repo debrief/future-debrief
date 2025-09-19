@@ -385,7 +385,51 @@ class ToolVaultServer:
                     # Default to plain text for other file types
                     content = requested_file.read_text(encoding='utf-8')
                     return PlainTextResponse(content=content, media_type="text/plain")
-        
+
+        @self.app.get("/api/samples/{sample_file}")
+        async def get_sample_file(sample_file: str):
+            """Serve sample files from the samples directory."""
+            import sys
+
+            # Check if running from a .pyz file
+            if hasattr(sys, '_MEIPASS') or str(sys.argv[0]).endswith('.pyz'):
+                # Running from packaged archive - read from zip
+                import zipfile
+                try:
+                    pyz_path = sys.argv[0]
+                    with zipfile.ZipFile(pyz_path, 'r') as zf:
+                        sample_file_path = f"samples/{sample_file}"
+                        if sample_file_path in zf.namelist():
+                            content = zf.read(sample_file_path).decode('utf-8')
+                            return JSONResponse(content=json.loads(content))
+                        else:
+                            raise HTTPException(status_code=404, detail=f"Sample file '{sample_file}' not found")
+                except Exception as e:
+                    raise HTTPException(status_code=500, detail=f"Error reading sample file: {str(e)}")
+            else:
+                # Running in development mode - serve from filesystem
+                samples_dir = Path(self.tools_path).parent / "samples"
+                requested_file = samples_dir / sample_file
+
+                # Security check: ensure the file is within the samples directory
+                try:
+                    requested_file.resolve().relative_to(samples_dir.resolve())
+                except ValueError:
+                    raise HTTPException(status_code=403, detail="Access denied: file outside samples directory")
+
+                # Check if file exists
+                if not requested_file.exists():
+                    raise HTTPException(status_code=404, detail=f"Sample file '{sample_file}' not found")
+
+                # Parse and return JSON content
+                try:
+                    content = requested_file.read_text(encoding='utf-8')
+                    return JSONResponse(content=json.loads(content))
+                except json.JSONDecodeError as e:
+                    raise HTTPException(status_code=500, detail=f"Invalid JSON in sample file: {str(e)}")
+                except Exception as e:
+                    raise HTTPException(status_code=500, detail=f"Error reading sample file: {str(e)}")
+
         @self.app.get("/health")
         async def health():
             """Health check endpoint."""
