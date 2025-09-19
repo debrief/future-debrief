@@ -11,7 +11,7 @@ Each tool must:
 2. Have exactly one public function
 3. Include complete type annotations for all parameters and return value
 4. Include a docstring describing the tool's purpose. The first sentence of the docstring is used as a short description for that tool.
-5. Tool folders can contain optional `inputs` folder, containing sample input datasets that can be used to explore the behaviour of a tool.
+5. Tool folders can contain optional `samples` folder, containing sample data files with both input and expected output for testing and exploration.
 
 ### Example Tool
 
@@ -200,8 +200,8 @@ curl http://localhost:8000/api/tools/word_count/metadata/source_code.html
 # Access git history
 curl http://localhost:8000/api/tools/word_count/metadata/git_history.json
 
-# Access sample inputs
-curl http://localhost:8000/api/tools/word_count/inputs/simple_text.json
+# Access sample data
+curl http://localhost:8000/api/tools/word_count/samples/simple_text.json
 ```
 
 **Navigation Flow:**
@@ -234,7 +234,7 @@ toolvault.pyz (when extracted):
     ├── word_count/
     │   ├── execute.py          # Tool implementation
     │   ├── tool.json           # Tool-specific navigation index
-    │   ├── inputs/             # Sample input files
+    │   ├── samples/            # Sample data files with input/output
     │   │   ├── empty_text.json
     │   │   ├── simple_text.json
     │   │   └── paragraph_text.json
@@ -299,7 +299,7 @@ Each tool directory contains a navigation index for SPA/analysis integration:
     "inputs": [
       {
         "name": "simple_text",
-        "path": "inputs/simple_text.json",
+        "path": "samples/simple_text.json",
         "description": "Sample input: simple_text",
         "type": "json"
       }
@@ -355,12 +355,18 @@ Styled, browser-ready source code display:
 </html>
 ```
 
-#### Sample Inputs (`inputs/*.json`)
-Test cases and examples for each tool:
+#### Sample Data (`samples/*.json`)
+Test cases and examples for each tool with unified input/output format:
 
 ```json
 {
-  "text": "The quick brown fox jumps over the lazy dog"
+  "input": {
+    "text": "The quick brown fox jumps over the lazy dog"
+  },
+  "expectedOutput": {
+    "command": "showText",
+    "payload": "Word count: 9"
+  }
 }
 ```
 
@@ -370,7 +376,7 @@ Test cases and examples for each tool:
 - **Tool Discovery**: Use global `index.json` for complete tool inventory
 - **Source Analysis**: Access `metadata/source_code.html` for code review
 - **Development History**: Review `metadata/git_history.json` for provenance
-- **Test Data**: Examine `inputs/*.json` for usage patterns
+- **Test Data**: Examine `samples/*.json` for usage patterns and expected outputs
 
 #### For SPA Integration
 - **Navigation**: Use tool-specific `tool.json` files as API endpoints via `tool_url` from global index
