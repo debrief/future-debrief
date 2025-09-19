@@ -1,0 +1,91 @@
+{
+  "input": {
+    "feature_collection": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "properties": {
+            "color": "blue",
+            "name": "First Feature"
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              1,
+              1
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "color": "green",
+            "name": "Second Feature"
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              2,
+              2
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "expectedOutput": {
+    "command": "setFeatureCollection",
+    "payload": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "bbox": null,
+          "type": "Feature",
+          "geometry": {
+            "bbox": null,
+            "type": "Point",
+            "coordinates": [
+              1.0,
+              1.0
+            ]
+          },
+          "properties": {
+            "dataType": "reference-point",
+            "time": null,
+            "timeStart": null,
+            "timeEnd": null,
+            "name": "First Feature",
+            "description": null,
+            "color": "red"
+          },
+          "id": null
+        },
+        {
+          "bbox": null,
+          "type": "Feature",
+          "geometry": {
+            "bbox": null,
+            "type": "Point",
+            "coordinates": [
+              2.0,
+              2.0
+            ]
+          },
+          "properties": {
+            "dataType": "reference-point",
+            "time": null,
+            "timeStart": null,
+            "timeEnd": null,
+            "name": "Second Feature",
+            "description": null,
+            "color": "green"
+          },
+          "id": null
+        }
+      ],
+      "bbox": null,
+      "properties": null
+    }
+  }
+}

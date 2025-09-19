@@ -1,0 +1,12 @@
+{
+  "input": {
+    "feature_collection": {
+      "type": "FeatureCollection",
+      "features": []
+    }
+  },
+  "expectedOutput": {
+    "command": "showText",
+    "payload": "No features found in the collection to toggle color"
+  }
+}
