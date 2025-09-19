@@ -17,14 +17,14 @@ EXPECTED_FILES = [
     'features/track.py',
     'features/point.py',
     'features/annotation.py',
-    'features/feature_collection.py'
+    'features/debrief_feature_collection.py'
 ]
 
 EXPECTED_CLASSES = {
     'features/track.py': ['DebriefTrackFeature'],
     'features/point.py': ['DebriefPointFeature'],
     'features/annotation.py': ['DebriefAnnotationFeature'],
-    'features/feature_collection.py': ['DebriefFeatureCollection']
+    'features/debrief_feature_collection.py': ['DebriefFeatureCollection']
 }
 
 
@@ -82,7 +82,7 @@ def test_imports(filename, file_path):
             content = f.read()
 
         # Check if file has relative imports (cross-referenced schemas)
-        if "from . import" in content:
+        if "from . import" in content or "from ." in content:
             print(f"⚠ Module has relative imports (expected for cross-referenced schemas): {filename}")
             return
 

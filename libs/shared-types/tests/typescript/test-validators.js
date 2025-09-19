@@ -10,7 +10,7 @@ const path = require('path');
 
 // Since we can't directly import TypeScript in Node.js without transpilation,
 // we'll test that the validator files exist and have expected structure
-const VALIDATORS_DIR = path.join(__dirname, '..', '..', 'validators', 'typescript');
+const VALIDATORS_DIR = path.join(__dirname, '..', '..', 'src', 'validators');
 
 const VALIDATOR_FILES = [
   'track-validator.ts',
@@ -85,8 +85,8 @@ function testValidatorContent(filename, filePath) {
     }
   }
   
-  // Check that it imports from generated types
-  if (filename !== 'index.ts' && !content.includes('../../derived/typescript/')) {
+  // Check that it imports from generated types (either derived or copied to src)
+  if (filename !== 'index.ts' && !content.includes('../../derived/typescript/') && !content.includes('../types/')) {
     throw new Error(`Validator ${filename} should import from generated types`);
   }
   
