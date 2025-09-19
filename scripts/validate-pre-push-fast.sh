@@ -36,12 +36,17 @@ validate_package() {
 
     cd "$package_dir"
 
-    if ! make verify; then
+    # Capture both stdout and stderr from make verify
+    local make_output
+    if ! make_output=$(make verify 2>&1); then
         {
             echo ""
             echo "================================================"
             echo -e "${RED}🚨 PUSH BLOCKED: $package_name validation failed${NC}"
             echo "================================================"
+            echo ""
+            echo "🔍 Specific failure details:"
+            echo "$make_output"
             echo ""
             echo "🔧 To fix this issue, run:"
             if [[ "$package_name" == "shared-types" ]]; then
