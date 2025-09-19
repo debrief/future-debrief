@@ -265,8 +265,7 @@ def package_toolvault(
     tools_path: str,
     output_path: str = "toolvault.pyz",
     python_executable: str = "/usr/bin/env python3",
-    run_tests: bool = True,
-    samples_directory: str = "./samples"
+    run_tests: bool = True
 ) -> str:
     """
     Package ToolVault into a self-contained .pyz file.
@@ -276,7 +275,6 @@ def package_toolvault(
         output_path: Path for the output .pyz file
         python_executable: Python executable to use in shebang
         run_tests: Whether to run tool tests before packaging
-        samples_directory: Path to samples directory for baseline testing
 
     Returns:
         Path to the created .pyz file
@@ -314,7 +312,6 @@ def package_toolvault(
             try:
                 test_config = TestConfig(
                     tools_directory=str(tools_path),
-                    samples_directory=samples_directory,
                     report_and_continue=True,
                     fail_on_any_error=True
                 )
@@ -373,14 +370,7 @@ def package_toolvault(
         tools_dest = package_dir / "tools"
         shutil.copytree(tools_path, tools_dest)
 
-        # Copy samples directory if it exists
-        samples_source = Path(samples_directory)
-        if samples_source.exists():
-            samples_dest = package_dir / "samples"
-            shutil.copytree(samples_source, samples_dest)
-            print("Sample data copied to package")
-        else:
-            print("Warning: Samples directory not found - test mode may not work in packaged version")
+        # Note: Sample data is now included in each tool's samples/ folder
 
         # Copy SPA assets if build was successful
         if spa_build_success:
@@ -431,7 +421,7 @@ def package_toolvault(
             for sample_input in tool.sample_inputs:
                 sample_input_refs.append(SampleInputReference(
                     name=sample_input["name"],
-                    path=f"inputs/{sample_input['file']}",
+                    path=f"samples/{sample_input['file']}",
                     description=f"Sample input: {sample_input['name']}",
                     type="json"
                 ))
