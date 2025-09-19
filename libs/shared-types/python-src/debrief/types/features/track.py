@@ -1,5 +1,4 @@
 """Track Pydantic model for maritime track features."""
-# Test modification to trigger rebuild failure
 
 from datetime import datetime
 from pydantic import BaseModel, Field, field_validator
