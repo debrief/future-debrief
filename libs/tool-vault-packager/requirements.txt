@@ -12,5 +12,5 @@ geojson-pydantic>=1.0.0
 # Syntax highlighting for source code
 pygments>=2.15.0
 
-# Shared types from monorepo (wheel staged by CI)
-shared-types/dist/python/debrief_types-1.0.0-py3-none-any.whl
+# Shared types from monorepo (local directory)
+-e ./shared-types
