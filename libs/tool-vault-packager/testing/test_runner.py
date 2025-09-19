@@ -28,7 +28,7 @@ class TestRunner:
         """
         self.config = config
         self.tester = ToolTester(config.tools_directory)
-        self.baseline_generator = BaselineGenerator(config.tools_directory, config.samples_directory)
+        self.baseline_generator = BaselineGenerator(config.tools_directory)
         self.test_results: List[TestResult] = []
 
     def run_all_tool_tests(self) -> bool:

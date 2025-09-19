@@ -51,24 +51,24 @@ class ToolTester:
             raise RuntimeError(f"Failed to discover tools: {e}")
 
     def get_tool_inputs(self, tool_name: str) -> List[Path]:
-        """Get all input files for a specific tool.
+        """Get all sample files for a specific tool.
 
         Args:
             tool_name: Name of the tool
 
         Returns:
-            List of paths to input files
+            List of paths to sample files
         """
         if tool_name not in self.discovered_tools:
             raise ValueError(f"Tool '{tool_name}' not found")
 
         tool_meta = self.discovered_tools[tool_name]
-        inputs_dir = Path(tool_meta.tool_dir) / "inputs"
+        samples_dir = Path(tool_meta.tool_dir) / "samples"
 
-        if not inputs_dir.exists():
+        if not samples_dir.exists():
             return []
 
-        return list(inputs_dir.glob("*.json"))
+        return list(samples_dir.glob("*.json"))
 
     def execute_tool(self, tool_name: str, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a tool with given input data.
@@ -164,18 +164,32 @@ class ToolTester:
         Returns:
             List of TestResult objects
         """
-        input_files = self.get_tool_inputs(tool_name)
+        sample_files = self.get_tool_inputs(tool_name)
         results = []
 
-        for input_file in input_files:
-            expected_output = None
-            if sample_data:
-                sample_key = input_file.stem  # filename without extension
-                if sample_key in sample_data:
-                    expected_output = sample_data[sample_key].get("expectedOutput")
+        for sample_file in sample_files:
+            # Load the sample file which contains both input and expectedOutput
+            with open(sample_file, 'r') as f:
+                sample_content = json.load(f)
 
-            result = self.run_single_test(tool_name, input_file, expected_output)
-            results.append(result)
+            input_data = sample_content.get("input", {})
+            expected_output = sample_content.get("expectedOutput")
+
+            # Create a temporary file to pass to run_single_test
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_file:
+                json.dump(input_data, temp_file, indent=2)
+                temp_file_path = temp_file.name
+
+            try:
+                result = self.run_single_test(tool_name, Path(temp_file_path), expected_output)
+                # Update the input_file reference to the original sample file
+                result.input_file = str(sample_file)
+                results.append(result)
+            finally:
+                # Clean up temp file
+                import os
+                os.unlink(temp_file_path)
 
         return results
 
@@ -183,22 +197,17 @@ class ToolTester:
 class BaselineGenerator:
     """Generates baseline expected outputs for tools."""
 
-    def __init__(self, tools_directory: str = "./tools", samples_directory: str = "./samples"):
+    def __init__(self, tools_directory: str = "./tools"):
         """Initialize the baseline generator.
 
         Args:
             tools_directory: Path to the tools directory
-            samples_directory: Path to store sample files
         """
         self.tools_directory = Path(tools_directory)
-        self.samples_directory = Path(samples_directory)
         self.tester = ToolTester(tools_directory)
 
-        # Create samples directory if it doesn't exist
-        self.samples_directory.mkdir(exist_ok=True)
-
     def generate_sample_for_tool(self, tool_name: str) -> Dict[str, Dict[str, Any]]:
-        """Generate sample data file for a specific tool.
+        """Generate sample files for a specific tool from its inputs folder.
 
         Args:
             tool_name: Name of the tool
@@ -209,10 +218,22 @@ class BaselineGenerator:
         if tool_name not in self.tester.discovered_tools:
             raise ValueError(f"Tool '{tool_name}' not found")
 
-        input_files = self.tester.get_tool_inputs(tool_name)
+        tool_meta = self.tester.discovered_tools[tool_name]
+        tool_dir = Path(tool_meta.tool_dir)
+        inputs_dir = tool_dir / "inputs"
+        samples_dir = tool_dir / "samples"
+
+        if not inputs_dir.exists():
+            print(f"No inputs directory found for {tool_name}")
+            return {}
+
+        # Create samples directory
+        samples_dir.mkdir(exist_ok=True)
+
         sample_data = {}
 
-        for input_file in input_files:
+        # Process each input file
+        for input_file in inputs_dir.glob("*.json"):
             sample_key = input_file.stem  # filename without extension
 
             # Load input data
@@ -223,34 +244,61 @@ class BaselineGenerator:
             try:
                 expected_output = self.tester.execute_tool(tool_name, input_data)
 
-                sample_data[sample_key] = {
+                sample_content = {
                     "input": input_data,
                     "expectedOutput": expected_output
                 }
 
+                # Save individual sample file
+                sample_file = samples_dir / f"{sample_key}.json"
+                with open(sample_file, 'w') as f:
+                    json.dump(sample_content, f, indent=2)
+
+                print(f"Generated sample: {sample_file}")
+                sample_data[sample_key] = sample_content
+
             except Exception as e:
                 print(f"Warning: Failed to generate baseline for {tool_name}/{sample_key}: {e}")
-                sample_data[sample_key] = {
+
+                sample_content = {
                     "input": input_data,
                     "expectedOutput": None,
                     "baseline_error": str(e)
                 }
 
+                # Save individual sample file even with error
+                sample_file = samples_dir / f"{sample_key}.json"
+                with open(sample_file, 'w') as f:
+                    json.dump(sample_content, f, indent=2)
+
+                print(f"Generated sample with error: {sample_file}")
+                sample_data[sample_key] = sample_content
+
         return sample_data
 
     def save_sample_data(self, tool_name: str, sample_data: Dict[str, Dict[str, Any]]):
-        """Save sample data to file.
+        """Save sample data to individual files in tool's samples folder.
 
         Args:
             tool_name: Name of the tool
             sample_data: Sample data dictionary
         """
-        sample_file = self.samples_directory / f"{tool_name}_sample.json"
+        if tool_name not in self.tester.discovered_tools:
+            raise ValueError(f"Tool '{tool_name}' not found")
 
-        with open(sample_file, 'w') as f:
-            json.dump(sample_data, f, indent=2)
+        tool_meta = self.tester.discovered_tools[tool_name]
+        tool_dir = Path(tool_meta.tool_dir)
+        samples_dir = tool_dir / "samples"
 
-        print(f"Sample data saved to: {sample_file}")
+        # Create samples directory if it doesn't exist
+        samples_dir.mkdir(exist_ok=True)
+
+        # Save each sample as a separate file with the same name as the input
+        for sample_key, sample_content in sample_data.items():
+            sample_file = samples_dir / f"{sample_key}.json"
+            with open(sample_file, 'w') as f:
+                json.dump(sample_content, f, indent=2)
+            print(f"Sample data saved to: {sample_file}")
 
     def generate_baseline_for_tool(self, tool_name: str) -> bool:
         """Generate and save baseline for a specific tool.
@@ -284,7 +332,7 @@ class BaselineGenerator:
         return results
 
     def load_sample_data(self, tool_name: str) -> Optional[Dict[str, Dict[str, Any]]]:
-        """Load sample data for a tool.
+        """Load sample data for a tool from its samples folder.
 
         Args:
             tool_name: Name of the tool
@@ -292,14 +340,27 @@ class BaselineGenerator:
         Returns:
             Sample data dictionary or None if not found
         """
-        sample_file = self.samples_directory / f"{tool_name}_sample.json"
-
-        if not sample_file.exists():
+        if tool_name not in self.tester.discovered_tools:
             return None
 
-        try:
-            with open(sample_file, 'r') as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"Failed to load sample data for {tool_name}: {e}")
+        tool_meta = self.tester.discovered_tools[tool_name]
+        tool_dir = Path(tool_meta.tool_dir)
+        samples_dir = tool_dir / "samples"
+
+        if not samples_dir.exists():
             return None
+
+        sample_data = {}
+
+        # Load all JSON files from the samples directory
+        for sample_file in samples_dir.glob("*.json"):
+            sample_key = sample_file.stem  # filename without extension
+            try:
+                with open(sample_file, 'r') as f:
+                    sample_content = json.load(f)
+                    # Extract just the sample content (input and expectedOutput are already unified)
+                    sample_data[sample_key] = sample_content
+            except Exception as e:
+                print(f"Failed to load sample data from {sample_file}: {e}")
+
+        return sample_data if sample_data else None
