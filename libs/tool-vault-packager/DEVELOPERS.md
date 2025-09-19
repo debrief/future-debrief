@@ -483,6 +483,105 @@ npm run dev:with-backend
 
 ## Testing
 
+### Automated Testing Framework
+
+ToolVault includes a comprehensive testing framework that validates tools during packaging to catch issues before deployment.
+
+#### Framework Components
+
+1. **Tool Tester** (`testing/tool_tester.py`): Core testing logic for individual tools
+2. **Baseline Generator** (`testing/tool_tester.py`): Generates expected outputs from existing input data
+3. **Test Runner** (`testing/test_runner.py`): Orchestrates testing across all tools
+4. **CLI Interface** (`testing/cli.py`): Command-line interface for testing operations
+
+#### Testing Workflow
+
+The testing framework follows a "report and continue" strategy:
+- Tests all tools, logging failures but continuing to completion
+- Fails packaging only if any tool tests fail (configurable)
+- Generates detailed reports with diff information for failures
+
+#### Baseline Generation
+
+Generate expected outputs for all tools:
+
+```bash
+# Generate baselines for all tools
+python -m testing.cli generate-baseline
+
+# Generate baseline for specific tool
+python -m testing.cli generate-baseline word_count
+
+# Use npm scripts
+npm run test:tools:baseline
+```
+
+This creates unified `sample.json` files in the `samples/` directory with the format:
+
+```json
+{
+  "sample_name": {
+    "input": { "text": "Hello world" },
+    "expectedOutput": { "command": "showText", "payload": "Word count: 2" }
+  }
+}
+```
+
+#### Running Tests
+
+Execute regression tests:
+
+```bash
+# Run all tool tests
+python -m testing.cli test
+
+# Run tests with detailed report
+python -m testing.cli test --save-report test_report.json
+
+# List discovered tools
+python -m testing.cli list-tools
+
+# Use npm scripts
+npm run test:tools
+npm run test:tools:report
+```
+
+#### Packaging Integration
+
+Testing is automatically integrated into the packaging process:
+
+```python
+# In packager.py - testing runs before .pyz creation
+success = test_runner.run_all_tool_tests()
+if not success:
+    raise PackagerError("Tool tests failed. Packaging aborted.")
+```
+
+Disable testing during packaging:
+
+```python
+package_toolvault(tools_path, run_tests=False)
+```
+
+#### SPA Test Mode
+
+The web interface includes interactive test mode:
+
+1. **Test Toggle**: Enable "Test Mode" to compare outputs with baselines
+2. **Run All Tests**: Execute all samples and show pass/fail status
+3. **Visual Diff**: See expected vs actual outputs for failing tests
+4. **Real-time Testing**: Test individual inputs against expected outputs
+
+#### CI Integration
+
+GitHub Actions automatically run tool tests:
+
+```yaml
+# CI/action/test-pyz/action.yml includes:
+- name: Generate tool baselines
+- name: Run tool regression tests
+```
+
 ### Unit Testing
 Tools can be tested individually:
 
@@ -505,6 +604,14 @@ curl -X POST http://localhost:8000/tools/call \
   -H 'Content-Type: application/json' \
   -d '{"name": "word_count", "arguments": {"text": "test"}}'
 ```
+
+### Testing Best Practices
+
+1. **Generate baselines early**: Create baselines when tools work correctly
+2. **Review test failures**: Failed tests indicate real issues or intentional changes
+3. **Update baselines carefully**: Only update when behavior changes are intentional
+4. **Use test mode in SPA**: Interactive testing during development
+5. **Monitor CI results**: Automated testing catches regressions
 
 ## Future Development Phases
 
