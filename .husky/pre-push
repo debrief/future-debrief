@@ -1,5 +1,5 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
-# Run pre-push validation
-./scripts/validate-pre-push.sh
+# Run fast pre-push validation using Makefile verify targets
+./scripts/validate-pre-push-fast.sh

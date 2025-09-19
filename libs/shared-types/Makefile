@@ -20,7 +20,7 @@ YELLOW := \033[33m
 RED := \033[31m
 RESET := \033[0m
 
-.PHONY: help clean build build-dist generate test dev force-generate generate-schemas generate-typescript copy-typescript copy-to-tool-vault-packager
+.PHONY: help clean build build-dist generate test dev force-generate generate-schemas generate-typescript copy-typescript copy-to-tool-vault-packager verify verify-artifacts verify-tests verify-typecheck
 
 # Default target
 help: ## Show this help message
@@ -131,3 +131,36 @@ test: ## Run tests
 dev: ## Watch mode for development
 	@echo "$(BLUE)Starting development watch mode...$(RESET)"
 	@NODE_NO_WARNINGS=1 npx concurrently "npx nodemon --watch python-src/debrief/types --ext 'py' --exec 'python3 generate_schemas.py'" "NODE_NO_WARNINGS=1 npx tsc --watch --preserveWatchOutput"
+
+verify: verify-artifacts verify-tests verify-typecheck ## Fast verification (timestamp-based)
+	@echo "$(GREEN)✅ All shared-types verifications passed!$(RESET)"
+
+verify-artifacts: ## Verify build artifacts are up-to-date
+	@echo "$(BLUE)Checking build artifacts...$(RESET)"
+	@NEWEST_PY=$$(find python-src/debrief/types -name "*.py" -type f -exec stat -f "%m %N" {} \; 2>/dev/null | sort -nr | head -1 | cut -d' ' -f2-); \
+	if [ -z "$$NEWEST_PY" ]; then \
+		echo "$(RED)❌ No Pydantic source files found$(RESET)"; \
+		exit 1; \
+	fi; \
+	for file in derived/json-schema/features/track.schema.json src/types/features/track.ts dist/src/index.js; do \
+		if [ ! -f "$$file" ]; then \
+			echo "$(RED)❌ Missing: $$file$(RESET)"; \
+			echo "$(BLUE)💡 Run: make generate$(RESET)"; \
+			exit 1; \
+		elif [ "$$file" -ot "$$NEWEST_PY" ]; then \
+			echo "$(RED)❌ $$file is older than Pydantic sources$(RESET)"; \
+			echo "$(BLUE)💡 Run: make generate$(RESET)"; \
+			exit 1; \
+		fi; \
+	done; \
+	echo "$(GREEN)✅ All build artifacts are up-to-date$(RESET)"
+
+verify-tests: ## Run tests without rebuilding
+	@echo "$(BLUE)Running tests...$(RESET)"
+	@node tests/typescript/test-generated-files.js > /dev/null 2>&1 && \
+	 python3 tests/python/test_generated_files.py > /dev/null 2>&1 && \
+	 echo "$(GREEN)✅ Tests passed$(RESET)" || (echo "$(RED)❌ Tests failed$(RESET)" && exit 1)
+
+verify-typecheck: ## Type check without compilation
+	@echo "$(BLUE)Type checking...$(RESET)"
+	@NODE_NO_WARNINGS=1 npx tsc --noEmit > /dev/null 2>&1 && echo "$(GREEN)✅ Type check passed$(RESET)" || (echo "$(RED)❌ Type check failed$(RESET)" && exit 1)
