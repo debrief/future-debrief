@@ -175,7 +175,8 @@
       "Bash(do echo \"=== $file ===\")",
       "Bash(done)",
       "Bash(pip uninstall:*)",
-      "Bash(./scripts/validate-pre-push.sh:*)"
+      "Bash(./scripts/validate-pre-push.sh:*)",
+      "Bash(tsc:*)"
     ]
   }
 }
