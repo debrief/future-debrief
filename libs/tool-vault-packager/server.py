@@ -4,6 +4,8 @@ import json
 import traceback
 from typing import Dict, Any, List, Optional
 from pathlib import Path
+import sys
+
 
 from debrief.types.tools import (
     GlobalToolIndexModel,

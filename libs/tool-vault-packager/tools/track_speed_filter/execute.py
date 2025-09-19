@@ -3,7 +3,7 @@
 import math
 from typing import Dict, Any
 from pydantic import BaseModel, Field, ValidationError
-from debrief.types import DebriefTrackFeature
+from debrief.types.features import DebriefTrackFeature
 
 
 class TrackSpeedFilterParameters(BaseModel):

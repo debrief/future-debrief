@@ -23,6 +23,12 @@ from .tool_call_response import (
 # Import Debrief feature types
 from ..features.debrief_feature_collection import DebriefFeature, DebriefFeatureCollection
 
+# Import state types
+from ..states.time_state import TimeState
+from ..states.viewport_state import ViewportState
+from ..states.selection_state import SelectionState
+from ..states.editor_state import EditorState
+
 
 # Feature manipulation commands
 class AddFeaturesCommand(ToolVaultCommand):
@@ -60,6 +66,24 @@ class SetFeatureCollectionCommand(ToolVaultCommand):
         description="Complete Debrief FeatureCollection to replace current features"
     )
 
+
+# State management commands
+class SetViewportCommand(ToolVaultCommand):
+    """Command to update the map viewport."""
+    command: Literal["setViewport"] = "setViewport"
+    payload: ViewportState = Field(
+        ...,
+        description="Viewport state to set"
+    )
+
+
+class SetSelectionCommand(ToolVaultCommand):
+    """Command to update feature selection."""
+    command: Literal["setSelection"] = "setSelection"
+    payload: SelectionState = Field(
+        ...,
+        description="Selection state to set"
+    )
 
 # Display commands
 class ShowTextCommand(ToolVaultCommand):
@@ -126,69 +150,14 @@ class CompositeCommand(ToolVaultCommand):
     )
 
 
-# Command factory functions for convenience
-def show_text(message: str) -> ShowTextCommand:
-    """Create a showText command."""
-    return ShowTextCommand(payload=message)
-
-
-def show_data(data: Union[Dict[str, Any], ShowDataPayload], title: Optional[str] = None) -> ShowDataCommand:
-    """Create a showData command."""
-    if isinstance(data, dict) and title:
-        # Add title to existing dict payload
-        data_with_title = {"title": title, **data}
-        return ShowDataCommand(payload=data_with_title)
-    return ShowDataCommand(payload=data)
-
-
-def add_features(features: List[DebriefFeature]) -> AddFeaturesCommand:
-    """Create an addFeatures command."""
-    return AddFeaturesCommand(payload=features)
-
-
-def update_features(features: List[DebriefFeature]) -> UpdateFeaturesCommand:
-    """Create an updateFeatures command."""
-    return UpdateFeaturesCommand(payload=features)
-
-
-def delete_features(feature_ids: List[str]) -> DeleteFeaturesCommand:
-    """Create a deleteFeatures command."""
-    return DeleteFeaturesCommand(payload=feature_ids)
-
-
-def set_feature_collection(feature_collection: DebriefFeatureCollection) -> SetFeatureCollectionCommand:
-    """Create a setFeatureCollection command."""
-    return SetFeatureCollectionCommand(payload=feature_collection)
-
-
-def show_image(media_type: MediaType, data: str, title: Optional[str] = None) -> ShowImageCommand:
-    """Create a showImage command."""
-    payload = ShowImagePayload(mediaType=media_type, data=data, title=title)
-    return ShowImageCommand(payload=payload)
-
-
-def log_message(message: str, level: LogLevel = LogLevel.INFO, timestamp: Optional[str] = None) -> LogMessageCommand:
-    """Create a logMessage command."""
-    if level != LogLevel.INFO or timestamp:
-        # Use structured payload for non-default levels or custom timestamps
-        payload = LogMessagePayload(message=message, level=level, timestamp=timestamp)
-    else:
-        # Use simple string payload for basic info messages
-        payload = message
-    return LogMessageCommand(payload=payload)
-
-
-def composite(*commands: ToolVaultCommand) -> CompositeCommand:
-    """Create a composite command from multiple commands."""
-    return CompositeCommand(payload=list(commands))
-
-
 # Type union for all specific command types
 SpecificCommand = Union[
     AddFeaturesCommand,
     UpdateFeaturesCommand,
     DeleteFeaturesCommand,
     SetFeatureCollectionCommand,
+    SetViewportCommand,
+    SetSelectionCommand,
     ShowTextCommand,
     ShowDataCommand,
     ShowImageCommand,

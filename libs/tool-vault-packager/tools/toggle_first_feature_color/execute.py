@@ -3,7 +3,7 @@
 import copy
 from typing import Dict, Any
 from pydantic import BaseModel, Field, ValidationError
-from debrief.types import DebriefFeatureCollection
+from debrief.types.features import DebriefFeatureCollection
 
 
 class ToggleFirstFeatureColorParameters(BaseModel):

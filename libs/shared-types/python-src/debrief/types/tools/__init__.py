@@ -30,6 +30,8 @@ from .commands import (
     UpdateFeaturesCommand,
     DeleteFeaturesCommand,
     SetFeatureCollectionCommand,
+    SetViewportCommand,
+    SetSelectionCommand,
     ShowTextCommand,
     ShowDataCommand,
     ShowImageCommand,
@@ -37,69 +39,63 @@ from .commands import (
     LogLevel,
     LogMessagePayload,
     SpecificCommand,
-    # Factory functions
-    show_text,
-    show_data,
-    add_features,
-    update_features,
-    delete_features,
-    set_feature_collection,
-    show_image,
-    log_message,
-    composite,
 )
 
 __all__ = [
-    "JSONSchema",
-    "JSONSchemaProperty",
-    "JSONSchemaType",
+    # Core tool types
     "Tool",
     "ToolCallRequest",
     "ToolArgument",
     "ToolCallResponse",
     "ToolVaultCommand",
     "CommandType",
+    "ToolListResponse",
+
+    # Media and display types
     "MediaType",
     "DataAxis",
     "ShowDataPayload",
     "ShowImagePayload",
-    "CompositeCommand",
-    "ToolListResponse",
+
+    # Schema types
+    "JSONSchema",
+    "JSONSchemaProperty",
+    "JSONSchemaType",
+
+    # Constraint types
     "GeometryConstrainedFeature",
     "GeometryType",
     "DataType",
+
+    # Metadata and indexing
     "ToolFileReference",
     "SampleInputReference",
-    "GitHistoryEntry",
-    "GitAuthor",
-    "GitHistory",
+    "ToolMetadataModel",
+    "SampleInputData",
     "ToolStatsModel",
     "ToolIndexModel",
     "ToolFilesCollection",
     "GlobalToolIndexModel",
     "PackageInfo",
-    "ToolMetadataModel",
-    "SampleInputData",
-    # Typed commands
+
+    # Git history
+    "GitHistoryEntry",
+    "GitAuthor",
+    "GitHistory",
+
+    # Command types
     "AddFeaturesCommand",
     "UpdateFeaturesCommand",
     "DeleteFeaturesCommand",
     "SetFeatureCollectionCommand",
+    "SetViewportCommand",
+    "SetSelectionCommand",
     "ShowTextCommand",
     "ShowDataCommand",
     "ShowImageCommand",
     "LogMessageCommand",
     "LogLevel",
     "LogMessagePayload",
+    "CompositeCommand",
     "SpecificCommand",
-    # Command factory functions
-    "show_text",
-    "show_data",
-    "add_features",
-    "update_features",
-    "delete_features",
-    "set_feature_collection",
-    "show_image",
-    "log_message",
-    "composite",
 ]

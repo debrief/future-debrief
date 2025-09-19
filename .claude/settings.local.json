@@ -173,7 +173,8 @@
       "Bash(open http://localhost:5173)",
       "Bash(for:*)",
       "Bash(do echo \"=== $file ===\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(pip uninstall:*)"
     ]
   }
 }

@@ -20,7 +20,7 @@ YELLOW := \033[33m
 RED := \033[31m
 RESET := \033[0m
 
-.PHONY: help clean build build-dist generate test dev force-generate generate-schemas generate-typescript copy-typescript
+.PHONY: help clean build build-dist generate test dev force-generate generate-schemas generate-typescript copy-typescript copy-to-tool-vault-packager
 
 # Default target
 help: ## Show this help message
@@ -105,10 +105,22 @@ $(PYTHON_WHEEL): $(PYDANTIC_FILES) pyproject.toml setup.py
 	@mkdir -p dist/python && python -m build --wheel --outdir dist/python
 	@echo "$(GREEN)✓ Python wheel build complete$(RESET)"
 
-build: generate $(COMPILED_TS) $(PYTHON_WHEEL) ## Build TypeScript and Python wheel (conditional)
+copy-to-tool-vault-packager: ## Copy shared-types to tool-vault-packager directory
+	@echo "$(BLUE)Copying to tool-vault-packager...$(RESET)"
+	@if [ -d "../tool-vault-packager" ]; then \
+		echo "$(BLUE)Found tool-vault-packager, updating shared-types copy...$(RESET)"; \
+		rm -rf ../tool-vault-packager/shared-types; \
+		mkdir -p ../tool-vault-packager/shared-types; \
+		cp -r . ../tool-vault-packager/shared-types/; \
+		echo "$(GREEN)✓ Copied shared-types to tool-vault-packager$(RESET)"; \
+	else \
+		echo "$(YELLOW)⚠ tool-vault-packager not found, skipping copy$(RESET)"; \
+	fi
+
+build: generate $(COMPILED_TS) $(PYTHON_WHEEL) copy-to-tool-vault-packager ## Build TypeScript and Python wheel (conditional)
 	@echo "$(GREEN)✓ Build complete$(RESET)"
 
-build-dist: generate $(COMPILED_TS) $(PYTHON_WHEEL) ## Generate all assets and build distribution artifacts (CI safe)
+build-dist: generate $(COMPILED_TS) $(PYTHON_WHEEL) copy-to-tool-vault-packager ## Generate all assets and build distribution artifacts (CI safe)
 	@echo "$(GREEN)✓ Distribution build complete$(RESET)"
 
 test: ## Run tests
