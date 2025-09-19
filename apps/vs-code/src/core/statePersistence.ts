@@ -194,7 +194,9 @@ export class StatePersistence {
             // Create final FeatureCollection
             const finalFeatureCollection: GeoJSONFeatureCollection = {
                 ...currentState.featureCollection,
-                features: allFeatures
+                type: "FeatureCollection",
+                features: allFeatures,
+                bbox: currentState.featureCollection.bbox || undefined
             };
             
             // Update document content
