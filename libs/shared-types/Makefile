@@ -134,13 +134,24 @@ copy-to-tool-vault-packager: ## Copy Python sources and required TypeScript type
 	@if [ -d "../tool-vault-packager" ]; then \
 		echo "$(BLUE)Found tool-vault-packager, updating sources...$(RESET)"; \
 		rm -rf ../tool-vault-packager/shared-types; \
-		mkdir -p ../tool-vault-packager/shared-types; \
+		mkdir -p ../tool-vault-packager/shared-types/src; \
 		cp -r python-src ../tool-vault-packager/shared-types/; \
 		cp pyproject.toml setup.py ../tool-vault-packager/shared-types/ 2>/dev/null || true; \
 		if [ -d "src/types" ]; then \
-			cp -r src/types ../tool-vault-packager/shared-types/; \
+			cp -r src/types ../tool-vault-packager/shared-types/src/; \
 			echo "$(BLUE)  Copied TypeScript types for SPA$(RESET)"; \
 		fi; \
+		if [ -f "src/index.ts" ]; then \
+			cp src/index.ts ../tool-vault-packager/shared-types/src/; \
+			echo "$(BLUE)  Copied TypeScript index file$(RESET)"; \
+		fi; \
+		echo '{' > ../tool-vault-packager/shared-types/package.json; \
+		echo '  "name": "@debrief/shared-types",' >> ../tool-vault-packager/shared-types/package.json; \
+		echo '  "version": "1.0.0",' >> ../tool-vault-packager/shared-types/package.json; \
+		echo '  "description": "Shared types for Debrief maritime analysis platform",' >> ../tool-vault-packager/shared-types/package.json; \
+		echo '  "main": "src/index.ts",' >> ../tool-vault-packager/shared-types/package.json; \
+		echo '  "types": "src/index.ts"' >> ../tool-vault-packager/shared-types/package.json; \
+		echo '}' >> ../tool-vault-packager/shared-types/package.json; \
 		echo "$(GREEN)✓ Copied sources to tool-vault-packager (Python: $(shell du -sh python-src | cut -f1), TypeScript: $(shell test -d src/types && du -sh src/types | cut -f1 || echo 'N/A'))$(RESET)"; \
 	else \
 		echo "$(YELLOW)⚠ tool-vault-packager not found, skipping copy$(RESET)"; \
