@@ -3,8 +3,17 @@
 
 # File pattern definitions
 PYDANTIC_FILES := $(shell find python-src/debrief/types -name "*.py" -type f 2>/dev/null || true)
-SCHEMA_FILES := $(shell find derived/json-schema -name "*.schema.json" -type f 2>/dev/null || true)
-TS_FILES := $(patsubst derived/json-schema/%.schema.json,derived/typescript/%.ts,$(SCHEMA_FILES))
+# Define expected schema files based on known structure (avoid shell dependency issues)
+EXPECTED_SCHEMAS := derived/json-schema/features/track.schema.json \
+                   derived/json-schema/features/point.schema.json \
+                   derived/json-schema/features/annotation.schema.json \
+                   derived/json-schema/features/debrief_feature_collection.schema.json \
+                   derived/json-schema/states/time_state.schema.json \
+                   derived/json-schema/states/viewport_state.schema.json \
+                   derived/json-schema/states/selection_state.schema.json \
+                   derived/json-schema/states/editor_state.schema.json \
+                   derived/json-schema/states/current_state.schema.json
+TS_FILES := $(patsubst derived/json-schema/%.schema.json,derived/typescript/%.ts,$(EXPECTED_SCHEMAS))
 COPIED_TS_FILES := $(patsubst derived/typescript/%.ts,src/types/%.ts,$(TS_FILES))
 PYTHON_MODEL_FILES := $(wildcard python-src/debrief/types/*/*.py)
 COMPILED_TS := dist/src/index.js dist/src/index.d.ts
@@ -35,23 +44,42 @@ clean: ## Clean all generated files
 	@rm -rf derived/ dist/ src/types/ 2>/dev/null || true
 	@echo "$(GREEN)✓ Clean complete$(RESET)"
 
-# JSON Schema generation from Pydantic models
-derived/json-schema/%.schema.json: $(PYDANTIC_FILES) generate_schemas.py
+# JSON Schema generation from Pydantic models - triggered by any Pydantic file change
+derived/json-schema/.schemas-generated: $(PYDANTIC_FILES) generate_schemas.py
 	@echo "$(BLUE)Generating JSON schemas from Pydantic models...$(RESET)"
 	@python3 generate_schemas.py
+	@touch derived/json-schema/.schemas-generated
 	@echo "$(GREEN)✓ JSON Schema generation complete$(RESET)"
 
 # TypeScript generation from JSON schemas (preserving directory structure)
-derived/typescript/%.ts: derived/json-schema/%.schema.json
-	@echo "$(BLUE)Generating TypeScript (1) for $<...$(RESET)"
-	@mkdir -p $(dir $@)
-	@NODE_NO_WARNINGS=1 npx json-schema-to-typescript "$<" --output "$@"
+$(TS_FILES): derived/json-schema/.schemas-generated
+	@echo "$(BLUE)Generating TypeScript files from schemas...$(RESET)"
+	@for schema in $(EXPECTED_SCHEMAS); do \
+		if [ -f "$$schema" ]; then \
+			ts_file=$$(echo "$$schema" | sed 's|derived/json-schema/|derived/typescript/|' | sed 's|\.schema\.json|.ts|'); \
+			mkdir -p "$$(dirname "$$ts_file")"; \
+			if [ ! -f "$$ts_file" ] || [ "$$schema" -nt "$$ts_file" ]; then \
+				echo "$(BLUE)  Generating $$ts_file...$(RESET)"; \
+				NODE_NO_WARNINGS=1 npx json-schema-to-typescript "$$schema" --output "$$ts_file"; \
+			fi; \
+		fi; \
+	done
+	@touch $(TS_FILES)
 
 # Copy TypeScript files to src/types for compatibility (preserving directory structure)
-src/types/%.ts: derived/typescript/%.ts
-	@echo "$(BLUE)Copying $< to src/types/$(RESET)"
-	@mkdir -p $(dir $@)
-	@cp "$<" "$@"
+$(COPIED_TS_FILES): $(TS_FILES)
+	@echo "$(BLUE)Copying TypeScript files to src/types/$(RESET)"
+	@for ts_file in $(TS_FILES); do \
+		if [ -f "$$ts_file" ]; then \
+			dest_file=$$(echo "$$ts_file" | sed 's|derived/typescript/|src/types/|'); \
+			mkdir -p "$$(dirname "$$dest_file")"; \
+			if [ ! -f "$$dest_file" ] || [ "$$ts_file" -nt "$$dest_file" ]; then \
+				echo "$(BLUE)  Copying $$ts_file...$(RESET)"; \
+				cp "$$ts_file" "$$dest_file"; \
+			fi; \
+		fi; \
+	done
+	@touch $(COPIED_TS_FILES)
 
 
 # Convenience targets
@@ -64,11 +92,7 @@ generate-typescript: $(TS_FILES) ## Generate all TypeScript files
 
 copy-typescript: $(COPIED_TS_FILES) ## Copy TypeScript files to src/types
 
-generate: generate-schemas ## Generate all types and copy files
-	@echo "$(BLUE)Generating TypeScript (2) files...$(RESET)"
-	@$(MAKE) generate-typescript
-	@echo "$(BLUE)Copying TypeScript files...$(RESET)"
-	@$(MAKE) copy-typescript-force
+generate: derived/json-schema/.schemas-generated $(COPIED_TS_FILES) ## Generate all types and copy files (conditional)
 	@echo "$(GREEN)✓ All type generation complete$(RESET)"
 
 generate-typescript-force: ## Force TypeScript generation after schemas exist
