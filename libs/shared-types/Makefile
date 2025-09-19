@@ -129,15 +129,19 @@ $(PYTHON_WHEEL): $(PYDANTIC_FILES) pyproject.toml setup.py
 	@mkdir -p dist/python && python -m build --wheel --outdir dist/python
 	@echo "$(GREEN)✓ Python wheel build complete$(RESET)"
 
-copy-to-tool-vault-packager: ## Copy Python sources to tool-vault-packager directory
-	@echo "$(BLUE)Copying Python sources to tool-vault-packager...$(RESET)"
+copy-to-tool-vault-packager: ## Copy Python sources and required TypeScript types to tool-vault-packager
+	@echo "$(BLUE)Copying sources to tool-vault-packager...$(RESET)"
 	@if [ -d "../tool-vault-packager" ]; then \
-		echo "$(BLUE)Found tool-vault-packager, updating Python sources...$(RESET)"; \
+		echo "$(BLUE)Found tool-vault-packager, updating sources...$(RESET)"; \
 		rm -rf ../tool-vault-packager/shared-types; \
 		mkdir -p ../tool-vault-packager/shared-types; \
 		cp -r python-src ../tool-vault-packager/shared-types/; \
 		cp pyproject.toml setup.py ../tool-vault-packager/shared-types/ 2>/dev/null || true; \
-		echo "$(GREEN)✓ Copied Python sources to tool-vault-packager ($(shell du -sh python-src | cut -f1))$(RESET)"; \
+		if [ -d "src/types" ]; then \
+			cp -r src/types ../tool-vault-packager/shared-types/; \
+			echo "$(BLUE)  Copied TypeScript types for SPA$(RESET)"; \
+		fi; \
+		echo "$(GREEN)✓ Copied sources to tool-vault-packager (Python: $(shell du -sh python-src | cut -f1), TypeScript: $(shell test -d src/types && du -sh src/types | cut -f1 || echo 'N/A'))$(RESET)"; \
 	else \
 		echo "$(YELLOW)⚠ tool-vault-packager not found, skipping copy$(RESET)"; \
 	fi

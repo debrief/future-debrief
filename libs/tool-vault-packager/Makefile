@@ -14,7 +14,7 @@ NEWEST_PYTHON := $(shell ls -t $(PYTHON_FILES) 2>/dev/null | head -1)
 NEWEST_SPA := $(shell ls -t $(SPA_FILES) 2>/dev/null | head -1)
 
 # Build artifacts that should exist
-REQUIRED_FILES := dist/toolvault.pyz shared-types/python-src spa/dist/index.html
+REQUIRED_FILES := dist/toolvault.pyz shared-types/python-src shared-types/src spa/dist/index.html
 REQUIRED_DIRS := spa/node_modules node_modules
 
 .PHONY: help verify verify-artifacts verify-tests verify-typecheck
@@ -35,7 +35,11 @@ verify-tests: ## Run basic validation tests
 	@echo "$(BLUE)🧪 Running basic tests...$(RESET)"
 	@npm test > /dev/null 2>&1 && echo "$(GREEN)✅ Tests passed$(RESET)" || (echo "$(RED)❌ Tests failed$(RESET)" && exit 1)
 
-# Check required files exist
+# Check required files exist and are up-to-date
+spa/dist/index.html: $(SPA_FILES)
+dist/toolvault.pyz: $(PYTHON_FILES) $(SPA_FILES)
+shared-types/python-src:
+
 $(REQUIRED_FILES):
 	@if [ ! -f "$@" ]; then \
 		echo "$(RED)❌ [tool-vault-packager] Missing build artifact: $@$(RESET)"; \
@@ -46,6 +50,21 @@ $(REQUIRED_FILES):
 		elif [[ "$@" == *"spa/dist"* ]]; then \
 			echo "$(BLUE)💡 Run: npm run build:spa$(RESET)"; \
 		fi; \
+		exit 1; \
+	elif [[ "$@" == *"spa/dist"* ]] && [[ -n "$(NEWEST_SPA)" ]] && [[ "$@" -ot "$(NEWEST_SPA)" ]]; then \
+		echo "$(RED)❌ [tool-vault-packager] $@ is older than SPA source files$(RESET)"; \
+		echo "$(BLUE)💡 Newest source: $(NEWEST_SPA)$(RESET)"; \
+		echo "$(BLUE)💡 Run: npm run build:spa$(RESET)"; \
+		exit 1; \
+	elif [[ "$@" == *".pyz" ]] && [[ -n "$(NEWEST_PYTHON)" ]] && [[ "$@" -ot "$(NEWEST_PYTHON)" ]]; then \
+		echo "$(RED)❌ [tool-vault-packager] $@ is older than Python source files$(RESET)"; \
+		echo "$(BLUE)💡 Newest source: $(NEWEST_PYTHON)$(RESET)"; \
+		echo "$(BLUE)💡 Run: npm run build$(RESET)"; \
+		exit 1; \
+	elif [[ "$@" == *".pyz" ]] && [[ -n "$(NEWEST_SPA)" ]] && [[ "$@" -ot "$(NEWEST_SPA)" ]]; then \
+		echo "$(RED)❌ [tool-vault-packager] $@ is older than SPA source files$(RESET)"; \
+		echo "$(BLUE)💡 Newest source: $(NEWEST_SPA)$(RESET)"; \
+		echo "$(BLUE)💡 Run: npm run build$(RESET)"; \
 		exit 1; \
 	fi
 
