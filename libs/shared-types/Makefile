@@ -12,7 +12,36 @@ EXPECTED_SCHEMAS := derived/json-schema/features/track.schema.json \
                    derived/json-schema/states/viewport_state.schema.json \
                    derived/json-schema/states/selection_state.schema.json \
                    derived/json-schema/states/editor_state.schema.json \
-                   derived/json-schema/states/current_state.schema.json
+                   derived/json-schema/states/current_state.schema.json \
+                   derived/json-schema/tools/json_schema.schema.json \
+                   derived/json-schema/tools/tool.schema.json \
+                   derived/json-schema/tools/tool_call_request.schema.json \
+                   derived/json-schema/tools/tool_call_response.schema.json \
+                   derived/json-schema/tools/tool_list_response.schema.json \
+                   derived/json-schema/tools/constrained_feature.schema.json \
+                   derived/json-schema/tools/tool_file_reference.schema.json \
+                   derived/json-schema/tools/sample_input_reference.schema.json \
+                   derived/json-schema/tools/git_history_entry.schema.json \
+                   derived/json-schema/tools/git_author.schema.json \
+                   derived/json-schema/tools/git_history.schema.json \
+                   derived/json-schema/tools/tool_stats.schema.json \
+                   derived/json-schema/tools/tool_index.schema.json \
+                   derived/json-schema/tools/tool_files_collection.schema.json \
+                   derived/json-schema/tools/global_tool_index.schema.json \
+                   derived/json-schema/tools/package_info.schema.json \
+                   derived/json-schema/tools/tool_metadata.schema.json \
+                   derived/json-schema/tools/sample_input_data.schema.json \
+                   derived/json-schema/tools/add_features_command.schema.json \
+                   derived/json-schema/tools/update_features_command.schema.json \
+                   derived/json-schema/tools/delete_features_command.schema.json \
+                   derived/json-schema/tools/set_feature_collection_command.schema.json \
+                   derived/json-schema/tools/set_viewport_command.schema.json \
+                   derived/json-schema/tools/set_selection_command.schema.json \
+                   derived/json-schema/tools/show_text_command.schema.json \
+                   derived/json-schema/tools/show_data_command.schema.json \
+                   derived/json-schema/tools/show_image_command.schema.json \
+                   derived/json-schema/tools/log_message_command.schema.json \
+                   derived/json-schema/tools/log_message_payload.schema.json
 TS_FILES := $(patsubst derived/json-schema/%.schema.json,derived/typescript/%.ts,$(EXPECTED_SCHEMAS))
 COPIED_TS_FILES := $(patsubst derived/typescript/%.ts,src/types/%.ts,$(TS_FILES))
 PYTHON_MODEL_FILES := $(wildcard python-src/debrief/types/*/*.py)
