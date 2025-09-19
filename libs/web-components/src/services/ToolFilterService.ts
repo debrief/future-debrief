@@ -1,6 +1,6 @@
 import type { DebriefFeature } from '@debrief/shared-types';
-import type { ToolIndexModel } from '@debrief/shared-types/src/types/ToolIndexModel';
-import type { Tool } from '@debrief/shared-types/src/types/Tool';
+import type { ToolIndexModel } from '@debrief/shared-types/src/types/tools/tool_index';
+import type { Tool } from '@debrief/shared-types/src/types/tools/tool';
 
 /**
  * Result interface for the getApplicableTools method

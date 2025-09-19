@@ -17,13 +17,11 @@ const execAsync = promisify(exec);
  * 5. Provides user notifications and error handling
  */
 export class PythonWheelInstaller {
-    private readonly extensionContext: vscode.ExtensionContext;
     private readonly bundledWheelPath: string | null;
     private readonly packageName = 'debrief-types';
     private readonly packageVersion: string;
 
     constructor(context: vscode.ExtensionContext) {
-        this.extensionContext = context;
         this.bundledWheelPath = this.findBundledWheelFile(context.extensionPath);
         this.packageVersion = this.bundledWheelPath ? this.extractVersionFromWheelName() : '1.0.0';
     }
@@ -185,7 +183,7 @@ export class PythonWheelInstaller {
             const installCommand = strategies[i];
             
             try {
-                const { stdout, stderr } = await execAsync(installCommand);
+                await execAsync(installCommand);
                 return; // Success, exit the function
             } catch (error) {
                 lastError = error instanceof Error ? error : new Error(String(error));
@@ -232,22 +230,6 @@ export class PythonWheelInstaller {
         }
     }
 
-    /**
-     * List contents of python directory for debugging.
-     */
-    private listPythonDirectory(): void {
-        try {
-            const pythonDir = path.join(this.extensionContext.extensionPath, 'python');
-            if (fs.existsSync(pythonDir)) {
-                const files = fs.readdirSync(pythonDir);
-                console.warn('Python directory contents:', files);
-            } else {
-                console.warn('Python directory does not exist');
-            }
-        } catch (error) {
-            console.warn('Error listing python directory:', error);
-        }
-    }
 
     /**
      * Extract version from wheel filename.

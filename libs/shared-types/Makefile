@@ -3,8 +3,46 @@
 
 # File pattern definitions
 PYDANTIC_FILES := $(shell find python-src/debrief/types -name "*.py" -type f 2>/dev/null || true)
-SCHEMA_FILES := $(shell find derived/json-schema -name "*.schema.json" -type f 2>/dev/null || true)
-TS_FILES := $(patsubst derived/json-schema/%.schema.json,derived/typescript/%.ts,$(SCHEMA_FILES))
+# Define expected schema files based on known structure (avoid shell dependency issues)
+EXPECTED_SCHEMAS := derived/json-schema/features/track.schema.json \
+                   derived/json-schema/features/point.schema.json \
+                   derived/json-schema/features/annotation.schema.json \
+                   derived/json-schema/features/debrief_feature_collection.schema.json \
+                   derived/json-schema/states/time_state.schema.json \
+                   derived/json-schema/states/viewport_state.schema.json \
+                   derived/json-schema/states/selection_state.schema.json \
+                   derived/json-schema/states/editor_state.schema.json \
+                   derived/json-schema/states/current_state.schema.json \
+                   derived/json-schema/tools/json_schema.schema.json \
+                   derived/json-schema/tools/tool.schema.json \
+                   derived/json-schema/tools/tool_call_request.schema.json \
+                   derived/json-schema/tools/tool_call_response.schema.json \
+                   derived/json-schema/tools/tool_list_response.schema.json \
+                   derived/json-schema/tools/constrained_feature.schema.json \
+                   derived/json-schema/tools/tool_file_reference.schema.json \
+                   derived/json-schema/tools/sample_input_reference.schema.json \
+                   derived/json-schema/tools/git_history_entry.schema.json \
+                   derived/json-schema/tools/git_author.schema.json \
+                   derived/json-schema/tools/git_history.schema.json \
+                   derived/json-schema/tools/tool_stats.schema.json \
+                   derived/json-schema/tools/tool_index.schema.json \
+                   derived/json-schema/tools/tool_files_collection.schema.json \
+                   derived/json-schema/tools/global_tool_index.schema.json \
+                   derived/json-schema/tools/package_info.schema.json \
+                   derived/json-schema/tools/tool_metadata.schema.json \
+                   derived/json-schema/tools/sample_input_data.schema.json \
+                   derived/json-schema/tools/add_features_command.schema.json \
+                   derived/json-schema/tools/update_features_command.schema.json \
+                   derived/json-schema/tools/delete_features_command.schema.json \
+                   derived/json-schema/tools/set_feature_collection_command.schema.json \
+                   derived/json-schema/tools/set_viewport_command.schema.json \
+                   derived/json-schema/tools/set_selection_command.schema.json \
+                   derived/json-schema/tools/show_text_command.schema.json \
+                   derived/json-schema/tools/show_data_command.schema.json \
+                   derived/json-schema/tools/show_image_command.schema.json \
+                   derived/json-schema/tools/log_message_command.schema.json \
+                   derived/json-schema/tools/log_message_payload.schema.json
+TS_FILES := $(patsubst derived/json-schema/%.schema.json,derived/typescript/%.ts,$(EXPECTED_SCHEMAS))
 COPIED_TS_FILES := $(patsubst derived/typescript/%.ts,src/types/%.ts,$(TS_FILES))
 PYTHON_MODEL_FILES := $(wildcard python-src/debrief/types/*/*.py)
 COMPILED_TS := dist/src/index.js dist/src/index.d.ts
@@ -20,7 +58,7 @@ YELLOW := \033[33m
 RED := \033[31m
 RESET := \033[0m
 
-.PHONY: help clean build build-dist generate test dev force-generate generate-schemas generate-typescript copy-typescript copy-to-tool-vault-packager
+.PHONY: help clean build build-dist generate test dev force-generate generate-schemas generate-typescript copy-typescript copy-to-tool-vault-packager verify verify-artifacts verify-tests verify-typecheck
 
 # Default target
 help: ## Show this help message
@@ -35,23 +73,42 @@ clean: ## Clean all generated files
 	@rm -rf derived/ dist/ src/types/ 2>/dev/null || true
 	@echo "$(GREEN)✓ Clean complete$(RESET)"
 
-# JSON Schema generation from Pydantic models
-derived/json-schema/%.schema.json: $(PYDANTIC_FILES) generate_schemas.py
+# JSON Schema generation from Pydantic models - triggered by any Pydantic file change
+derived/json-schema/.schemas-generated: $(PYDANTIC_FILES) generate_schemas.py
 	@echo "$(BLUE)Generating JSON schemas from Pydantic models...$(RESET)"
 	@python3 generate_schemas.py
+	@touch derived/json-schema/.schemas-generated
 	@echo "$(GREEN)✓ JSON Schema generation complete$(RESET)"
 
 # TypeScript generation from JSON schemas (preserving directory structure)
-derived/typescript/%.ts: derived/json-schema/%.schema.json
-	@echo "$(BLUE)Generating TypeScript (1) for $<...$(RESET)"
-	@mkdir -p $(dir $@)
-	@NODE_NO_WARNINGS=1 npx json-schema-to-typescript "$<" --output "$@"
+$(TS_FILES): derived/json-schema/.schemas-generated
+	@echo "$(BLUE)Generating TypeScript files from schemas...$(RESET)"
+	@for schema in $(EXPECTED_SCHEMAS); do \
+		if [ -f "$$schema" ]; then \
+			ts_file=$$(echo "$$schema" | sed 's|derived/json-schema/|derived/typescript/|' | sed 's|\.schema\.json|.ts|'); \
+			mkdir -p "$$(dirname "$$ts_file")"; \
+			if [ ! -f "$$ts_file" ] || [ "$$schema" -nt "$$ts_file" ]; then \
+				echo "$(BLUE)  Generating $$ts_file...$(RESET)"; \
+				NODE_NO_WARNINGS=1 npx json-schema-to-typescript "$$schema" --output "$$ts_file"; \
+			fi; \
+		fi; \
+	done
+	@touch $(TS_FILES)
 
 # Copy TypeScript files to src/types for compatibility (preserving directory structure)
-src/types/%.ts: derived/typescript/%.ts
-	@echo "$(BLUE)Copying $< to src/types/$(RESET)"
-	@mkdir -p $(dir $@)
-	@cp "$<" "$@"
+$(COPIED_TS_FILES): $(TS_FILES)
+	@echo "$(BLUE)Copying TypeScript files to src/types/$(RESET)"
+	@for ts_file in $(TS_FILES); do \
+		if [ -f "$$ts_file" ]; then \
+			dest_file=$$(echo "$$ts_file" | sed 's|derived/typescript/|src/types/|'); \
+			mkdir -p "$$(dirname "$$dest_file")"; \
+			if [ ! -f "$$dest_file" ] || [ "$$ts_file" -nt "$$dest_file" ]; then \
+				echo "$(BLUE)  Copying $$ts_file...$(RESET)"; \
+				cp "$$ts_file" "$$dest_file"; \
+			fi; \
+		fi; \
+	done
+	@touch $(COPIED_TS_FILES)
 
 
 # Convenience targets
@@ -64,11 +121,7 @@ generate-typescript: $(TS_FILES) ## Generate all TypeScript files
 
 copy-typescript: $(COPIED_TS_FILES) ## Copy TypeScript files to src/types
 
-generate: generate-schemas ## Generate all types and copy files
-	@echo "$(BLUE)Generating TypeScript (2) files...$(RESET)"
-	@$(MAKE) generate-typescript
-	@echo "$(BLUE)Copying TypeScript files...$(RESET)"
-	@$(MAKE) copy-typescript-force
+generate: derived/json-schema/.schemas-generated $(COPIED_TS_FILES) ## Generate all types and copy files (conditional)
 	@echo "$(GREEN)✓ All type generation complete$(RESET)"
 
 generate-typescript-force: ## Force TypeScript generation after schemas exist
@@ -105,14 +158,30 @@ $(PYTHON_WHEEL): $(PYDANTIC_FILES) pyproject.toml setup.py
 	@mkdir -p dist/python && python -m build --wheel --outdir dist/python
 	@echo "$(GREEN)✓ Python wheel build complete$(RESET)"
 
-copy-to-tool-vault-packager: ## Copy shared-types to tool-vault-packager directory
-	@echo "$(BLUE)Copying to tool-vault-packager...$(RESET)"
+copy-to-tool-vault-packager: ## Copy Python sources and required TypeScript types to tool-vault-packager
+	@echo "$(BLUE)Copying sources to tool-vault-packager...$(RESET)"
 	@if [ -d "../tool-vault-packager" ]; then \
-		echo "$(BLUE)Found tool-vault-packager, updating shared-types copy...$(RESET)"; \
+		echo "$(BLUE)Found tool-vault-packager, updating sources...$(RESET)"; \
 		rm -rf ../tool-vault-packager/shared-types; \
-		mkdir -p ../tool-vault-packager/shared-types; \
-		cp -r . ../tool-vault-packager/shared-types/; \
-		echo "$(GREEN)✓ Copied shared-types to tool-vault-packager$(RESET)"; \
+		mkdir -p ../tool-vault-packager/shared-types/src; \
+		cp -r python-src ../tool-vault-packager/shared-types/; \
+		cp pyproject.toml setup.py ../tool-vault-packager/shared-types/ 2>/dev/null || true; \
+		if [ -d "src/types" ]; then \
+			cp -r src/types ../tool-vault-packager/shared-types/src/; \
+			echo "$(BLUE)  Copied TypeScript types for SPA$(RESET)"; \
+		fi; \
+		if [ -f "src/index.ts" ]; then \
+			cp src/index.ts ../tool-vault-packager/shared-types/src/; \
+			echo "$(BLUE)  Copied TypeScript index file$(RESET)"; \
+		fi; \
+		echo '{' > ../tool-vault-packager/shared-types/package.json; \
+		echo '  "name": "@debrief/shared-types",' >> ../tool-vault-packager/shared-types/package.json; \
+		echo '  "version": "1.0.0",' >> ../tool-vault-packager/shared-types/package.json; \
+		echo '  "description": "Shared types for Debrief maritime analysis platform",' >> ../tool-vault-packager/shared-types/package.json; \
+		echo '  "main": "src/index.ts",' >> ../tool-vault-packager/shared-types/package.json; \
+		echo '  "types": "src/index.ts"' >> ../tool-vault-packager/shared-types/package.json; \
+		echo '}' >> ../tool-vault-packager/shared-types/package.json; \
+		echo "$(GREEN)✓ Copied sources to tool-vault-packager (Python: $(shell du -sh python-src | cut -f1), TypeScript: $(shell test -d src/types && du -sh src/types | cut -f1 || echo 'N/A'))$(RESET)"; \
 	else \
 		echo "$(YELLOW)⚠ tool-vault-packager not found, skipping copy$(RESET)"; \
 	fi
@@ -131,3 +200,51 @@ test: ## Run tests
 dev: ## Watch mode for development
 	@echo "$(BLUE)Starting development watch mode...$(RESET)"
 	@NODE_NO_WARNINGS=1 npx concurrently "npx nodemon --watch python-src/debrief/types --ext 'py' --exec 'python3 generate_schemas.py'" "NODE_NO_WARNINGS=1 npx tsc --watch --preserveWatchOutput"
+
+verify: verify-artifacts verify-tests verify-typecheck verify-contents ## Fast verification (timestamp-based)
+	@echo "$(GREEN)✅ All shared-types verifications passed!$(RESET)"
+
+verify-artifacts: ## Verify build artifacts are up-to-date
+	@echo "$(BLUE)Checking build artifacts...$(RESET)"
+	@NEWEST_PY=$$(find python-src/debrief/types -name "*.py" -type f -exec stat -f "%m %N" {} \; 2>/dev/null | sort -nr | head -1 | cut -d' ' -f2-); \
+	if [ -z "$$NEWEST_PY" ]; then \
+		echo "$(RED)❌ [@debrief/shared-types] No Pydantic source files found$(RESET)"; \
+		exit 1; \
+	fi; \
+	for file in derived/json-schema/features/track.schema.json src/types/features/track.ts dist/src/index.js; do \
+		if [ ! -f "$$file" ]; then \
+			echo "$(RED)❌ [@debrief/shared-types] Missing build artifact: $$file$(RESET)"; \
+			echo "$(BLUE)💡 Run: make generate$(RESET)"; \
+			exit 1; \
+		elif [ "$$file" -ot "$$NEWEST_PY" ]; then \
+			echo "$(RED)❌ [@debrief/shared-types] $$file is older than Pydantic sources$(RESET)"; \
+			echo "$(BLUE)💡 Source file: $$NEWEST_PY$(RESET)"; \
+			echo "$(BLUE)💡 Run: make generate$(RESET)"; \
+			exit 1; \
+		fi; \
+	done; \
+	echo "$(GREEN)✅ All build artifacts are up-to-date$(RESET)"
+
+verify-tests: ## Run tests without rebuilding
+	@echo "$(BLUE)Running tests...$(RESET)"
+	@node tests/typescript/test-generated-files.js > /dev/null 2>&1 && \
+	 python3 tests/python/test_generated_files.py > /dev/null 2>&1 && \
+	 echo "$(GREEN)✅ Tests passed$(RESET)" || (echo "$(RED)❌ Tests failed$(RESET)" && exit 1)
+
+verify-typecheck: ## Type check without compilation
+	@echo "$(BLUE)Type checking...$(RESET)"
+	@NODE_NO_WARNINGS=1 npx tsc --noEmit > /dev/null 2>&1 && echo "$(GREEN)✅ Type check passed$(RESET)" || (echo "$(RED)❌ Type check failed$(RESET)" && exit 1)
+
+verify-contents: ## Verify build artifact contents
+	@echo "$(BLUE)Verifying build artifact contents...$(RESET)"
+	@if [ -f "$(PYTHON_WHEEL)" ]; then \
+		if python -m zipfile -l "$(PYTHON_WHEEL)" | grep -q "debrief/types"; then \
+			echo "$(GREEN)✅ Python wheel contains expected modules$(RESET)"; \
+		else \
+			echo "$(RED)❌ [@debrief/shared-types] Python wheel missing debrief.types modules$(RESET)"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "$(RED)❌ [@debrief/shared-types] Python wheel not found$(RESET)"; \
+		exit 1; \
+	fi

@@ -54,7 +54,7 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
         // Subscribe to selection changes
         const selectionSubscription = this._globalController.on('selectionChanged', (data) => {
             if (data.editorId === this._currentEditorId) {
-                this._updateSelectedFeatureDisplay(data.editorId, data.state.selectionState);
+                this._updateSelectedFeatureDisplay(data.editorId, data.state.selectionState || undefined);
             }
         });
         this._disposables.push(selectionSubscription);
@@ -64,7 +64,7 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
             if (data.editorId === this._currentEditorId) {
                 // Re-display selected feature with updated data
                 const selectionState = data.state.selectionState;
-                this._updateSelectedFeatureDisplay(data.editorId, selectionState);
+                this._updateSelectedFeatureDisplay(data.editorId, selectionState || undefined);
             }
         });
         this._disposables.push(fcSubscription);
@@ -74,7 +74,7 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
             this._currentEditorId = data.currentEditorId;
             if (data.currentEditorId) {
                 const state = this._globalController.getEditorState(data.currentEditorId);
-                this._updateSelectedFeatureDisplay(data.currentEditorId, state.selectionState);
+                this._updateSelectedFeatureDisplay(data.currentEditorId, state.selectionState || undefined);
             } else {
                 this._clearFeatureDisplay();
             }
@@ -91,7 +91,7 @@ export class PropertiesViewProvider implements vscode.WebviewViewProvider {
     private _updateFromActiveEditor(): void {
         if (this._currentEditorId) {
             const state = this._globalController.getEditorState(this._currentEditorId);
-            this._updateSelectedFeatureDisplay(this._currentEditorId, state.selectionState);
+            this._updateSelectedFeatureDisplay(this._currentEditorId, state.selectionState || undefined);
         }
     }
 

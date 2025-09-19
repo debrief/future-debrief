@@ -4,9 +4,9 @@
   "description": "ToolVault packaging system for creating deployable .pyz files",
   "main": "cli.py",
   "scripts": {
-    "clean": "rm -rf dist && rm -rf tmp_package_contents && rm -rf shared-types",
+    "clean": "rm -rf dist && rm -rf tmp_package_contents",
     "build": "mkdir -p dist && python packager.py tools --output dist/toolvault.pyz",
-    "build:spa": "cd spa && npm install && npm run build",
+    "build:spa": "cd spa && npm install && npm run verify-deps && npm run build",
     "prebuild": "npm run clean && npm run build:spa",
     "serve": "python cli.py serve",
     "dev:spa": "cd spa && npm run dev",
@@ -17,7 +17,9 @@
     "test:playwright:debug": "playwright test --debug",
     "test:playwright:both": "node test-runner.js",
     "test:playwright:dev": "node test-runner.js dev",
-    "test:playwright:pyz": "node test-runner.js pyz"
+    "test:playwright:pyz": "node test-runner.js pyz",
+    "validate": "make verify",
+    "verify:shared-types": "test -f shared-types/src/index.ts || (echo '❌ shared-types structure invalid - run: cd ../shared-types && make copy-to-tool-vault-packager' && exit 1)"
   },
   "keywords": [
     "toolvault",

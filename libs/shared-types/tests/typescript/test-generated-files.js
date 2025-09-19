@@ -10,27 +10,27 @@ const path = require('path');
 const DERIVED_DIR = path.join(__dirname, '..', '..', 'src', 'types');
 
 const EXPECTED_FILES = [
-  'Track.ts',
-  'Point.ts',
-  'Annotation.ts',
-  'FeatureCollection.ts',
-  'TimeState.ts',
-  'ViewportState.ts',
-  'SelectionState.ts',
-  'EditorState.ts',
-  'CurrentState.ts'
+  'features/track.ts',
+  'features/point.ts',
+  'features/annotation.ts',
+  'features/debrief_feature_collection.ts',
+  'states/time_state.ts',
+  'states/viewport_state.ts',
+  'states/selection_state.ts',
+  'states/editor_state.ts',
+  'states/current_state.ts'
 ];
 
 const EXPECTED_EXPORTS = {
-  'Track.ts': ['DebriefTrackFeature'],
-  'Point.ts': ['DebriefPointFeature'],
-  'Annotation.ts': ['DebriefAnnotationFeature'],
-  'FeatureCollection.ts': ['DebriefFeatureCollection', 'DebriefTrackFeature', 'DebriefPointFeature', 'DebriefAnnotationFeature'],
-  'TimeState.ts': ['TimeState'],
-  'ViewportState.ts': ['ViewportState'],
-  'SelectionState.ts': ['SelectionState'],
-  'EditorState.ts': ['EditorState'],
-  'CurrentState.ts': ['CurrentState']
+  'features/track.ts': ['DebriefTrackFeature'],
+  'features/point.ts': ['DebriefPointFeature'],
+  'features/annotation.ts': ['DebriefAnnotationFeature'],
+  'features/debrief_feature_collection.ts': ['DebriefFeatureCollection', 'DebriefTrackFeature', 'DebriefPointFeature', 'DebriefAnnotationFeature'],
+  'states/time_state.ts': ['TimeState'],
+  'states/viewport_state.ts': ['ViewportState'],
+  'states/selection_state.ts': ['SelectionState'],
+  'states/editor_state.ts': ['EditorState'],
+  'states/current_state.ts': ['CurrentState']
 };
 
 function testFileExists(filename) {

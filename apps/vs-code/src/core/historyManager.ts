@@ -187,20 +187,20 @@ export class HistoryManager {
         try {
             // Update all state slices
             const updates: Partial<StateUpdatePayload> = {};
-            
-            if (state.featureCollection !== undefined) {
+
+            if (state.featureCollection !== undefined && state.featureCollection !== null) {
                 updates.featureCollection = state.featureCollection;
             }
-            
-            if (state.timeState !== undefined) {
+
+            if (state.timeState !== undefined && state.timeState !== null) {
                 updates.timeState = state.timeState;
             }
-            
-            if (state.viewportState !== undefined) {
+
+            if (state.viewportState !== undefined && state.viewportState !== null) {
                 updates.viewportState = state.viewportState;
             }
-            
-            if (state.selectionState !== undefined) {
+
+            if (state.selectionState !== undefined && state.selectionState !== null) {
                 updates.selectionState = state.selectionState;
             }
             

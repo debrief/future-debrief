@@ -7,7 +7,7 @@ from enum import Enum
 from geojson_pydantic import Feature, LineString, MultiLineString
 
 
-# Geometry types are now provided by geojson-pydantic
+# Geometry types are now provided by geojson-pydantic 
 # LineString and MultiLineString are imported from geojson_pydantic
 
 

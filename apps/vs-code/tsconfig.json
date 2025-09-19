@@ -13,7 +13,6 @@
     "noImplicitAny": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "types": ["node", "vscode"]
-  },
-  "exclude": ["src/**/*.test.ts"]
+    "types": ["node", "vscode", "jest"]
+  }
 }

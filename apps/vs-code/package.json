@@ -27,7 +27,8 @@
     "eslint": "eslint . --ext .ts,.tsx",
     "eslint:fix": "eslint . --ext .ts,.tsx --fix",
     "lint": "pnpm typecheck && pnpm eslint",
-    "test": "jest"
+    "test": "jest",
+    "validate": "make verify"
   },
   "engines": {
     "vscode": "^1.74.0"

@@ -6,8 +6,8 @@ import { WelcomePage } from './components/WelcomePage';
 import { ToolView } from './components/ToolView';
 import './App.css';
 
-function App() {
-  const [state, setState] = useState<AppState>({
+function App() { 
+  const [state, setState] = useState<AppState>({ 
     loading: true,
     error: null,
     tools: [],
