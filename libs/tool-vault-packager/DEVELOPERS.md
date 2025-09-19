@@ -501,18 +501,20 @@ The testing framework follows a "report and continue" strategy:
 - Fails packaging only if any tool tests fail (configurable)
 - Generates detailed reports with diff information for failures
 
-#### Baseline Generation
+#### Baseline Generation (Local Development Only)
+
+**IMPORTANT**: Baseline generation is a local development task only. CI systems expect existing baselines to be committed to the repository.
 
 Generate expected outputs for all tools:
 
 ```bash
-# Generate baselines for all tools
+# Generate baselines for all tools (LOCAL DEVELOPMENT ONLY)
 python -m testing.cli generate-baseline
 
-# Generate baseline for specific tool
+# Generate baseline for specific tool (LOCAL DEVELOPMENT ONLY)
 python -m testing.cli generate-baseline word_count
 
-# Use npm scripts
+# Use npm scripts (LOCAL DEVELOPMENT ONLY)
 npm run test:tools:baseline
 ```
 
@@ -574,13 +576,14 @@ The web interface includes interactive test mode:
 
 #### CI Integration
 
-GitHub Actions automatically run tool tests:
+GitHub Actions automatically run tool tests against committed baselines:
 
 ```yaml
 # CI/action/test-pyz/action.yml includes:
-- name: Generate tool baselines
-- name: Run tool regression tests
+- name: Run tool regression tests  # Uses existing baselines from repo
 ```
+
+**Note**: CI does not generate baselines - it only runs tests against existing baselines that should be committed to the repository during development.
 
 ### Unit Testing
 Tools can be tested individually:
@@ -607,11 +610,20 @@ curl -X POST http://localhost:8000/tools/call \
 
 ### Testing Best Practices
 
-1. **Generate baselines early**: Create baselines when tools work correctly
-2. **Review test failures**: Failed tests indicate real issues or intentional changes
-3. **Update baselines carefully**: Only update when behavior changes are intentional
-4. **Use test mode in SPA**: Interactive testing during development
-5. **Monitor CI results**: Automated testing catches regressions
+1. **Generate baselines early**: Create baselines when tools work correctly (local development only)
+2. **Commit baselines to repo**: Generated baselines must be committed for CI to use
+3. **Review test failures**: Failed tests indicate real issues or intentional changes
+4. **Update baselines carefully**: Only regenerate when behavior changes are intentional
+5. **Use test mode in SPA**: Interactive testing during development
+6. **Monitor CI results**: Automated testing catches regressions
+
+### Development Workflow
+
+1. **Tool Development**: Create or modify tools in `tools/` directory
+2. **Generate Baselines**: Run `python -m testing.cli generate-baseline` locally
+3. **Verify Tests**: Run `python -m testing.cli test` to ensure all pass
+4. **Commit Changes**: Commit both tool changes and updated baseline files
+5. **CI Validation**: CI runs tests against committed baselines automatically
 
 ## Future Development Phases
 

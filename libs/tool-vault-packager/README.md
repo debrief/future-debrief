@@ -57,13 +57,15 @@ curl -X POST http://localhost:8000/tools/call \
 
 ToolVault includes an automated testing framework that validates tools during packaging to catch issues before deployment.
 
-### Generate Test Baselines
+### Generate Test Baselines (Local Development)
+
+**Note**: Baseline generation is only done during local development. CI expects baselines to already exist in the repository.
 
 ```bash
-# Generate baselines for all tools
+# Generate baselines for all tools (LOCAL DEVELOPMENT ONLY)
 python -m testing.cli generate-baseline
 
-# Generate baseline for a specific tool
+# Generate baseline for a specific tool (LOCAL DEVELOPMENT ONLY)
 python -m testing.cli generate-baseline word_count
 ```
 
