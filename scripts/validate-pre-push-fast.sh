@@ -51,6 +51,8 @@ validate_package() {
             echo "🔧 To fix this issue, run:"
             if [[ "$package_name" == "shared-types" ]]; then
                 echo "   cd $package_dir && make generate"
+            elif [[ "$package_name" == "tool-vault-packager" ]]; then
+                echo "   cd $package_dir && npm run build"
             else
                 echo "   cd $package_dir && pnpm build"
             fi
@@ -76,6 +78,7 @@ main() {
     local packages=(
         "libs/shared-types:shared-types"
         "libs/web-components:web-components"
+        "libs/tool-vault-packager:tool-vault-packager"
         "apps/vs-code:vs-code"
     )
 

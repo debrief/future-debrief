@@ -129,14 +129,15 @@ $(PYTHON_WHEEL): $(PYDANTIC_FILES) pyproject.toml setup.py
 	@mkdir -p dist/python && python -m build --wheel --outdir dist/python
 	@echo "$(GREEN)✓ Python wheel build complete$(RESET)"
 
-copy-to-tool-vault-packager: ## Copy shared-types to tool-vault-packager directory
-	@echo "$(BLUE)Copying to tool-vault-packager...$(RESET)"
+copy-to-tool-vault-packager: ## Copy Python sources to tool-vault-packager directory
+	@echo "$(BLUE)Copying Python sources to tool-vault-packager...$(RESET)"
 	@if [ -d "../tool-vault-packager" ]; then \
-		echo "$(BLUE)Found tool-vault-packager, updating shared-types copy...$(RESET)"; \
+		echo "$(BLUE)Found tool-vault-packager, updating Python sources...$(RESET)"; \
 		rm -rf ../tool-vault-packager/shared-types; \
 		mkdir -p ../tool-vault-packager/shared-types; \
-		cp -r . ../tool-vault-packager/shared-types/; \
-		echo "$(GREEN)✓ Copied shared-types to tool-vault-packager$(RESET)"; \
+		cp -r python-src ../tool-vault-packager/shared-types/; \
+		cp pyproject.toml setup.py ../tool-vault-packager/shared-types/ 2>/dev/null || true; \
+		echo "$(GREEN)✓ Copied Python sources to tool-vault-packager ($(shell du -sh python-src | cut -f1))$(RESET)"; \
 	else \
 		echo "$(YELLOW)⚠ tool-vault-packager not found, skipping copy$(RESET)"; \
 	fi
