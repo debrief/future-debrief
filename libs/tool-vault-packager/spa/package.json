@@ -10,7 +10,7 @@
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "preview": "vite preview",
-    "verify-deps": "node -e \"try { require.resolve('@debrief/shared-types/src/index.ts'); console.log('✅ shared-types dependency OK'); } catch(e) { console.error('❌ shared-types dependency missing:', e.message); process.exit(1); }\""
+    "verify-deps": "node -e \"try { require.resolve('@debrief/shared-types/src/index.ts'); } catch(e) { console.error('❌ shared-types dependency missing:', e.message); process.exit(1); }\""
   },
   "dependencies": {
     "@debrief/shared-types": "file:../shared-types",

@@ -19,7 +19,7 @@
     "test:playwright:dev": "node test-runner.js dev",
     "test:playwright:pyz": "node test-runner.js pyz",
     "validate": "make verify",
-    "verify:shared-types": "test -f shared-types/src/index.ts && echo '✅ shared-types structure OK' || (echo '❌ shared-types structure invalid - run: cd ../shared-types && make copy-to-tool-vault-packager' && exit 1)"
+    "verify:shared-types": "test -f shared-types/src/index.ts || (echo '❌ shared-types structure invalid - run: cd ../shared-types && make copy-to-tool-vault-packager' && exit 1)"
   },
   "keywords": [
     "toolvault",
