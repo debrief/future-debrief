@@ -23,7 +23,7 @@ help: ## Show this help message
 	@echo "$(GREEN)Available targets:$(RESET)"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(BLUE)%-15s$(RESET) %s\n", $$1, $$2}'
 
-verify: verify-artifacts verify-tests verify-typecheck ## Fast verification (timestamp-based)
+verify: verify-artifacts verify-tests verify-typecheck verify-contents ## Fast verification (timestamp-based)
 	@echo "$(GREEN)✅ All VS Code extension verifications passed!$(RESET)"
 
 verify-artifacts: $(DIST_FILES) $(DIST_DIRS) ## Verify build artifacts are up-to-date
@@ -36,6 +36,22 @@ verify-tests: ## Run tests without rebuilding
 verify-typecheck: ## Type check without compilation
 	@echo "$(BLUE)🔍 Type checking...$(RESET)"
 	@pnpm typecheck > /dev/null 2>&1 && echo "$(GREEN)✅ Type check passed$(RESET)" || (echo "$(RED)❌ Type check failed$(RESET)" && exit 1)
+
+verify-contents: ## Verify .vsix package contents
+	@echo "$(BLUE)Verifying .vsix package contents...$(RESET)"
+	@VSIX_FILE=$$(find . -name "*.vsix" -type f | head -1); \
+	if [ -n "$$VSIX_FILE" ]; then \
+		if python -m zipfile -l "$$VSIX_FILE" | grep -q "extension/dist/extension.js" && \
+		   python -m zipfile -l "$$VSIX_FILE" | grep -q "extension/schemas"; then \
+			echo "$(GREEN)✅ VSIX contains extension.js and schemas$(RESET)"; \
+		else \
+			echo "$(RED)❌ [vs-code] VSIX missing critical files (extension.js or schemas)$(RESET)"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "$(RED)❌ [vs-code] No .vsix file found$(RESET)"; \
+		exit 1; \
+	fi
 
 # Build artifacts must exist and be newer than source files
 $(DIST_FILES): $(NEWEST_SRC)

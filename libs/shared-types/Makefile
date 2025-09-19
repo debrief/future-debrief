@@ -161,7 +161,7 @@ dev: ## Watch mode for development
 	@echo "$(BLUE)Starting development watch mode...$(RESET)"
 	@NODE_NO_WARNINGS=1 npx concurrently "npx nodemon --watch python-src/debrief/types --ext 'py' --exec 'python3 generate_schemas.py'" "NODE_NO_WARNINGS=1 npx tsc --watch --preserveWatchOutput"
 
-verify: verify-artifacts verify-tests verify-typecheck ## Fast verification (timestamp-based)
+verify: verify-artifacts verify-tests verify-typecheck verify-contents ## Fast verification (timestamp-based)
 	@echo "$(GREEN)✅ All shared-types verifications passed!$(RESET)"
 
 verify-artifacts: ## Verify build artifacts are up-to-date
@@ -194,3 +194,17 @@ verify-tests: ## Run tests without rebuilding
 verify-typecheck: ## Type check without compilation
 	@echo "$(BLUE)Type checking...$(RESET)"
 	@NODE_NO_WARNINGS=1 npx tsc --noEmit > /dev/null 2>&1 && echo "$(GREEN)✅ Type check passed$(RESET)" || (echo "$(RED)❌ Type check failed$(RESET)" && exit 1)
+
+verify-contents: ## Verify build artifact contents
+	@echo "$(BLUE)Verifying build artifact contents...$(RESET)"
+	@if [ -f "$(PYTHON_WHEEL)" ]; then \
+		if python -m zipfile -l "$(PYTHON_WHEEL)" | grep -q "debrief/types"; then \
+			echo "$(GREEN)✅ Python wheel contains expected modules$(RESET)"; \
+		else \
+			echo "$(RED)❌ [@debrief/shared-types] Python wheel missing debrief.types modules$(RESET)"; \
+			exit 1; \
+		fi; \
+	else \
+		echo "$(RED)❌ [@debrief/shared-types] Python wheel not found$(RESET)"; \
+		exit 1; \
+	fi
