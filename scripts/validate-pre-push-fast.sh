@@ -37,20 +37,22 @@ validate_package() {
     cd "$package_dir"
 
     if ! make verify; then
-        echo ""
-        echo "================================================"
-        log_error "🚨 PUSH BLOCKED: $package_name validation failed"
-        echo "================================================"
-        echo ""
-        echo "🔧 To fix this issue, run:"
-        if [[ "$package_name" == "shared-types" ]]; then
-            echo "   cd $package_dir && make generate"
-        else
-            echo "   cd $package_dir && pnpm build"
-        fi
-        echo ""
-        echo "Then commit any generated changes and try pushing again."
-        echo "================================================"
+        {
+            echo ""
+            echo "================================================"
+            echo -e "${RED}🚨 PUSH BLOCKED: $package_name validation failed${NC}"
+            echo "================================================"
+            echo ""
+            echo "🔧 To fix this issue, run:"
+            if [[ "$package_name" == "shared-types" ]]; then
+                echo "   cd $package_dir && make generate"
+            else
+                echo "   cd $package_dir && pnpm build"
+            fi
+            echo ""
+            echo "Then commit any generated changes and try pushing again."
+            echo "================================================"
+        } >&2
         return 1
     fi
 
