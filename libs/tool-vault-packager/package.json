@@ -4,7 +4,7 @@
   "description": "ToolVault packaging system for creating deployable .pyz files",
   "main": "cli.py",
   "scripts": {
-    "clean": "rm -rf dist && rm -rf tmp_package_contents && rm -rf shared-types",
+    "clean": "rm -rf dist && rm -rf tmp_package_contents",
     "build": "mkdir -p dist && python packager.py tools --output dist/toolvault.pyz",
     "build:spa": "cd spa && npm install && npm run build",
     "prebuild": "npm run clean && npm run build:spa",
