@@ -6,6 +6,8 @@ import json
 import subprocess
 from typing import Dict, Any, List, Callable, get_type_hints, Optional, Union
 from pathlib import Path
+import sys
+
 
 from debrief.types.tools import (
     ToolMetadataModel,
