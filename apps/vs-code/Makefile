@@ -40,11 +40,12 @@ verify-typecheck: ## Type check without compilation
 # Build artifacts must exist and be newer than source files
 $(DIST_FILES): $(NEWEST_SRC)
 	@if [ ! -f "$@" ]; then \
-		echo "$(RED)❌ Missing: $@$(RESET)"; \
+		echo "$(RED)❌ [vs-code] Missing build artifact: $@$(RESET)"; \
 		echo "$(BLUE)💡 Run: pnpm compile$(RESET)"; \
 		exit 1; \
 	elif [ "$@" -ot "$(NEWEST_SRC)" ]; then \
-		echo "$(RED)❌ $@ is older than source files$(RESET)"; \
+		echo "$(RED)❌ [vs-code] $@ is older than source files$(RESET)"; \
+		echo "$(BLUE)💡 Newest source: $(NEWEST_SRC)$(RESET)"; \
 		echo "$(BLUE)💡 Run: pnpm compile$(RESET)"; \
 		exit 1; \
 	fi
@@ -52,7 +53,7 @@ $(DIST_FILES): $(NEWEST_SRC)
 # Required directories must exist
 $(DIST_DIRS):
 	@if [ ! -d "$@" ]; then \
-		echo "$(RED)❌ Missing directory: $@/$(RESET)"; \
+		echo "$(RED)❌ [vs-code] Missing directory: $@/$(RESET)"; \
 		echo "$(BLUE)💡 Run: pnpm compile$(RESET)"; \
 		exit 1; \
 	fi

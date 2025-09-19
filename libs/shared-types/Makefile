@@ -163,16 +163,17 @@ verify-artifacts: ## Verify build artifacts are up-to-date
 	@echo "$(BLUE)Checking build artifacts...$(RESET)"
 	@NEWEST_PY=$$(find python-src/debrief/types -name "*.py" -type f -exec stat -f "%m %N" {} \; 2>/dev/null | sort -nr | head -1 | cut -d' ' -f2-); \
 	if [ -z "$$NEWEST_PY" ]; then \
-		echo "$(RED)❌ No Pydantic source files found$(RESET)"; \
+		echo "$(RED)❌ [@debrief/shared-types] No Pydantic source files found$(RESET)"; \
 		exit 1; \
 	fi; \
 	for file in derived/json-schema/features/track.schema.json src/types/features/track.ts dist/src/index.js; do \
 		if [ ! -f "$$file" ]; then \
-			echo "$(RED)❌ Missing: $$file$(RESET)"; \
+			echo "$(RED)❌ [@debrief/shared-types] Missing build artifact: $$file$(RESET)"; \
 			echo "$(BLUE)💡 Run: make generate$(RESET)"; \
 			exit 1; \
 		elif [ "$$file" -ot "$$NEWEST_PY" ]; then \
-			echo "$(RED)❌ $$file is older than Pydantic sources$(RESET)"; \
+			echo "$(RED)❌ [@debrief/shared-types] $$file is older than Pydantic sources$(RESET)"; \
+			echo "$(BLUE)💡 Source file: $$NEWEST_PY$(RESET)"; \
 			echo "$(BLUE)💡 Run: make generate$(RESET)"; \
 			exit 1; \
 		fi; \
