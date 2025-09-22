@@ -30,21 +30,21 @@ verify-artifacts: $(DIST_FILES) ## Verify build artifacts are up-to-date
 
 verify-tests: ## Run tests without rebuilding
 	@echo "$(BLUE)🧪 Running tests...$(RESET)"
-	@pnpm test > /dev/null 2>&1 && echo "$(GREEN)✅ Tests passed$(RESET)" || (echo "$(RED)❌ Tests failed$(RESET)" && exit 1)
+	@pnpm test > /dev/null 2>&1 && echo "$(GREEN)✅ Tests passed$(RESET)" || (echo "$(RED)❌ Tests failed$(RESET)" >&2 && pnpm test && exit 1)
 
 verify-typecheck: ## Type check without compilation
 	@echo "$(BLUE)🔍 Type checking...$(RESET)"
-	@pnpm typecheck > /dev/null 2>&1 && echo "$(GREEN)✅ Type check passed$(RESET)" || (echo "$(RED)❌ Type check failed$(RESET)" && exit 1)
+	@pnpm typecheck > /dev/null 2>&1 && echo "$(GREEN)✅ Type check passed$(RESET)" || (echo "$(RED)❌ Type check failed$(RESET)" >&2 && pnpm typecheck && exit 1)
 
 # Build artifacts must be newer than source files
 $(DIST_FILES): $(NEWEST_SRC)
 	@if [ ! -f "$@" ]; then \
-		echo "$(RED)❌ [@debrief/web-components] Missing build artifact: $@$(RESET)"; \
-		echo "$(BLUE)💡 Run: pnpm build$(RESET)"; \
+		echo "$(RED)❌ [@debrief/web-components] Missing build artifact: $@$(RESET)" >&2; \
+		echo "$(BLUE)💡 Run: pnpm build$(RESET)" >&2; \
 		exit 1; \
 	elif [ "$@" -ot "$(NEWEST_SRC)" ]; then \
-		echo "$(RED)❌ [@debrief/web-components] $@ is older than source files$(RESET)"; \
-		echo "$(BLUE)💡 Newest source: $(NEWEST_SRC)$(RESET)"; \
-		echo "$(BLUE)💡 Run: pnpm build$(RESET)"; \
+		echo "$(RED)❌ [@debrief/web-components] $@ is older than source files$(RESET)" >&2; \
+		echo "$(BLUE)💡 Newest source: $(NEWEST_SRC)$(RESET)" >&2; \
+		echo "$(BLUE)💡 Run: pnpm build$(RESET)" >&2; \
 		exit 1; \
 	fi
