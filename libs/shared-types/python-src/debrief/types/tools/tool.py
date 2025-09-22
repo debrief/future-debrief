@@ -6,7 +6,7 @@ from .json_schema import JSONSchema
 
 
 class Tool(BaseModel):
-    """A tool definition with input/output schemas for maritime analysis."""
+    """A tool definition with an input schema for maritime analysis."""
 
     name: str = Field(
         ...,
@@ -19,10 +19,6 @@ class Tool(BaseModel):
     inputSchema: JSONSchema = Field(
         ...,
         description="JSON Schema defining the expected input parameters"
-    )
-    outputSchema: Optional[JSONSchema] = Field(
-        None,
-        description="Optional JSON Schema defining the expected output format"
     )
     tool_url: Optional[str] = Field(
         None,
