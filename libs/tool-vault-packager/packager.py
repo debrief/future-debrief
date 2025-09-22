@@ -8,13 +8,13 @@ import tempfile
 from pathlib import Path
 from typing import Dict, Any, List
 
-
 from debrief.types.tools import (
     ToolIndexModel,
     ToolFilesCollection,
     ToolStatsModel,
     ToolFileReference,
     SampleInputReference,
+    ToolVaultCommand,
 )
 
 try:
@@ -401,6 +401,8 @@ def package_toolvault(
         for tool in tools:
             tool_metadata_dir = package_dir / "tools" / Path(tool.tool_dir).name / "metadata"
             tool_metadata_dir.mkdir(exist_ok=True)
+            schemas_dir = tool_metadata_dir / "schemas"
+            schemas_dir.mkdir(exist_ok=True)
                 
             # Save git history
             if tool.git_history:
@@ -426,6 +428,64 @@ def package_toolvault(
                     type="json"
                 ))
 
+            schema_refs = []
+
+            # Prefer rich schema information from the discovered Pydantic model
+            input_schema = None
+            if tool.pydantic_model is not None:
+                try:
+                    input_schema = tool.pydantic_model.model_json_schema()
+                except Exception as exc:  # pragma: no cover - defensive guard
+                    print(f"Warning: Failed to render schema for {tool.name}: {exc}")
+                    input_schema = None
+            elif tool.parameters:
+                # Fallback: build a minimal schema from discovered parameters
+                required_fields = [
+                    name for name, schema in tool.parameters.items()
+                    if isinstance(schema, dict) and schema.get("required")
+                ]
+                properties = {}
+                for name, schema in tool.parameters.items():
+                    if isinstance(schema, dict):
+                        schema_copy = schema.copy()
+                        schema_copy.pop("required", None)
+                        properties[name] = schema_copy
+                input_schema = {
+                    "type": "object",
+                    "properties": properties,
+                    "required": required_fields,
+                    "additionalProperties": False
+                }
+
+            if input_schema:
+                input_schema_path = schemas_dir / "input_schema.json"
+                with open(input_schema_path, 'w') as f:
+                    json.dump(input_schema, f, indent=2)
+                schema_refs.append(
+                    ToolFileReference(
+                        path="metadata/schemas/input_schema.json",
+                        description=(
+                            f"Input schema ({tool.pydantic_model.__name__})"
+                            if tool.pydantic_model is not None else
+                            "Input schema"
+                        ),
+                        type="json"
+                    )
+                )
+
+            # Always expose the ToolVault command output schema for reference
+            output_schema = ToolVaultCommand.model_json_schema()
+            output_schema_path = schemas_dir / "output_schema.json"
+            with open(output_schema_path, 'w') as f:
+                json.dump(output_schema, f, indent=2)
+            schema_refs.append(
+                ToolFileReference(
+                    path="metadata/schemas/output_schema.json",
+                    description="Output schema (ToolVault command)",
+                    type="json"
+                )
+            )
+
             tool_files = ToolFilesCollection(
                 execute=ToolFileReference(
                     path="execute.py",
@@ -442,7 +502,8 @@ def package_toolvault(
                     description="Git commit history",
                     type="json"
                 ),
-                inputs=sample_input_refs
+                inputs=sample_input_refs,
+                schemas=schema_refs
             )
 
             tool_stats = ToolStatsModel(
