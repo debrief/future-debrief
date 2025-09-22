@@ -4,9 +4,7 @@ import sys
 import shutil
 import json
 import zipapp
-import tempfile
 from pathlib import Path
-from typing import Dict, Any, List
 
 from debrief.types.tools import (
     ToolIndexModel,
@@ -14,7 +12,6 @@ from debrief.types.tools import (
     ToolStatsModel,
     ToolFileReference,
     SampleInputReference,
-    ToolVaultCommand,
 )
 
 try:
@@ -472,19 +469,6 @@ def package_toolvault(
                         type="json"
                     )
                 )
-
-            # Always expose the ToolVault command output schema for reference
-            output_schema = ToolVaultCommand.model_json_schema()
-            output_schema_path = schemas_dir / "output_schema.json"
-            with open(output_schema_path, 'w') as f:
-                json.dump(output_schema, f, indent=2)
-            schema_refs.append(
-                ToolFileReference(
-                    path="metadata/schemas/output_schema.json",
-                    description="Output schema (ToolVault command)",
-                    type="json"
-                )
-            )
 
             tool_files = ToolFilesCollection(
                 execute=ToolFileReference(

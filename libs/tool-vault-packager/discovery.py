@@ -11,15 +11,9 @@ import sys
 
 from debrief.types.tools import (
     ToolMetadataModel,
-    ToolIndexModel,
     GlobalToolIndexModel,
-    ToolFilesCollection,
-    ToolStatsModel,
-    ToolFileReference,
-    SampleInputReference,
     GitHistoryEntry,
     SampleInputData,
-    ToolVaultCommand,
     JSONSchemaType,
 )
 
@@ -572,26 +566,6 @@ def generate_tool_schema(tool: ToolMetadata) -> Dict[str, Any]:
         Dictionary representing a Tool schema
     """
     # All tools return ToolVault command objects
-    output_schema = {
-        "type": "object",
-        "properties": {
-            "command": {
-                "type": "string",
-                "enum": ["addFeatures", "updateFeatures", "deleteFeatures", "setFeatureCollection",
-                        "showText", "showData", "showImage", "logMessage", "composite"],
-                "description": "The ToolVault command type"
-            },
-            "payload": {
-                "description": "The command-specific payload data"
-            }
-        },
-        "required": ["command", "payload"],
-        "additionalProperties": False
-    }
-
-    # For more specific return types like Union[ShowTextResult, SetFeatureCollectionResult],
-    # we could parse the Union and create more specific schemas, but for now we'll use the generic approach
-
     return {
         "name": tool.name,
         "description": tool.description,
@@ -600,8 +574,7 @@ def generate_tool_schema(tool: ToolMetadata) -> Dict[str, Any]:
             "properties": tool.parameters,
             "required": list(tool.parameters.keys()),
             "additionalProperties": False
-        },
-        "outputSchema": output_schema
+        }
     }
 
 
@@ -641,9 +614,6 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
                 # Create JSONSchemaProperty from the remaining schema
                 json_properties[param_name] = JSONSchemaProperty(**param_copy)
 
-        # Get the ToolVaultCommand schema as the output schema
-        command_schema = ToolVaultCommand.model_json_schema()
-
         tool_instance = Tool(
             name=tool.name,
             description=tool.description,
@@ -653,7 +623,6 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
                 required=required_fields,
                 additionalProperties=False
             ),
-            outputSchema=JSONSchema(**command_schema),
             tool_url=f"/api/tools/{tool_dir_name}/tool.json"
         )
 
