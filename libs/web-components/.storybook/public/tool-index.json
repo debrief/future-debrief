@@ -76,58 +76,6 @@
         "additionalProperties": false,
         "description": null
       },
-      "outputSchema": {
-        "type": "object",
-        "properties": {
-          "command": {
-            "type": null,
-            "description": "The command type",
-            "enum": null,
-            "items": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "default": null,
-            "$ref": "#/$defs/CommandType"
-          },
-          "payload": {
-            "type": null,
-            "description": "Command-specific payload",
-            "enum": null,
-            "items": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "default": null,
-            "title": "Payload"
-          }
-        },
-        "required": [
-          "command",
-          "payload"
-        ],
-        "additionalProperties": false,
-        "description": "A command returned by a ToolVault tool.",
-        "$defs": {
-          "CommandType": {
-            "description": "Valid ToolVault command types.",
-            "enum": [
-              "addFeatures",
-              "updateFeatures",
-              "deleteFeatures",
-              "setFeatureCollection",
-              "showText",
-              "showData",
-              "showImage",
-              "logMessage",
-              "composite"
-            ],
-            "title": "CommandType",
-            "type": "string"
-          }
-        },
-        "title": "ToolVaultCommand"
-      },
       "tool_url": "/api/tools/track_speed_filter/tool.json"
     },
     {
@@ -210,58 +158,6 @@
         "additionalProperties": false,
         "description": null
       },
-      "outputSchema": {
-        "type": "object",
-        "properties": {
-          "command": {
-            "type": null,
-            "description": "The command type",
-            "enum": null,
-            "items": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "default": null,
-            "$ref": "#/$defs/CommandType"
-          },
-          "payload": {
-            "type": null,
-            "description": "Command-specific payload",
-            "enum": null,
-            "items": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "default": null,
-            "title": "Payload"
-          }
-        },
-        "required": [
-          "command",
-          "payload"
-        ],
-        "additionalProperties": false,
-        "description": "A command returned by a ToolVault tool.",
-        "$defs": {
-          "CommandType": {
-            "description": "Valid ToolVault command types.",
-            "enum": [
-              "addFeatures",
-              "updateFeatures",
-              "deleteFeatures",
-              "setFeatureCollection",
-              "showText",
-              "showData",
-              "showImage",
-              "logMessage",
-              "composite"
-            ],
-            "title": "CommandType",
-            "type": "string"
-          }
-        },
-        "title": "ToolVaultCommand"
-      },
       "tool_url": "/api/tools/track_speed_filter_fast/tool.json"
     },
     {
@@ -310,58 +206,6 @@
         "additionalProperties": false,
         "description": null
       },
-      "outputSchema": {
-        "type": "object",
-        "properties": {
-          "command": {
-            "type": null,
-            "description": "The command type",
-            "enum": null,
-            "items": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "default": null,
-            "$ref": "#/$defs/CommandType"
-          },
-          "payload": {
-            "type": null,
-            "description": "Command-specific payload",
-            "enum": null,
-            "items": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "default": null,
-            "title": "Payload"
-          }
-        },
-        "required": [
-          "command",
-          "payload"
-        ],
-        "additionalProperties": false,
-        "description": "A command returned by a ToolVault tool.",
-        "$defs": {
-          "CommandType": {
-            "description": "Valid ToolVault command types.",
-            "enum": [
-              "addFeatures",
-              "updateFeatures",
-              "deleteFeatures",
-              "setFeatureCollection",
-              "showText",
-              "showData",
-              "showImage",
-              "logMessage",
-              "composite"
-            ],
-            "title": "CommandType",
-            "type": "string"
-          }
-        },
-        "title": "ToolVaultCommand"
-      },
       "tool_url": "/api/tools/toggle_first_feature_color/tool.json"
     },
     {
@@ -394,58 +238,6 @@
         ],
         "additionalProperties": false,
         "description": null
-      },
-      "outputSchema": {
-        "type": "object",
-        "properties": {
-          "command": {
-            "type": null,
-            "description": "The command type",
-            "enum": null,
-            "items": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "default": null,
-            "$ref": "#/$defs/CommandType"
-          },
-          "payload": {
-            "type": null,
-            "description": "Command-specific payload",
-            "enum": null,
-            "items": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "default": null,
-            "title": "Payload"
-          }
-        },
-        "required": [
-          "command",
-          "payload"
-        ],
-        "additionalProperties": false,
-        "description": "A command returned by a ToolVault tool.",
-        "$defs": {
-          "CommandType": {
-            "description": "Valid ToolVault command types.",
-            "enum": [
-              "addFeatures",
-              "updateFeatures",
-              "deleteFeatures",
-              "setFeatureCollection",
-              "showText",
-              "showData",
-              "showImage",
-              "logMessage",
-              "composite"
-            ],
-            "title": "CommandType",
-            "type": "string"
-          }
-        },
-        "title": "ToolVaultCommand"
       },
       "tool_url": "/api/tools/word_count/tool.json"
     },
@@ -539,58 +331,6 @@
         ],
         "additionalProperties": false,
         "description": null
-      },
-      "outputSchema": {
-        "type": "object",
-        "properties": {
-          "command": {
-            "type": null,
-            "description": "The command type",
-            "enum": null,
-            "items": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "default": null,
-            "$ref": "#/$defs/CommandType"
-          },
-          "payload": {
-            "type": null,
-            "description": "Command-specific payload",
-            "enum": null,
-            "items": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "default": null,
-            "title": "Payload"
-          }
-        },
-        "required": [
-          "command",
-          "payload"
-        ],
-        "additionalProperties": false,
-        "description": "A command returned by a ToolVault tool.",
-        "$defs": {
-          "CommandType": {
-            "description": "Valid ToolVault command types.",
-            "enum": [
-              "addFeatures",
-              "updateFeatures",
-              "deleteFeatures",
-              "setFeatureCollection",
-              "showText",
-              "showData",
-              "showImage",
-              "logMessage",
-              "composite"
-            ],
-            "title": "CommandType",
-            "type": "string"
-          }
-        },
-        "title": "ToolVaultCommand"
       },
       "tool_url": "/api/tools/viewport_grid_generator/tool.json"
     }
