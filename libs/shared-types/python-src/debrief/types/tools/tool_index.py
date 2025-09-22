@@ -25,9 +25,13 @@ class ToolFilesCollection(BaseModel):
         default_factory=list,
         description="Sample input files for testing the tool"
     )
+    schemas: List[ToolFileReference] = Field(
+        default_factory=list,
+        description="Generated schema documents associated with this tool"
+    )
 
-    class Config:
-        extra = "forbid"
+    # class Config:
+    #    extra = "forbid"
 
 
 class ToolIndexModel(BaseModel):
