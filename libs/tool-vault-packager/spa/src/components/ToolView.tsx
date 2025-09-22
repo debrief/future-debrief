@@ -4,6 +4,7 @@ import { mcpService } from '../services/mcpService';
 import { InfoTab } from './InfoTab';
 import { ExecuteTab } from './ExecuteTab';
 import { CodeTab } from './CodeTab';
+import { SchemaTab } from './SchemaTab';
 import { LoadingError } from './Warning';
 
 interface ToolViewProps {
@@ -65,6 +66,13 @@ export function ToolView({ tool }: ToolViewProps) {
         >
           Code
         </button>
+        <button
+          className={`tab ${activeTab === 'schemas' ? 'active' : ''}`}
+          onClick={() => setActiveTab('schemas')}
+          data-testid="tab-schemas"
+        >
+          Schemas
+        </button>
       </div>
 
       <div className="tab-content">
@@ -96,6 +104,13 @@ export function ToolView({ tool }: ToolViewProps) {
             tool={tool} 
             toolIndex={toolIndex} 
             loading={loading} 
+          />
+        )}
+        {activeTab === 'schemas' && (
+          <SchemaTab
+            tool={tool}
+            toolIndex={toolIndex}
+            loading={loading}
           />
         )}
       </div>
