@@ -1,15 +1,15 @@
 // Import types from generated shared-types
-import type { JSONSchema, JSONSchemaProperty } from '@debrief/shared-types/src/types/tools/json_schema';
-import type { Tool } from '@debrief/shared-types/src/types/tools/tool';
-import type { ToolListResponse } from '@debrief/shared-types/src/types/tools/tool_list_response';
-import type { ToolCallRequest } from '@debrief/shared-types/src/types/tools/tool_call_request';
-import type { ToolCallResponse } from '@debrief/shared-types/src/types/tools/tool_call_response';
-import type { GlobalToolIndexModel } from '@debrief/shared-types/src/types/tools/global_tool_index';
-import type { ToolIndexModel } from '@debrief/shared-types/src/types/tools/tool_index';
-import type { ToolFileReference } from '@debrief/shared-types/src/types/tools/tool_file_reference';
-import type { SampleInputReference } from '@debrief/shared-types/src/types/tools/sample_input_reference';
-import type { GitHistoryEntry } from '@debrief/shared-types/src/types/tools/git_history_entry';
-import type { GitHistory } from '@debrief/shared-types/src/types/tools/git_history';
+import type { JSONSchema, JSONSchemaProperty } from '@debrief/shared-types/src/types/JSONSchema';
+import type { Tool } from '@debrief/shared-types/src/types/Tool';
+import type { ToolListResponse } from '@debrief/shared-types/src/types/ToolListResponse';
+import type { ToolCallRequest } from '@debrief/shared-types/src/types/ToolCallRequest';
+import type { ToolCallResponse } from '@debrief/shared-types/src/types/ToolCallResponse';
+import type { GlobalToolIndexModel } from '@debrief/shared-types/src/types/GlobalToolIndexModel';
+import type { ToolIndexModel } from '@debrief/shared-types/src/types/ToolIndexModel';
+import type { ToolFileReference } from '@debrief/shared-types/src/types/ToolFileReference';
+import type { SampleInputReference } from '@debrief/shared-types/src/types/SampleInputReference';
+import type { GitHistoryEntry } from '@debrief/shared-types/src/types/GitHistoryEntry';
+import type { GitHistory } from '@debrief/shared-types/src/types/GitHistory';
 
 // Export shared-types directly
 export type { JSONSchema, JSONSchemaProperty };
@@ -36,7 +36,7 @@ export interface AppState {
   globalIndex: GlobalToolIndexModel | null;
 }
 
-export type TabType = 'info' | 'execute' | 'code';
+export type TabType = 'info' | 'execute' | 'code' | 'schemas';
 
 export interface LoadingState {
   tools: boolean;
