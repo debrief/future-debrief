@@ -42,7 +42,7 @@ shared-types/python-src:
 
 $(REQUIRED_FILES):
 	@if [ ! -f "$@" ]; then \
-		echo "$(RED)❌ [tool-vault-packager] Missing build artifact: $@$(RESET)"; \
+		echo "$(RED)❌ [tool-vault-packager] Missing build artifact: $@$(RESET)" >&2; \
 		if [[ "$@" == *".pyz" ]]; then \
 			echo "$(BLUE)💡 Run: npm run build$(RESET)"; \
 		elif [[ "$@" == *"shared-types"* ]]; then \
@@ -52,26 +52,26 @@ $(REQUIRED_FILES):
 		fi; \
 		exit 1; \
 	elif [[ "$@" == *"spa/dist"* ]] && [[ -n "$(NEWEST_SPA)" ]] && [[ "$@" -ot "$(NEWEST_SPA)" ]]; then \
-		echo "$(RED)❌ [tool-vault-packager] $@ is older than SPA source files$(RESET)"; \
-		echo "$(BLUE)💡 Newest source: $(NEWEST_SPA)$(RESET)"; \
-		echo "$(BLUE)💡 Run: npm run build:spa$(RESET)"; \
+		echo "$(RED)❌ [tool-vault-packager] $@ is older than SPA source files$(RESET)" >&2; \
+		echo "$(BLUE)💡 Newest source: $(NEWEST_SPA)$(RESET)" >&2; \
+		echo "$(BLUE)💡 Run: npm run build:spa$(RESET)" >&2; \
 		exit 1; \
 	elif [[ "$@" == *".pyz" ]] && [[ -n "$(NEWEST_PYTHON)" ]] && [[ "$@" -ot "$(NEWEST_PYTHON)" ]]; then \
-		echo "$(RED)❌ [tool-vault-packager] $@ is older than Python source files$(RESET)"; \
-		echo "$(BLUE)💡 Newest source: $(NEWEST_PYTHON)$(RESET)"; \
-		echo "$(BLUE)💡 Run: npm run build$(RESET)"; \
+		echo "$(RED)❌ [tool-vault-packager] $@ is older than Python source files$(RESET)" >&2; \
+		echo "$(BLUE)💡 Newest source: $(NEWEST_PYTHON)$(RESET)" >&2; \
+		echo "$(BLUE)💡 Run: npm run build$(RESET)" >&2; \
 		exit 1; \
 	elif [[ "$@" == *".pyz" ]] && [[ -n "$(NEWEST_SPA)" ]] && [[ "$@" -ot "$(NEWEST_SPA)" ]]; then \
-		echo "$(RED)❌ [tool-vault-packager] $@ is older than SPA source files$(RESET)"; \
-		echo "$(BLUE)💡 Newest source: $(NEWEST_SPA)$(RESET)"; \
-		echo "$(BLUE)💡 Run: npm run build$(RESET)"; \
+		echo "$(RED)❌ [tool-vault-packager] $@ pyz is older than SPA source files$(RESET)" >&2; \
+		echo "$(BLUE)💡 Newest source: $(NEWEST_SPA)$(RESET)" >&2; \
+		echo "$(BLUE)💡 Run: npm run build$(RESET)" >&2; \
 		exit 1; \
 	fi
 
 # Check required directories exist
 $(REQUIRED_DIRS):
 	@if [ ! -d "$@" ]; then \
-		echo "$(RED)❌ [tool-vault-packager] Missing directory: $@/$(RESET)"; \
+		echo "$(RED)❌ [tool-vault-packager] Missing directory: $@/$(RESET)" >&2; \
 		if [[ "$@" == *"spa/node_modules" ]]; then \
 			echo "$(BLUE)💡 Run: cd spa && npm install$(RESET)"; \
 		else \
