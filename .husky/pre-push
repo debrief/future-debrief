@@ -3,5 +3,9 @@
 
 # Run fast pre-push validation using parallel Makefile verify targets
 echo "🚀 Running pre-push validation..."
-find . -path "*/*/Makefile" -not -path "*/node_modules/*" -exec dirname {} \; | xargs -I {} -P 4 sh -c 'cd "{}" && echo "✅ $(basename $(pwd))" && make verify > /dev/null 2>&1 || (echo "❌ $(basename $(pwd)) failed - run '\''cd {} && make verify'\'' for details" && exit 1)'
-echo "✅ All validations passed!"
+if find . -path "*/*/Makefile" -not -path "*/node_modules/*" -exec dirname {} \; | xargs -I {} -P 4 sh -c 'cd "{}" && echo "✅ $(basename $(pwd))" && make verify > /dev/null || (echo "❌ $(basename $(pwd)) failed - run '\''cd {} && make verify'\'' for details" && exit 1)'; then
+    echo "✅ All validations passed!"
+else
+    echo "❌ Pre-push validation failed!"
+    exit 1
+fi
