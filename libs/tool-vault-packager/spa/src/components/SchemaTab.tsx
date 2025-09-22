@@ -16,6 +16,68 @@ interface SchemaDocumentState {
   loading: boolean;
 }
 
+interface SchemaExplorerProps {
+  data: unknown;
+  label?: string;
+  depth?: number;
+}
+
+function SchemaExplorer({ data, label, depth = 0 }: SchemaExplorerProps) {
+  const isObject = data !== null && typeof data === 'object' && !Array.isArray(data);
+  const isArray = Array.isArray(data);
+  const openByDefault = depth < 2;
+
+  if (isObject) {
+    const entries = Object.entries(data as Record<string, unknown>);
+    return (
+      <details className="schema-node" open={openByDefault}>
+        <summary>
+          {label && <span className="schema-key">{label}</span>}
+          <span className="schema-type">Object{entries.length ? ` (${entries.length})` : ''}</span>
+        </summary>
+        <div className="schema-children">
+          {entries.map(([key, value]) => (
+            <SchemaExplorer key={key} data={value} label={key} depth={depth + 1} />
+          ))}
+        </div>
+      </details>
+    );
+  }
+
+  if (isArray) {
+    return (
+      <details className="schema-node" open={openByDefault}>
+        <summary>
+          {label && <span className="schema-key">{label}</span>}
+          <span className="schema-type">Array ({data.length})</span>
+        </summary>
+        <div className="schema-children">
+          {(data as unknown[]).map((item, index) => (
+            <SchemaExplorer key={index} data={item} label={`[${index}]`} depth={depth + 1} />
+          ))}
+        </div>
+      </details>
+    );
+  }
+
+  const primitiveType = data === null ? 'null' : typeof data;
+  const displayValue = (() => {
+    if (data === null) return 'null';
+    if (primitiveType === 'string') return `"${data}"`;
+    if (primitiveType === 'boolean') return data ? 'true' : 'false';
+    if (data === undefined) return 'undefined';
+    return String(data);
+  })();
+
+  return (
+    <div className="schema-node">
+      {label && <span className="schema-key">{label}</span>}
+      <span className={`schema-type schema-type-${primitiveType}`}>{primitiveType}</span>
+      <span className="schema-value">{displayValue}</span>
+    </div>
+  );
+}
+
 export function SchemaTab({ tool, toolIndex, loading }: SchemaTabProps) {
   const [documents, setDocuments] = useState<SchemaDocumentState[]>([]);
 
@@ -97,52 +159,65 @@ export function SchemaTab({ tool, toolIndex, loading }: SchemaTabProps) {
 
   return (
     <div className="schema-tab">
-      {documents.map(doc => (
-        <div className="schema-card" key={doc.reference.path}>
-          <div className="schema-card-header">
-            <div className="schema-card-meta">
-              <h4>{doc.reference.description || 'Schema'}</h4>
-              <code className="schema-path">{doc.reference.path}</code>
+      {documents.map(doc => {
+        const isRenderableObject = typeof doc.data === 'object' && doc.data !== null;
+        return (
+          <div className="schema-card" key={doc.reference.path}>
+            <div className="schema-card-header">
+              <div className="schema-card-meta">
+                <h4>{doc.reference.description || 'Schema'}</h4>
+                <code className="schema-path">{doc.reference.path}</code>
+              </div>
+              <div className="schema-card-actions">
+                <button
+                  className="schema-action-button"
+                  onClick={() => handleCopy(doc.data)}
+                  disabled={doc.loading || doc.data == null}
+                >
+                  Copy JSON
+                </button>
+                <a
+                  className="schema-action-link"
+                  href={buildDownloadUrl(doc.reference.path)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open Raw
+                </a>
+              </div>
             </div>
-            <div className="schema-card-actions">
-              <button
-                className="schema-action-button"
-                onClick={() => handleCopy(doc.data)}
-                disabled={doc.loading || doc.data == null}
-              >
-                Copy JSON
-              </button>
-              <a
-                className="schema-action-link"
-                href={buildDownloadUrl(doc.reference.path)}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Open Raw
-              </a>
-            </div>
+
+            {doc.loading && (
+              <div className="schema-loading">Fetching schema...</div>
+            )}
+
+            {doc.error && !doc.loading && (
+              <LoadingError
+                resource="schema document"
+                error={doc.error}
+                onRetry={() => loadDocument(doc.reference)}
+              />
+            )}
+
+            {!doc.loading && !doc.error && doc.data != null && (
+              <div className="schema-content">
+                {isRenderableObject && (
+                  <details className="schema-details" open>
+                    <summary>Interactive schema explorer</summary>
+                    <div className="schema-json-viewer" role="region" aria-label="Schema explorer">
+                      <SchemaExplorer data={doc.data} depth={0} />
+                    </div>
+                  </details>
+                )}
+                <details className="schema-details">
+                  <summary>View raw JSON</summary>
+                  <pre className="schema-json">{JSON.stringify(doc.data, null, 2)}</pre>
+                </details>
+              </div>
+            )}
           </div>
-
-          {doc.loading && (
-            <div className="schema-loading">Fetching schema...</div>
-          )}
-
-          {doc.error && !doc.loading && (
-            <LoadingError
-              resource="schema document"
-              error={doc.error}
-              onRetry={() => loadDocument(doc.reference)}
-            />
-          )}
-
-          {!doc.loading && !doc.error && doc.data != null && (
-            <details className="schema-details" open>
-              <summary>View schema JSON</summary>
-              <pre className="schema-json">{JSON.stringify(doc.data, null, 2)}</pre>
-            </details>
-          )}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
