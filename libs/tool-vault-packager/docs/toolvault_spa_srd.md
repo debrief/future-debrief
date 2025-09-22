@@ -172,7 +172,6 @@ interface GlobalIndex {
     name: string;
     description: string;
     inputSchema: JSONSchema;
-    outputSchema?: JSONSchema;
   }>;
   version: string;
   description: string;

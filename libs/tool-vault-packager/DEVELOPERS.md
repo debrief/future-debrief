@@ -263,7 +263,6 @@ The root `index.json` provides MCP-compatible tool schemas:
         "required": ["text"],
         "additionalProperties": false
       },
-      "outputSchema": {"type": "integer"},
       "tool_url": "/api/tools/word_count/tool.json"
     }
   ],
