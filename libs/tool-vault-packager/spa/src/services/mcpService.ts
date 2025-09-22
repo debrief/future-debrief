@@ -149,6 +149,20 @@ export class MCPService {
     }
   }
 
+  async loadSchemaDocument(schemaPath: string, toolName?: string): Promise<unknown> {
+    const url = schemaPath.startsWith('http') ? schemaPath : (toolName ? `${SERVER_BASE_URL}/api/tools/${toolName}/${schemaPath}` : schemaPath);
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to load schema document: ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(`Error loading schema document from ${url}:`, error);
+      throw error;
+    }
+  }
+
   async loadSourceCode(sourcePath: string, toolName?: string): Promise<string> {
     const url = sourcePath.startsWith('http') ? sourcePath : (toolName ? `${SERVER_BASE_URL}/api/tools/${toolName}/${sourcePath}` : sourcePath);
     try {
