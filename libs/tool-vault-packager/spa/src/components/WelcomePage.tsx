@@ -58,6 +58,14 @@ export function WelcomePage({ globalIndex, tools, loading }: WelcomePageProps) {
         <p>Select a tool from the sidebar to view details, execute with sample data, or explore the source code.</p>
         <p>Tools are loaded dynamically from MCP endpoints and include rich metadata for analysis.</p>
       </div>
+      <div className="welcome-description">
+        <h2>Schema Reference</h2>
+        <p>
+          Each tool now publishes JSON schema documentation in its Schemas tab. You can also download the
+          aggregated tool catalog from{' '}
+          <a href="/tools/list" target="_blank" rel="noopener noreferrer">/tools/list</a> when you need the raw index.
+        </p>
+      </div>
     </div>
   );
 }
