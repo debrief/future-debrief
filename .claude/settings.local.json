@@ -176,7 +176,8 @@
       "Bash(done)",
       "Bash(pip uninstall:*)",
       "Bash(./scripts/validate-pre-push.sh:*)",
-      "Bash(tsc:*)"
+      "Bash(tsc:*)",
+      "Bash(sh .husky/pre-push:*)"
     ]
   }
 }
