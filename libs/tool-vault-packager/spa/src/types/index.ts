@@ -15,7 +15,7 @@ import type { GitHistory } from '@debrief/shared-types/src/types/tools/git_histo
 export type { JSONSchema, JSONSchemaProperty };
 export type { Tool, ToolListResponse, ToolCallRequest, ToolCallResponse };
 export type { GlobalToolIndexModel, ToolIndexModel, ToolFileReference, SampleInputReference, GitHistoryEntry, GitHistory };
-
+ 
 export interface ToolVaultRootResponse {
   name: string;
   version: string;
