@@ -8,10 +8,10 @@ RED := \033[31m
 RESET := \033[0m
 
 # Source files to check
-PYTHON_FILES := $(shell find . -name "*.py" -not -path "./shared-types/*" -not -path "./spa/node_modules/*" -not -path "./node_modules/*" 2>/dev/null)
-SPA_FILES := $(shell find spa/src -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" 2>/dev/null)
-NEWEST_PYTHON := $(shell ls -t $(PYTHON_FILES) 2>/dev/null | head -1)
-NEWEST_SPA := $(shell ls -t $(SPA_FILES) 2>/dev/null | head -1)
+PYTHON_FILES := $(shell find . -name "*.py" -not -path "./shared-types/*" -not -path "./spa/node_modules/*" -not -path "./node_modules/*")
+SPA_FILES := $(shell find spa/src -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx")
+NEWEST_PYTHON := $(shell ls -t $(PYTHON_FILES) | head -1)
+NEWEST_SPA := $(shell ls -t $(SPA_FILES) | head -1)
 
 # Build artifacts that should exist
 REQUIRED_FILES := dist/toolvault.pyz shared-types/python-src shared-types/src spa/dist/index.html
@@ -33,7 +33,7 @@ verify-artifacts: $(REQUIRED_FILES) $(REQUIRED_DIRS) ## Verify build artifacts a
 
 verify-tests: ## Run basic validation tests
 	@echo "$(BLUE)🧪 Running basic tests...$(RESET)"
-	@npm test > /dev/null 2>&1 && echo "$(GREEN)✅ Tests passed$(RESET)" || (echo "$(RED)❌ Tests failed$(RESET)" && exit 1)
+	@npm test && echo "$(GREEN)✅ Tests passed$(RESET)" || (echo "$(RED)❌ Tests failed$(RESET)" && exit 1)
 
 # Check required files exist and are up-to-date
 spa/dist/index.html: $(SPA_FILES)
