@@ -612,12 +612,20 @@ const EnhancedInteractiveDemo: React.FC = () => {
             Maritime Features ({plotData.features.length})
           </div>
           <div style={{ flex: 1, overflow: 'hidden' }}>
-            {/* Import and use the real OutlineView component */}
-            <OutlineView
-              featureCollection={plotData}
-              selectedFeatureIds={selectedFeatureIds}
-              onSelectionChange={handleSelectionChange}
-            />
+            {/* Import and use the real OutlineView component with dark background */}
+            <div style={{
+              backgroundColor: 'var(--vscode-editor-background, #1e1e1e)',
+              color: 'var(--vscode-editor-foreground, #cccccc)',
+              height: '100%',
+              fontFamily: 'var(--vscode-font-family, "Segoe UI", system-ui, sans-serif)',
+              fontSize: 'var(--vscode-font-size, 13px)'
+            }}>
+              <OutlineView
+                featureCollection={plotData}
+                selectedFeatureIds={selectedFeatureIds}
+                onSelectionChange={handleSelectionChange}
+              />
+            </div>
           </div>
         </div>
 
