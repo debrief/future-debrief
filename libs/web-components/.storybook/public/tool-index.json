@@ -1,21 +1,140 @@
 {
   "tools": [
     {
+      "name": "fit_to_selection",
+      "description": "Calculate bounds of features and set viewport to fit them.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "features": {
+            "type": "array",
+            "description": "Array of Debrief features to calculate bounds for",
+            "enum": null,
+            "items": {
+              "type": null,
+              "description": null,
+              "enum": null,
+              "items": null,
+              "properties": null,
+              "required": null,
+              "additionalProperties": null,
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/DebriefTrackFeature"
+                },
+                {
+                  "$ref": "#/$defs/DebriefPointFeature"
+                },
+                {
+                  "$ref": "#/$defs/DebriefAnnotationFeature"
+                }
+              ]
+            },
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "examples": [
+              [
+                {
+                  "geometry": {
+                    "coordinates": [
+                      [
+                        0,
+                        0
+                      ],
+                      [
+                        1,
+                        1
+                      ]
+                    ],
+                    "type": "LineString"
+                  },
+                  "id": "track-001",
+                  "properties": {
+                    "dataType": "track"
+                  },
+                  "type": "Feature"
+                }
+              ]
+            ],
+            "title": "Features"
+          },
+          "padding": {
+            "type": "number",
+            "description": "Additional padding around bounds as percentage (0.1 = 10%)",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": 0.1,
+            "examples": [
+              0.1,
+              0.05,
+              0.2
+            ],
+            "title": "Padding"
+          }
+        },
+        "required": [
+          "features"
+        ],
+        "additionalProperties": false,
+        "description": null
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": null,
+            "description": "The command type",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "$ref": "#/$defs/CommandType"
+          },
+          "payload": {
+            "type": null,
+            "description": "Command-specific payload",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "title": "Payload"
+          }
+        },
+        "required": [
+          "command",
+          "payload"
+        ],
+        "additionalProperties": false,
+        "description": "A command returned by a ToolVault tool."
+      },
+      "tool_url": "/api/tools/fit-to-selection/tool.json"
+    },
+    {
       "name": "track_speed_filter",
       "description": "Find timestamps where track speed equals or exceeds a minimum threshold.",
       "inputSchema": {
         "type": "object",
         "properties": {
           "track_feature": {
-            "type": "object",
+            "type": null,
             "description": "A GeoJSON track feature conforming to DebriefTrackFeature schema with LineString or MultiLineString geometry",
             "enum": null,
             "items": null,
             "properties": null,
             "required": null,
-            "additionalProperties": true,
+            "additionalProperties": null,
             "default": null,
-            "$ref": "https://example.org/debrief/schemas/features/Track.schema.json",
+            "$ref": "#/$defs/DebriefTrackFeature",
             "examples": [
               {
                 "geometry": {
@@ -48,8 +167,7 @@
                 },
                 "type": "Feature"
               }
-            ],
-            "title": "Track Feature"
+            ]
           },
           "min_speed": {
             "type": "number",
@@ -107,26 +225,7 @@
           "payload"
         ],
         "additionalProperties": false,
-        "description": "A command returned by a ToolVault tool.",
-        "$defs": {
-          "CommandType": {
-            "description": "Valid ToolVault command types.",
-            "enum": [
-              "addFeatures",
-              "updateFeatures",
-              "deleteFeatures",
-              "setFeatureCollection",
-              "showText",
-              "showData",
-              "showImage",
-              "logMessage",
-              "composite"
-            ],
-            "title": "CommandType",
-            "type": "string"
-          }
-        },
-        "title": "ToolVaultCommand"
+        "description": "A command returned by a ToolVault tool."
       },
       "tool_url": "/api/tools/track_speed_filter/tool.json"
     },
@@ -137,14 +236,15 @@
         "type": "object",
         "properties": {
           "track_feature": {
-            "type": "object",
+            "type": null,
             "description": "A Track feature conforming to shared-types Track schema, with additional required 'speeds' array in properties",
             "enum": null,
             "items": null,
             "properties": null,
             "required": null,
-            "additionalProperties": true,
+            "additionalProperties": null,
             "default": null,
+            "$ref": "#/$defs/DebriefTrackFeature",
             "examples": [
               {
                 "geometry": {
@@ -182,8 +282,7 @@
                 },
                 "type": "Feature"
               }
-            ],
-            "title": "Track Feature"
+            ]
           },
           "min_speed": {
             "type": "number",
@@ -241,26 +340,7 @@
           "payload"
         ],
         "additionalProperties": false,
-        "description": "A command returned by a ToolVault tool.",
-        "$defs": {
-          "CommandType": {
-            "description": "Valid ToolVault command types.",
-            "enum": [
-              "addFeatures",
-              "updateFeatures",
-              "deleteFeatures",
-              "setFeatureCollection",
-              "showText",
-              "showData",
-              "showImage",
-              "logMessage",
-              "composite"
-            ],
-            "title": "CommandType",
-            "type": "string"
-          }
-        },
-        "title": "ToolVaultCommand"
+        "description": "A command returned by a ToolVault tool."
       },
       "tool_url": "/api/tools/track_speed_filter_fast/tool.json"
     },
@@ -271,15 +351,15 @@
         "type": "object",
         "properties": {
           "feature_collection": {
-            "type": "object",
+            "type": null,
             "description": "A GeoJSON FeatureCollection object conforming to the Debrief FeatureCollection schema",
             "enum": null,
             "items": null,
             "properties": null,
             "required": null,
-            "additionalProperties": true,
+            "additionalProperties": null,
             "default": null,
-            "$ref": "https://example.org/debrief/schemas/features/FeatureCollection.schema.json",
+            "$ref": "#/$defs/DebriefFeatureCollection",
             "examples": [
               {
                 "features": [
@@ -293,15 +373,15 @@
                     },
                     "id": "feature_001",
                     "properties": {
-                      "color": "red"
+                      "color": "red",
+                      "dataType": "point"
                     },
                     "type": "Feature"
                   }
                 ],
                 "type": "FeatureCollection"
               }
-            ],
-            "title": "Feature Collection"
+            ]
           }
         },
         "required": [
@@ -341,26 +421,7 @@
           "payload"
         ],
         "additionalProperties": false,
-        "description": "A command returned by a ToolVault tool.",
-        "$defs": {
-          "CommandType": {
-            "description": "Valid ToolVault command types.",
-            "enum": [
-              "addFeatures",
-              "updateFeatures",
-              "deleteFeatures",
-              "setFeatureCollection",
-              "showText",
-              "showData",
-              "showImage",
-              "logMessage",
-              "composite"
-            ],
-            "title": "CommandType",
-            "type": "string"
-          }
-        },
-        "title": "ToolVaultCommand"
+        "description": "A command returned by a ToolVault tool."
       },
       "tool_url": "/api/tools/toggle_first_feature_color/tool.json"
     },
@@ -426,26 +487,7 @@
           "payload"
         ],
         "additionalProperties": false,
-        "description": "A command returned by a ToolVault tool.",
-        "$defs": {
-          "CommandType": {
-            "description": "Valid ToolVault command types.",
-            "enum": [
-              "addFeatures",
-              "updateFeatures",
-              "deleteFeatures",
-              "setFeatureCollection",
-              "showText",
-              "showData",
-              "showImage",
-              "logMessage",
-              "composite"
-            ],
-            "title": "CommandType",
-            "type": "string"
-          }
-        },
-        "title": "ToolVaultCommand"
+        "description": "A command returned by a ToolVault tool."
       },
       "tool_url": "/api/tools/word_count/tool.json"
     },
@@ -455,47 +497,42 @@
       "inputSchema": {
         "type": "object",
         "properties": {
-          "viewport_bounds": {
-            "type": "array",
-            "description": "Viewport bounds as [west, south, east, north] in decimal degrees",
+          "viewport_state": {
+            "type": null,
+            "description": "Viewport state containing bounds as [west, south, east, north] in decimal degrees",
             "enum": null,
-            "items": {
-              "type": "number",
-              "description": null,
-              "enum": null,
-              "items": null,
-              "properties": null,
-              "required": null,
-              "additionalProperties": null,
-              "default": null
-            },
+            "items": null,
             "properties": null,
             "required": null,
             "additionalProperties": null,
             "default": null,
+            "$ref": "#/$defs/ViewportState",
             "examples": [
-              [
-                -1.0,
-                -1.0,
-                1.0,
-                1.0
-              ],
-              [
-                -122.5,
-                37.7,
-                -122.3,
-                37.9
-              ],
-              [
-                0.0,
-                50.0,
-                2.0,
-                52.0
-              ]
-            ],
-            "maxItems": 4,
-            "minItems": 4,
-            "title": "Viewport Bounds"
+              {
+                "bounds": [
+                  -1.0,
+                  -1.0,
+                  1.0,
+                  1.0
+                ]
+              },
+              {
+                "bounds": [
+                  -122.5,
+                  37.7,
+                  -122.3,
+                  37.9
+                ]
+              },
+              {
+                "bounds": [
+                  0.0,
+                  50.0,
+                  2.0,
+                  52.0
+                ]
+              }
+            ]
           },
           "lat_interval": {
             "type": "number",
@@ -533,7 +570,7 @@
           }
         },
         "required": [
-          "viewport_bounds",
+          "viewport_state",
           "lat_interval",
           "lon_interval"
         ],
@@ -571,28 +608,135 @@
           "payload"
         ],
         "additionalProperties": false,
-        "description": "A command returned by a ToolVault tool.",
-        "$defs": {
-          "CommandType": {
-            "description": "Valid ToolVault command types.",
-            "enum": [
-              "addFeatures",
-              "updateFeatures",
-              "deleteFeatures",
-              "setFeatureCollection",
-              "showText",
-              "showData",
-              "showImage",
-              "logMessage",
-              "composite"
-            ],
-            "title": "CommandType",
-            "type": "string"
-          }
-        },
-        "title": "ToolVaultCommand"
+        "description": "A command returned by a ToolVault tool."
       },
       "tool_url": "/api/tools/viewport_grid_generator/tool.json"
+    },
+    {
+      "name": "selectFeatureStartTime",
+      "description": "Set TimeState current to the earliest timestamp from any feature.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "features": {
+            "type": "array",
+            "description": "Array of Debrief features to analyze for timestamps",
+            "enum": null,
+            "items": {
+              "type": null,
+              "description": null,
+              "enum": null,
+              "items": null,
+              "properties": null,
+              "required": null,
+              "additionalProperties": null,
+              "default": null,
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/DebriefTrackFeature"
+                },
+                {
+                  "$ref": "#/$defs/DebriefPointFeature"
+                },
+                {
+                  "$ref": "#/$defs/DebriefAnnotationFeature"
+                }
+              ]
+            },
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "examples": [
+              [
+                {
+                  "geometry": {
+                    "coordinates": [
+                      [
+                        0,
+                        0
+                      ],
+                      [
+                        1,
+                        1
+                      ]
+                    ],
+                    "type": "LineString"
+                  },
+                  "id": "track-001",
+                  "properties": {
+                    "dataType": "track",
+                    "timestamps": [
+                      "2024-01-01T10:00:00Z",
+                      "2024-01-01T11:00:00Z"
+                    ]
+                  },
+                  "type": "Feature"
+                }
+              ]
+            ],
+            "title": "Features"
+          },
+          "current_time_state": {
+            "type": null,
+            "description": "Current time state to update",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "$ref": "#/$defs/TimeState",
+            "examples": [
+              {
+                "current": "2024-01-01T12:00:00Z",
+                "end": "2024-01-01T23:59:59Z",
+                "start": "2024-01-01T00:00:00Z"
+              }
+            ]
+          }
+        },
+        "required": [
+          "features",
+          "current_time_state"
+        ],
+        "additionalProperties": false,
+        "description": null
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": null,
+            "description": "The command type",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "$ref": "#/$defs/CommandType"
+          },
+          "payload": {
+            "type": null,
+            "description": "Command-specific payload",
+            "enum": null,
+            "items": null,
+            "properties": null,
+            "required": null,
+            "additionalProperties": null,
+            "default": null,
+            "title": "Payload"
+          }
+        },
+        "required": [
+          "command",
+          "payload"
+        ],
+        "additionalProperties": false,
+        "description": "A command returned by a ToolVault tool."
+      },
+      "tool_url": "/api/tools/selectFeatureStartTime/tool.json"
     }
   ],
   "version": "1.0.0",
