@@ -242,7 +242,7 @@ def extract_pydantic_parameters(pydantic_model: type) -> Dict[str, Any]:
 
 
 def load_sample_inputs(inputs_dir: Path) -> List[Dict[str, Any]]:
-    """Load sample input JSON files from a tool's inputs directory."""
+    """Load sample input JSON files from a tool's samples directory."""
     sample_inputs = []
     
     if not inputs_dir.exists():
@@ -399,7 +399,7 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
                     
                     # Load sample inputs from zip
                     sample_inputs = []
-                    inputs_prefix = f'tools/{tool_name}/inputs/'
+                    inputs_prefix = f'tools/{tool_name}/samples/'
                     for file_info in zf.namelist():
                         if file_info.startswith(inputs_prefix) and file_info.endswith('.json'):
                             try:
@@ -445,7 +445,7 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
     
     Each tool should be in its own folder containing:
     - execute.py: The tool implementation with exactly one public function
-    - inputs/: Directory with sample JSON input files
+    - samples/: Directory with sample JSON input files
     
     Args:
         tools_path: Path to the tools directory or "__bundled__" for .pyz files
@@ -527,7 +527,7 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
         return_type = type_annotations.get('return', 'object')
         
         # Load sample inputs
-        inputs_dir = tool_dir / "inputs"
+        inputs_dir = tool_dir / "samples"
         sample_inputs = load_sample_inputs(inputs_dir)
         
         # Get pretty-printed source code
