@@ -1,0 +1,86 @@
+{
+  "input": {
+    "editor_state": {
+      "featureCollection": {
+        "type": "FeatureCollection",
+        "features": [
+          {
+            "type": "Feature",
+            "id": "track-001",
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [-1.0, 52.0],
+                [-1.1, 52.1],
+                [-1.2, 52.2]
+              ]
+            },
+            "properties": {
+              "dataType": "track",
+              "name": "Track Within Viewport"
+            }
+          },
+          {
+            "type": "Feature",
+            "id": "track-002",
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                [5.0, 45.0],
+                [6.0, 46.0]
+              ]
+            },
+            "properties": {
+              "dataType": "track",
+              "name": "Track Outside Viewport"
+            }
+          },
+          {
+            "type": "Feature",
+            "id": "point-001",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [-0.5, 52.5]
+            },
+            "properties": {
+              "dataType": "reference-point",
+              "name": "Point Within Viewport"
+            }
+          },
+          {
+            "type": "Feature",
+            "id": "point-002",
+            "geometry": {
+              "type": "Point",
+              "coordinates": [10.0, 60.0]
+            },
+            "properties": {
+              "dataType": "reference-point",
+              "name": "Point Outside Viewport"
+            }
+          }
+        ]
+      },
+      "viewportState": {
+        "bounds": [-2.0, 51.0, 0.0, 53.0]
+      },
+      "selectionState": {
+        "selectedIds": []
+      },
+      "timeState": {
+        "current": "2024-01-01T12:00:00Z",
+        "start": "2024-01-01T10:00:00Z",
+        "end": "2024-01-01T14:00:00Z"
+      }
+    }
+  },
+  "expectedOutput": {
+    "command": "setSelection",
+    "payload": {
+      "selectedIds": [
+        "track-001",
+        "point-001"
+      ]
+    }
+  }
+}
