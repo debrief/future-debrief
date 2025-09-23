@@ -10,7 +10,7 @@ from debrief.types.states import TimeState
 from debrief.types.tools import ToolVaultCommand
 
 class SelectFeatureStartTimeParameters(BaseModel):
-    """Parameters for selectFeatureStartTime tool."""
+    """Parameters for select_feature_start_time tool."""
 
     features: List[DebriefFeature] = Field(
         description="Array of Debrief features to analyze for timestamps",
@@ -35,7 +35,7 @@ class SelectFeatureStartTimeParameters(BaseModel):
     )
 
 
-def selectFeatureStartTime(params: SelectFeatureStartTimeParameters) -> ToolVaultCommand:
+def select_feature_start_time(params: SelectFeatureStartTimeParameters) -> ToolVaultCommand:
     """
     Set TimeState current to the earliest timestamp from any feature.
 

@@ -1,428 +1,388 @@
 import React, { useState, useEffect } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { ToolFilterService } from './ToolFilterService';
+import { OutlineView } from '../OutlineView/OutlineView';
 import type { DebriefFeature, DebriefFeatureCollection } from '@debrief/shared-types';
-import type { ToolIndexModel } from '@debrief/shared-types/src/types/ToolIndexModel';
-import type { Tool } from '@debrief/shared-types/src/types/Tool';
+import type { Tool, JSONSchemaProperty } from '@debrief/shared-types/src/types/tools/tool';
 
-// Mock data for realistic testing
-const createMockToolIndex = (toolName: string, description: string): ToolIndexModel => ({
-  tool_name: toolName,
-  description,
-  files: {
-    execute: {
-      path: 'main.py',
-      description: 'Main execution file',
-      type: 'python'
-    },
-    source_code: {
-      path: 'source.py',
-      description: 'Source code file',
-      type: 'python'
-    },
-    git_history: {
-      path: 'history.json',
-      description: 'Git history',
-      type: 'json'
-    }
-  },
-  stats: {
-    sample_inputs_count: 3,
-    git_commits_count: 15,
-    source_code_length: 2500
-  }
-});
-
-// Mock tools for demonstration
-const mockTools: { [key: string]: Tool } = {
-  'track-analyzer': {
-    name: 'track-analyzer',
-    description: 'Analyzes vessel tracks for speed, bearing, and anomalies',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        track: {
-          type: 'object',
-          description: 'Input track feature for analysis'
-        }
-      },
-      required: ['track']
-    }
-  },
-  'point-processor': {
-    name: 'point-processor',
-    description: 'Processes individual points for location validation',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        point: {
-          type: 'object',
-          description: 'Input point feature for processing'
-        }
-      },
-      required: ['point']
-    }
-  },
-  'multi-feature-correlator': {
-    name: 'multi-feature-correlator',
-    description: 'Correlates multiple features for spatial-temporal analysis',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        track: {
-          type: 'object',
-          description: 'Input track feature'
-        },
-        point: {
-          type: 'object',
-          description: 'Input point feature'
-        }
-      },
-      required: ['track', 'point']
-    }
-  },
-  'zone-analyzer': {
-    name: 'zone-analyzer',
-    description: 'Analyzes polygon zones and areas',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        zone: {
-          type: 'object',
-          description: 'Input polygon feature for zone analysis'
-        }
-      },
-      required: ['zone']
-    }
-  }
-};
-
-// Component for interactive demonstration
-interface ToolFilterDemoProps {
-  features: DebriefFeature[];
-  toolIndex: ToolIndexModel;
-  toolName?: string;
-}
-
-function ToolFilterDemo({ features, toolIndex, toolName }: ToolFilterDemoProps) {
+// Enhanced interactive demonstration with real OutlineView integration
+const EnhancedInteractiveDemo: React.FC = () => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [plotData, setPlotData] = useState<DebriefFeatureCollection | null>(null);
+  const [toolsData, setToolsData] = useState<{ tools: Tool[] } | null>(null);
+  const [selectedFeatureIds, setSelectedFeatureIds] = useState<string[]>([]);
   const [service] = useState(() => new ToolFilterService());
-  const [result, setResult] = useState<ReturnType<ToolFilterService['getApplicableTools']> | null>(null);
 
+  // Load real data on component mount
   useEffect(() => {
-    // Use the toolIndex directly (it's already a ToolIndexModel)
-    const filterResult = service.getApplicableTools(features, toolIndex);
-    setResult(filterResult);
-  }, [features, toolIndex, service]);
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [plotResponse, toolsResponse] = await Promise.all([
+          fetch('/large-sample.plot.json'),
+          fetch('/tool-index.json')
+        ]);
+
+        if (!plotResponse.ok) throw new Error(`Failed to load plot data: ${plotResponse.statusText}`);
+        if (!toolsResponse.ok) throw new Error(`Failed to load tools data: ${toolsResponse.statusText}`);
+
+        const [plotJson, toolsJson] = await Promise.all([
+          plotResponse.json(),
+          toolsResponse.json()
+        ]);
+
+        setPlotData(plotJson);
+        setToolsData(toolsJson);
+      } catch (err) {
+        console.error('Failed to load data:', err);
+        setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Handle feature selection changes from OutlineView
+  const handleSelectionChange = (ids: string[]) => {
+    setSelectedFeatureIds(ids);
+  };
+
+  // Use the ToolFilterService to determine tool compatibility with detailed validation results
+  const getToolCompatibilityData = (selectedFeatures: DebriefFeature[]) => {
+    if (!toolsData) return new Map();
+
+    const result = service.getApplicableTools(selectedFeatures, toolsData);
+    const applicableToolNames = new Set(result.tools.map(t => t.name));
+
+    // Create a map with compatibility info for each tool, including execution mode details
+    const compatibilityMap = new Map();
+
+    toolsData.tools.forEach(tool => {
+      // Get detailed validation result for this specific tool
+      const toolValidation = service.validateToolForFeatures(tool, selectedFeatures);
+
+      compatibilityMap.set(tool.name, {
+        isCompatible: applicableToolNames.has(tool.name),
+        executionMode: toolValidation.executionMode,
+        parameterValidation: toolValidation.parameterValidation || {},
+        warnings: toolValidation.warnings || []
+      });
+    });
+
+    return compatibilityMap;
+  };
+
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '400px',
+        fontSize: '16px',
+        color: '#666'
+      }}>
+        Loading real data...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '400px',
+        fontSize: '16px',
+        color: '#d32f2f',
+        backgroundColor: '#ffebee',
+        border: '1px solid #f5c6cb',
+        borderRadius: '8px',
+        padding: '20px'
+      }}>
+        ❌ Error loading data: {error}
+      </div>
+    );
+  }
+
+  if (!plotData || !toolsData) {
+    return (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '400px',
+        fontSize: '16px',
+        color: '#666'
+      }}>
+        No data available
+      </div>
+    );
+  }
+
+  const selectedFeatures = plotData.features.filter(f => selectedFeatureIds.includes(String(f.id)));
 
   return (
-    <div style={{ border: '1px solid #ccc', padding: '16px', margin: '8px 0', borderRadius: '8px' }}>
-      <h4>{toolName || toolIndex.tool_name} Tool Filter Demo</h4>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-        <div>
-          <h5>Input Features ({features.length})</h5>
-          {features.map((feature, index) => (
-            <div key={index} style={{ fontSize: '0.85em', margin: '4px 0', padding: '4px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
-              <strong>{feature.properties?.dataType || 'unknown'}:</strong> {feature.properties?.name || feature.id || `Feature ${index + 1}`}
+    <div style={{ display: 'flex', flexDirection: 'column', height: '800px', border: '1px solid #e0e0e0', borderRadius: '8px' }}>
+      {/* Header */}
+      <div style={{
+        padding: '16px',
+        borderBottom: '1px solid #e0e0e0',
+        backgroundColor: '#f8f9fa'
+      }}>
+        <h3 style={{ margin: '0 0 8px 0' }}>Enhanced ToolFilter Service - Interactive Demonstration</h3>
+        <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>
+          Select features in the OutlineView to see real-time tool compatibility analysis.
+          Tools are automatically filtered based on parameter schema matching.
+        </p>
+      </div>
+
+      {/* Main content area */}
+      <div style={{ display: 'flex', gap: '20px', flex: 1, minHeight: 0 }}>
+        {/* Left panel - OutlineView */}
+        <div style={{
+          flex: '0 0 300px',
+          display: 'flex',
+          flexDirection: 'column',
+          border: '1px solid #ddd',
+          borderRadius: '8px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            padding: '12px',
+            backgroundColor: '#f8f9fa',
+            borderBottom: '1px solid #ddd',
+            fontWeight: 'bold'
+          }}>
+            Features ({plotData.features.length})
+          </div>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            {/* Import and use the real OutlineView component with dark background */}
+            <div style={{
+              backgroundColor: 'var(--vscode-editor-background, #1e1e1e)',
+              color: 'var(--vscode-editor-foreground, #cccccc)',
+              height: '100%',
+              fontFamily: 'var(--vscode-font-family, "Segoe UI", system-ui, sans-serif)',
+              fontSize: 'var(--vscode-font-size, 13px)'
+            }}>
+              <OutlineView
+                featureCollection={plotData}
+                selectedFeatureIds={selectedFeatureIds}
+                onSelectionChange={handleSelectionChange}
+              />
             </div>
-          ))}
+          </div>
         </div>
-        <div>
-          <h5>Filter Results</h5>
-          {result && (
-            <div>
-              <p><strong>Applicable:</strong> {(result.tools && result.tools.length > 0) ? 'Yes' : 'No'}</p>
-              <p><strong>Matching tools:</strong> {result.tools ? result.tools.length : 0}</p>
-              <p><strong>Has errors:</strong> {result.errors && result.errors.length > 0 ? 'Yes' : 'No'}</p>
-              {result.warnings && result.warnings.length > 0 && (
-                <div>
-                  <strong>Warnings:</strong>
-                  <ul style={{ fontSize: '0.8em', margin: '4px 0' }}>
-                    {result.warnings.map((warning, idx) => (
-                      <li key={idx}>
-                        ⚠️ {warning}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {result.errors && result.errors.length > 0 && (
-                <div>
-                  <strong>Errors:</strong>
-                  <ul style={{ fontSize: '0.8em', margin: '4px 0' }}>
-                    {result.errors.map((error, idx) => (
-                      <li key={idx}>
-                        ❌ {error.message}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
+
+        {/* Right panel - Tools Table */}
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          border: '1px solid #ddd',
+          borderRadius: '8px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            padding: '12px',
+            backgroundColor: '#f8f9fa',
+            borderBottom: '1px solid #ddd',
+            fontWeight: 'bold'
+          }}>
+            Tool Compatibility Analysis ({toolsData.tools.length} tools)
+          </div>
+
+          {/* Selection status */}
+          <div style={{
+            padding: '12px',
+            backgroundColor: selectedFeatures.length === 0 ? '#fff3cd' : '#d4edda',
+            borderBottom: '1px solid #ddd',
+            fontSize: '14px'
+          }}>
+            {selectedFeatures.length === 0 ? (
+              <span style={{ color: '#856404' }}>
+                ⚠️ No features selected for analysis - all tools are disabled
+              </span>
+            ) : (
+              <span style={{ color: '#155724' }}>
+                ✓ {selectedFeatures.length} feature(s) selected: {selectedFeatures.map(f => f.properties?.name || f.id).join(', ')}
+              </span>
+            )}
+          </div>
+
+          {/* Tools table */}
+          <div style={{ flex: 1, overflow: 'auto' }}>
+            <table style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              fontSize: '14px'
+            }}>
+              <thead>
+                <tr style={{ backgroundColor: '#f8f9fa' }}>
+                  <th style={{ padding: '8px', borderBottom: '1px solid #ddd', textAlign: 'left' }}>Tool Name</th>
+                  <th style={{ padding: '8px', borderBottom: '1px solid #ddd', textAlign: 'left' }}>Parameters</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(() => {
+                  const compatibilityData = getToolCompatibilityData(selectedFeatures);
+
+                  return toolsData.tools.map((tool: Tool, index: number) => {
+                    const toolCompatibility = compatibilityData.get(tool.name) || { isCompatible: false };
+                    const paramCount = tool.inputSchema?.properties ? Object.keys(tool.inputSchema.properties).length : 0;
+                    const requiredCount = tool.inputSchema?.required?.length || 0;
+
+                    return (
+                      <tr key={index} style={{
+                        backgroundColor: index % 2 === 0 ? '#f9f9f9' : 'white',
+                        opacity: toolCompatibility.isCompatible ? 1 : 0.6
+                      }}>
+                        <td style={{ padding: '8px', borderBottom: '1px solid #eee', fontWeight: toolCompatibility.isCompatible ? 'bold' : 'normal' }}>
+                          {toolCompatibility.isCompatible ? '🟢' : '🔴'} {tool.name}
+                        </td>
+                        <td style={{ padding: '8px', borderBottom: '1px solid #eee', fontSize: '12px' }}>
+                          <div style={{ marginBottom: '4px', fontWeight: 'bold' }}>
+                            {paramCount} parameter{paramCount !== 1 ? 's' : ''} ({requiredCount} required)
+                            {toolCompatibility.executionMode && (
+                              <span style={{
+                                marginLeft: '8px',
+                                padding: '2px 6px',
+                                backgroundColor: '#e3f2fd',
+                                color: '#1565c0',
+                                borderRadius: '4px',
+                                fontSize: '10px',
+                                fontWeight: 'bold'
+                              }}>
+                                {toolCompatibility.executionMode.mode === 'batch' && '📦'}
+                                {toolCompatibility.executionMode.mode === 'multiple' && '🔁'}
+                                {toolCompatibility.executionMode.mode === 'single' && '🎯'}
+                                {' '}{toolCompatibility.executionMode.description}
+                              </span>
+                            )}
+                          </div>
+                          {tool.inputSchema?.properties && (
+                            <ul style={{
+                              margin: '0 0 8px 0',
+                              paddingLeft: '16px',
+                              fontSize: '11px',
+                              lineHeight: '1.3'
+                            }}>
+                              {Object.entries(tool.inputSchema.properties).map(([paramName, schema]: [string, unknown], idx) => {
+                                const isRequired = tool.inputSchema.required?.includes(paramName) || false;
+                                const schemaObj = schema as JSONSchemaProperty;
+                                const description = schemaObj?.description || 'No description';
+                                const requiredFlag = isRequired ? ' (required)' : ' (optional)';
+
+                                // Use parameter-level validation from ToolFilterService
+                                let backgroundColor = 'transparent';
+                                let color = 'inherit';
+                                let icon = '';
+
+                                const paramValidation = toolCompatibility.parameterValidation[paramName];
+                                if (paramValidation) {
+                                  if (paramValidation.canSatisfy) {
+                                    // Parameter can be satisfied - show as satisfied
+                                    backgroundColor = '#d4edda';
+                                    color = '#155724';
+                                    icon = '✓ ';
+                                  } else {
+                                    // Parameter cannot be satisfied
+                                    if (paramValidation.isRequired) {
+                                      // Required parameter missing - show as error
+                                      backgroundColor = '#f8d7da';
+                                      color = '#721c24';
+                                      icon = '✗ ';
+                                    } else {
+                                      // Optional parameter missing - show as warning
+                                      backgroundColor = '#fff3cd';
+                                      color = '#856404';
+                                      icon = '⚠ ';
+                                    }
+                                  }
+                                } else {
+                                  // No validation data available - show as neutral
+                                  backgroundColor = '#f8f9fa';
+                                  color = '#6c757d';
+                                  icon = '? ';
+                                }
+
+                                return (
+                                  <li key={idx} style={{
+                                    margin: '2px 0',
+                                    padding: '2px 4px',
+                                    borderRadius: '3px',
+                                    backgroundColor,
+                                    color,
+                                    fontWeight: isRequired ? 'bold' : 'normal'
+                                  }}>
+                                    {icon}{paramName}{requiredFlag}: {description}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                          {!toolCompatibility.isCompatible && (
+                            <div style={{
+                              fontSize: '10px',
+                              fontStyle: 'italic',
+                              color: '#666',
+                              backgroundColor: '#f8f9fa',
+                              padding: '4px',
+                              borderRadius: '3px',
+                              marginTop: '4px'
+                            }}>
+                              Tool validation handled by ToolFilterService
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  });
+                })()}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
   );
-}
-
-// Sample feature creation helper
-const createSampleFeatures = (): DebriefFeature[] => [
-  {
-    type: 'Feature',
-    id: 'track_001',
-    geometry: {
-      type: 'LineString',
-      coordinates: [[0, 0], [1, 1], [2, 2]]
-    },
-    properties: {
-      dataType: 'track',
-      name: 'Sample Track',
-      timestamps: ['2023-01-01T10:00:00Z', '2023-01-01T11:00:00Z', '2023-01-01T12:00:00Z']
-    }
-  },
-  {
-    type: 'Feature',
-    id: 'point_001',
-    geometry: {
-      type: 'Point',
-      coordinates: [0.5, 0.5]
-    },
-    properties: {
-      dataType: 'reference-point',
-      name: 'Sample Point',
-      timestamp: '2023-01-01T10:30:00Z'
-    }
-  },
-  {
-    type: 'Feature',
-    id: 'zone_001',
-    geometry: {
-      type: 'Polygon',
-      coordinates: [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]]
-    },
-    properties: {
-      dataType: 'zone',
-      name: 'Sample Zone',
-      zoneType: 'restricted'
-    }
-  }
-];
+};
 
 // Story configuration
-const meta: Meta<typeof ToolFilterDemo> = {
+const meta: Meta<typeof EnhancedInteractiveDemo> = {
   title: 'Services/ToolFilterService',
-  component: ToolFilterDemo,
+  component: EnhancedInteractiveDemo,
   parameters: {
     layout: 'padded',
     docs: {
       description: {
-        component: 'Interactive demonstration of the ToolFilterService for intelligent tool-feature matching'
+        component: 'Interactive demonstration of the ToolFilterService for intelligent tool-feature matching with real data'
       }
     }
   }
 };
 
 export default meta;
-type Story = StoryObj<typeof ToolFilterDemo>;
+type Story = StoryObj<typeof EnhancedInteractiveDemo>;
 
-// Basic stories
-export const TrackAnalyzer: Story = {
-  args: {
-    features: createSampleFeatures().filter(f => f.properties?.dataType === 'track'),
-    toolIndex: createMockToolIndex('track-analyzer', 'Analyzes vessel tracks'),
-    toolName: 'Track Analyzer'
+/**
+ * Interactive demonstration with real OutlineView integration and dynamic tool filtering based on feature selection.
+ * Select features to see tools automatically enabled/disabled based on compatibility.
+ */
+export const EnhancedInteractive: Story = {
+  render: () => <EnhancedInteractiveDemo />,
+  parameters: {
+    layout: 'fullscreen',
+    docs: {
+      description: {
+        story: 'Interactive demonstration with real OutlineView integration and dynamic tool filtering based on feature selection. Select features to see tools automatically enabled/disabled based on compatibility.'
+      }
+    }
   }
-};
-
-export const PointProcessor: Story = {
-  args: {
-    features: createSampleFeatures().filter(f => f.properties?.dataType === 'reference-point'),
-    toolIndex: createMockToolIndex('point-processor', 'Processes individual points'),
-    toolName: 'Point Processor'
-  }
-};
-
-export const MultiFeatureCorrelator: Story = {
-  args: {
-    features: createSampleFeatures(),
-    toolIndex: createMockToolIndex('multi-feature-correlator', 'Correlates multiple features'),
-    toolName: 'Multi Feature Correlator'
-  }
-};
-
-export const NoCompatibleFeatures: Story = {
-  args: {
-    features: createSampleFeatures().filter(f => f.properties?.dataType === 'zone'),
-    toolIndex: createMockToolIndex('track-analyzer', 'Track analyzer with no tracks'),
-    toolName: 'Track Analyzer (No Tracks)'
-  }
-};
-
-export const EmptyFeatures: Story = {
-  args: {
-    features: [],
-    toolIndex: createMockToolIndex('track-analyzer', 'Track analyzer with empty input'),
-    toolName: 'Track Analyzer (Empty Input)'
-  }
-};
-
-// Advanced caching demonstration
-const CachingDemoComponent: React.FC = () => {
-  const [service] = useState(() => new ToolFilterService());
-  const [features] = useState(() => createSampleFeatures());
-  const [results, setResults] = useState<Array<{
-    run: number;
-    fromCache: boolean;
-    timestamp: string;
-  }>>([]);
-
-  const runFilter = () => {
-    const toolIndex = {
-      tools: [mockTools['track-analyzer']],
-      version: '1.0.0',
-      description: 'Caching demo'
-    };
-
-    const result = service.getApplicableTools(features, toolIndex);
-    setResults(prev => [...prev, {
-      run: prev.length + 1,
-      fromCache: result.fromCache,
-      timestamp: new Date().toLocaleTimeString()
-    }]);
-  };
-
-  const clearResults = () => {
-    setResults([]);
-  };
-
-  return (
-    <div style={{ padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
-      <h3>Caching Demonstration</h3>
-      <p>The ToolFilterService caches results for 60 seconds. Run the filter multiple times to see caching in action.</p>
-
-      <div style={{ margin: '20px 0' }}>
-        <button onClick={runFilter} style={{ marginRight: '10px', padding: '8px 16px' }}>
-          Run Filter
-        </button>
-        <button onClick={clearResults} style={{ padding: '8px 16px' }}>
-          Clear Results
-        </button>
-      </div>
-
-      <div>
-        <h4>Results History:</h4>
-        {results.length === 0 ? (
-          <p>No results yet. Click "Run Filter" to start.</p>
-        ) : (
-          <ul>
-            {results.map((result, index) => (
-              <li key={index}>
-                Run #{result.run} at {result.timestamp}: {result.fromCache ? '🟢 Cache Hit' : '🔴 Cache Miss'}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export const CachingDemo: Story = {
-  render: () => <CachingDemoComponent />
-};
-
-// Real data demonstration
-const WithRealDataComponent: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [realFeatures, setRealFeatures] = useState<DebriefFeature[]>([]);
-  const [realToolIndex, setRealToolIndex] = useState<any>(null);
-
-  useEffect(() => {
-    Promise.all([
-      fetch('/large-sample.plot.json').then(res => res.json()),
-      fetch('/tool-index.json').then(res => res.json())
-    ])
-      .then(([plotData, toolData]) => {
-        if (plotData?.features) {
-          setRealFeatures(plotData.features);
-        } else {
-          setRealFeatures(createSampleFeatures());
-          setError('Plot data missing features, using sample data');
-        }
-
-        if (toolData?.tools) {
-          setRealToolIndex(toolData);
-        } else {
-          setRealToolIndex(null);
-          setError(error + ' | Tool data missing tools array');
-        }
-
-        setLoading(false);
-      })
-      .catch(err => {
-        console.warn('Could not load real data, using sample data:', err);
-        setRealFeatures(createSampleFeatures());
-        setRealToolIndex(null);
-        setError('Using sample data (could not load real data files)');
-        setLoading(false);
-      });
-  }, []);
-
-  if (loading) {
-    return <div style={{ padding: '20px' }}>Loading real data...</div>;
-  }
-
-  return (
-    <div>
-      {error && (
-        <div style={{
-          backgroundColor: '#fff3cd',
-          border: '1px solid #ffeaa7',
-          color: '#856404',
-          padding: '12px',
-          borderRadius: '4px',
-          marginBottom: '20px'
-        }}>
-          ⚠️ {error}
-        </div>
-      )}
-
-      {realToolIndex ? (
-        <div>
-          <h3>Real Tool Index Data ({realToolIndex.tools?.length || 0} tools found)</h3>
-          {realToolIndex.tools?.slice(0, 3).map((tool: any, _index: number) => (
-            <div key={tool.name} style={{ marginBottom: '30px', border: '1px solid #ddd', borderRadius: '8px', padding: '15px' }}>
-              <h4>{tool.name}</h4>
-              <p><em>{tool.description}</em></p>
-              <ToolFilterDemo
-                features={realFeatures.slice(0, 8)}
-                toolIndex={createMockToolIndex(tool.name, tool.description)}
-                toolName={tool.name}
-              />
-            </div>
-          ))}
-          <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-            <strong>Real Data Summary:</strong>
-            <br />• Features: {realFeatures.length} maritime features loaded
-            <br />• Tools: {realToolIndex.tools?.length || 0} real tools from tool vault
-            <br />• Showing: First 3 tools with first 8 features for performance
-          </div>
-        </div>
-      ) : (
-        <div>
-          <h3>Sample Data (Real data unavailable)</h3>
-          <ToolFilterDemo
-            features={realFeatures.slice(0, 5)}
-            toolIndex={createMockToolIndex('sample-tool', 'Sample tool for demonstration')}
-            toolName="Sample Tool"
-          />
-        </div>
-      )}
-    </div>
-  );
-};
-
-export const WithRealData: Story = {
-  render: () => <WithRealDataComponent />
 };

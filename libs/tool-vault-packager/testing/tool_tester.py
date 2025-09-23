@@ -230,25 +230,24 @@ class BaselineGenerator:
 
         tool_meta = self.tester.discovered_tools[tool_name]
         tool_dir = Path(tool_meta.tool_dir)
-        inputs_dir = tool_dir / "inputs"
         samples_dir = tool_dir / "samples"
 
-        if not inputs_dir.exists():
-            print(f"No inputs directory found for {tool_name}")
+        if not samples_dir.exists():
+            print(f"No samples directory found for {tool_name}")
             return {}
-
-        # Create samples directory
-        samples_dir.mkdir(exist_ok=True)
 
         sample_data = {}
 
-        # Process each input file
-        for input_file in inputs_dir.glob("*.json"):
-            sample_key = input_file.stem  # filename without extension
+        # Process each sample file that only has input (no expectedOutput yet)
+        for sample_file in samples_dir.glob("*.json"):
+            sample_key = sample_file.stem  # filename without extension
 
-            # Load input data
-            with open(input_file, 'r') as f:
-                input_data = json.load(f)
+            # Load sample data
+            with open(sample_file, 'r') as f:
+                sample_content = json.load(f)
+
+            # Extract input data from the sample structure
+            input_data = sample_content.get("input", sample_content)
 
             # Execute tool to get expected output
             try:

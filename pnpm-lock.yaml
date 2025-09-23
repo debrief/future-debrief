@@ -121,8 +121,8 @@ importers:
         specifier: ^1.9.20
         version: 1.9.20
       '@vscode-elements/elements':
-        specifier: ^2.3.0
-        version: 2.3.0
+        specifier: ^2.3.1
+        version: 2.3.1
       '@vscode-elements/react-elements':
         specifier: ^2.3.1
         version: 2.3.1(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
@@ -1560,8 +1560,8 @@ packages:
   '@vitest/utils@3.2.4':
     resolution: {integrity: sha512-fB2V0JFrQSMsCo9HiSq3Ezpdv4iYaXRG1Sx8edX3MwxfyNn83mKiGzOcH+Fkxt4MHxr3y42fQi1oeAInqgX2QA==}
 
-  '@vscode-elements/elements@2.3.0':
-    resolution: {integrity: sha512-N8NL3wk9kyI64sM70+I+QR1TIN0pvw0SqF+z09mvfP0l4PHoE6Y7jJk6B5BE/w8pF8tja0Sf42aCaUN3tJPm+g==}
+  '@vscode-elements/elements@2.3.1':
+    resolution: {integrity: sha512-fVTkXUoj14mIU/lzNnZBIPFNi3drJb7u7oLe7Y4gwoHmyifzRG6akRnR7N6L6O2a0R3for0Sl7wgNAeiPpMGOA==}
 
   '@vscode-elements/react-elements@2.3.1':
     resolution: {integrity: sha512-xa/BeGYy5cR+7di4H7wd6pcSuZu1Il4B2qia9j8XppI4KkhqMknyxE2/nXUxApRdrkrM9HFrhhtBWCxAWNbp5g==}
@@ -5894,7 +5894,7 @@ snapshots:
       loupe: 3.2.1
       tinyrainbow: 2.0.0
 
-  '@vscode-elements/elements@2.3.0':
+  '@vscode-elements/elements@2.3.1':
     dependencies:
       '@lit/context': 1.1.6
       lit: 3.3.1
@@ -5902,7 +5902,7 @@ snapshots:
   '@vscode-elements/react-elements@2.3.1(@types/react@19.1.12)(react-dom@19.1.1(react@19.1.1))(react@19.1.1)':
     dependencies:
       '@lit/react': 1.0.8(@types/react@19.1.12)
-      '@vscode-elements/elements': 2.3.0
+      '@vscode-elements/elements': 2.3.1
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
     transitivePeerDependencies:

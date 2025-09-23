@@ -8,8 +8,8 @@ RED := \033[31m
 RESET := \033[0m
 
 # Source files to check
-SRC_FILES := $(shell find src -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" 2>/dev/null)
-NEWEST_SRC := $(shell ls -t $(SRC_FILES) 2>/dev/null | head -1)
+SRC_FILES := $(shell find src -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx")
+NEWEST_SRC := $(shell ls -t $(SRC_FILES) | head -1)
 
 # Build artifacts that should exist
 DIST_FILES := dist/vanilla/index.js dist/vanilla/index.css dist/vanilla/vanilla-generated.d.ts
@@ -30,11 +30,11 @@ verify-artifacts: $(DIST_FILES) ## Verify build artifacts are up-to-date
 
 verify-tests: ## Run tests without rebuilding
 	@echo "$(BLUE)🧪 Running tests...$(RESET)"
-	@pnpm test > /dev/null 2>&1 && echo "$(GREEN)✅ Tests passed$(RESET)" || (echo "$(RED)❌ Tests failed$(RESET)" && exit 1)
+	@pnpm test && echo "$(GREEN)✅ Tests passed$(RESET)" || (echo "$(RED)❌ Tests failed$(RESET)" && exit 1)
 
 verify-typecheck: ## Type check without compilation
 	@echo "$(BLUE)🔍 Type checking...$(RESET)"
-	@pnpm typecheck > /dev/null 2>&1 && echo "$(GREEN)✅ Type check passed$(RESET)" || (echo "$(RED)❌ Type check failed$(RESET)" && exit 1)
+	@pnpm typecheck && echo "$(GREEN)✅ Type check passed$(RESET)" || (echo "$(RED)❌ Type check failed$(RESET)" && exit 1)
 
 # Build artifacts must be newer than source files
 $(DIST_FILES): $(NEWEST_SRC)

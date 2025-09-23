@@ -26,10 +26,10 @@ except ImportError:
     PYGMENTS_AVAILABLE = False
 
 try:
-    from .discovery import discover_tools, generate_index_json
+    from .discovery import discover_tools, generate_index_json, ToolDiscoveryError
 except ImportError:
     # Handle case when running as script
-    from discovery import discover_tools, generate_index_json
+    from discovery import discover_tools, generate_index_json, ToolDiscoveryError
 
 try:
     from .testing import TestRunner, TestConfig
@@ -297,7 +297,18 @@ def package_toolvault(
         index_data = generate_index_json(tools)
         print(f"Discovered {len(tools)} tools for packaging")
 
+    except ToolDiscoveryError as e:
+        print(f"\n🚫 PACKAGING ABORTED: Schema incompatibility detected")
+        print(f"   {e}")
+        print(f"\n🔧 RECOMMENDED ACTIONS:")
+        print(f"   1. Update JSONSchema/JSONSchemaProperty models to support additional fields")
+        print(f"   2. Modify tool output schemas to only use supported JSON Schema fields")
+        print(f"   3. Add field mappings in the schema conversion process")
+        print(f"\n📍 Location: {__file__}:296 -> discovery.py")
+        raise PackagerError(f"Schema validation failed: {e}")
     except Exception as e:
+        print(f"\n🚫 PACKAGING ABORTED: Unexpected error during tool discovery")
+        print(f"   {e}")
         raise PackagerError(f"Tool discovery failed: {e}")
 
     # Run tool tests if requested

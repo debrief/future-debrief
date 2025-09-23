@@ -8,8 +8,8 @@ RED := \033[31m
 RESET := \033[0m
 
 # Source files to check
-SRC_FILES := $(shell find src -name "*.ts" -o -name "*.tsx" 2>/dev/null)
-NEWEST_SRC := $(shell ls -t $(SRC_FILES) 2>/dev/null | head -1)
+SRC_FILES := $(shell find src -name "*.ts" -o -name "*.tsx")
+NEWEST_SRC := $(shell ls -t $(SRC_FILES) | head -1)
 
 # Build artifacts that should exist
 DIST_FILES := dist/extension.js media/web-components.js media/web-components.css
@@ -31,11 +31,11 @@ verify-artifacts: $(DIST_FILES) $(DIST_DIRS) ## Verify build artifacts are up-to
 
 verify-tests: ## Run tests without rebuilding
 	@echo "$(BLUE)🧪 Running tests...$(RESET)"
-	@pnpm test > /dev/null 2>&1 && echo "$(GREEN)✅ Tests passed$(RESET)" || (echo "$(RED)❌ Tests failed$(RESET)" && exit 1)
+	@pnpm test && echo "$(GREEN)✅ Tests passed$(RESET)" || (echo "$(RED)❌ Tests failed$(RESET)" && exit 1)
 
 verify-typecheck: ## Type check without compilation
 	@echo "$(BLUE)🔍 Type checking...$(RESET)"
-	@pnpm typecheck > /dev/null 2>&1 && echo "$(GREEN)✅ Type check passed$(RESET)" || (echo "$(RED)❌ Type check failed$(RESET)" && exit 1)
+	@pnpm typecheck && echo "$(GREEN)✅ Type check passed$(RESET)" || (echo "$(RED)❌ Type check failed$(RESET)" && exit 1)
 
 verify-contents: ## Verify .vsix package contents
 	@echo "$(BLUE)Verifying .vsix package contents...$(RESET)"

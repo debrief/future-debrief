@@ -11,12 +11,7 @@ import sys
 
 from debrief.types.tools import (
     ToolMetadataModel,
-    ToolIndexModel,
     GlobalToolIndexModel,
-    ToolFilesCollection,
-    ToolStatsModel,
-    ToolFileReference,
-    SampleInputReference,
     GitHistoryEntry,
     SampleInputData,
     ToolVaultCommand,
@@ -242,7 +237,7 @@ def extract_pydantic_parameters(pydantic_model: type) -> Dict[str, Any]:
 
 
 def load_sample_inputs(inputs_dir: Path) -> List[Dict[str, Any]]:
-    """Load sample input JSON files from a tool's inputs directory."""
+    """Load sample input JSON files from a tool's samples directory."""
     sample_inputs = []
     
     if not inputs_dir.exists():
@@ -399,7 +394,7 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
                     
                     # Load sample inputs from zip
                     sample_inputs = []
-                    inputs_prefix = f'tools/{tool_name}/inputs/'
+                    inputs_prefix = f'tools/{tool_name}/samples/'
                     for file_info in zf.namelist():
                         if file_info.startswith(inputs_prefix) and file_info.endswith('.json'):
                             try:
@@ -445,7 +440,7 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
     
     Each tool should be in its own folder containing:
     - execute.py: The tool implementation with exactly one public function
-    - inputs/: Directory with sample JSON input files
+    - samples/: Directory with sample JSON input files
     
     Args:
         tools_path: Path to the tools directory or "__bundled__" for .pyz files
@@ -527,7 +522,7 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
         return_type = type_annotations.get('return', 'object')
         
         # Load sample inputs
-        inputs_dir = tool_dir / "inputs"
+        inputs_dir = tool_dir / "samples"
         sample_inputs = load_sample_inputs(inputs_dir)
         
         # Get pretty-printed source code
@@ -644,18 +639,115 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
         # Get the ToolVaultCommand schema as the output schema
         command_schema = ToolVaultCommand.model_json_schema()
 
-        tool_instance = Tool(
-            name=tool.name,
-            description=tool.description,
-            inputSchema=JSONSchema(
-                type=JSONSchemaType.OBJECT,
-                properties=json_properties,
-                required=required_fields,
-                additionalProperties=False
-            ),
-            outputSchema=JSONSchema(**command_schema),
-            tool_url=f"/api/tools/{tool_dir_name}/tool.json"
-        )
+        # Validate and report schema compatibility - using enhanced JSONSchema model
+        valid_jsonschema_fields = {
+            # Meta-schema information
+            '$schema', '$id', '$ref',
+            # Core schema fields
+            'type', 'title', 'description', 'examples', '$comment',
+            # Value constraints
+            'enum', 'const', 'default',
+            # Numeric constraints
+            'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf',
+            # String constraints
+            'minLength', 'maxLength', 'pattern', 'format',
+            # Array constraints
+            'items', 'minItems', 'maxItems', 'uniqueItems', 'contains',
+            # Object constraints
+            'properties', 'required', 'additionalProperties', 'patternProperties',
+            'propertyNames', 'minProperties', 'maxProperties',
+            # Schema composition
+            'allOf', 'anyOf', 'oneOf', 'not',
+            # Conditional schemas
+            'if', 'then', 'else',
+            # Definitions and references
+            '$defs', 'definitions'
+        }
+        invalid_fields = set(command_schema.keys()) - valid_jsonschema_fields
+
+        if invalid_fields:
+            print(f"\n❌ SCHEMA INCOMPATIBILITY DETECTED in tool '{tool.name}':")
+            print(f"   Output schema contains invalid JSONSchema fields: {sorted(invalid_fields)}")
+            print(f"   Valid JSONSchema fields are: {sorted(valid_jsonschema_fields)}")
+            print(f"   Tool output schema: {command_schema}")
+            print(f"\n💡 To fix this, update the JSONSchema model to support these fields")
+            print(f"   or modify the ToolVaultCommand schema to only use valid fields.")
+            raise ToolDiscoveryError(
+                f"Tool '{tool.name}' has incompatible output schema. "
+                f"Invalid fields: {sorted(invalid_fields)}. "
+                f"Valid JSONSchema fields: {sorted(valid_jsonschema_fields)}"
+            )
+
+        # Validate properties within the schema
+        schema_properties = command_schema.get('properties', {})
+        for prop_name, prop_schema in schema_properties.items():
+            valid_property_fields = {
+                # Core schema fields
+                'type', 'description', 'title',
+                # Value constraints
+                'enum', 'const', 'default', 'examples',
+                # Numeric constraints
+                'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf',
+                # String constraints
+                'minLength', 'maxLength', 'pattern', 'format',
+                # Array constraints
+                'items', 'minItems', 'maxItems', 'uniqueItems',
+                # Object constraints
+                'properties', 'required', 'additionalProperties', 'patternProperties',
+                'propertyNames', 'minProperties', 'maxProperties',
+                # Schema composition
+                'allOf', 'anyOf', 'oneOf', 'not',
+                # References
+                '$ref'
+            }
+            invalid_prop_fields = set(prop_schema.keys()) - valid_property_fields
+
+            if invalid_prop_fields:
+                print(f"\n❌ PROPERTY SCHEMA INCOMPATIBILITY in tool '{tool.name}', property '{prop_name}':")
+                print(f"   Property contains invalid JSONSchemaProperty fields: {sorted(invalid_prop_fields)}")
+                print(f"   Valid JSONSchemaProperty fields: {sorted(valid_property_fields)}")
+                print(f"   Property schema: {prop_schema}")
+                raise ToolDiscoveryError(
+                    f"Tool '{tool.name}' property '{prop_name}' has incompatible schema. "
+                    f"Invalid fields: {sorted(invalid_prop_fields)}"
+                )
+
+        # Use the complete schema since enhanced JSONSchema model supports all fields
+        filtered_command_schema = command_schema
+
+        # Attempt to create JSONSchema with detailed error reporting
+        try:
+            output_schema = JSONSchema(**filtered_command_schema)
+        except Exception as e:
+            print(f"\n❌ JSONSCHEMA CREATION FAILED for tool '{tool.name}':")
+            print(f"   Error: {e}")
+            print(f"   Filtered schema: {filtered_command_schema}")
+            raise ToolDiscoveryError(f"Failed to create JSONSchema for tool '{tool.name}': {e}")
+
+        # Attempt to create Tool with detailed error reporting
+        try:
+            tool_instance = Tool(
+                name=tool.name,
+                description=tool.description,
+                inputSchema=JSONSchema(
+                    type=JSONSchemaType.OBJECT,
+                    properties=json_properties,
+                    required=required_fields,
+                    additionalProperties=False
+                ),
+                outputSchema=output_schema,
+                tool_url=f"/api/tools/{tool_dir_name}/tool.json"
+            )
+        except Exception as e:
+            print(f"\n❌ TOOL CREATION FAILED for tool '{tool.name}':")
+            print(f"   Error: {e}")
+            print(f"   Tool fields being passed:")
+            print(f"     - name: {tool.name}")
+            print(f"     - description: {tool.description}")
+            print(f"     - inputSchema: {json_properties}")
+            print(f"     - outputSchema: {output_schema}")
+            print(f"     - tool_url: /api/tools/{tool_dir_name}/tool.json")
+            raise ToolDiscoveryError(f"Failed to create Tool instance for '{tool.name}': {e}")
 
         tools_list.append(tool_instance)
 

@@ -2,7 +2,7 @@
 # Pydantic-first architecture - simplified build system
 
 # File pattern definitions
-PYDANTIC_FILES := $(shell find python-src/debrief/types -name "*.py" -type f 2>/dev/null || true)
+PYDANTIC_FILES := $(shell find python-src/debrief/types -name "*.py" -type f || true)
 # Define expected schema files based on known structure (avoid shell dependency issues)
 EXPECTED_SCHEMAS := derived/json-schema/features/track.schema.json \
                    derived/json-schema/features/point.schema.json \
@@ -49,7 +49,7 @@ COMPILED_TS := dist/src/index.js dist/src/index.d.ts
 PYTHON_WHEEL := dist/python/debrief_types-1.0.0-py3-none-any.whl
 
 # Dynamic schema files discovery
-ALL_SCHEMA_FILES := $(shell find derived/json-schema -name "*.schema.json" -type f 2>/dev/null || true)
+ALL_SCHEMA_FILES := $(shell find derived/json-schema -name "*.schema.json" -type f || true)
 
 # Colors for output
 BLUE := \033[34m
@@ -70,7 +70,7 @@ help: ## Show this help message
 
 clean: ## Clean all generated files
 	@echo "$(YELLOW)Cleaning generated files...$(RESET)"
-	@rm -rf derived/ dist/ src/types/ 2>/dev/null || true
+	@rm -rf derived/ dist/ src/types/ || true
 	@echo "$(GREEN)✓ Clean complete$(RESET)"
 
 # JSON Schema generation from Pydantic models - triggered by any Pydantic file change
@@ -165,7 +165,7 @@ copy-to-tool-vault-packager: ## Copy Python sources and required TypeScript type
 		rm -rf ../tool-vault-packager/shared-types; \
 		mkdir -p ../tool-vault-packager/shared-types/src; \
 		cp -r python-src ../tool-vault-packager/shared-types/; \
-		cp pyproject.toml setup.py ../tool-vault-packager/shared-types/ 2>/dev/null || true; \
+		cp pyproject.toml setup.py ../tool-vault-packager/shared-types/ || true; \
 		if [ -d "src/types" ]; then \
 			cp -r src/types ../tool-vault-packager/shared-types/src/; \
 			echo "$(BLUE)  Copied TypeScript types for SPA$(RESET)"; \
@@ -206,7 +206,7 @@ verify: verify-artifacts verify-tests verify-typecheck verify-contents ## Fast v
 
 verify-artifacts: ## Verify build artifacts are up-to-date
 	@echo "$(BLUE)Checking build artifacts...$(RESET)"
-	@NEWEST_PY=$$(find python-src/debrief/types -name "*.py" -type f -exec stat -f "%m %N" {} \; 2>/dev/null | sort -nr | head -1 | cut -d' ' -f2-); \
+	@NEWEST_PY=$$(find python-src/debrief/types -name "*.py" -type f -exec stat -f "%m %N" {} \; | sort -nr | head -1 | cut -d' ' -f2-); \
 	if [ -z "$$NEWEST_PY" ]; then \
 		echo "$(RED)❌ [@debrief/shared-types] No Pydantic source files found$(RESET)"; \
 		exit 1; \
@@ -227,13 +227,13 @@ verify-artifacts: ## Verify build artifacts are up-to-date
 
 verify-tests: ## Run tests without rebuilding
 	@echo "$(BLUE)Running tests...$(RESET)"
-	@node tests/typescript/test-generated-files.js > /dev/null 2>&1 && \
-	 python3 tests/python/test_generated_files.py > /dev/null 2>&1 && \
+	@node tests/typescript/test-generated-files.js && \
+	 python3 tests/python/test_generated_files.py && \
 	 echo "$(GREEN)✅ Tests passed$(RESET)" || (echo "$(RED)❌ Tests failed$(RESET)" && exit 1)
 
 verify-typecheck: ## Type check without compilation
 	@echo "$(BLUE)Type checking...$(RESET)"
-	@NODE_NO_WARNINGS=1 npx tsc --noEmit > /dev/null 2>&1 && echo "$(GREEN)✅ Type check passed$(RESET)" || (echo "$(RED)❌ Type check failed$(RESET)" && exit 1)
+	@NODE_NO_WARNINGS=1 npx tsc --noEmit && echo "$(GREEN)✅ Type check passed$(RESET)" || (echo "$(RED)❌ Type check failed$(RESET)" && exit 1)
 
 verify-contents: ## Verify build artifact contents
 	@echo "$(BLUE)Verifying build artifact contents...$(RESET)"

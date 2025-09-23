@@ -112,19 +112,19 @@ describe('ToolFilterService', () => {
   });
 
   describe('getApplicableTools', () => {
-    it('should return tools when no features are selected', () => {
-      const toolIndex = createMockToolIndex('any-tool');
-      const result = toolFilterService.getApplicableTools([], toolIndex);
+    it('should return no tools when no features are selected', () => {
+      const toolsData = { tools: [createMockTool('any-tool')] };
+      const result = toolFilterService.getApplicableTools([], toolsData);
 
-      expect(result.tools).toHaveLength(1);
+      expect(result.tools).toHaveLength(0);
       expect(result.errors).toHaveLength(0);
-      expect(result.warnings).toContain('No features selected - showing all available tools');
+      expect(result.warnings).toContain('No features selected for tool "any-tool"');
     });
 
     it('should return applicable tools for single feature', () => {
       const trackFeature = createMockTrackFeature();
-      const toolIndex = createMockToolIndex('track-processor');
-      const result = toolFilterService.getApplicableTools([trackFeature], toolIndex);
+      const toolsData = { tools: [createMockTool('track-processor', ['features'])] };
+      const result = toolFilterService.getApplicableTools([trackFeature], toolsData);
 
       expect(result.tools).toHaveLength(1);
       expect(result.tools[0].name).toBe('track-processor');
@@ -133,25 +133,20 @@ describe('ToolFilterService', () => {
 
     it('should return warning when no tools match selected features', () => {
       const pointFeature = createMockPointFeature();
-      const toolIndex = createMockToolIndex('polygon-only-tool');
+      const toolsData = { tools: [createMockTool('polygon-only-tool', ['zone'])] };
 
-      // Mock a tool that specifically requires polygons
-      jest.spyOn(toolFilterService as any, 'extractToolsFromIndex').mockReturnValue([
-        createMockTool('polygon-only-tool', ['Polygon'])
-      ]);
-
-      const result = toolFilterService.getApplicableTools([pointFeature], toolIndex);
+      const result = toolFilterService.getApplicableTools([pointFeature], toolsData);
 
       expect(result.tools).toHaveLength(0);
-      expect(result.warnings.some(w => w.includes('No tools found that can process'))).toBe(true);
+      expect(result.warnings.some(w => w.includes('unsatisfied required parameters'))).toBe(true);
     });
 
     it('should handle multiple features correctly', () => {
       const trackFeature = createMockTrackFeature();
       const pointFeature = createMockPointFeature();
-      const toolIndex = createMockToolIndex('multi-feature-tool');
+      const toolsData = { tools: [createMockTool('multi-feature-tool', ['features'])] };
 
-      const result = toolFilterService.getApplicableTools([trackFeature, pointFeature], toolIndex);
+      const result = toolFilterService.getApplicableTools([trackFeature, pointFeature], toolsData);
 
       expect(result.tools).toHaveLength(1);
       expect(result.errors).toHaveLength(0);
@@ -159,14 +154,14 @@ describe('ToolFilterService', () => {
 
     it('should handle errors gracefully', () => {
       const features = [createMockTrackFeature()];
-      const toolIndex = createMockToolIndex('error-tool');
+      const toolsData = { tools: [createMockTool('error-tool')] };
 
       // Mock an error in tool validation
       jest.spyOn(toolFilterService as any, 'validateToolForFeatures').mockImplementation(() => {
         throw new Error('Validation error');
       });
 
-      const result = toolFilterService.getApplicableTools(features, toolIndex);
+      const result = toolFilterService.getApplicableTools(features, toolsData);
 
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0].message).toBe('Validation error');
@@ -176,17 +171,17 @@ describe('ToolFilterService', () => {
   describe('caching functionality', () => {
     it('should cache results and return cached data on subsequent calls', () => {
       const feature = createMockTrackFeature();
-      const toolIndex = createMockToolIndex('cached-tool');
+      const toolsData = { tools: [createMockTool('cached-tool', ['features'])] };
 
       // Mock the actual filtering to track calls
       const performToolFilteringSpy = jest.spyOn(toolFilterService as any, 'performToolFiltering');
 
       // First call
-      const result1 = toolFilterService.getApplicableTools([feature], toolIndex);
+      const result1 = toolFilterService.getApplicableTools([feature], toolsData);
       expect(performToolFilteringSpy).toHaveBeenCalledTimes(1);
 
       // Second call with same parameters
-      const result2 = toolFilterService.getApplicableTools([feature], toolIndex);
+      const result2 = toolFilterService.getApplicableTools([feature], toolsData);
       expect(performToolFilteringSpy).toHaveBeenCalledTimes(1); // Should not be called again
 
       expect(result1).toEqual(result2);
@@ -194,7 +189,7 @@ describe('ToolFilterService', () => {
 
     it('should invalidate cache after timeout', (done) => {
       const feature = createMockTrackFeature();
-      const toolIndex = createMockToolIndex('timeout-tool');
+      const toolsData = { tools: [createMockTool('timeout-tool', ['features'])] };
 
       // Create service with very short cache timeout for testing
       const shortTimeoutService = new ToolFilterService();
@@ -203,26 +198,26 @@ describe('ToolFilterService', () => {
       const performToolFilteringSpy = jest.spyOn(shortTimeoutService as any, 'performToolFiltering');
 
       // First call
-      shortTimeoutService.getApplicableTools([feature], toolIndex);
+      shortTimeoutService.getApplicableTools([feature], toolsData);
       expect(performToolFilteringSpy).toHaveBeenCalledTimes(1);
 
       // Wait for cache to expire
       setTimeout(() => {
         // Second call after timeout
-        shortTimeoutService.getApplicableTools([feature], toolIndex);
+        shortTimeoutService.getApplicableTools([feature], toolsData);
         expect(performToolFilteringSpy).toHaveBeenCalledTimes(2);
         done();
       }, 15);
     });
 
     it('should provide correct cache statistics', () => {
-      const feature = createMockTrackFeature();
-      const toolIndex1 = createMockToolIndex('tool1');
-      const toolIndex2 = createMockToolIndex('tool2');
+      const feature1 = createMockTrackFeature('track1');
+      const feature2 = createMockPointFeature('point1');
+      const toolsData = { tools: [createMockTool('tool1', ['features'])] };
 
-      // Add some cache entries
-      toolFilterService.getApplicableTools([feature], toolIndex1);
-      toolFilterService.getApplicableTools([feature], toolIndex2);
+      // Add some cache entries with different features to ensure different hashes
+      toolFilterService.getApplicableTools([feature1], toolsData);
+      toolFilterService.getApplicableTools([feature2], toolsData);
 
       const stats = toolFilterService.getCacheStats();
       expect(stats.size).toBe(2);
@@ -232,9 +227,9 @@ describe('ToolFilterService', () => {
 
     it('should clear cache when requested', () => {
       const feature = createMockTrackFeature();
-      const toolIndex = createMockToolIndex('clear-test-tool');
+      const toolsData = { tools: [createMockTool('clear-test-tool', ['features'])] };
 
-      toolFilterService.getApplicableTools([feature], toolIndex);
+      toolFilterService.getApplicableTools([feature], toolsData);
       expect(toolFilterService.getCacheStats().size).toBe(1);
 
       toolFilterService.clearCache();
@@ -244,18 +239,18 @@ describe('ToolFilterService', () => {
     it('should clear only expired cache entries', (done) => {
       const feature1 = createMockTrackFeature('track1');
       const feature2 = createMockTrackFeature('track2');
-      const toolIndex = createMockToolIndex('expired-test-tool');
+      const toolsData = { tools: [createMockTool('expired-test-tool', ['features'])] };
 
       // Create service with short timeout
       const shortTimeoutService = new ToolFilterService();
       (shortTimeoutService as any).cacheInvalidationTime = 10;
 
       // Add first entry
-      shortTimeoutService.getApplicableTools([feature1], toolIndex);
+      shortTimeoutService.getApplicableTools([feature1], toolsData);
 
       setTimeout(() => {
         // Add second entry after first has expired
-        shortTimeoutService.getApplicableTools([feature2], toolIndex);
+        shortTimeoutService.getApplicableTools([feature2], toolsData);
 
         const statsBeforeClearing = shortTimeoutService.getCacheStats();
         expect(statsBeforeClearing.size).toBe(2);
@@ -454,10 +449,10 @@ describe('ToolFilterService', () => {
   describe('input hashing', () => {
     it('should generate consistent hashes for same input', () => {
       const features = [createMockPointFeature()];
-      const toolIndex = createMockToolIndex();
+      const toolsData = { tools: [createMockTool('test-tool', ['features'])] };
 
-      const hash1 = (toolFilterService as any).generateInputHash(features, toolIndex);
-      const hash2 = (toolFilterService as any).generateInputHash(features, toolIndex);
+      const hash1 = (toolFilterService as any).generateInputHash(features, toolsData);
+      const hash2 = (toolFilterService as any).generateInputHash(features, toolsData);
 
       expect(hash1).toBe(hash2);
     });
@@ -465,10 +460,10 @@ describe('ToolFilterService', () => {
     it('should generate different hashes for different inputs', () => {
       const features1 = [createMockPointFeature()];
       const features2 = [createMockTrackFeature()];
-      const toolIndex = createMockToolIndex();
+      const toolsData = { tools: [createMockTool('test-tool', ['features'])] };
 
-      const hash1 = (toolFilterService as any).generateInputHash(features1, toolIndex);
-      const hash2 = (toolFilterService as any).generateInputHash(features2, toolIndex);
+      const hash1 = (toolFilterService as any).generateInputHash(features1, toolsData);
+      const hash2 = (toolFilterService as any).generateInputHash(features2, toolsData);
 
       expect(hash1).not.toBe(hash2);
     });
@@ -476,14 +471,14 @@ describe('ToolFilterService', () => {
 
   describe('error handling', () => {
     it('should handle null or undefined features gracefully', () => {
-      const toolIndex = createMockToolIndex();
+      const toolsData = { tools: [createMockTool('test-tool', ['features'])] };
 
       expect(() => {
-        toolFilterService.getApplicableTools(null as any, toolIndex);
+        toolFilterService.getApplicableTools(null as any, toolsData);
       }).not.toThrow();
 
       expect(() => {
-        toolFilterService.getApplicableTools(undefined as any, toolIndex);
+        toolFilterService.getApplicableTools(undefined as any, toolsData);
       }).not.toThrow();
     });
 
@@ -492,9 +487,9 @@ describe('ToolFilterService', () => {
         type: 'Feature',
         // Missing required properties
       } as any;
-      const toolIndex = createMockToolIndex();
+      const toolsData = { tools: [createMockTool('test-tool', ['features'])] };
 
-      const result = toolFilterService.getApplicableTools([malformedFeature], toolIndex);
+      const result = toolFilterService.getApplicableTools([malformedFeature], toolsData);
 
       // Should not throw, may contain warnings or errors
       expect(result).toHaveProperty('tools');
@@ -502,13 +497,86 @@ describe('ToolFilterService', () => {
       expect(result).toHaveProperty('warnings');
     });
 
-    it('should handle invalid tool index gracefully', () => {
+    it('should handle invalid tools data gracefully', () => {
       const features = [createMockPointFeature()];
-      const invalidToolIndex = {} as any;
+      const invalidToolsData = {} as any;
 
       expect(() => {
-        toolFilterService.getApplicableTools(features, invalidToolIndex);
+        toolFilterService.getApplicableTools(features, invalidToolsData);
       }).not.toThrow();
+    });
+
+    it('should activate tools with no required parameters when features are selected and show parameter validation', () => {
+      const fitToSelectionTool: Tool = {
+        name: 'fit_to_selection',
+        description: 'Calculate bounds of features and set viewport to fit them.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            features: {
+              type: 'array',
+              description: 'Array of Debrief features to calculate bounds for'
+            },
+            padding: {
+              type: 'number',
+              description: 'Additional padding around bounds as percentage'
+            }
+          },
+          required: [] // No required parameters
+        }
+      };
+
+      const toolsData = { tools: [fitToSelectionTool] };
+      const multipleFeatures = [createMockTrackFeature('track1'), createMockTrackFeature('track2')];
+
+      const validation = toolFilterService.validateToolForFeatures(fitToSelectionTool, multipleFeatures);
+      const result = toolFilterService.getApplicableTools(multipleFeatures, toolsData);
+
+      expect(result.tools).toHaveLength(1);
+      expect(result.tools[0].name).toBe('fit_to_selection');
+
+      // Verify validation shows tool is compatible with features parameter satisfied
+      expect(validation.isValid).toBe(true);
+      expect(validation.parameterValidation?.features?.canSatisfy).toBe(true);
+      expect(validation.parameterValidation?.features?.matchingFeatureCount).toBe(2);
+    });
+
+    it('should activate tools with no required parameters when zero features are selected', () => {
+      // Any tool with no required parameters should work with zero features
+      const noRequiredParamsTool: Tool = {
+        name: 'generic_zero_feature_tool',
+        description: 'A tool that can work without any features selected.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            features: {
+              type: 'array',
+              description: 'Array of Debrief features to calculate bounds for'
+            },
+            padding: {
+              type: 'number',
+              description: 'Additional padding around bounds as percentage'
+            }
+          },
+          required: [] // No required parameters
+        }
+      };
+
+      const toolsData = { tools: [noRequiredParamsTool] };
+      const emptyFeatures: any[] = [];
+
+      const validation = toolFilterService.validateToolForFeatures(noRequiredParamsTool, emptyFeatures);
+      const result = toolFilterService.getApplicableTools(emptyFeatures, toolsData);
+
+      expect(result.tools).toHaveLength(1);
+      expect(result.tools[0].name).toBe('generic_zero_feature_tool');
+
+      // Verify validation shows tool is compatible
+      expect(validation.isValid).toBe(true);
+      // Optional: verify parameter-level validation if present
+      if (validation.parameterValidation?.features) {
+        expect(validation.parameterValidation.features.canSatisfy).toBe(true);
+      }
     });
   });
 
@@ -519,9 +587,9 @@ describe('ToolFilterService', () => {
       const searchZone = createMockAnnotationFeature('search-area');
 
       const features = [vesselTrack, referencePoint, searchZone];
-      const toolIndex = createMockToolIndex('maritime-analyzer');
+      const toolsData = { tools: [createMockTool('maritime-analyzer', ['features'])] };
 
-      const result = toolFilterService.getApplicableTools(features, toolIndex);
+      const result = toolFilterService.getApplicableTools(features, toolsData);
 
       expect(result.tools).toHaveLength(1);
       expect(result.errors).toHaveLength(0);
@@ -535,15 +603,12 @@ describe('ToolFilterService', () => {
         createMockPointFeature('point1')
       ];
 
-      // Mock a tool that only uses 2 features
-      jest.spyOn(toolFilterService as any, 'extractToolsFromIndex').mockReturnValue([
-        createMockTool('selective-tool', ['LineString', 'Point'])
-      ]);
+      // Tool that accepts generic features - will match all selected features
+      const toolsData = { tools: [createMockTool('selective-tool', ['features'])] };
+      const result = toolFilterService.getApplicableTools(features, toolsData);
 
-      const toolIndex = createMockToolIndex('selective-tool');
-      const result = toolFilterService.getApplicableTools(features, toolIndex);
-
-      expect(result.warnings.some(w => w.includes('only uses'))).toBe(true);
+      expect(result.tools).toHaveLength(1);
+      expect(result.errors).toHaveLength(0);
     });
   });
 });

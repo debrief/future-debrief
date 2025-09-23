@@ -1,6 +1,6 @@
 import type { DebriefFeature } from '@debrief/shared-types';
 import type { ToolIndexModel } from '@debrief/shared-types/src/types/tools/tool_index';
-import type { Tool } from '@debrief/shared-types/src/types/tools/tool';
+import type { Tool, JSONSchemaProperty } from '@debrief/shared-types/src/types/tools/tool';
 
 /**
  * Result interface for the getApplicableTools method
@@ -33,6 +33,12 @@ interface ToolValidationResult {
   isValid: boolean;
   warnings: string[];
   parameterAssignments?: Map<string, DebriefFeature>;
+  parameterValidation?: { [paramName: string]: { canSatisfy: boolean; isRequired: boolean; matchingFeatureCount: number } };
+  executionMode?: {
+    mode: 'single' | 'multiple' | 'batch';
+    description: string;
+    parameterDetails?: { [paramName: string]: { expectsArray: boolean; matchingFeatureCount: number } };
+  };
 }
 
 /**
@@ -47,14 +53,14 @@ export class ToolFilterService {
   /**
    * Primary API method to get applicable tools for the given features
    * @param features Array of selected Debrief features
-   * @param toolIndex Tool index containing available tools
+   * @param toolsData Object containing tools array with real tool schemas
    * @returns Object containing applicable tools, errors, and warnings
    */
-  getApplicableTools(features: DebriefFeature[], toolIndex: ToolIndexModel): ToolFilterResult {
+  getApplicableTools(features: DebriefFeature[], toolsData: { tools: Tool[] }): ToolFilterResult {
     // Handle null/undefined features gracefully
     const safeFeatures = features || [];
 
-    const inputHash = this.generateInputHash(safeFeatures, toolIndex);
+    const inputHash = this.generateInputHash(safeFeatures, toolsData);
     const cacheKey = `${inputHash}`;
 
     // Check cache first
@@ -64,7 +70,7 @@ export class ToolFilterService {
     }
 
     // Generate fresh result
-    const result = this.performToolFiltering(safeFeatures, toolIndex);
+    const result = this.performToolFiltering(safeFeatures, toolsData);
 
     // Cache the result
     this.cache.set(cacheKey, {
@@ -79,7 +85,7 @@ export class ToolFilterService {
   /**
    * Performs the actual tool filtering logic
    */
-  private performToolFiltering(features: DebriefFeature[], toolIndex: ToolIndexModel): ToolFilterResult {
+  private performToolFiltering(features: DebriefFeature[], toolsData: { tools: Tool[] }): ToolFilterResult {
     const result: ToolFilterResult = {
       tools: [],
       errors: [],
@@ -87,11 +93,8 @@ export class ToolFilterService {
     };
 
     try {
-      // For now, we need to create a mock tool array from the tool index
-      // In a real implementation, this would come from the toolIndex structure
-      const mockTools: Tool[] = this.extractToolsFromIndex(toolIndex);
-
-      for (const tool of mockTools) {
+      // Use real tools from the tools data
+      for (const tool of toolsData.tools) {
         try {
           const validationResult = this.validateToolForFeatures(tool, features);
 
@@ -155,48 +158,214 @@ export class ToolFilterService {
 
   /**
    * Validates if a tool can be applied to the given features
+   * Public for story access to detailed validation results
    */
-  private validateToolForFeatures(tool: Tool, features: DebriefFeature[]): ToolValidationResult {
+  validateToolForFeatures(tool: Tool, features: DebriefFeature[]): ToolValidationResult {
     const result: ToolValidationResult = {
       isValid: false,
       warnings: []
     };
 
     try {
-      // Parse tool input schema to understand parameter requirements
-      const parameterRequirements = this.parseToolParameterRequirements(tool);
-
-      if (parameterRequirements.length === 0 || parameterRequirements.includes('any')) {
-        // Tool accepts any input or has no specific requirements
-        result.isValid = true;
-        result.warnings.push(`Tool "${tool.name}" has no specific feature requirements`);
-        return result;
-      }
-
-      // If no features are selected, tool can't be applied (unless it accepts 'any')
+      // If no features selected, check if tool can work without features
       if (features.length === 0) {
-        result.isValid = false;
-        result.warnings.push(`Tool "${tool.name}" requires features but none are selected`);
+        const required = tool.inputSchema.required || [];
+        // Principle: Tools that can work with zero features have no required parameters.
+        // Tools that need features will declare required feature parameters in their schema.
+        // This is parameter-driven logic, not dependent on specific tool names.
+        if (required.length > 0) {
+          result.isValid = false;
+          result.warnings.push(`No features selected for tool "${tool.name}"`);
+          return result;
+        }
+      }
+
+      // If tool has no input schema or no properties, it's compatible with anything
+      if (!tool.inputSchema?.properties) {
+        result.isValid = true;
         return result;
       }
 
-      // Create validation matrix
-      const validationMatrix = this.createValidationMatrix(features, parameterRequirements);
+      const required = tool.inputSchema.required || [];
 
-      // Check for perfect assignment
-      const assignment = this.findPerfectAssignment(validationMatrix, features, parameterRequirements);
-
-      if (assignment) {
+      // If no required parameters, tool is compatible, but still process optional parameters for validation display
+      if (required.length === 0) {
         result.isValid = true;
-        result.parameterAssignments = assignment;
-
-        if (features.length > parameterRequirements.length) {
-          result.warnings.push(`Tool "${tool.name}" only uses ${parameterRequirements.length} of ${features.length} selected features`);
-        }
-      } else {
-        result.isValid = false;
-        result.warnings.push(`Tool "${tool.name}" requires ${parameterRequirements.join(', ')} but selected features don't match`);
+        // Don't return early - continue to process optional parameters for validation display
       }
+
+      // Check if all required parameters can be satisfied and analyze execution mode
+      let requiredMatched = 0;
+      const properties = tool.inputSchema.properties;
+      const parameterDetails: { [paramName: string]: { expectsArray: boolean; matchingFeatureCount: number } } = {};
+      const parameterValidation: { [paramName: string]: { canSatisfy: boolean; isRequired: boolean; matchingFeatureCount: number } } = {};
+      let hasFeatureParameters = false;
+      let multipleExecutions = false;
+      let batchExecution = false;
+
+      for (const paramName of required) {
+        const paramSchema = properties[paramName] as JSONSchemaProperty;
+        const description = paramSchema?.description || '';
+        const expectsArray = paramSchema?.type === 'array';
+
+        // Determine if this parameter can be satisfied by selected features
+        let canSatisfy = false;
+        let matchingFeatureCount = 0;
+
+        // Check if this parameter expects a FeatureCollection (batch execution)
+        const expectsFeatureCollection = paramName.toLowerCase().includes('feature_collection') ||
+                                         paramName.toLowerCase().includes('featurecollection') ||
+                                         description.toLowerCase().includes('featurecollection');
+
+        // Pattern matching for feature types - be more specific to avoid false matches
+        if (expectsFeatureCollection) {
+          // FeatureCollection parameter - accepts any features as a single collection
+          matchingFeatureCount = features.length;
+          canSatisfy = features.length > 0;
+          hasFeatureParameters = true;
+          // Force batch execution for FeatureCollection parameters regardless of multiple features
+          if (matchingFeatureCount > 0) {
+            batchExecution = true;
+          }
+        } else if ((paramName.includes('track') && !paramName.includes('_')) || description.toLowerCase().includes('track feature')) {
+          matchingFeatureCount = features.filter(f => f.properties?.dataType === 'track').length;
+          canSatisfy = matchingFeatureCount > 0;
+          hasFeatureParameters = true;
+        } else if ((paramName.includes('point') && !paramName.includes('_')) || description.toLowerCase().includes('point feature')) {
+          matchingFeatureCount = features.filter(f => f.properties?.dataType === 'reference-point').length;
+          canSatisfy = matchingFeatureCount > 0;
+          hasFeatureParameters = true;
+        } else if ((paramName.includes('zone') || paramName.includes('polygon')) || description.toLowerCase().includes('zone feature')) {
+          matchingFeatureCount = features.filter(f => f.properties?.dataType === 'zone').length;
+          canSatisfy = matchingFeatureCount > 0;
+          hasFeatureParameters = true;
+        } else if (paramName.includes('feature') || description.toLowerCase().includes('features') ||
+                   (description.toLowerCase().includes('feature') && !description.toLowerCase().includes('grid points'))) {
+          // Generic feature parameter - accepts any feature type
+          matchingFeatureCount = features.length;
+          canSatisfy = features.length > 0;
+          hasFeatureParameters = true;
+        } else {
+          // Configuration parameter - cannot be satisfied by feature selection
+          canSatisfy = false;
+          matchingFeatureCount = 0;
+        }
+
+        // Record parameter details
+        parameterDetails[paramName] = { expectsArray, matchingFeatureCount };
+
+        // Record parameter validation status
+        parameterValidation[paramName] = {
+          canSatisfy,
+          isRequired: true, // This loop only processes required parameters
+          matchingFeatureCount
+        };
+
+        // Determine execution mode based on parameter requirements
+        // (Note: FeatureCollection parameters set batchExecution = true above)
+        if (hasFeatureParameters && matchingFeatureCount > 1 && !expectsFeatureCollection) {
+          if (expectsArray) {
+            batchExecution = true;
+          } else {
+            multipleExecutions = true;
+          }
+        }
+
+        if (canSatisfy) {
+          requiredMatched++;
+        }
+      }
+
+      // Also process optional parameters for validation display
+      if (properties) {
+        Object.keys(properties).forEach(paramName => {
+          if (!required.includes(paramName)) {
+            // This is an optional parameter
+            const paramSchema = properties[paramName] as JSONSchemaProperty;
+            const description = paramSchema?.description || '';
+            let canSatisfy = false;
+            let matchingFeatureCount = 0;
+
+            // Use the same logic as for required parameters to determine if it can be satisfied
+            const expectsFeatureCollection = paramName.toLowerCase().includes('feature_collection') ||
+                                             paramName.toLowerCase().includes('featurecollection') ||
+                                             description.toLowerCase().includes('featurecollection');
+
+            if (expectsFeatureCollection) {
+              matchingFeatureCount = features.length;
+              canSatisfy = features.length > 0;
+            } else if ((paramName.includes('track') && !paramName.includes('_')) || description.toLowerCase().includes('track feature')) {
+              matchingFeatureCount = features.filter(f => f.properties?.dataType === 'track').length;
+              canSatisfy = matchingFeatureCount > 0;
+            } else if ((paramName.includes('point') && !paramName.includes('_')) || description.toLowerCase().includes('point feature')) {
+              matchingFeatureCount = features.filter(f => f.properties?.dataType === 'reference-point').length;
+              canSatisfy = matchingFeatureCount > 0;
+            } else if ((paramName.includes('zone') || paramName.includes('polygon')) || description.toLowerCase().includes('zone feature')) {
+              matchingFeatureCount = features.filter(f => f.properties?.dataType === 'zone').length;
+              canSatisfy = matchingFeatureCount > 0;
+            } else if (paramName.includes('feature') || description.toLowerCase().includes('features') ||
+                       (description.toLowerCase().includes('feature') && !description.toLowerCase().includes('grid points'))) {
+              matchingFeatureCount = features.length;
+              // For optional feature parameters, apply the same principle:
+              // Tools with no required parameters can always satisfy optional feature parameters
+              const required = tool.inputSchema.required || [];
+              const hasRequiredParams = required.length > 0;
+
+              if (!hasRequiredParams) {
+                // Tool has no required parameters, so optional feature parameters are always satisfied
+                canSatisfy = true;
+              } else {
+                canSatisfy = features.length > 0;
+              }
+            } else {
+              canSatisfy = false;
+              matchingFeatureCount = 0;
+            }
+
+            parameterValidation[paramName] = {
+              canSatisfy,
+              isRequired: false,
+              matchingFeatureCount
+            };
+          }
+        });
+      }
+
+      // Tool is valid if already marked valid (no required params) OR all required parameters can be satisfied
+      if (!result.isValid) {
+        result.isValid = requiredMatched === required.length;
+      }
+
+      if (!result.isValid) {
+        result.warnings.push(`Tool "${tool.name}" has ${required.length - requiredMatched} unsatisfied required parameters`);
+      }
+
+      // Determine execution mode and description
+      if (result.isValid && hasFeatureParameters) {
+        let mode: 'single' | 'multiple' | 'batch' = 'single';
+        let description = 'Tool will execute once';
+
+        if (batchExecution && multipleExecutions) {
+          mode = 'batch';
+          description = 'Tool will execute in batch mode for array parameters and multiple times for single parameters';
+        } else if (batchExecution) {
+          mode = 'batch';
+          description = `Tool will execute once with ${features.length} features in batch`;
+        } else if (multipleExecutions) {
+          mode = 'multiple';
+          const executionCount = Math.max(...Object.values(parameterDetails).map(p => p.matchingFeatureCount));
+          description = `Tool will execute ${executionCount} times (once per matching feature)`;
+        }
+
+        result.executionMode = {
+          mode,
+          description,
+          parameterDetails
+        };
+      }
+
+      // Add parameter validation results
+      result.parameterValidation = parameterValidation;
 
     } catch (error) {
       result.isValid = false;
@@ -347,14 +516,14 @@ export class ToolFilterService {
   /**
    * Generate a hash of the input parameters for caching
    */
-  private generateInputHash(features: DebriefFeature[], toolIndex: ToolIndexModel): string {
+  private generateInputHash(features: DebriefFeature[], toolsData: { tools: Tool[] }): string {
     const featureHash = features.map(f => {
       const id = 'id' in f ? f.id : 'unknown';
       const geometryType = f.geometry?.type || 'unknown';
       return `${id}_${geometryType}`;
     }).join('|');
 
-    const toolHash = `${toolIndex.tool_name}_${toolIndex.description}`;
+    const toolHash = (toolsData?.tools || []).map(t => t.name).sort().join(',');
 
     return `${featureHash}__${toolHash}`;
   }
