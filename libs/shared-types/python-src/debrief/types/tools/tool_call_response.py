@@ -11,6 +11,8 @@ class CommandType(str, Enum):
     UPDATE_FEATURES = "updateFeatures"
     DELETE_FEATURES = "deleteFeatures"
     SET_FEATURE_COLLECTION = "setFeatureCollection"
+    SET_VIEWPORT = "setViewport"
+    SET_SELECTION = "setSelection"
     SHOW_TEXT = "showText"
     SHOW_DATA = "showData"
     SHOW_IMAGE = "showImage"
