@@ -13,6 +13,7 @@ class CommandType(str, Enum):
     SET_FEATURE_COLLECTION = "setFeatureCollection"
     SET_VIEWPORT = "setViewport"
     SET_SELECTION = "setSelection"
+    SET_TIME_STATE = "setTimeState"
     SHOW_TEXT = "showText"
     SHOW_DATA = "showData"
     SHOW_IMAGE = "showImage"
