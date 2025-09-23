@@ -51,19 +51,24 @@ const EnhancedInteractiveDemo: React.FC = () => {
     setSelectedFeatureIds(ids);
   };
 
-  // Use the ToolFilterService to determine tool compatibility
+  // Use the ToolFilterService to determine tool compatibility with detailed validation results
   const getToolCompatibilityData = (selectedFeatures: DebriefFeature[]) => {
     if (!toolsData) return new Map();
 
     const result = service.getApplicableTools(selectedFeatures, toolsData);
     const applicableToolNames = new Set(result.tools.map(t => t.name));
 
-    // Create a map with compatibility info for each tool
+    // Create a map with compatibility info for each tool, including execution mode details
     const compatibilityMap = new Map();
 
     toolsData.tools.forEach(tool => {
+      // Get detailed validation result for this specific tool
+      const toolValidation = service.validateToolForFeatures(tool, selectedFeatures);
+
       compatibilityMap.set(tool.name, {
-        isCompatible: applicableToolNames.has(tool.name)
+        isCompatible: applicableToolNames.has(tool.name),
+        executionMode: toolValidation.executionMode,
+        warnings: toolValidation.warnings || []
       });
     });
 
@@ -243,6 +248,23 @@ const EnhancedInteractiveDemo: React.FC = () => {
                           <div style={{ marginBottom: '4px', fontWeight: 'bold' }}>
                             {paramCount} parameter{paramCount !== 1 ? 's' : ''} ({requiredCount} required)
                           </div>
+                          {toolCompatibility.executionMode && (
+                            <div style={{
+                              marginBottom: '8px',
+                              padding: '4px 6px',
+                              backgroundColor: '#e3f2fd',
+                              color: '#1565c0',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: 'bold',
+                              display: 'inline-block'
+                            }}>
+                              {toolCompatibility.executionMode.mode === 'batch' && '📦'}
+                              {toolCompatibility.executionMode.mode === 'multiple' && '🔁'}
+                              {toolCompatibility.executionMode.mode === 'single' && '🎯'}
+                              {' '}{toolCompatibility.executionMode.description}
+                            </div>
+                          )}
                           {tool.inputSchema?.properties && (
                             <ul style={{
                               margin: '0 0 8px 0',
