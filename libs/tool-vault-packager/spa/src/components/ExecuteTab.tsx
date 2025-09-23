@@ -47,6 +47,13 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
       const samplePromises = toolIndex.files.inputs.map(async (inputFile: any) => {
         try {
           const content = await mcpService.loadSampleInput(inputFile.path, tool.name);
+
+          // Validate sample data structure during loading
+          if (!content || typeof content !== 'object' || !content.input) {
+            console.error(`Invalid sample data structure in "${inputFile.name}". Sample files must have an "input" property containing the tool parameters. Found: ${JSON.stringify(Object.keys(content || {}))}`);
+            throw new Error(`Invalid sample data structure: missing "input" property`);
+          }
+
           return { name: inputFile.name || inputFile.description, content };
         } catch (err) {
           console.warn(`Could not load sample ${inputFile.name}:`, err);
@@ -62,8 +69,17 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
       if (loadedSamples.length > 0) {
         if (loadedSamples.length === 1) {
           setSelectedSample(loadedSamples[0].name);
-          setFormData(loadedSamples[0].content);
-          setInput(JSON.stringify(loadedSamples[0].content, null, 2));
+
+          // Enforce correct sample data structure: must have 'input' property
+          const sampleContent = loadedSamples[0].content as any;
+          if (!sampleContent || typeof sampleContent !== 'object' || !sampleContent.input) {
+            setSamplesError(`Invalid sample data structure in "${loadedSamples[0].name}". Sample files must have an "input" property containing the tool parameters. Found: ${JSON.stringify(Object.keys(sampleContent || {}))}`);
+            return;
+          }
+
+          const inputData = sampleContent.input;
+          setFormData(inputData);
+          setInput(JSON.stringify(inputData, null, 2));
         } else {
           setSelectedSample('');
           const emptyData = {};
@@ -96,8 +112,19 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
     const sample = samples.find(s => s.name === sampleName);
     if (sample) {
       setSelectedSample(sampleName);
-      setFormData(sample.content);
-      setInput(JSON.stringify(sample.content, null, 2));
+
+      // Enforce correct sample data structure: must have 'input' property
+      const sampleContent = sample.content as any;
+      if (!sampleContent || typeof sampleContent !== 'object' || !sampleContent.input) {
+        setSamplesError(`Invalid sample data structure in "${sampleName}". Sample files must have an "input" property containing the tool parameters. Found: ${JSON.stringify(Object.keys(sampleContent || {}))}`);
+        return;
+      }
+
+      const inputData = sampleContent.input;
+      setFormData(inputData);
+      setInput(JSON.stringify(inputData, null, 2));
+      // Clear any previous errors
+      setSamplesError(null);
     }
   };
 
