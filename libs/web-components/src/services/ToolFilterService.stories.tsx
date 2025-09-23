@@ -439,144 +439,11 @@ const EnhancedInteractiveDemo: React.FC = () => {
 
   // Load real data on component mount
   useEffect(() => {
-    // Comprehensive tool index with all 7 current tools
-    const comprehensiveToolsData = {
-      tools: [
-        {
-          name: 'fit_to_selection',
-          description: 'Calculate bounds of features and set viewport to fit them.',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              features: {
-                type: 'array',
-                items: { type: 'object' },
-                description: 'Array of GeoJSON features to calculate bounds for'
-              },
-              padding: {
-                type: 'number',
-                description: 'Padding around the calculated bounds',
-                default: 0.1
-              }
-            },
-            required: ['features']
-          }
-        },
-        {
-          name: 'track_speed_filter',
-          description: 'Find timestamps where track speed equals or exceeds a minimum threshold.',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              track_feature: {
-                type: 'object',
-                description: 'Track feature with LineString geometry and timestamps'
-              },
-              min_speed: {
-                type: 'number',
-                description: 'Minimum speed threshold in knots',
-                default: 5.0
-              }
-            },
-            required: ['track_feature', 'min_speed']
-          }
-        },
-        {
-          name: 'track_speed_filter_fast',
-          description: 'Filter track timestamps using pre-calculated speeds array for fast processing.',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              track_feature: {
-                type: 'object',
-                description: 'Track feature with pre-calculated speeds array'
-              },
-              min_speed: {
-                type: 'number',
-                description: 'Minimum speed threshold in knots',
-                default: 5.0
-              }
-            },
-            required: ['track_feature', 'min_speed']
-          }
-        },
-        {
-          name: 'toggle_first_feature_color',
-          description: 'Toggle the color property of the first feature in a GeoJSON FeatureCollection.',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              feature_collection: {
-                type: 'object',
-                description: 'GeoJSON FeatureCollection to modify'
-              }
-            },
-            required: ['feature_collection']
-          }
-        },
-        {
-          name: 'word_count',
-          description: 'Count the number of words in a given block of text.',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              text: {
-                type: 'string',
-                description: 'Text block to count words in'
-              }
-            },
-            required: ['text']
-          }
-        },
-        {
-          name: 'viewport_grid_generator',
-          description: 'Generate a grid of points within a viewport area at specified intervals.',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              viewport_state: {
-                type: 'object',
-                description: 'Current viewport bounds and zoom level'
-              },
-              lat_interval: {
-                type: 'number',
-                description: 'Latitude interval between grid points',
-                default: 0.01
-              },
-              lon_interval: {
-                type: 'number',
-                description: 'Longitude interval between grid points',
-                default: 0.01
-              }
-            },
-            required: ['viewport_state']
-          }
-        },
-        {
-          name: 'selectFeatureStartTime',
-          description: 'Set TimeState current to the earliest timestamp from any feature.',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              features: {
-                type: 'array',
-                items: { type: 'object' },
-                description: 'Array of features to find earliest timestamp from'
-              },
-              current_time_state: {
-                type: 'object',
-                description: 'Current time state to update'
-              }
-            },
-            required: ['features', 'current_time_state']
-          }
-        }
-      ]
-    };
-
-    fetch('/large-sample.plot.json')
-      .then(res => res.json())
-      .then(plotResponse => {
+    Promise.all([
+      fetch('/large-sample.plot.json').then(res => res.json()),
+      fetch('/tool-index.json').then(res => res.json())
+    ])
+      .then(([plotResponse, toolResponse]) => {
         // Validate plot data structure
         if (plotResponse && plotResponse.type === 'FeatureCollection' && Array.isArray(plotResponse.features)) {
           setPlotData(plotResponse as DebriefFeatureCollection);
@@ -584,8 +451,13 @@ const EnhancedInteractiveDemo: React.FC = () => {
           throw new Error('Invalid plot data format');
         }
 
-        // Use comprehensive static tools data
-        setToolsData(comprehensiveToolsData);
+        // Validate tool data structure
+        if (toolResponse && Array.isArray(toolResponse.tools)) {
+          setToolsData(toolResponse);
+        } else {
+          throw new Error('Invalid tool data format');
+        }
+
         setLoading(false);
       })
       .catch(err => {
