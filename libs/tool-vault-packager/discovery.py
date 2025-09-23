@@ -11,17 +11,12 @@ import sys
 
 from debrief.types.tools import (
     ToolMetadataModel,
-    ToolIndexModel,
     GlobalToolIndexModel,
-    ToolFilesCollection,
-    ToolStatsModel,
-    ToolFileReference,
-    SampleInputReference,
     GitHistoryEntry,
     SampleInputData,
     ToolVaultCommand,
     JSONSchemaType,
-)
+) 
 
 
 class ToolDiscoveryError(Exception):
