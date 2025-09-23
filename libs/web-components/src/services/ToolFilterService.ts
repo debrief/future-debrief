@@ -33,6 +33,7 @@ interface ToolValidationResult {
   isValid: boolean;
   warnings: string[];
   parameterAssignments?: Map<string, DebriefFeature>;
+  parameterValidation?: { [paramName: string]: { canSatisfy: boolean; isRequired: boolean; matchingFeatureCount: number } };
   executionMode?: {
     mode: 'single' | 'multiple' | 'batch';
     description: string;
@@ -191,6 +192,7 @@ export class ToolFilterService {
       let requiredMatched = 0;
       const properties = tool.inputSchema.properties;
       const parameterDetails: { [paramName: string]: { expectsArray: boolean; matchingFeatureCount: number } } = {};
+      const parameterValidation: { [paramName: string]: { canSatisfy: boolean; isRequired: boolean; matchingFeatureCount: number } } = {};
       let hasFeatureParameters = false;
       let multipleExecutions = false;
       let batchExecution = false;
@@ -246,6 +248,13 @@ export class ToolFilterService {
         // Record parameter details
         parameterDetails[paramName] = { expectsArray, matchingFeatureCount };
 
+        // Record parameter validation status
+        parameterValidation[paramName] = {
+          canSatisfy,
+          isRequired: true, // This loop only processes required parameters
+          matchingFeatureCount
+        };
+
         // Determine execution mode based on parameter requirements
         // (Note: FeatureCollection parameters set batchExecution = true above)
         if (hasFeatureParameters && matchingFeatureCount > 1 && !expectsFeatureCollection) {
@@ -259,6 +268,51 @@ export class ToolFilterService {
         if (canSatisfy) {
           requiredMatched++;
         }
+      }
+
+      // Also process optional parameters for validation display
+      if (properties) {
+        Object.keys(properties).forEach(paramName => {
+          if (!required.includes(paramName)) {
+            // This is an optional parameter
+            const paramSchema = properties[paramName];
+            const description = (paramSchema as any)?.description || '';
+            let canSatisfy = false;
+            let matchingFeatureCount = 0;
+
+            // Use the same logic as for required parameters to determine if it can be satisfied
+            const expectsFeatureCollection = paramName.toLowerCase().includes('feature_collection') ||
+                                             paramName.toLowerCase().includes('featurecollection') ||
+                                             description.toLowerCase().includes('featurecollection');
+
+            if (expectsFeatureCollection) {
+              matchingFeatureCount = features.length;
+              canSatisfy = features.length > 0;
+            } else if ((paramName.includes('track') && !paramName.includes('_')) || description.toLowerCase().includes('track feature')) {
+              matchingFeatureCount = features.filter(f => f.properties?.dataType === 'track').length;
+              canSatisfy = matchingFeatureCount > 0;
+            } else if ((paramName.includes('point') && !paramName.includes('_')) || description.toLowerCase().includes('point feature')) {
+              matchingFeatureCount = features.filter(f => f.properties?.dataType === 'reference-point').length;
+              canSatisfy = matchingFeatureCount > 0;
+            } else if ((paramName.includes('zone') || paramName.includes('polygon')) || description.toLowerCase().includes('zone feature')) {
+              matchingFeatureCount = features.filter(f => f.properties?.dataType === 'zone').length;
+              canSatisfy = matchingFeatureCount > 0;
+            } else if (paramName.includes('feature') || description.toLowerCase().includes('features') ||
+                       (description.toLowerCase().includes('feature') && !description.toLowerCase().includes('grid points'))) {
+              matchingFeatureCount = features.length;
+              canSatisfy = features.length > 0;
+            } else {
+              canSatisfy = false;
+              matchingFeatureCount = 0;
+            }
+
+            parameterValidation[paramName] = {
+              canSatisfy,
+              isRequired: false,
+              matchingFeatureCount
+            };
+          }
+        });
       }
 
       // Tool is valid only if all required parameters can be satisfied
@@ -291,6 +345,9 @@ export class ToolFilterService {
           parameterDetails
         };
       }
+
+      // Add parameter validation results
+      result.parameterValidation = parameterValidation;
 
     } catch (error) {
       result.isValid = false;
