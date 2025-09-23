@@ -505,6 +505,78 @@ describe('ToolFilterService', () => {
         toolFilterService.getApplicableTools(features, invalidToolsData);
       }).not.toThrow();
     });
+
+    it('should activate fit_to_selection with features parameter validation when multiple features are selected', () => {
+      const fitToSelectionTool: Tool = {
+        name: 'fit_to_selection',
+        description: 'Calculate bounds of features and set viewport to fit them.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            features: {
+              type: 'array',
+              description: 'Array of Debrief features to calculate bounds for'
+            },
+            padding: {
+              type: 'number',
+              description: 'Additional padding around bounds as percentage'
+            }
+          },
+          required: [] // No required parameters
+        }
+      };
+
+      const toolsData = { tools: [fitToSelectionTool] };
+      const multipleFeatures = [createMockTrackFeature('track1'), createMockTrackFeature('track2')];
+
+      const validation = toolFilterService.validateToolForFeatures(fitToSelectionTool, multipleFeatures);
+      const result = toolFilterService.getApplicableTools(multipleFeatures, toolsData);
+
+      expect(result.tools).toHaveLength(1);
+      expect(result.tools[0].name).toBe('fit_to_selection');
+
+      // Verify validation shows tool is compatible with features parameter satisfied
+      expect(validation.isValid).toBe(true);
+      expect(validation.parameterValidation?.features?.canSatisfy).toBe(true);
+      expect(validation.parameterValidation?.features?.matchingFeatureCount).toBe(2);
+    });
+
+    it('should activate fit_to_selection when zero features are selected', () => {
+      const fitToSelectionTool: Tool = {
+        name: 'fit_to_selection',
+        description: 'Calculate bounds of features and set viewport to fit them.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            features: {
+              type: 'array',
+              description: 'Array of Debrief features to calculate bounds for'
+            },
+            padding: {
+              type: 'number',
+              description: 'Additional padding around bounds as percentage'
+            }
+          },
+          required: [] // No required parameters
+        }
+      };
+
+      const toolsData = { tools: [fitToSelectionTool] };
+      const emptyFeatures: any[] = [];
+
+      const validation = toolFilterService.validateToolForFeatures(fitToSelectionTool, emptyFeatures);
+      const result = toolFilterService.getApplicableTools(emptyFeatures, toolsData);
+
+      expect(result.tools).toHaveLength(1);
+      expect(result.tools[0].name).toBe('fit_to_selection');
+
+      // Verify validation shows tool is compatible
+      expect(validation.isValid).toBe(true);
+      // Optional: verify parameter-level validation if present
+      if (validation.parameterValidation?.features) {
+        expect(validation.parameterValidation.features.canSatisfy).toBe(true);
+      }
+    });
   });
 
   describe('integration scenarios', () => {
