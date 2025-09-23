@@ -1,6 +1,6 @@
 import type { DebriefFeature } from '@debrief/shared-types';
 import type { ToolIndexModel } from '@debrief/shared-types/src/types/tools/tool_index';
-import type { Tool } from '@debrief/shared-types/src/types/tools/tool';
+import type { Tool, JSONSchemaProperty } from '@debrief/shared-types/src/types/tools/tool';
 
 /**
  * Result interface for the getApplicableTools method
@@ -198,9 +198,9 @@ export class ToolFilterService {
       let batchExecution = false;
 
       for (const paramName of required) {
-        const paramSchema = properties[paramName];
-        const description = (paramSchema as any)?.description || '';
-        const expectsArray = (paramSchema as any)?.type === 'array';
+        const paramSchema = properties[paramName] as JSONSchemaProperty;
+        const description = paramSchema?.description || '';
+        const expectsArray = paramSchema?.type === 'array';
 
         // Determine if this parameter can be satisfied by selected features
         let canSatisfy = false;
@@ -275,8 +275,8 @@ export class ToolFilterService {
         Object.keys(properties).forEach(paramName => {
           if (!required.includes(paramName)) {
             // This is an optional parameter
-            const paramSchema = properties[paramName];
-            const description = (paramSchema as any)?.description || '';
+            const paramSchema = properties[paramName] as JSONSchemaProperty;
+            const description = paramSchema?.description || '';
             let canSatisfy = false;
             let matchingFeatureCount = 0;
 

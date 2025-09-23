@@ -3,13 +3,14 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { ToolFilterService } from './ToolFilterService';
 import { OutlineView } from '../OutlineView/OutlineView';
 import type { DebriefFeature, DebriefFeatureCollection } from '@debrief/shared-types';
+import type { Tool, JSONSchemaProperty } from '@debrief/shared-types/src/types/tools/tool';
 
 // Enhanced interactive demonstration with real OutlineView integration
 const EnhancedInteractiveDemo: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [plotData, setPlotData] = useState<DebriefFeatureCollection | null>(null);
-  const [toolsData, setToolsData] = useState<any>(null);
+  const [toolsData, setToolsData] = useState<{ tools: Tool[] } | null>(null);
   const [selectedFeatureIds, setSelectedFeatureIds] = useState<string[]>([]);
   const [service] = useState(() => new ToolFilterService());
 
@@ -232,7 +233,7 @@ const EnhancedInteractiveDemo: React.FC = () => {
                 {(() => {
                   const compatibilityData = getToolCompatibilityData(selectedFeatures);
 
-                  return toolsData.tools.map((tool: any, index: number) => {
+                  return toolsData.tools.map((tool: Tool, index: number) => {
                     const toolCompatibility = compatibilityData.get(tool.name) || { isCompatible: false };
                     const paramCount = tool.inputSchema?.properties ? Object.keys(tool.inputSchema.properties).length : 0;
                     const requiredCount = tool.inputSchema?.required?.length || 0;
@@ -272,9 +273,10 @@ const EnhancedInteractiveDemo: React.FC = () => {
                               fontSize: '11px',
                               lineHeight: '1.3'
                             }}>
-                              {Object.entries(tool.inputSchema.properties).map(([paramName, schema]: [string, any], idx) => {
+                              {Object.entries(tool.inputSchema.properties).map(([paramName, schema]: [string, unknown], idx) => {
                                 const isRequired = tool.inputSchema.required?.includes(paramName) || false;
-                                const description = schema.description || 'No description';
+                                const schemaObj = schema as JSONSchemaProperty;
+                                const description = schemaObj?.description || 'No description';
                                 const requiredFlag = isRequired ? ' (required)' : ' (optional)';
 
                                 // Use parameter-level validation from ToolFilterService
