@@ -77,7 +77,7 @@ const EnhancedInteractiveDemo: React.FC = () => {
 
     let requiredMatched = 0;
     let optionalMatched = 0;
-    let executionNotes: string[] = [];
+    const executionNotes: string[] = [];
 
     Object.entries(properties).forEach(([paramName, schema]: [string, any]) => {
       const isRequired = required.includes(paramName);
