@@ -51,111 +51,23 @@ const EnhancedInteractiveDemo: React.FC = () => {
     setSelectedFeatureIds(ids);
   };
 
-  // Detailed parameter matching analysis
-  const analyzeParameterMatching = (tool: any, selectedFeatures: DebriefFeature[]) => {
-    if (!tool.inputSchema?.properties) {
-      return {
-        isCompatible: selectedFeatures.length > 0, // Tools without schemas work with any selection
-        details: [],
-        summary: 'No parameters',
-        executionNotes: selectedFeatures.length > 0 ? 'Tool accepts any input' : 'No features selected'
-      };
-    }
+  // Use the ToolFilterService to determine tool compatibility
+  const getToolCompatibilityData = (selectedFeatures: DebriefFeature[]) => {
+    if (!toolsData) return new Map();
 
-    const properties = tool.inputSchema.properties;
-    const required = tool.inputSchema.required || [];
-    const availableTypes = selectedFeatures.map(f => f.properties?.dataType).filter(Boolean);
-    const availableTypeSet = new Set(availableTypes);
+    const result = service.getApplicableTools(selectedFeatures, toolsData);
+    const applicableToolNames = new Set(result.tools.map(t => t.name));
 
-    const details: {
-      text: string;
-      matchStatus: 'matched' | 'missing' | 'partial';
-      isRequired: boolean;
-      expectedType?: string;
-      availableCount?: number;
-    }[] = [];
+    // Create a map with compatibility info for each tool
+    const compatibilityMap = new Map();
 
-    let requiredMatched = 0;
-    let optionalMatched = 0;
-    const executionNotes: string[] = [];
-
-    Object.entries(properties).forEach(([paramName, schema]: [string, any]) => {
-      const isRequired = required.includes(paramName);
-      const description = schema.description || 'No description';
-
-      // Determine expected feature type from parameter name and description
-      let expectedType: string | null = null;
-      let matchStatus: 'matched' | 'missing' | 'partial' = 'missing';
-      let availableCount = 0;
-
-      // Pattern matching for feature types - be more specific to avoid false matches
-      if ((paramName.includes('track') && !paramName.includes('_')) || description.toLowerCase().includes('track feature')) {
-        expectedType = 'track';
-        availableCount = selectedFeatures.filter(f => f.properties?.dataType === 'track').length;
-      } else if ((paramName.includes('point') && !paramName.includes('_')) || description.toLowerCase().includes('point feature')) {
-        expectedType = 'reference-point';
-        availableCount = selectedFeatures.filter(f => f.properties?.dataType === 'reference-point').length;
-      } else if ((paramName.includes('zone') || paramName.includes('polygon')) || description.toLowerCase().includes('zone feature')) {
-        expectedType = 'zone';
-        availableCount = selectedFeatures.filter(f => f.properties?.dataType === 'zone').length;
-      } else if (paramName.includes('feature') || description.toLowerCase().includes('features') ||
-                 (description.toLowerCase().includes('feature') && !description.toLowerCase().includes('grid points'))) {
-        // Generic feature parameter - accepts any feature type
-        // Exclude descriptions that mention "grid points" as those are likely config params
-        expectedType = 'any';
-        availableCount = selectedFeatures.length;
-      } else {
-        // All other parameters are configuration parameters
-        // (like from_speed, current_time_state, lat_interval, lon_interval, viewport_state, etc.)
-        expectedType = 'config';
-        availableCount = 0; // Configuration parameters are never "available" from selected features
-      }
-
-      // Determine match status
-      if (expectedType === 'any' && selectedFeatures.length > 0) {
-        matchStatus = 'matched';
-        if (isRequired) requiredMatched++;
-        else optionalMatched++;
-      } else if (expectedType === 'config') {
-        // Configuration parameters are always missing from feature selection
-        // Required config params make tool incompatible, optional ones are just missing
-        matchStatus = 'missing';
-        // Don't count required config params as matched
-      } else if (expectedType && availableCount > 0) {
-        matchStatus = 'matched';
-        if (isRequired) requiredMatched++;
-        else optionalMatched++;
-
-        // Check if parameter expects array vs single feature
-        if (schema.type === 'array' && availableCount > 1) {
-          executionNotes.push(`${paramName}: Will provide ${availableCount} ${expectedType} features as array`);
-        } else if (schema.type !== 'array' && availableCount > 1) {
-          executionNotes.push(`${paramName}: Will execute tool ${availableCount} times (once per ${expectedType} feature)`);
-        }
-      } else {
-        matchStatus = 'missing';
-      }
-
-      const requiredFlag = isRequired ? ' (required)' : ' (optional)';
-      details.push({
-        text: `${paramName}${requiredFlag}: ${description}`,
-        matchStatus,
-        isRequired,
-        expectedType: expectedType || undefined,
-        availableCount
+    toolsData.tools.forEach(tool => {
+      compatibilityMap.set(tool.name, {
+        isCompatible: applicableToolNames.has(tool.name)
       });
     });
 
-    const isCompatible = requiredMatched === required.length;
-    const paramCount = Object.keys(properties).length;
-    const summary = `${paramCount} parameter${paramCount !== 1 ? 's' : ''} (${requiredMatched}/${required.length} required matched)`;
-
-    return {
-      isCompatible,
-      details,
-      summary,
-      executionNotes: executionNotes.join('; ') || (isCompatible ? 'Tool will execute normally' : 'Missing required parameters')
-    };
+    return compatibilityMap;
   };
 
   if (loading) {
@@ -311,88 +223,94 @@ const EnhancedInteractiveDemo: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {toolsData.tools.map((tool: any, index: number) => {
-                  const analysis = analyzeParameterMatching(tool, selectedFeatures);
+                {(() => {
+                  const compatibilityData = getToolCompatibilityData(selectedFeatures);
 
-                  return (
-                    <tr key={index} style={{
-                      backgroundColor: index % 2 === 0 ? '#f9f9f9' : 'white',
-                      opacity: analysis.isCompatible ? 1 : 0.6
-                    }}>
-                      <td style={{ padding: '8px', borderBottom: '1px solid #eee', fontWeight: analysis.isCompatible ? 'bold' : 'normal' }}>
-                        {analysis.isCompatible ? '🟢' : '🔴'} {tool.name}
-                      </td>
-                      <td style={{ padding: '8px', borderBottom: '1px solid #eee', fontSize: '12px' }}>
-                        <div style={{ marginBottom: '4px', fontWeight: 'bold' }}>
-                          {analysis.summary}
-                        </div>
-                        {analysis.details.length > 0 && (
-                          <ul style={{
-                            margin: '0 0 8px 0',
-                            paddingLeft: '16px',
-                            fontSize: '11px',
-                            lineHeight: '1.3'
-                          }}>
-                            {analysis.details.map((detail, idx) => {
-                              // Color coding for parameter status
-                              let backgroundColor = 'transparent';
-                              let color = 'inherit';
-                              let icon = '';
+                  return toolsData.tools.map((tool: any, index: number) => {
+                    const toolCompatibility = compatibilityData.get(tool.name) || { isCompatible: false };
+                    const paramCount = tool.inputSchema?.properties ? Object.keys(tool.inputSchema.properties).length : 0;
+                    const requiredCount = tool.inputSchema?.required?.length || 0;
 
-                              if (detail.matchStatus === 'matched') {
-                                backgroundColor = '#d4edda';
-                                color = '#155724';
-                                icon = '✓ ';
-                              } else if (detail.matchStatus === 'missing' && detail.isRequired) {
-                                backgroundColor = '#f8d7da';
-                                color = '#721c24';
-                                icon = '✗ ';
-                              } else if (detail.matchStatus === 'missing' && !detail.isRequired) {
-                                backgroundColor = '#fff3cd';
-                                color = '#856404';
-                                icon = '⚠ ';
-                              }
-
-                              return (
-                                <li key={idx} style={{
-                                  margin: '2px 0',
-                                  padding: '2px 4px',
-                                  borderRadius: '3px',
-                                  backgroundColor,
-                                  color,
-                                  fontWeight: detail.isRequired ? 'bold' : 'normal'
-                                }}>
-                                  {icon}{detail.text}
-                                  {detail.expectedType && detail.expectedType !== 'any' && (
-                                    <span style={{ fontSize: '10px', marginLeft: '4px', opacity: 0.7 }}>
-                                      {detail.expectedType === 'config'
-                                        ? '(configuration parameter)'
-                                        : `(expects ${detail.expectedType}, found ${detail.availableCount || 0})`
-                                      }
-                                    </span>
-                                  )}
-                                </li>
-                              );
-                            })}
-                          </ul>
-                        )}
-                        {analysis.executionNotes && (
-                          <div style={{
-                            fontSize: '10px',
-                            fontStyle: 'italic',
-                            color: '#666',
-                            backgroundColor: '#f8f9fa',
-                            padding: '4px',
-                            borderRadius: '3px',
-                            marginTop: '4px'
-                          }}>
-                            {analysis.executionNotes}
+                    return (
+                      <tr key={index} style={{
+                        backgroundColor: index % 2 === 0 ? '#f9f9f9' : 'white',
+                        opacity: toolCompatibility.isCompatible ? 1 : 0.6
+                      }}>
+                        <td style={{ padding: '8px', borderBottom: '1px solid #eee', fontWeight: toolCompatibility.isCompatible ? 'bold' : 'normal' }}>
+                          {toolCompatibility.isCompatible ? '🟢' : '🔴'} {tool.name}
+                        </td>
+                        <td style={{ padding: '8px', borderBottom: '1px solid #eee', fontSize: '12px' }}>
+                          <div style={{ marginBottom: '4px', fontWeight: 'bold' }}>
+                            {paramCount} parameter{paramCount !== 1 ? 's' : ''} ({requiredCount} required)
                           </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                          {tool.inputSchema?.properties && (
+                            <ul style={{
+                              margin: '0 0 8px 0',
+                              paddingLeft: '16px',
+                              fontSize: '11px',
+                              lineHeight: '1.3'
+                            }}>
+                              {Object.entries(tool.inputSchema.properties).map(([paramName, schema]: [string, any], idx) => {
+                                const isRequired = tool.inputSchema.required?.includes(paramName) || false;
+                                const description = schema.description || 'No description';
+                                const requiredFlag = isRequired ? ' (required)' : ' (optional)';
+
+                                // Simple display - let ToolFilterService handle the actual validation
+                                let backgroundColor = 'transparent';
+                                let color = 'inherit';
+                                let icon = '';
+
+                                if (toolCompatibility.isCompatible) {
+                                  // If tool is compatible, show all parameters as satisfied
+                                  backgroundColor = '#d4edda';
+                                  color = '#155724';
+                                  icon = '✓ ';
+                                } else {
+                                  // If tool is not compatible, show required params as missing
+                                  if (isRequired) {
+                                    backgroundColor = '#f8d7da';
+                                    color = '#721c24';
+                                    icon = '✗ ';
+                                  } else {
+                                    backgroundColor = '#fff3cd';
+                                    color = '#856404';
+                                    icon = '⚠ ';
+                                  }
+                                }
+
+                                return (
+                                  <li key={idx} style={{
+                                    margin: '2px 0',
+                                    padding: '2px 4px',
+                                    borderRadius: '3px',
+                                    backgroundColor,
+                                    color,
+                                    fontWeight: isRequired ? 'bold' : 'normal'
+                                  }}>
+                                    {icon}{paramName}{requiredFlag}: {description}
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                          {!toolCompatibility.isCompatible && (
+                            <div style={{
+                              fontSize: '10px',
+                              fontStyle: 'italic',
+                              color: '#666',
+                              backgroundColor: '#f8f9fa',
+                              padding: '4px',
+                              borderRadius: '3px',
+                              marginTop: '4px'
+                            }}>
+                              Tool validation handled by ToolFilterService
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  });
+                })()}
               </tbody>
             </table>
           </div>
