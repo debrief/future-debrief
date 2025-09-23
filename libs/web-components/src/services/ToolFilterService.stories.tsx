@@ -68,6 +68,7 @@ const EnhancedInteractiveDemo: React.FC = () => {
       compatibilityMap.set(tool.name, {
         isCompatible: applicableToolNames.has(tool.name),
         executionMode: toolValidation.executionMode,
+        parameterValidation: toolValidation.parameterValidation || {},
         warnings: toolValidation.warnings || []
       });
     });
@@ -247,24 +248,23 @@ const EnhancedInteractiveDemo: React.FC = () => {
                         <td style={{ padding: '8px', borderBottom: '1px solid #eee', fontSize: '12px' }}>
                           <div style={{ marginBottom: '4px', fontWeight: 'bold' }}>
                             {paramCount} parameter{paramCount !== 1 ? 's' : ''} ({requiredCount} required)
+                            {toolCompatibility.executionMode && (
+                              <span style={{
+                                marginLeft: '8px',
+                                padding: '2px 6px',
+                                backgroundColor: '#e3f2fd',
+                                color: '#1565c0',
+                                borderRadius: '4px',
+                                fontSize: '10px',
+                                fontWeight: 'bold'
+                              }}>
+                                {toolCompatibility.executionMode.mode === 'batch' && '📦'}
+                                {toolCompatibility.executionMode.mode === 'multiple' && '🔁'}
+                                {toolCompatibility.executionMode.mode === 'single' && '🎯'}
+                                {' '}{toolCompatibility.executionMode.description}
+                              </span>
+                            )}
                           </div>
-                          {toolCompatibility.executionMode && (
-                            <div style={{
-                              marginBottom: '8px',
-                              padding: '4px 6px',
-                              backgroundColor: '#e3f2fd',
-                              color: '#1565c0',
-                              borderRadius: '4px',
-                              fontSize: '11px',
-                              fontWeight: 'bold',
-                              display: 'inline-block'
-                            }}>
-                              {toolCompatibility.executionMode.mode === 'batch' && '📦'}
-                              {toolCompatibility.executionMode.mode === 'multiple' && '🔁'}
-                              {toolCompatibility.executionMode.mode === 'single' && '🎯'}
-                              {' '}{toolCompatibility.executionMode.description}
-                            </div>
-                          )}
                           {tool.inputSchema?.properties && (
                             <ul style={{
                               margin: '0 0 8px 0',
@@ -277,27 +277,37 @@ const EnhancedInteractiveDemo: React.FC = () => {
                                 const description = schema.description || 'No description';
                                 const requiredFlag = isRequired ? ' (required)' : ' (optional)';
 
-                                // Simple display - let ToolFilterService handle the actual validation
+                                // Use parameter-level validation from ToolFilterService
                                 let backgroundColor = 'transparent';
                                 let color = 'inherit';
                                 let icon = '';
 
-                                if (toolCompatibility.isCompatible) {
-                                  // If tool is compatible, show all parameters as satisfied
-                                  backgroundColor = '#d4edda';
-                                  color = '#155724';
-                                  icon = '✓ ';
-                                } else {
-                                  // If tool is not compatible, show required params as missing
-                                  if (isRequired) {
-                                    backgroundColor = '#f8d7da';
-                                    color = '#721c24';
-                                    icon = '✗ ';
+                                const paramValidation = toolCompatibility.parameterValidation[paramName];
+                                if (paramValidation) {
+                                  if (paramValidation.canSatisfy) {
+                                    // Parameter can be satisfied - show as satisfied
+                                    backgroundColor = '#d4edda';
+                                    color = '#155724';
+                                    icon = '✓ ';
                                   } else {
-                                    backgroundColor = '#fff3cd';
-                                    color = '#856404';
-                                    icon = '⚠ ';
+                                    // Parameter cannot be satisfied
+                                    if (paramValidation.isRequired) {
+                                      // Required parameter missing - show as error
+                                      backgroundColor = '#f8d7da';
+                                      color = '#721c24';
+                                      icon = '✗ ';
+                                    } else {
+                                      // Optional parameter missing - show as warning
+                                      backgroundColor = '#fff3cd';
+                                      color = '#856404';
+                                      icon = '⚠ ';
+                                    }
                                   }
+                                } else {
+                                  // No validation data available - show as neutral
+                                  backgroundColor = '#f8f9fa';
+                                  color = '#6c757d';
+                                  icon = '? ';
                                 }
 
                                 return (
