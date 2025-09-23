@@ -88,23 +88,25 @@ const EnhancedInteractiveDemo: React.FC = () => {
       let matchStatus: 'matched' | 'missing' | 'partial' = 'missing';
       let availableCount = 0;
 
-      // Pattern matching for feature types
-      if (paramName.includes('track') || description.toLowerCase().includes('track')) {
+      // Pattern matching for feature types - be more specific to avoid false matches
+      if ((paramName.includes('track') && !paramName.includes('_')) || description.toLowerCase().includes('track feature')) {
         expectedType = 'track';
         availableCount = selectedFeatures.filter(f => f.properties?.dataType === 'track').length;
-      } else if (paramName.includes('point') || description.toLowerCase().includes('point')) {
+      } else if ((paramName.includes('point') && !paramName.includes('_')) || description.toLowerCase().includes('point feature')) {
         expectedType = 'reference-point';
         availableCount = selectedFeatures.filter(f => f.properties?.dataType === 'reference-point').length;
-      } else if (paramName.includes('zone') || paramName.includes('polygon') || description.toLowerCase().includes('zone')) {
+      } else if ((paramName.includes('zone') || paramName.includes('polygon')) || description.toLowerCase().includes('zone feature')) {
         expectedType = 'zone';
         availableCount = selectedFeatures.filter(f => f.properties?.dataType === 'zone').length;
-      } else if (paramName.includes('feature') || description.toLowerCase().includes('feature')) {
+      } else if (paramName.includes('feature') || description.toLowerCase().includes('features') ||
+                 (description.toLowerCase().includes('feature') && !description.toLowerCase().includes('grid points'))) {
         // Generic feature parameter - accepts any feature type
+        // Exclude descriptions that mention "grid points" as those are likely config params
         expectedType = 'any';
         availableCount = selectedFeatures.length;
       } else {
-        // Non-feature parameter (like from_speed, current_time_state, etc.)
-        // These are configuration parameters, not feature inputs
+        // All other parameters are configuration parameters
+        // (like from_speed, current_time_state, lat_interval, lon_interval, viewport_state, etc.)
         expectedType = 'config';
         availableCount = 0; // Configuration parameters are never "available" from selected features
       }
