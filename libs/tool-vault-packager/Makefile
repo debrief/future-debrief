@@ -54,18 +54,18 @@ $(REQUIRED_FILES):
 	elif [[ "$@" == *"spa/dist"* ]] && [[ -n "$(NEWEST_SPA)" ]] && [[ "$@" -ot "$(NEWEST_SPA)" ]]; then \
 		echo "$(RED)❌ [tool-vault-packager] $@ is older than SPA source files$(RESET)"; \
 		echo "$(BLUE)💡 Newest source: $(NEWEST_SPA)$(RESET)"; \
-		echo "$(BLUE)💡 Run: npm run build:spa$(RESET)"; \
-		exit 1; \
+		echo "$(BLUE)🔧 Attempting to rebuild SPA...$(RESET)"; \
+		npm run build:spa || (echo "$(RED)❌ SPA build failed$(RESET)" && exit 1); \
 	elif [[ "$@" == *".pyz" ]] && [[ -n "$(NEWEST_PYTHON)" ]] && [[ "$@" -ot "$(NEWEST_PYTHON)" ]]; then \
 		echo "$(RED)❌ [tool-vault-packager] $@ is older than Python source files$(RESET)"; \
 		echo "$(BLUE)💡 Newest source: $(NEWEST_PYTHON)$(RESET)"; \
-		echo "$(BLUE)💡 Run: npm run build$(RESET)"; \
-		exit 1; \
+		echo "$(BLUE)🔧 Attempting to rebuild package...$(RESET)"; \
+		npm run build || (echo "$(RED)❌ Package build failed$(RESET)" && exit 1); \
 	elif [[ "$@" == *".pyz" ]] && [[ -n "$(NEWEST_SPA)" ]] && [[ "$@" -ot "$(NEWEST_SPA)" ]]; then \
 		echo "$(RED)❌ [tool-vault-packager] $@ is older than SPA source files$(RESET)"; \
 		echo "$(BLUE)💡 Newest source: $(NEWEST_SPA)$(RESET)"; \
-		echo "$(BLUE)💡 Run: npm run build$(RESET)"; \
-		exit 1; \
+		echo "$(BLUE)🔧 Attempting to rebuild package...$(RESET)"; \
+		npm run build || (echo "$(RED)❌ Package build failed$(RESET)" && exit 1); \
 	fi
 
 # Check required directories exist
