@@ -27,18 +27,39 @@ interface CachedResult {
 }
 
 /**
- * Validation result for a tool against features
+ * Enhanced metadata for tool parameters including state parameter detection
+ */
+interface ToolParameterMetadata {
+  canSatisfy: boolean;
+  isRequired: boolean;
+  matchingFeatureCount: number;
+  isStateParameter: boolean;
+  stateType?: 'TimeState' | 'ViewportState' | 'SelectionState' | 'EditorState';
+  note?: string;
+}
+
+/**
+ * Enhanced validation result for a tool against features
  */
 interface ToolValidationResult {
   isValid: boolean;
   warnings: string[];
   parameterAssignments?: Map<string, DebriefFeature>;
-  parameterValidation?: { [paramName: string]: { canSatisfy: boolean; isRequired: boolean; matchingFeatureCount: number } };
+  parameterValidation?: { [paramName: string]: ToolParameterMetadata };
+  missingRequiredParams?: string[];
   executionMode?: {
     mode: 'single' | 'multiple' | 'batch';
     description: string;
     parameterDetails?: { [paramName: string]: { expectsArray: boolean; matchingFeatureCount: number } };
   };
+}
+
+/**
+ * Enhanced FilteredTool interface with state parameter information
+ */
+interface FilteredTool extends Tool {
+  missingRequiredParams: string[];
+  stateParameters: string[];
 }
 
 /**
@@ -167,18 +188,8 @@ export class ToolFilterService {
     };
 
     try {
-      // If no features selected, check if tool can work without features
-      if (features.length === 0) {
-        const required = tool.inputSchema.required || [];
-        // Principle: Tools that can work with zero features have no required parameters.
-        // Tools that need features will declare required feature parameters in their schema.
-        // This is parameter-driven logic, not dependent on specific tool names.
-        if (required.length > 0) {
-          result.isValid = false;
-          result.warnings.push(`No features selected for tool "${tool.name}"`);
-          return result;
-        }
-      }
+      // Note: We'll check feature availability after processing all parameters,
+      // including state parameters that can be auto-injected
 
       // If tool has no input schema or no properties, it's compatible with anything
       if (!tool.inputSchema?.properties) {
@@ -198,73 +209,95 @@ export class ToolFilterService {
       let requiredMatched = 0;
       const properties = tool.inputSchema.properties;
       const parameterDetails: { [paramName: string]: { expectsArray: boolean; matchingFeatureCount: number } } = {};
-      const parameterValidation: { [paramName: string]: { canSatisfy: boolean; isRequired: boolean; matchingFeatureCount: number } } = {};
+      const parameterValidation: { [paramName: string]: ToolParameterMetadata } = {};
+      const missingRequiredParams: string[] = [];
       let hasFeatureParameters = false;
       let multipleExecutions = false;
       let batchExecution = false;
+      let lastExpectsFeatureCollection = false;
+      let lastExpectsArray = false;
 
       for (const paramName of required) {
         const paramSchema = properties[paramName] as JSONSchemaProperty;
         const description = paramSchema?.description || '';
         const expectsArray = paramSchema?.type === 'array';
+        lastExpectsArray = expectsArray;
 
-        // Determine if this parameter can be satisfied by selected features
+        // Check if this is a state parameter that will be provided by parent code
+        const stateDetection = this.detectStateParameter(paramName, paramSchema);
         let canSatisfy = false;
         let matchingFeatureCount = 0;
+        let isStateParameter = false;
+        let stateType: 'TimeState' | 'ViewportState' | 'SelectionState' | 'EditorState' | undefined;
+        let note: string | undefined;
 
-        // Check if this parameter expects a FeatureCollection (batch execution)
-        const expectsFeatureCollection = paramName.toLowerCase().includes('feature_collection') ||
-                                         paramName.toLowerCase().includes('featurecollection') ||
-                                         description.toLowerCase().includes('featurecollection');
-
-        // Pattern matching for feature types - be more specific to avoid false matches
-        if (expectsFeatureCollection) {
-          // FeatureCollection parameter - accepts any features as a single collection
-          matchingFeatureCount = features.length;
-          canSatisfy = features.length > 0;
-          hasFeatureParameters = true;
-          // Force batch execution for FeatureCollection parameters regardless of multiple features
-          if (matchingFeatureCount > 0) {
-            batchExecution = true;
-          }
-        } else if ((paramName.includes('track') && !paramName.includes('_')) || description.toLowerCase().includes('track feature')) {
-          matchingFeatureCount = features.filter(f => f.properties?.dataType === 'track').length;
-          canSatisfy = matchingFeatureCount > 0;
-          hasFeatureParameters = true;
-        } else if ((paramName.includes('point') && !paramName.includes('_')) || description.toLowerCase().includes('point feature')) {
-          matchingFeatureCount = features.filter(f => f.properties?.dataType === 'reference-point').length;
-          canSatisfy = matchingFeatureCount > 0;
-          hasFeatureParameters = true;
-        } else if ((paramName.includes('zone') || paramName.includes('polygon')) || description.toLowerCase().includes('zone feature')) {
-          matchingFeatureCount = features.filter(f => f.properties?.dataType === 'zone').length;
-          canSatisfy = matchingFeatureCount > 0;
-          hasFeatureParameters = true;
-        } else if (paramName.includes('feature') || description.toLowerCase().includes('features') ||
-                   (description.toLowerCase().includes('feature') && !description.toLowerCase().includes('grid points'))) {
-          // Generic feature parameter - accepts any feature type
-          matchingFeatureCount = features.length;
-          canSatisfy = features.length > 0;
-          hasFeatureParameters = true;
+        if (stateDetection.isStateParam && stateDetection.stateType) {
+          // This is a state parameter - it will be provided by parent code, so always satisfiable
+          isStateParameter = true;
+          stateType = stateDetection.stateType;
+          note = stateDetection.note;
+          canSatisfy = true; // State parameters are always satisfiable
+          matchingFeatureCount = 0; // State parameters don't depend on feature count
         } else {
-          // Configuration parameter - cannot be satisfied by feature selection
-          canSatisfy = false;
-          matchingFeatureCount = 0;
+          // Regular feature parameter logic
+          // Check if this parameter expects a FeatureCollection (batch execution)
+          const expectsFeatureCollection = paramName.toLowerCase().includes('feature_collection') ||
+                                           paramName.toLowerCase().includes('featurecollection') ||
+                                           description.toLowerCase().includes('featurecollection');
+          lastExpectsFeatureCollection = expectsFeatureCollection;
+
+          // Pattern matching for feature types - be more specific to avoid false matches
+          if (expectsFeatureCollection) {
+            // FeatureCollection parameter - accepts any features as a single collection
+            matchingFeatureCount = features.length;
+            canSatisfy = features.length > 0;
+            hasFeatureParameters = true;
+            // Force batch execution for FeatureCollection parameters regardless of multiple features
+            if (matchingFeatureCount > 0) {
+              batchExecution = true;
+            }
+          } else if ((paramName.includes('track') && !paramName.includes('_')) || description.toLowerCase().includes('track feature')) {
+            matchingFeatureCount = features.filter(f => f.properties?.dataType === 'track').length;
+            canSatisfy = matchingFeatureCount > 0;
+            hasFeatureParameters = true;
+          } else if ((paramName.includes('point') && !paramName.includes('_')) || description.toLowerCase().includes('point feature')) {
+            matchingFeatureCount = features.filter(f => f.properties?.dataType === 'reference-point').length;
+            canSatisfy = matchingFeatureCount > 0;
+            hasFeatureParameters = true;
+          } else if ((paramName.includes('zone') || paramName.includes('polygon')) || description.toLowerCase().includes('zone feature')) {
+            matchingFeatureCount = features.filter(f => f.properties?.dataType === 'zone').length;
+            canSatisfy = matchingFeatureCount > 0;
+            hasFeatureParameters = true;
+          } else if (paramName.includes('feature') || description.toLowerCase().includes('features') ||
+                     (description.toLowerCase().includes('feature') && !description.toLowerCase().includes('grid points'))) {
+            // Generic feature parameter - accepts any feature type
+            matchingFeatureCount = features.length;
+            canSatisfy = features.length > 0;
+            hasFeatureParameters = true;
+          } else {
+            // Configuration parameter - cannot be satisfied by feature selection
+            canSatisfy = false;
+            matchingFeatureCount = 0;
+          }
         }
 
         // Record parameter details
         parameterDetails[paramName] = { expectsArray, matchingFeatureCount };
 
-        // Record parameter validation status
+        // Record parameter validation status with enhanced metadata
         parameterValidation[paramName] = {
           canSatisfy,
           isRequired: true, // This loop only processes required parameters
-          matchingFeatureCount
+          matchingFeatureCount,
+          isStateParameter,
+          stateType,
+          note
         };
 
         // Determine execution mode based on parameter requirements
         // (Note: FeatureCollection parameters set batchExecution = true above)
-        if (hasFeatureParameters && matchingFeatureCount > 1 && !expectsFeatureCollection) {
-          if (expectsArray) {
+        if (hasFeatureParameters && matchingFeatureCount > 1 && !lastExpectsFeatureCollection) {
+          if (lastExpectsArray) {
             batchExecution = true;
           } else {
             multipleExecutions = true;
@@ -273,6 +306,8 @@ export class ToolFilterService {
 
         if (canSatisfy) {
           requiredMatched++;
+        } else {
+          missingRequiredParams.push(paramName);
         }
       }
 
@@ -283,49 +318,67 @@ export class ToolFilterService {
             // This is an optional parameter
             const paramSchema = properties[paramName] as JSONSchemaProperty;
             const description = paramSchema?.description || '';
+
+            // Check if this is a state parameter that will be provided by parent code
+            const stateDetection = this.detectStateParameter(paramName, paramSchema);
             let canSatisfy = false;
             let matchingFeatureCount = 0;
+            let isStateParameter = false;
+            let stateType: 'TimeState' | 'ViewportState' | 'SelectionState' | 'EditorState' | undefined;
+            let note: string | undefined;
 
-            // Use the same logic as for required parameters to determine if it can be satisfied
-            const expectsFeatureCollection = paramName.toLowerCase().includes('feature_collection') ||
-                                             paramName.toLowerCase().includes('featurecollection') ||
-                                             description.toLowerCase().includes('featurecollection');
-
-            if (expectsFeatureCollection) {
-              matchingFeatureCount = features.length;
-              canSatisfy = features.length > 0;
-            } else if ((paramName.includes('track') && !paramName.includes('_')) || description.toLowerCase().includes('track feature')) {
-              matchingFeatureCount = features.filter(f => f.properties?.dataType === 'track').length;
-              canSatisfy = matchingFeatureCount > 0;
-            } else if ((paramName.includes('point') && !paramName.includes('_')) || description.toLowerCase().includes('point feature')) {
-              matchingFeatureCount = features.filter(f => f.properties?.dataType === 'reference-point').length;
-              canSatisfy = matchingFeatureCount > 0;
-            } else if ((paramName.includes('zone') || paramName.includes('polygon')) || description.toLowerCase().includes('zone feature')) {
-              matchingFeatureCount = features.filter(f => f.properties?.dataType === 'zone').length;
-              canSatisfy = matchingFeatureCount > 0;
-            } else if (paramName.includes('feature') || description.toLowerCase().includes('features') ||
-                       (description.toLowerCase().includes('feature') && !description.toLowerCase().includes('grid points'))) {
-              matchingFeatureCount = features.length;
-              // For optional feature parameters, apply the same principle:
-              // Tools with no required parameters can always satisfy optional feature parameters
-              const required = tool.inputSchema.required || [];
-              const hasRequiredParams = required.length > 0;
-
-              if (!hasRequiredParams) {
-                // Tool has no required parameters, so optional feature parameters are always satisfied
-                canSatisfy = true;
-              } else {
-                canSatisfy = features.length > 0;
-              }
+            if (stateDetection.isStateParam && stateDetection.stateType) {
+              // This is a state parameter - it will be provided by parent code, so always satisfiable
+              isStateParameter = true;
+              stateType = stateDetection.stateType;
+              note = stateDetection.note;
+              canSatisfy = true; // State parameters are always satisfiable
+              matchingFeatureCount = 0; // State parameters don't depend on feature count
             } else {
-              canSatisfy = false;
-              matchingFeatureCount = 0;
+              // Use the same logic as for required parameters to determine if it can be satisfied
+              const expectsFeatureCollection = paramName.toLowerCase().includes('feature_collection') ||
+                                               paramName.toLowerCase().includes('featurecollection') ||
+                                               description.toLowerCase().includes('featurecollection');
+
+              if (expectsFeatureCollection) {
+                matchingFeatureCount = features.length;
+                canSatisfy = features.length > 0;
+              } else if ((paramName.includes('track') && !paramName.includes('_')) || description.toLowerCase().includes('track feature')) {
+                matchingFeatureCount = features.filter(f => f.properties?.dataType === 'track').length;
+                canSatisfy = matchingFeatureCount > 0;
+              } else if ((paramName.includes('point') && !paramName.includes('_')) || description.toLowerCase().includes('point feature')) {
+                matchingFeatureCount = features.filter(f => f.properties?.dataType === 'reference-point').length;
+                canSatisfy = matchingFeatureCount > 0;
+              } else if ((paramName.includes('zone') || paramName.includes('polygon')) || description.toLowerCase().includes('zone feature')) {
+                matchingFeatureCount = features.filter(f => f.properties?.dataType === 'zone').length;
+                canSatisfy = matchingFeatureCount > 0;
+              } else if (paramName.includes('feature') || description.toLowerCase().includes('features') ||
+                         (description.toLowerCase().includes('feature') && !description.toLowerCase().includes('grid points'))) {
+                matchingFeatureCount = features.length;
+                // For optional feature parameters, apply the same principle:
+                // Tools with no required parameters can always satisfy optional feature parameters
+                const required = tool.inputSchema.required || [];
+                const hasRequiredParams = required.length > 0;
+
+                if (!hasRequiredParams) {
+                  // Tool has no required parameters, so optional feature parameters are always satisfied
+                  canSatisfy = true;
+                } else {
+                  canSatisfy = features.length > 0;
+                }
+              } else {
+                canSatisfy = false;
+                matchingFeatureCount = 0;
+              }
             }
 
             parameterValidation[paramName] = {
               canSatisfy,
               isRequired: false,
-              matchingFeatureCount
+              matchingFeatureCount,
+              isStateParameter,
+              stateType,
+              note
             };
           }
         });
@@ -364,8 +417,9 @@ export class ToolFilterService {
         };
       }
 
-      // Add parameter validation results
+      // Add parameter validation results and missing required params
       result.parameterValidation = parameterValidation;
+      result.missingRequiredParams = missingRequiredParams;
 
     } catch (error) {
       result.isValid = false;
@@ -374,6 +428,141 @@ export class ToolFilterService {
 
     return result;
   }
+
+
+  /**
+   * Get tools with enhanced metadata including auto-injection information
+   */
+  getApplicableToolsWithMetadata(features: DebriefFeature[], toolsData: { tools: Tool[] }): {
+    tools: FilteredTool[];
+    errors: Error[];
+    warnings: string[];
+  } {
+    const result = {
+      tools: [] as FilteredTool[],
+      errors: [] as Error[],
+      warnings: [] as string[]
+    };
+
+    try {
+      // Safely handle null/undefined inputs
+      const safeFeatures = features || [];
+      const safeToolsData = toolsData || { tools: [] };
+
+      const baseResult = this.getApplicableTools(safeFeatures, safeToolsData);
+      result.errors.push(...baseResult.errors);
+      result.warnings.push(...baseResult.warnings);
+
+      for (const tool of safeToolsData.tools) {
+        try {
+          const validation = this.validateToolForFeatures(tool, safeFeatures);
+          const missingRequiredParams = validation.missingRequiredParams || [];
+          const stateParameters: string[] = [];
+
+          // Extract state parameters with error handling
+          if (validation.parameterValidation) {
+            Object.entries(validation.parameterValidation).forEach(([paramName, metadata]) => {
+              try {
+                if (metadata.isStateParameter) {
+                  stateParameters.push(paramName);
+                }
+              } catch (error) {
+                result.warnings.push(`Error processing parameter ${paramName} for tool ${tool.name}: ${error instanceof Error ? error.message : String(error)}`);
+              }
+            });
+          }
+
+          // Filter out state parameters from missing required params
+          const missingNonStateParams = missingRequiredParams.filter(param => {
+            try {
+              const paramMetadata = validation.parameterValidation?.[param];
+              return !paramMetadata?.isStateParameter;
+            } catch (error) {
+              result.warnings.push(`Error checking state parameter for ${param} in tool ${tool.name}: ${error instanceof Error ? error.message : String(error)}`);
+              return true; // Err on the side of caution - treat as non-state parameter
+            }
+          });
+
+          const enhancedTool: FilteredTool = {
+            ...tool,
+            missingRequiredParams: missingNonStateParams,
+            stateParameters
+          };
+
+          // Tool is applicable if all non-state required params can be satisfied
+          if (missingNonStateParams.length === 0) {
+            result.tools.push(enhancedTool);
+          }
+        } catch (error) {
+          result.errors.push(error instanceof Error ? error : new Error(`Error processing tool ${tool.name}: ${String(error)}`));
+        }
+      }
+
+    } catch (error) {
+      result.errors.push(error instanceof Error ? error : new Error(`Fatal error in getApplicableToolsWithMetadata: ${String(error)}`));
+    }
+
+    return result;
+  }
+
+  /**
+   * Detect if a parameter is a state object parameter that can be provided by parent code
+   * Made public for testing purposes
+   */
+  detectStateParameter(paramName: string, paramSchema: JSONSchemaProperty):
+    { isStateParam: boolean; stateType?: 'TimeState' | 'ViewportState' | 'SelectionState' | 'EditorState'; note?: string } {
+
+    const description = paramSchema?.description?.toLowerCase() || '';
+    const paramNameLower = paramName.toLowerCase();
+
+    // Check for TimeState parameters
+    if (paramNameLower.includes('time_state') || paramNameLower.includes('timestate') ||
+        description.includes('time state') || description.includes('current time') ||
+        description.includes('time position') || description.includes('time range')) {
+      return {
+        isStateParam: true,
+        stateType: 'TimeState',
+        note: 'Will be provided by parent code'
+      };
+    }
+
+    // Check for ViewportState parameters
+    if (paramNameLower.includes('viewport_state') || paramNameLower.includes('viewportstate') ||
+        description.includes('viewport state') || description.includes('map bounds') ||
+        description.includes('viewport bounds') || description.includes('map viewport')) {
+      return {
+        isStateParam: true,
+        stateType: 'ViewportState',
+        note: 'Will be provided by parent code'
+      };
+    }
+
+    // Check for SelectionState parameters
+    if (paramNameLower.includes('selection_state') || paramNameLower.includes('selectionstate') ||
+        description.includes('selection state') || description.includes('selected features') ||
+        description.includes('feature selection') || description.includes('selected ids')) {
+      return {
+        isStateParam: true,
+        stateType: 'SelectionState',
+        note: 'Will be provided by parent code'
+      };
+    }
+
+    // Check for EditorState parameters
+    if (paramNameLower.includes('editor_state') || paramNameLower.includes('editorstate') ||
+        description.includes('editor state') || description.includes('current state') ||
+        description.includes('application state') || description.includes('plot state')) {
+      return {
+        isStateParam: true,
+        stateType: 'EditorState',
+        note: 'Will be provided by parent code'
+      };
+    }
+
+    return { isStateParam: false };
+  }
+
+
 
   /**
    * Parse tool input schema to extract parameter type requirements
@@ -576,6 +765,9 @@ export class ToolFilterService {
     };
   }
 }
+
+// Export interfaces for external use
+export type { ToolParameterMetadata, FilteredTool };
 
 // Export a singleton instance for convenient usage
 export const toolFilterService = new ToolFilterService();

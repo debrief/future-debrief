@@ -1,5 +1,5 @@
 import { ToolFilterService } from './ToolFilterService';
-import type { DebriefFeature } from '@debrief/shared-types';
+import type { DebriefFeature, TimeState, ViewportState, SelectionState, EditorState } from '@debrief/shared-types';
 import type { ToolIndexModel } from '@debrief/shared-types/src/types/tools/tool_index';
 import type { Tool } from '@debrief/shared-types/src/types/tools/tool';
 
@@ -111,6 +111,66 @@ describe('ToolFilterService', () => {
     }
   });
 
+  // Mock state objects
+  const createMockTimeState = (): TimeState => ({
+    current: '2024-01-01T12:00:00Z',
+    start: '2024-01-01T10:00:00Z',
+    end: '2024-01-01T14:00:00Z'
+  });
+
+  const createMockViewportState = (): ViewportState => ({
+    bounds: [-10.0, 50.0, 2.0, 58.0]
+  });
+
+  const createMockSelectionState = (): SelectionState => ({
+    selectedIds: ['track1', 'point1']
+  });
+
+  const createMockEditorState = (): EditorState => ({
+    featureCollection: null,
+    timeState: createMockTimeState(),
+    viewportState: createMockViewportState(),
+    selectionState: createMockSelectionState()
+  });
+
+  // Create tools with state parameters
+  const createToolWithStateParams = (name: string, stateParamTypes: string[] = [], requiredStateParams: string[] = []): Tool => {
+    const properties: Record<string, any> = {};
+    const required: string[] = [];
+
+    // Add regular feature parameters
+    if (!stateParamTypes.length) {
+      properties.features = {
+        type: 'array',
+        description: 'Array of features'
+      };
+    }
+
+    // Add state parameters
+    stateParamTypes.forEach(stateType => {
+      const paramName = `${stateType.toLowerCase()}_param`;
+      properties[paramName] = {
+        type: 'object',
+        description: `${stateType} for the tool`
+      };
+
+      if (requiredStateParams.includes(stateType)) {
+        required.push(paramName);
+      }
+    });
+
+    return {
+      name,
+      description: `Tool with state parameters: ${stateParamTypes.join(', ')}`,
+      inputSchema: {
+        type: 'object',
+        properties,
+        required
+      }
+    };
+  };
+
+
   describe('getApplicableTools', () => {
     it('should return no tools when no features are selected', () => {
       const toolsData = { tools: [createMockTool('any-tool')] };
@@ -118,7 +178,7 @@ describe('ToolFilterService', () => {
 
       expect(result.tools).toHaveLength(0);
       expect(result.errors).toHaveLength(0);
-      expect(result.warnings).toContain('No features selected for tool "any-tool"');
+      expect(result.warnings).toContain('Tool "any-tool" has 1 unsatisfied required parameters');
     });
 
     it('should return applicable tools for single feature', () => {
@@ -144,7 +204,21 @@ describe('ToolFilterService', () => {
     it('should handle multiple features correctly', () => {
       const trackFeature = createMockTrackFeature();
       const pointFeature = createMockPointFeature();
-      const toolsData = { tools: [createMockTool('multi-feature-tool', ['features'])] };
+      const tool: Tool = {
+        name: 'multi-feature-tool',
+        description: 'Tool that processes multiple features',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            features: {
+              type: 'array',
+              description: 'Array of features to process'
+            }
+          },
+          required: ['features']
+        }
+      };
+      const toolsData = { tools: [tool] };
 
       const result = toolFilterService.getApplicableTools([trackFeature, pointFeature], toolsData);
 
@@ -587,7 +661,21 @@ describe('ToolFilterService', () => {
       const searchZone = createMockAnnotationFeature('search-area');
 
       const features = [vesselTrack, referencePoint, searchZone];
-      const toolsData = { tools: [createMockTool('maritime-analyzer', ['features'])] };
+      const tool: Tool = {
+        name: 'maritime-analyzer',
+        description: 'Analyzes maritime features',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            features: {
+              type: 'array',
+              description: 'Maritime features to analyze'
+            }
+          },
+          required: ['features']
+        }
+      };
+      const toolsData = { tools: [tool] };
 
       const result = toolFilterService.getApplicableTools(features, toolsData);
 
@@ -604,11 +692,153 @@ describe('ToolFilterService', () => {
       ];
 
       // Tool that accepts generic features - will match all selected features
-      const toolsData = { tools: [createMockTool('selective-tool', ['features'])] };
+      const tool: Tool = {
+        name: 'selective-tool',
+        description: 'Tool for processing selected features',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            features: {
+              type: 'array',
+              description: 'Features to process'
+            }
+          },
+          required: ['features']
+        }
+      };
+      const toolsData = { tools: [tool] };
       const result = toolFilterService.getApplicableTools(features, toolsData);
 
       expect(result.tools).toHaveLength(1);
       expect(result.errors).toHaveLength(0);
     });
+  });
+
+  describe('State Parameter Detection and Injection', () => {
+    beforeEach(() => {
+      toolFilterService = new ToolFilterService();
+    });
+
+    describe('detectStateParameter', () => {
+      it('should detect TimeState parameters by name pattern', () => {
+        const tool: Tool = {
+          name: 'time-tool',
+          description: 'Tool with time state',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              time_state: {
+                type: 'object',
+                description: 'Current time state'
+              }
+            },
+            required: ['time_state']
+          }
+        };
+
+        // Test the detection function directly first
+        const detectionResult = toolFilterService.detectStateParameter('time_state', {
+          type: 'object',
+          description: 'Current time state'
+        });
+        expect(detectionResult.isStateParam).toBe(true);
+        expect(detectionResult.stateType).toBe('TimeState');
+
+        // Then test through validation
+        const validation = toolFilterService.validateToolForFeatures(tool, []);
+        expect(validation.parameterValidation?.time_state?.isStateParameter).toBe(true);
+        expect(validation.parameterValidation?.time_state?.note).toBe('Will be provided by parent code');
+      });
+
+      it('should detect ViewportState parameters by description', () => {
+        const tool: Tool = {
+          name: 'viewport-tool',
+          description: 'Tool with viewport',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              viewport_data: {
+                type: 'object',
+                description: 'map bounds for the viewport'
+              }
+            },
+            required: ['viewport_data']
+          }
+        };
+
+        const validation = toolFilterService.validateToolForFeatures(tool, []);
+        expect(validation.parameterValidation?.viewport_data?.isStateParameter).toBe(true);
+        expect(validation.parameterValidation?.viewport_data?.note).toBe('Will be provided by parent code');
+      });
+
+      it('should detect SelectionState parameters', () => {
+        const tool: Tool = {
+          name: 'selection-tool',
+          description: 'Tool with selection',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              current_selection: {
+                type: 'object',
+                description: 'selected features data'
+              }
+            },
+            required: ['current_selection']
+          }
+        };
+
+        const validation = toolFilterService.validateToolForFeatures(tool, []);
+        expect(validation.parameterValidation?.current_selection?.isStateParameter).toBe(true);
+        expect(validation.parameterValidation?.current_selection?.note).toBe('Will be provided by parent code');
+      });
+
+      it('should detect EditorState parameters', () => {
+        const tool: Tool = {
+          name: 'editor-tool',
+          description: 'Tool with editor state',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              editor_state: {
+                type: 'object',
+                description: 'current state of the editor'
+              }
+            },
+            required: ['editor_state']
+          }
+        };
+
+        const validation = toolFilterService.validateToolForFeatures(tool, []);
+        expect(validation.parameterValidation?.editor_state?.isStateParameter).toBe(true);
+        expect(validation.parameterValidation?.editor_state?.note).toBe('Will be provided by parent code');
+      });
+
+      it('should not detect non-state parameters as auto-injectable', () => {
+        const tool: Tool = {
+          name: 'regular-tool',
+          description: 'Tool with regular params',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              features: {
+                type: 'array',
+                description: 'array of features'
+              },
+              config: {
+                type: 'object',
+                description: 'configuration options'
+              }
+            },
+            required: ['features']
+          }
+        };
+
+        const validation = toolFilterService.validateToolForFeatures(tool, []);
+        expect(validation.parameterValidation?.features?.isStateParameter).toBe(false);
+        expect(validation.parameterValidation?.config?.isStateParameter).toBe(false);
+      });
+    });
+
+
   });
 });
