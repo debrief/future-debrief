@@ -498,14 +498,14 @@ export class ToolFilterService {
   /**
    * Generate a hash of the input parameters for caching
    */
-  private generateInputHash(features: DebriefFeature[], toolIndex: ToolIndexModel): string {
+  private generateInputHash(features: DebriefFeature[], toolsData: { tools: Tool[] }): string {
     const featureHash = features.map(f => {
       const id = 'id' in f ? f.id : 'unknown';
       const geometryType = f.geometry?.type || 'unknown';
       return `${id}_${geometryType}`;
     }).join('|');
 
-    const toolHash = `${toolIndex.tool_name}_${toolIndex.description}`;
+    const toolHash = (toolsData?.tools || []).map(t => t.name).sort().join(',');
 
     return `${featureHash}__${toolHash}`;
   }
