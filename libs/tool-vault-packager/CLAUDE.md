@@ -94,7 +94,7 @@ Tools in `tools/` directory must:
 - Be single Python files with exactly one public function
 - Include complete type annotations for parameters and return values
 - Have descriptive docstrings (first sentence used as short description)
-- Optional `inputs/` folder for sample data
+- Optional `samples/` folder for sample data
 
 ### Package Contents
 Generated .pyz files contain:
@@ -102,7 +102,7 @@ Generated .pyz files contain:
 - Tool navigation indexes (`tools/{tool}/tool.json`)
 - HTML-formatted source code (`metadata/source_code.html`)
 - Git history metadata (`metadata/git_history.json`)
-- Sample input files (`inputs/*.json`)
+- Sample input files (`samples/*.json`)
 - Complete React SPA in `static/` directory
 
 ### API Endpoints
@@ -153,7 +153,7 @@ open http://localhost:8000/ui/
 1. Create a new `.py` file in the `tools/` directory
 2. Implement exactly one public function with complete type annotations
 3. Add a descriptive docstring (first sentence becomes the tool description)
-4. Optionally create an `inputs/` folder with sample data files
+4. Optionally create a `samples/` folder with sample data files
 5. Test the tool: `python cli.py --tools-path tools call-tool <tool_name> '<json_args>'`
 6. Rebuild package: `npm run build`
 
@@ -181,7 +181,7 @@ tools/
 ├── word_count.py              # Single tool file
 ├── complex_tool/              # Tool with sample data
 │   ├── complex_tool.py        # Tool implementation
-│   └── inputs/                # Sample input files
+│   └── samples/               # Sample input files
 │       ├── sample1.json
 │       └── sample2.json
 ```
