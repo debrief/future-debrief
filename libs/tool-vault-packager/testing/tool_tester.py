@@ -130,19 +130,25 @@ class ToolTester:
             error_message = None
 
             if expected_output is not None:
+                # Convert Pydantic models to dictionaries for comparison
+                if hasattr(output, 'model_dump'):
+                    output_dict = output.model_dump()
+                else:
+                    output_dict = output
+
                 # JSON-serialize both for comparison to handle tuple/list differences
                 try:
-                    output_json = json.dumps(output, sort_keys=True)
+                    output_json = json.dumps(output_dict, sort_keys=True)
                     expected_json = json.dumps(expected_output, sort_keys=True)
 
                     if output_json != expected_json:
                         success = False
-                        error_message = f"Output mismatch. Expected: {expected_output}, Got: {output}"
+                        error_message = f"Output mismatch. Expected: {expected_output}, Got: {output_dict}"
                 except (TypeError, ValueError):
                     # Fallback to direct comparison if JSON serialization fails
-                    if output != expected_output:
+                    if output_dict != expected_output:
                         success = False
-                        error_message = f"Output mismatch. Expected: {expected_output}, Got: {output}"
+                        error_message = f"Output mismatch. Expected: {expected_output}, Got: {output_dict}"
 
             return TestResult(
                 tool_name=tool_name,
