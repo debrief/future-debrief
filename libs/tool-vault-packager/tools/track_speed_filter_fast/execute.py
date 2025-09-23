@@ -1,7 +1,9 @@
 """Fast track speed filtering tool using pre-calculated speeds."""
 
-from typing import Dict, Any, List, Optional
+from typing import List, Optional
 from pydantic import BaseModel, Field, ValidationError, model_validator
+from debrief.types.tools import ToolVaultCommand
+from debrief.types.tools.tool_call_response import CommandType
 from debrief.types.features import DebriefTrackFeature
 
 
@@ -116,7 +118,7 @@ class TrackSpeedFilterFastParameters(BaseModel):
 
 
 
-def track_speed_filter_fast(params: TrackSpeedFilterFastParameters) -> Dict[str, Any]:
+def track_speed_filter_fast(params: TrackSpeedFilterFastParameters) -> ToolVaultCommand:
     """
     Filter track timestamps using pre-calculated speeds array for fast processing.
 
@@ -146,7 +148,7 @@ def track_speed_filter_fast(params: TrackSpeedFilterFastParameters) -> Dict[str,
         ...             "dataType": "track",
         ...             "timestamps": ["2023-01-01T10:00:00Z", "2023-01-01T10:01:00Z"],
         ...             "speeds": [15.0, 8.0]
-        ...         }
+        ...         )
         ...     },
         ...     min_speed=10.0
         ... )
@@ -171,35 +173,35 @@ def track_speed_filter_fast(params: TrackSpeedFilterFastParameters) -> Dict[str,
                 high_speed_times.append(timestamps[i])
 
         if not high_speed_times:
-            return {
-                "command": "showText",
-                "payload": f"No timestamps found where speed >= {min_speed} knots"
-            }
+            return ToolVaultCommand(
+                command=CommandType.SHOW_TEXT,
+                payload=f"No timestamps found where speed >= {min_speed} knots"
+            )
 
         # Return structured data for better visualization
-        return {
-            "command": "showData",
-            "payload": {
+        return ToolVaultCommand(
+            command=CommandType.SHOW_DATA,
+            payload={
                 "title": f"Fast Track Speed Filter Results (>= {min_speed} knots)",
                 "count": len(high_speed_times),
                 "min_speed_threshold": min_speed,
                 "timestamps": high_speed_times,
                 "method": "pre-calculated speeds"
             }
-        }
+        )
 
     except ValidationError as e:
-        return {
-            "command": "showText",
-            "payload": f"Input validation failed: {e.errors()[0]['msg']} at {e.errors()[0]['loc']}"
-        }
+        return ToolVaultCommand(
+            command=CommandType.SHOW_TEXT,
+            payload=f"Input validation failed: {e.errors()[0]['msg']} at {e.errors()[0]['loc']}"
+        )
     except ValueError as e:
-        return {
-            "command": "showText",
-            "payload": f"Invalid track data: {str(e)}"
-        }
+        return ToolVaultCommand(
+            command=CommandType.SHOW_TEXT,
+            payload=f"Invalid track data: {str(e)}"
+        )
     except Exception as e:
-        return {
-            "command": "showText",
-            "payload": f"Speed filtering failed: {str(e)}"
-        }
+        return ToolVaultCommand(
+            command=CommandType.SHOW_TEXT,
+            payload=f"Speed filtering failed: {str(e)}"
+        )

@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 # Use hierarchical imports from shared-types
 from debrief.types.features import DebriefFeature
 from debrief.types.tools import ToolVaultCommand
+from debrief.types.tools.tool_call_response import CommandType
 
 
 class FitToSelectionParameters(BaseModel):
@@ -43,10 +44,10 @@ def fit_to_selection(params: FitToSelectionParameters) -> ToolVaultCommand:
     """
     try:
         if not params.features:
-            return {
-                "command": "showText",
-                "payload": "No features provided to fit viewport"
-            }
+            return ToolVaultCommand(
+                command=CommandType.SHOW_TEXT,
+                payload="No features provided to fit viewport"
+            )
 
         # Initialize bounds tracking
         min_lng, min_lat = float('inf'), float('inf')
@@ -80,10 +81,10 @@ def fit_to_selection(params: FitToSelectionParameters) -> ToolVaultCommand:
 
         # Check if we found any valid coordinates
         if min_lng == float('inf'):
-            return {
-                "command": "showText",
-                "payload": "No valid coordinates found in features"
-            }
+            return ToolVaultCommand(
+                command=CommandType.SHOW_TEXT,
+                payload="No valid coordinates found in features"
+            )
 
         # Apply padding
         lng_range = max_lng - min_lng
@@ -107,15 +108,15 @@ def fit_to_selection(params: FitToSelectionParameters) -> ToolVaultCommand:
         ]
 
         # Create setViewport command
-        return {
-            "command": "setViewport",
-            "payload": {
+        return ToolVaultCommand(
+            command=CommandType.SET_VIEWPORT,
+            payload={
                 "bounds": bounds
             }
-        }
+        )
 
     except Exception as e:
-        return {
-            "command": "showText",
-            "payload": f"Error calculating feature bounds: {str(e)}"
-        }
+        return ToolVaultCommand(
+            command=CommandType.SHOW_TEXT,
+            payload=f"Error calculating feature bounds: {str(e)}"
+        )

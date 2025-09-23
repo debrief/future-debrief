@@ -1,8 +1,9 @@
 """Track speed filtering tool for maritime analysis."""
 
 import math
-from typing import Dict, Any
 from pydantic import BaseModel, Field, ValidationError
+from debrief.types.tools import ToolVaultCommand
+from debrief.types.tools.tool_call_response import CommandType
 from debrief.types.features import DebriefTrackFeature
 
 
@@ -37,7 +38,7 @@ class TrackSpeedFilterParameters(BaseModel):
     )
 
 
-def track_speed_filter(params: TrackSpeedFilterParameters) -> Dict[str, Any]:
+def track_speed_filter(params: TrackSpeedFilterParameters) -> ToolVaultCommand:
     """
     Find timestamps where track speed equals or exceeds a minimum threshold.
 
@@ -63,11 +64,11 @@ def track_speed_filter(params: TrackSpeedFilterParameters) -> Dict[str, Any]:
         ...         "geometry": {
         ...             "type": "LineString",
         ...             "coordinates": [[0, 0], [0.01, 0]]
-        ...         },
+        ...         ),
         ...         "properties": {
         ...             "dataType": "track",
         ...             "timestamps": ["2023-01-01T10:00:00Z", "2023-01-01T10:01:00Z"]
-        ...         }
+        ...         )
         ...     },
         ...     min_speed=10.0
         ... )
@@ -95,23 +96,23 @@ def track_speed_filter(params: TrackSpeedFilterParameters) -> Dict[str, Any]:
                 coordinates.extend(line)
 
         if len(coordinates) < 2:
-            return {
-                "command": "showText",
-                "payload": "Track must have at least 2 coordinate points to calculate speed"
-            }
+            return ToolVaultCommand(
+                command=CommandType.SHOW_TEXT,
+                payload="Track must have at least 2 coordinate points to calculate speed"
+            )
 
         timestamps = properties.timestamps
         if timestamps is None:
-            return {
-                "command": "showText",
-                "payload": "Track feature must have timestamps to calculate speed"
-            }
+            return ToolVaultCommand(
+                command=CommandType.SHOW_TEXT,
+                payload="Track feature must have timestamps to calculate speed"
+            )
 
         if len(timestamps) != len(coordinates):
-            return {
-                "command": "showText",
-                "payload": f"Timestamp count ({len(timestamps)}) must match coordinate count ({len(coordinates)})"
-            }
+            return ToolVaultCommand(
+                command=CommandType.SHOW_TEXT,
+                payload=f"Timestamp count ({len(timestamps)}) must match coordinate count ({len(coordinates)})"
+            )
 
         # Calculate speeds and find timestamps exceeding threshold
         high_speed_times = []
@@ -152,34 +153,34 @@ def track_speed_filter(params: TrackSpeedFilterParameters) -> Dict[str, Any]:
                 high_speed_times.append(timestamp_str)
 
         if not high_speed_times:
-            return {
-                "command": "showText",
-                "payload": f"No timestamps found where speed >= {min_speed} knots"
-            }
+            return ToolVaultCommand(
+                command=CommandType.SHOW_TEXT,
+                payload=f"No timestamps found where speed >= {min_speed} knots"
+            )
 
         # Return structured data for better visualization
-        return {
-            "command": "showData",
-            "payload": {
+        return ToolVaultCommand(
+            command=CommandType.SHOW_DATA,
+            payload={
                 "title": f"Track Speed Filter Results (>= {min_speed} knots)",
                 "count": len(high_speed_times),
                 "min_speed_threshold": min_speed,
                 "timestamps": high_speed_times
             }
-        }
+        )
 
     except ValidationError as e:
-        return {
-            "command": "showText",
-            "payload": f"Input validation failed: {e.errors()[0]['msg']} at {e.errors()[0]['loc']}"
-        }
+        return ToolVaultCommand(
+            command=CommandType.SHOW_TEXT,
+            payload=f"Input validation failed: {e.errors()[0]['msg']} at {e.errors()[0]['loc']}"
+        )
     except ValueError as e:
-        return {
-            "command": "showText",
-            "payload": f"Invalid track data: {str(e)}"
-        }
+        return ToolVaultCommand(
+            command=CommandType.SHOW_TEXT,
+            payload=f"Invalid track data: {str(e)}"
+        )
     except Exception as e:
-        return {
-            "command": "showText",
-            "payload": f"Speed calculation failed: {str(e)}"
-        }
+        return ToolVaultCommand(
+            command=CommandType.SHOW_TEXT,
+            payload=f"Speed calculation failed: {str(e)}"
+        )
