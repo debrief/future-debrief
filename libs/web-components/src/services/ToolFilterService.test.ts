@@ -506,7 +506,7 @@ describe('ToolFilterService', () => {
       }).not.toThrow();
     });
 
-    it('should activate fit_to_selection with features parameter validation when multiple features are selected', () => {
+    it('should activate tools with no required parameters when features are selected and show parameter validation', () => {
       const fitToSelectionTool: Tool = {
         name: 'fit_to_selection',
         description: 'Calculate bounds of features and set viewport to fit them.',
@@ -541,10 +541,11 @@ describe('ToolFilterService', () => {
       expect(validation.parameterValidation?.features?.matchingFeatureCount).toBe(2);
     });
 
-    it('should activate fit_to_selection when zero features are selected', () => {
-      const fitToSelectionTool: Tool = {
-        name: 'fit_to_selection',
-        description: 'Calculate bounds of features and set viewport to fit them.',
+    it('should activate tools with no required parameters when zero features are selected', () => {
+      // Any tool with no required parameters should work with zero features
+      const noRequiredParamsTool: Tool = {
+        name: 'generic_zero_feature_tool',
+        description: 'A tool that can work without any features selected.',
         inputSchema: {
           type: 'object',
           properties: {
@@ -561,14 +562,14 @@ describe('ToolFilterService', () => {
         }
       };
 
-      const toolsData = { tools: [fitToSelectionTool] };
+      const toolsData = { tools: [noRequiredParamsTool] };
       const emptyFeatures: any[] = [];
 
-      const validation = toolFilterService.validateToolForFeatures(fitToSelectionTool, emptyFeatures);
+      const validation = toolFilterService.validateToolForFeatures(noRequiredParamsTool, emptyFeatures);
       const result = toolFilterService.getApplicableTools(emptyFeatures, toolsData);
 
       expect(result.tools).toHaveLength(1);
-      expect(result.tools[0].name).toBe('fit_to_selection');
+      expect(result.tools[0].name).toBe('generic_zero_feature_tool');
 
       // Verify validation shows tool is compatible
       expect(validation.isValid).toBe(true);

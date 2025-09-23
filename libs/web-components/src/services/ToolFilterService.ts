@@ -167,11 +167,17 @@ export class ToolFilterService {
     };
 
     try {
-      // If no features selected, no tools are enabled
+      // If no features selected, check if tool can work without features
       if (features.length === 0) {
-        result.isValid = false;
-        result.warnings.push(`No features selected for tool "${tool.name}"`);
-        return result;
+        const required = tool.inputSchema.required || [];
+        // Principle: Tools that can work with zero features have no required parameters.
+        // Tools that need features will declare required feature parameters in their schema.
+        // This is parameter-driven logic, not dependent on specific tool names.
+        if (required.length > 0) {
+          result.isValid = false;
+          result.warnings.push(`No features selected for tool "${tool.name}"`);
+          return result;
+        }
       }
 
       // If tool has no input schema or no properties, it's compatible with anything
@@ -182,10 +188,10 @@ export class ToolFilterService {
 
       const required = tool.inputSchema.required || [];
 
-      // If no required parameters, tool is compatible
+      // If no required parameters, tool is compatible, but still process optional parameters for validation display
       if (required.length === 0) {
         result.isValid = true;
-        return result;
+        // Don't return early - continue to process optional parameters for validation display
       }
 
       // Check if all required parameters can be satisfied and analyze execution mode
@@ -300,7 +306,17 @@ export class ToolFilterService {
             } else if (paramName.includes('feature') || description.toLowerCase().includes('features') ||
                        (description.toLowerCase().includes('feature') && !description.toLowerCase().includes('grid points'))) {
               matchingFeatureCount = features.length;
-              canSatisfy = features.length > 0;
+              // For optional feature parameters, apply the same principle:
+              // Tools with no required parameters can always satisfy optional feature parameters
+              const required = tool.inputSchema.required || [];
+              const hasRequiredParams = required.length > 0;
+
+              if (!hasRequiredParams) {
+                // Tool has no required parameters, so optional feature parameters are always satisfied
+                canSatisfy = true;
+              } else {
+                canSatisfy = features.length > 0;
+              }
             } else {
               canSatisfy = false;
               matchingFeatureCount = 0;
@@ -315,8 +331,10 @@ export class ToolFilterService {
         });
       }
 
-      // Tool is valid only if all required parameters can be satisfied
-      result.isValid = requiredMatched === required.length;
+      // Tool is valid if already marked valid (no required params) OR all required parameters can be satisfied
+      if (!result.isValid) {
+        result.isValid = requiredMatched === required.length;
+      }
 
       if (!result.isValid) {
         result.warnings.push(`Tool "${tool.name}" has ${required.length - requiredMatched} unsatisfied required parameters`);
