@@ -4,7 +4,7 @@
 # Run fast pre-push validation showing detailed errors
 echo "🚀 Running pre-push validation..."
 
-exit_code=0
+temp_file=$(mktemp)
 
 # Find all Makefiles and run verify sequentially to show errors properly
 find . -path "*/*/Makefile" -not -path "*/node_modules/*" -exec dirname {} \; | while read dir; do
@@ -12,16 +12,18 @@ find . -path "*/*/Makefile" -not -path "*/node_modules/*" -exec dirname {} \; | 
   pkg_name=$(basename $(pwd))
   echo "✅ $pkg_name"
 
-  if ! make verify 2>&1; then
+  if ! make verify; then
     echo "❌ $pkg_name failed" >&2
-    exit_code=1
+    echo "failed" > "$temp_file"
   fi
   cd - > /dev/null
 done
 
-if [ $exit_code -ne 0 ]; then
+if [ -f "$temp_file" ] && [ "$(cat "$temp_file")" = "failed" ]; then
   echo "❌ Some validations failed!" >&2
+  rm -f "$temp_file"
   exit 1
 fi
 
+rm -f "$temp_file"
 echo "✅ All validations passed!"
