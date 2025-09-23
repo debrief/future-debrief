@@ -16,7 +16,7 @@ from debrief.types.tools import (
     SampleInputData,
     ToolVaultCommand,
     JSONSchemaType,
-) 
+)
 
 
 class ToolDiscoveryError(Exception):
