@@ -1,8 +1,9 @@
 """Feature color toggling tool for GeoJSON FeatureCollections."""
 
 import copy
-from typing import Dict, Any
 from pydantic import BaseModel, Field, ValidationError
+from debrief.types.tools import ToolVaultCommand
+from debrief.types.tools.tool_call_response import CommandType
 from debrief.types.features import DebriefFeatureCollection
 
 
@@ -27,7 +28,7 @@ class ToggleFirstFeatureColorParameters(BaseModel):
     )
 
 
-def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Dict[str, Any]:
+def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> ToolVaultCommand:
     """
     Toggle the color property of the first feature in a GeoJSON FeatureCollection.
 
@@ -66,10 +67,10 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Dic
 
         # Check if the collection has features
         if not feature_collection.features or len(feature_collection.features) == 0:
-            return {
-                "command": "showText",
-                "payload": "No features found in the collection to toggle color"
-            }
+            return ToolVaultCommand(
+                command=CommandType.SHOW_TEXT,
+                payload="No features found in the collection to toggle color"
+            )
 
         # Convert to dict for modification (since we need to return a dict)
         result = feature_collection.model_dump()
@@ -87,23 +88,23 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Dic
             first_feature["properties"]["color"] = "red"
 
         # Return ToolVault command to update the feature collection
-        return {
-            "command": "setFeatureCollection",
-            "payload": result
-        }
+        return ToolVaultCommand(
+            command=CommandType.SET_FEATURE_COLLECTION,
+            payload=result
+        )
 
     except ValidationError as e:
-        return {
-            "command": "showText",
-            "payload": f"Input validation failed: {e.errors()[0]['msg']} at {e.errors()[0]['loc']}"
-        }
+        return ToolVaultCommand(
+            command=CommandType.SHOW_TEXT,
+            payload=f"Input validation failed: {e.errors()[0]['msg']} at {e.errors()[0]['loc']}"
+        )
     except ValueError as e:
-        return {
-            "command": "showText",
-            "payload": f"Invalid feature collection data: {str(e)}"
-        }
+        return ToolVaultCommand(
+            command=CommandType.SHOW_TEXT,
+            payload=f"Invalid feature collection data: {str(e)}"
+        )
     except Exception as e:
-        return {
-            "command": "showText",
-            "payload": f"Color toggle failed: {str(e)}"
-        }
+        return ToolVaultCommand(
+            command=CommandType.SHOW_TEXT,
+            payload=f"Color toggle failed: {str(e)}"
+        )

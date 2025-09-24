@@ -174,6 +174,11 @@ copy-to-tool-vault-packager: ## Copy Python sources and required TypeScript type
 			cp src/index.ts ../tool-vault-packager/shared-types/src/; \
 			echo "$(BLUE)  Copied TypeScript index file$(RESET)"; \
 		fi; \
+		if [ -d "dist/python" ]; then \
+			mkdir -p ../tool-vault-packager/shared-types/dist; \
+			cp -r dist/python ../tool-vault-packager/shared-types/dist/; \
+			echo "$(BLUE)  Copied Python wheel for packaging$(RESET)"; \
+		fi; \
 		echo '{' > ../tool-vault-packager/shared-types/package.json; \
 		echo '  "name": "@debrief/shared-types",' >> ../tool-vault-packager/shared-types/package.json; \
 		echo '  "version": "1.0.0",' >> ../tool-vault-packager/shared-types/package.json; \
@@ -181,7 +186,7 @@ copy-to-tool-vault-packager: ## Copy Python sources and required TypeScript type
 		echo '  "main": "src/index.ts",' >> ../tool-vault-packager/shared-types/package.json; \
 		echo '  "types": "src/index.ts"' >> ../tool-vault-packager/shared-types/package.json; \
 		echo '}' >> ../tool-vault-packager/shared-types/package.json; \
-		echo "$(GREEN)✓ Copied sources to tool-vault-packager (Python: $(shell du -sh python-src | cut -f1), TypeScript: $(shell test -d src/types && du -sh src/types | cut -f1 || echo 'N/A'))$(RESET)"; \
+		echo "$(GREEN)✓ Copied sources to tool-vault-packager (Python: $(shell du -sh python-src | cut -f1), TypeScript: $(shell test -d src/types && du -sh src/types | cut -f1 || echo 'N/A'), Wheel: $(shell test -d dist/python && du -sh dist/python | cut -f1 || echo 'N/A'))$(RESET)"; \
 	else \
 		echo "$(YELLOW)⚠ tool-vault-packager not found, skipping copy$(RESET)"; \
 	fi

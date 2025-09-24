@@ -8,6 +8,7 @@ from datetime import datetime
 from debrief.types.features import DebriefFeature
 from debrief.types.states import TimeState
 from debrief.types.tools import ToolVaultCommand
+from debrief.types.tools.tool_call_response import CommandType
 
 class SelectFeatureStartTimeParameters(BaseModel):
     """Parameters for select_feature_start_time tool."""
@@ -71,23 +72,23 @@ def select_feature_start_time(params: SelectFeatureStartTimeParameters) -> ToolV
                     continue
 
         if earliest_timestamp is None:
-            return {
-                "command": "showText",
-                "payload": "No valid timestamps found in features"
-            }
+            return ToolVaultCommand(
+                command=CommandType.SHOW_TEXT,
+                payload="No valid timestamps found in features"
+            )
 
         # Create setState command with updated time state
-        return {
-            "command": "setTimeState",
-            "payload": {
+        return ToolVaultCommand(
+            command=CommandType.SET_TIME_STATE,
+            payload={
                 "current": earliest_timestamp.isoformat().replace('+00:00', 'Z'),
                 "start": params.current_time_state.start.isoformat().replace('+00:00', 'Z'),
                 "end": params.current_time_state.end.isoformat().replace('+00:00', 'Z')
             }
-        }
+        )
 
     except Exception as e:
-        return {
-            "command": "showText",
-            "payload": f"Error finding earliest timestamp: {str(e)}"
-        }
+        return ToolVaultCommand(
+            command=CommandType.SHOW_TEXT,
+            payload=f"Error finding earliest timestamp: {str(e)}"
+        )

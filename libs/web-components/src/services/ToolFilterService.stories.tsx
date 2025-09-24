@@ -5,14 +5,16 @@ import { OutlineView } from '../OutlineView/OutlineView';
 import type { DebriefFeature, DebriefFeatureCollection } from '@debrief/shared-types';
 import type { Tool, JSONSchemaProperty } from '@debrief/shared-types/src/types/tools/tool';
 
-// Enhanced interactive demonstration with real OutlineView integration
-const EnhancedInteractiveDemo: React.FC = () => {
+// Interactive demonstration of tool filtering
+const InteractiveDemo: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [plotData, setPlotData] = useState<DebriefFeatureCollection | null>(null);
   const [toolsData, setToolsData] = useState<{ tools: Tool[] } | null>(null);
   const [selectedFeatureIds, setSelectedFeatureIds] = useState<string[]>([]);
   const [service] = useState(() => new ToolFilterService());
+
+
 
   // Load real data on component mount
   useEffect(() => {
@@ -34,8 +36,89 @@ const EnhancedInteractiveDemo: React.FC = () => {
           toolsResponse.json()
         ]);
 
+        // Add demo tools with state parameters to the tool data
+        const stateParamDemoTools: Tool[] = [
+          {
+            name: 'time_analysis_tool',
+            description: 'Analyzes temporal patterns using current time state',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                time_state: {
+                  type: 'object',
+                  description: 'Current time state for analysis'
+                },
+                features: {
+                  type: 'array',
+                  description: 'Features to analyze temporally'
+                }
+              },
+              required: ['time_state']
+            }
+          },
+          {
+            name: 'viewport_fit_tool',
+            description: 'Automatically fits viewport to selection',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                viewport_state: {
+                  type: 'object',
+                  description: 'Current viewport bounds'
+                },
+                selection_state: {
+                  type: 'object',
+                  description: 'Selected features to fit to'
+                }
+              },
+              required: ['viewport_state']
+            }
+          },
+          {
+            name: 'state_export_tool',
+            description: 'Exports current editor state to file',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                editor_state: {
+                  type: 'object',
+                  description: 'Complete editor state to export'
+                },
+                format: {
+                  type: 'string',
+                  description: 'Export format (json, csv, etc.)'
+                }
+              },
+              required: ['editor_state']
+            }
+          },
+          {
+            name: 'mixed_param_tool',
+            description: 'Tool requiring both state and feature parameters',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                time_state: {
+                  type: 'object',
+                  description: 'Current time for analysis'
+                },
+                features: {
+                  type: 'array',
+                  description: 'Features to process'
+                }
+              },
+              required: ['time_state', 'features']
+            }
+          }
+        ];
+
+        const enhancedToolsData = {
+          ...toolsJson,
+          tools: [...toolsJson.tools, ...stateParamDemoTools]
+        };
+
         setPlotData(plotJson);
-        setToolsData(toolsJson);
+        setToolsData(enhancedToolsData);
       } catch (err) {
         console.error('Failed to load data:', err);
         setError(err instanceof Error ? err.message : 'Unknown error occurred');
@@ -47,19 +130,21 @@ const EnhancedInteractiveDemo: React.FC = () => {
     loadData();
   }, []);
 
+
   // Handle feature selection changes from OutlineView
   const handleSelectionChange = (ids: string[]) => {
     setSelectedFeatureIds(ids);
   };
 
-  // Use the ToolFilterService to determine tool compatibility with detailed validation results
+  // Use the ToolFilterService to determine tool compatibility with detailed validation results including state injection
   const getToolCompatibilityData = (selectedFeatures: DebriefFeature[]) => {
     if (!toolsData) return new Map();
 
-    const result = service.getApplicableTools(selectedFeatures, toolsData);
-    const applicableToolNames = new Set(result.tools.map(t => t.name));
+    // Get basic filtering results
+    const basicResult = service.getApplicableTools(selectedFeatures, toolsData);
+    const applicableToolNames = new Set(basicResult.tools.map(t => t.name));
 
-    // Create a map with compatibility info for each tool, including execution mode details
+    // Create a map with compatibility info for each tool, including state injection details
     const compatibilityMap = new Map();
 
     toolsData.tools.forEach(tool => {
@@ -70,7 +155,11 @@ const EnhancedInteractiveDemo: React.FC = () => {
         isCompatible: applicableToolNames.has(tool.name),
         executionMode: toolValidation.executionMode,
         parameterValidation: toolValidation.parameterValidation || {},
-        warnings: toolValidation.warnings || []
+        warnings: toolValidation.warnings || [],
+        stateParameters: Object.entries(toolValidation.parameterValidation || {})
+          .filter(([_, metadata]) => metadata.isStateParameter)
+          .map(([paramName]) => paramName),
+        missingRequiredParams: toolValidation.missingRequiredParams || []
       });
     });
 
@@ -136,10 +225,9 @@ const EnhancedInteractiveDemo: React.FC = () => {
         borderBottom: '1px solid #e0e0e0',
         backgroundColor: '#f8f9fa'
       }}>
-        <h3 style={{ margin: '0 0 8px 0' }}>Enhanced ToolFilter Service - Interactive Demonstration</h3>
-        <p style={{ margin: 0, fontSize: '14px', color: '#666' }}>
-          Select features in the OutlineView to see real-time tool compatibility analysis.
-          Tools are automatically filtered based on parameter schema matching.
+        <h3 style={{ margin: '0 0 8px 0' }}>ToolFilter Service - Feature Filtering Demo</h3>
+        <p style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#666' }}>
+          Select features to see which tools are compatible. State parameters are detected and treated as always satisfiable for filtering purposes.
         </p>
       </div>
 
@@ -198,22 +286,24 @@ const EnhancedInteractiveDemo: React.FC = () => {
             Tool Compatibility Analysis ({toolsData.tools.length} tools)
           </div>
 
-          {/* Selection status */}
+          {/* Selection and State status */}
           <div style={{
             padding: '12px',
             backgroundColor: selectedFeatures.length === 0 ? '#fff3cd' : '#d4edda',
             borderBottom: '1px solid #ddd',
             fontSize: '14px'
           }}>
-            {selectedFeatures.length === 0 ? (
-              <span style={{ color: '#856404' }}>
-                ⚠️ No features selected for analysis - all tools are disabled
-              </span>
-            ) : (
-              <span style={{ color: '#155724' }}>
-                ✓ {selectedFeatures.length} feature(s) selected: {selectedFeatures.map(f => f.properties?.name || f.id).join(', ')}
-              </span>
-            )}
+            <div>
+              {selectedFeatures.length === 0 ? (
+                <span style={{ color: '#856404' }}>
+                  ⚠️ No features selected for analysis
+                </span>
+              ) : (
+                <span style={{ color: '#155724' }}>
+                  ✓ {selectedFeatures.length} feature(s) selected: {selectedFeatures.map(f => f.properties?.name || f.id).join(', ')}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Tools table */}
@@ -283,11 +373,20 @@ const EnhancedInteractiveDemo: React.FC = () => {
                                 let backgroundColor = 'transparent';
                                 let color = 'inherit';
                                 let icon = '';
+                                let statusNote = '';
 
                                 const paramValidation = toolCompatibility.parameterValidation[paramName];
+                                const isStateParameter = toolCompatibility.stateParameters?.includes(paramName) || false;
+
                                 if (paramValidation) {
-                                  if (paramValidation.canSatisfy) {
-                                    // Parameter can be satisfied - show as satisfied
+                                  if (paramValidation.isStateParameter) {
+                                    // State parameter - always treated as satisfiable for filtering
+                                    backgroundColor = '#e3f2fd';
+                                    color = '#1565c0';
+                                    icon = '🏛️ ';
+                                    statusNote = ` (state parameter - provided by parent code)`;
+                                  } else if (paramValidation.canSatisfy) {
+                                    // Regular parameter that can be satisfied
                                     backgroundColor = '#d4edda';
                                     color = '#155724';
                                     icon = '✓ ';
@@ -321,7 +420,7 @@ const EnhancedInteractiveDemo: React.FC = () => {
                                     color,
                                     fontWeight: isRequired ? 'bold' : 'normal'
                                   }}>
-                                    {icon}{paramName}{requiredFlag}: {description}
+                                    {icon}{paramName}{requiredFlag}: {description}{statusNote}
                                   </li>
                                 );
                               })}
@@ -355,9 +454,9 @@ const EnhancedInteractiveDemo: React.FC = () => {
 };
 
 // Story configuration
-const meta: Meta<typeof EnhancedInteractiveDemo> = {
+const meta: Meta<typeof InteractiveDemo> = {
   title: 'Services/ToolFilterService',
-  component: EnhancedInteractiveDemo,
+  component: InteractiveDemo,
   parameters: {
     layout: 'padded',
     docs: {
@@ -369,14 +468,14 @@ const meta: Meta<typeof EnhancedInteractiveDemo> = {
 };
 
 export default meta;
-type Story = StoryObj<typeof EnhancedInteractiveDemo>;
+type Story = StoryObj<typeof InteractiveDemo>;
 
 /**
  * Interactive demonstration with real OutlineView integration and dynamic tool filtering based on feature selection.
  * Select features to see tools automatically enabled/disabled based on compatibility.
  */
-export const EnhancedInteractive: Story = {
-  render: () => <EnhancedInteractiveDemo />,
+export const Interactive: Story = {
+  render: () => <InteractiveDemo />,
   parameters: {
     layout: 'fullscreen',
     docs: {
