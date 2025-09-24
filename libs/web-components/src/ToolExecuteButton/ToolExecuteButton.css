@@ -10,12 +10,15 @@
   width: 100%;
   padding: 6px 8px;
   border: 1px solid var(--vscode-input-border, #3c3c3c);
-  background: var(--vscode-input-background, #3c3c3c);
-  color: var(--vscode-input-foreground, #cccccc);
+  background: var(--vscode-input-background, #1e1e1e);
+  color: var(--vscode-input-foreground, #ffffff);
   border-radius: 3px;
   font-size: 13px;
   font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif);
   outline: none;
+  /* Ensure good contrast in all themes */
+  min-height: 22px;
+  line-height: 1.4;
 }
 
 .search-input:focus {
@@ -24,7 +27,21 @@
 }
 
 .search-input::placeholder {
-  color: var(--vscode-input-placeholderForeground, #777777);
+  color: var(--vscode-input-placeholderForeground, #999999);
+  opacity: 1; /* Ensure placeholder is fully visible */
+}
+
+/* Ensure good visibility in light themes */
+@media (prefers-color-scheme: light) {
+  .search-input {
+    background: var(--vscode-input-background, #ffffff);
+    color: var(--vscode-input-foreground, #333333);
+    border-color: var(--vscode-input-border, #cccccc);
+  }
+
+  .search-input::placeholder {
+    color: var(--vscode-input-placeholderForeground, #666666);
+  }
 }
 .tool-execute-button-container {
   position: relative;
