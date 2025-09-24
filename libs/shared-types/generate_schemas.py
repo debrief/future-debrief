@@ -7,59 +7,14 @@ All other build logic (TypeScript generation, file copying, etc.) is handled by 
 """
 
 import json
+import os
 import sys
 from pathlib import Path
-import os
 
 # Add python-src to path for new package structure
 script_dir = os.path.dirname(os.path.abspath(__file__))
 python_src_path = os.path.join(script_dir, "python-src")
 sys.path.insert(0, python_src_path)
-
-# Import base GeoJSON types from geojson-pydantic
-from geojson_pydantic import (
-    Feature, FeatureCollection, Point, LineString, MultiLineString,
-    Polygon, MultiPoint, MultiPolygon
-    # Note: GeometryCollection excluded due to circular reference issues
-)
-
-# Import Pydantic models directly
-from debrief.types.features.track import DebriefTrackFeature
-from debrief.types.features.point import DebriefPointFeature
-from debrief.types.features.annotation import DebriefAnnotationFeature
-from debrief.types.features.debrief_feature_collection import DebriefFeatureCollection
-
-from debrief.types.states.time_state import TimeState
-from debrief.types.states.viewport_state import ViewportState
-from debrief.types.states.selection_state import SelectionState
-from debrief.types.states.editor_state import EditorState
-from debrief.types.states.current_state import CurrentState
-
-from debrief.types.tools.json_schema import JSONSchema
-from debrief.types.tools.tool import Tool
-from debrief.types.tools.tool_call_request import ToolCallRequest
-from debrief.types.tools.tool_call_response import ToolCallResponse
-from debrief.types.tools.tool_list_response import ToolListResponse
-from debrief.types.tools.constrained_feature import GeometryConstrainedFeature
-from debrief.types.tools.tool_file_reference import ToolFileReference, SampleInputReference
-from debrief.types.tools.git_history import GitHistoryEntry, GitAuthor, GitHistory
-from debrief.types.tools.tool_stats import ToolStatsModel
-from debrief.types.tools.tool_index import ToolIndexModel, ToolFilesCollection
-from debrief.types.tools.global_tool_index import GlobalToolIndexModel, PackageInfo
-from debrief.types.tools.tool_metadata import ToolMetadataModel, SampleInputData
-from debrief.types.tools.commands import (
-    AddFeaturesCommand,
-    UpdateFeaturesCommand,
-    DeleteFeaturesCommand,
-    SetFeatureCollectionCommand,
-    SetViewportCommand,
-    SetSelectionCommand,
-    ShowTextCommand,
-    ShowDataCommand,
-    ShowImageCommand,
-    LogMessageCommand,
-    LogMessagePayload,
-)
 
 
 def generate_json_schema(model_class, output_path):
@@ -75,6 +30,57 @@ def generate_json_schema(model_class, output_path):
 
 def main():
     """Generate all JSON Schema files from Pydantic models."""
+    from geojson_pydantic import (
+        Feature,
+        FeatureCollection,
+        LineString,
+        MultiLineString,
+        MultiPoint,
+        MultiPolygon,
+        Point,
+        Polygon,
+    )
+
+    from debrief.types.features.annotation import DebriefAnnotationFeature
+    from debrief.types.features.debrief_feature_collection import (
+        DebriefFeatureCollection,
+    )
+    from debrief.types.features.point import DebriefPointFeature
+    from debrief.types.features.track import DebriefTrackFeature
+    from debrief.types.states.current_state import CurrentState
+    from debrief.types.states.editor_state import EditorState
+    from debrief.types.states.selection_state import SelectionState
+    from debrief.types.states.time_state import TimeState
+    from debrief.types.states.viewport_state import ViewportState
+    from debrief.types.tools.commands import (
+        AddFeaturesCommand,
+        DeleteFeaturesCommand,
+        LogMessageCommand,
+        LogMessagePayload,
+        SetFeatureCollectionCommand,
+        SetSelectionCommand,
+        SetViewportCommand,
+        ShowDataCommand,
+        ShowImageCommand,
+        ShowTextCommand,
+        UpdateFeaturesCommand,
+    )
+    from debrief.types.tools.constrained_feature import GeometryConstrainedFeature
+    from debrief.types.tools.git_history import GitAuthor, GitHistory, GitHistoryEntry
+    from debrief.types.tools.global_tool_index import GlobalToolIndexModel, PackageInfo
+    from debrief.types.tools.json_schema import JSONSchema
+    from debrief.types.tools.tool import Tool
+    from debrief.types.tools.tool_call_request import ToolCallRequest
+    from debrief.types.tools.tool_call_response import ToolCallResponse
+    from debrief.types.tools.tool_file_reference import (
+        SampleInputReference,
+        ToolFileReference,
+    )
+    from debrief.types.tools.tool_index import ToolFilesCollection, ToolIndexModel
+    from debrief.types.tools.tool_list_response import ToolListResponse
+    from debrief.types.tools.tool_metadata import SampleInputData, ToolMetadataModel
+    from debrief.types.tools.tool_stats import ToolStatsModel
+
     # Define the models and their output file names
     models = {
         # Base GeoJSON types from geojson-pydantic (excluding GeometryCollection due to circular refs)

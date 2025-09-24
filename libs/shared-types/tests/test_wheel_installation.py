@@ -9,10 +9,8 @@ This script tests:
 4. Integration with existing maritime GeoJSON data
 """
 
-import sys
 import json
-import tempfile
-import subprocess
+import sys
 from pathlib import Path
 
 def test_standalone_installation():
@@ -22,9 +20,22 @@ def test_standalone_installation():
     # Test all type imports
     try:
         from debrief.types import (
-            TrackFeature, PointFeature, AnnotationFeature, 
-            DebriefFeatureCollection, TimeState, ViewportState,
-            SelectionState, EditorState
+            AnnotationFeature,
+            DebriefFeatureCollection,
+            PointFeature,
+            SelectionState,
+            TimeState,
+            TrackFeature,
+            ViewportState,
+        )
+        _ = (
+            TrackFeature,
+            PointFeature,
+            AnnotationFeature,
+            DebriefFeatureCollection,
+            TimeState,
+            ViewportState,
+            SelectionState,
         )
         print("✅ All type imports successful")
     except ImportError as e:
@@ -34,8 +45,16 @@ def test_standalone_installation():
     # Test validator imports
     try:
         from debrief.validators import (
-            validate_track_feature, validate_point_feature,
-            validate_annotation_feature, validate_feature_collection
+            validate_annotation_feature,
+            validate_feature_collection,
+            validate_point_feature,
+            validate_track_feature,
+        )
+        _ = (
+            validate_track_feature,
+            validate_point_feature,
+            validate_annotation_feature,
+            validate_feature_collection,
         )
         print("✅ All validator imports successful")
     except ImportError as e:
@@ -45,9 +64,12 @@ def test_standalone_installation():
     # Test schema imports
     try:
         from debrief.schemas import (
-            get_track_schema, get_point_schema, 
-            get_annotation_schema, list_schemas
+            get_annotation_schema,
+            get_point_schema,
+            get_track_schema,
+            list_schemas,
         )
+        _ = (get_track_schema, get_point_schema, get_annotation_schema, list_schemas)
         print("✅ All schema imports successful")
     except ImportError as e:
         print(f"❌ Schema import failed: {e}")
@@ -155,6 +177,7 @@ def test_integration_example():
         from debrief.types import DebriefFeatureCollection, TimeState
         from debrief.validators import validate_feature_collection
         from debrief.schemas import get_featurecollection_schema
+        _ = (DebriefFeatureCollection, TimeState)
         
         # Create a feature collection
         feature_collection = {
@@ -174,15 +197,6 @@ def test_integration_example():
         schema = get_featurecollection_schema()
         if schema:
             print(f"✅ Feature collection schema loaded: {schema.get('title', 'No title')}")
-        
-        # Create time state
-        time_state = {
-            "currentTime": "2024-01-01T12:00:00Z",
-            "startTime": "2024-01-01T00:00:00Z", 
-            "endTime": "2024-01-01T23:59:59Z",
-            "isPlaying": False,
-            "playbackSpeed": 1.0
-        }
         
         print("✅ Integration example completed successfully")
         return True

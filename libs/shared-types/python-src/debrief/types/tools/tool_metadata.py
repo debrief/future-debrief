@@ -1,7 +1,9 @@
 """Tool metadata Pydantic models for enhanced ToolMetadata class."""
 
+from typing import Any, Dict, List, Optional
+
 from pydantic import BaseModel, Field
-from typing import Dict, Any, List, Optional, Callable
+
 from .git_history import GitHistoryEntry
 
 

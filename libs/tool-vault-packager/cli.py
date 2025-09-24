@@ -11,7 +11,12 @@ def _import_cli_modules() -> tuple[Any, Any, Any, Any]:
     """Import CLI dependencies with fallbacks for packaged execution."""
 
     try:
-        from discovery import discover_tools as _discover_tools, generate_index_json as _generate_index
+        from discovery import (
+            discover_tools as _discover_tools,
+        )
+        from discovery import (
+            generate_index_json as _generate_index,
+        )
         from packager import output_tool_details as _output_tool_details
         from server import create_app as _create_app
 
@@ -35,7 +40,12 @@ def _import_cli_modules() -> tuple[Any, Any, Any, Any]:
             sys.modules[module_name] = module
             spec.loader.exec_module(module)
 
-        from discovery import discover_tools as _discover_tools, generate_index_json as _generate_index
+        from discovery import (
+            discover_tools as _discover_tools,
+        )
+        from discovery import (
+            generate_index_json as _generate_index,
+        )
         from packager import output_tool_details as _output_tool_details
         from server import create_app as _create_app
 

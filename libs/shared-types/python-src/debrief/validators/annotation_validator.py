@@ -116,7 +116,7 @@ def validate_polygon_coordinates(coordinates: Any) -> bool:
         # Check if ring is closed (first and last points are equal)
         first = ring[0]
         last = ring[-1]
-        if len(first) != len(last) or not all(f == l for f, l in zip(first, last)):
+        if len(first) != len(last) or not all(current == reference for current, reference in zip(first, last)):
             return False
 
     return True

@@ -4,22 +4,26 @@ import json
 import sys
 import traceback
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
+from debrief.types.tools import ToolCallRequest
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, ValidationError
-
-from debrief.types.tools import ToolCallRequest
+from pydantic import BaseModel
 
 
 def _import_discovery() -> tuple[Any, Any]:
     """Import discovery helpers with fallbacks for packaged execution."""
 
     try:
-        from discovery import discover_tools as discover, generate_index_json as generate
+        from discovery import (
+            discover_tools as discover,
+        )
+        from discovery import (
+            generate_index_json as generate,
+        )
 
         return discover, generate
     except ImportError:
@@ -40,7 +44,12 @@ def _import_discovery() -> tuple[Any, Any]:
         sys.modules["discovery"] = module
         spec.loader.exec_module(module)
 
-        from discovery import discover_tools as discover, generate_index_json as generate
+        from discovery import (
+            discover_tools as discover,
+        )
+        from discovery import (
+            generate_index_json as generate,
+        )
 
         return discover, generate
 

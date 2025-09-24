@@ -1,8 +1,9 @@
 """ToolCallResponse Pydantic model for tool execution results."""
 
-from pydantic import BaseModel, Field
-from typing import Any, List, Union, Optional
 from enum import Enum
+from typing import Any, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class CommandType(str, Enum):

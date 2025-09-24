@@ -1,8 +1,9 @@
 """JSONSchema Pydantic model for JSON Schema definitions."""
 
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, List, Any, Union
 from enum import Enum
+from typing import Any, Dict, List, Optional, Union
+
+from pydantic import BaseModel
 
 
 class JSONSchemaType(str, Enum):

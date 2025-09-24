@@ -3,7 +3,6 @@ Custom setup for debrief-types package.
 This handles copying generated types and schema files during build.
 """
 
-import os
 import shutil
 from pathlib import Path
 from setuptools import setup
