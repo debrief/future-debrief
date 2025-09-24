@@ -16,7 +16,6 @@
     "payload": [
       {
         "type": "Feature",
-        "id": "generated_grid",
         "geometry": {
           "type": "MultiPoint",
           "coordinates": [
@@ -165,10 +164,13 @@
         "properties": {
           "dataType": "zone",
           "annotationType": "boundary",
+          "text": null,
+          "color": "#0066CC",
+          "time": null,
           "name": "Generated Grid",
-          "description": "Grid with 35 points at 0.05\u00b0 lat \u00d7 0.05\u00b0 lon intervals",
-          "color": "#0066CC"
-        }
+          "description": "Grid with 35 points at 0.05\u00b0 lat \u00d7 0.05\u00b0 lon intervals"
+        },
+        "id": "generated_grid"
       }
     ]
   }
