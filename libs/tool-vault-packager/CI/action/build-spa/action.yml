@@ -32,14 +32,14 @@ runs:
         pushd spa >/dev/null
         npm install
 
-        if [ ! -d "node_modules/@debrief/shared-types/src/types" ]; then
+        if [ ! -d "node_modules/@debrief/shared-types/src/types/tools" ]; then
           echo "❌ shared-types dependency not installed correctly in spa/node_modules"
           ls -R node_modules/@debrief || true
           exit 1
         fi
 
-        if [ ! -f "node_modules/@debrief/shared-types/src/types/Tool.ts" ]; then
-          echo "❌ Expected Tool.ts in shared-types dependency, but it was not found"
+        if [ ! -f "node_modules/@debrief/shared-types/src/types/tools/tool.ts" ]; then
+          echo "❌ Expected tool.ts in shared-types dependency, but it was not found"
           ls -R node_modules/@debrief/shared-types/src/types || true
           exit 1
         fi

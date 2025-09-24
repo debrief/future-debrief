@@ -72,8 +72,8 @@ jobs:
           ls -R "$SHARED_DIR" || true
           exit 1
         fi
-        if [ ! -f "$SHARED_DIR/src/types/Tool.ts" ]; then
-          echo "::error::Missing generated TypeScript types under $SHARED_DIR/src/types (e.g., Tool.ts). Run make build in libs/shared-types so they are copied."
+        if [ ! -f "$SHARED_DIR/src/types/tools/tool.ts" ]; then
+          echo "::error::Missing generated TypeScript types under $SHARED_DIR/src/types/tools (e.g., tool.ts). Run make build in libs/shared-types so they are copied."
           ls -R "$SHARED_DIR" || true
           exit 1
         fi
