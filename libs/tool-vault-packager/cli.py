@@ -6,38 +6,43 @@ import sys
 from pathlib import Path
 from typing import Any, Dict
 
-# Handle imports - try relative first, then absolute
-try:
-    from discovery import discover_tools, generate_index_json
-    from packager import output_tool_details
-    from server import create_app
-except ImportError:
-    try:
-        from .discovery import discover_tools, generate_index_json
-        from .packager import output_tool_details
-        from .server import create_app
-    except ImportError:
-        # Last resort: try explicit module paths
-        import importlib.util
 
-        # Get the directory containing this file
+def _import_cli_modules() -> tuple[Any, Any, Any, Any]:
+    """Import CLI dependencies with fallbacks for packaged execution."""
+
+    try:
+        from discovery import discover_tools as _discover_tools, generate_index_json as _generate_index
+        from packager import output_tool_details as _output_tool_details
+        from server import create_app as _create_app
+
+        return _discover_tools, _generate_index, _output_tool_details, _create_app
+    except ImportError:
+        import importlib.util
         import os
-        import sys
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
 
-        # Load modules directly
         for module_name in ["discovery", "server", "packager"]:
             module_path = os.path.join(current_dir, f"{module_name}.py")
-            if os.path.exists(module_path):
-                spec = importlib.util.spec_from_file_location(module_name, module_path)
-                module = importlib.util.module_from_spec(spec)
-                sys.modules[module_name] = module
-                spec.loader.exec_module(module)
+            if not os.path.exists(module_path):
+                continue
 
-        from discovery import discover_tools, generate_index_json
-        from packager import output_tool_details
-        from server import create_app
+            spec = importlib.util.spec_from_file_location(module_name, module_path)
+            if spec is None or spec.loader is None:
+                raise ImportError(f"Could not load module: {module_name}")
+
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[module_name] = module
+            spec.loader.exec_module(module)
+
+        from discovery import discover_tools as _discover_tools, generate_index_json as _generate_index
+        from packager import output_tool_details as _output_tool_details
+        from server import create_app as _create_app
+
+        return _discover_tools, _generate_index, _output_tool_details, _create_app
+
+
+discover_tools, generate_index_json, output_tool_details, create_app = _import_cli_modules()
 
 
 def list_tools_command(tools_path: str):

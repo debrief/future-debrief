@@ -1,13 +1,24 @@
 """Validation system for ToolVault tools and inputs/outputs."""
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 try:
-    from pydantic import BaseModel, ValidationError, create_model
-except ImportError:
-    BaseModel = None
-    ValidationError = None
-    create_model = None
+    import pydantic  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover - optional dependency
+    pydantic = None  # type: ignore[assignment]
+
+BaseModelRef: Any
+ValidationErrorRef: Any
+create_model_ref: Any
+
+if pydantic is not None:
+    BaseModelRef = pydantic.BaseModel
+    ValidationErrorRef = pydantic.ValidationError
+    create_model_ref = pydantic.create_model
+else:
+    BaseModelRef = None
+    ValidationErrorRef = None
+    create_model_ref = None
 
 
 class ToolValidationError(Exception):
@@ -97,7 +108,7 @@ def validate_tool_input(
 
 
 def validate_tool_output(
-    tool_name: str, result: Any, tool_schema: Dict[str, Any] = None
+    tool_name: str, result: Any, tool_schema: Optional[Dict[str, Any]] = None
 ) -> Dict[str, Any]:
     """
     Validate and wrap tool output according to MCP specification.
@@ -131,7 +142,7 @@ class ToolExecutionValidator:
             tools_metadata: Dictionary mapping tool names to their metadata
         """
         self.tools_metadata = tools_metadata
-        self._validation_cache = {}
+        self._validation_cache: Dict[str, Dict[str, Any]] = {}
 
     def validate_and_execute(
         self, tool_name: str, tool_function, arguments: Dict[str, Any]
@@ -167,7 +178,9 @@ class ToolExecutionValidator:
             raise ToolValidationError(f"Tool '{tool_name}' execution failed: {str(e)}")
 
 
-def create_pydantic_validator(schema: Dict[str, Any], model_name: str = "ToolModel"):
+def create_pydantic_validator(
+    schema: Dict[str, Any], model_name: str = "ToolModel"
+) -> Optional[type[Any]]:
     """
     Create a Pydantic model from JSON Schema (placeholder for Phase 2).
 
@@ -178,7 +191,7 @@ def create_pydantic_validator(schema: Dict[str, Any], model_name: str = "ToolMod
     Returns:
         Pydantic model class or None if not available
     """
-    if BaseModel is None or create_model is None:
+    if BaseModelRef is None or create_model_ref is None:
         return None
 
     # This is a placeholder implementation

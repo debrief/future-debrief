@@ -5,7 +5,7 @@ import inspect
 import json
 import subprocess
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Union, get_type_hints
+from typing import Any, Callable, Dict, List, Optional, Protocol, Union, cast, get_type_hints
 
 from debrief.types.tools import (
     GitHistoryEntry,
@@ -21,6 +21,17 @@ class ToolDiscoveryError(Exception):
     """Raised when tool discovery encounters an error."""
 
     pass
+
+
+class PydanticModelType(Protocol):
+    """Protocol capturing the subset of Pydantic model class behaviour we rely on."""
+
+    @classmethod
+    def model_json_schema(cls) -> Dict[str, Any]:
+        """Return the JSON schema associated with the model."""
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        """Instantiate the model."""
 
 
 class ToolMetadata:
@@ -39,7 +50,7 @@ class ToolMetadata:
         source_code: Optional[str] = None,
         git_history: Optional[List[Dict[str, Any]]] = None,
         module=None,
-        pydantic_model: Optional[type] = None,
+        pydantic_model: Optional[PydanticModelType] = None,
     ):
         self.name = name
         self.function = function
@@ -213,7 +224,7 @@ def detect_pydantic_parameter_model(func: Callable, module=None) -> Optional[typ
         return None
 
 
-def extract_pydantic_parameters(pydantic_model: type) -> Dict[str, Any]:
+def extract_pydantic_parameters(pydantic_model: PydanticModelType) -> Dict[str, Any]:
     """
     Extract parameter schema from a Pydantic model.
 
@@ -245,7 +256,7 @@ def extract_pydantic_parameters(pydantic_model: type) -> Dict[str, Any]:
 
 def load_sample_inputs(inputs_dir: Path) -> List[Dict[str, Any]]:
     """Load sample input JSON files from a tool's samples directory."""
-    sample_inputs = []
+    sample_inputs: List[Dict[str, Any]] = []
 
     if not inputs_dir.exists():
         return sample_inputs
@@ -387,8 +398,10 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
                     # Build parameters schema from Pydantic model
                     pydantic_model = detect_pydantic_parameter_model(func, module)
                     if pydantic_model:
+                        typed_model = cast(PydanticModelType, pydantic_model)
+
                         # Use Pydantic model for parameter schema generation
-                        parameters = extract_pydantic_parameters(pydantic_model)
+                        parameters = extract_pydantic_parameters(typed_model)
                     else:
                         # No Pydantic model found - tool needs to be migrated
                         print(
@@ -431,7 +444,7 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
                             source_code=module_content,  # Use the extracted module content
                             git_history=[],  # Not available in zip files
                             module=module,  # Store module reference for Pydantic detection
-                            pydantic_model=pydantic_model,
+                            pydantic_model=typed_model,
                         )
                     )
 
@@ -521,8 +534,10 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
         # Build parameters schema from Pydantic model
         pydantic_model = detect_pydantic_parameter_model(func, module)
         if pydantic_model:
+            typed_model = cast(PydanticModelType, pydantic_model)
+
             # Use Pydantic model for parameter schema generation
-            parameters = extract_pydantic_parameters(pydantic_model)
+            parameters = extract_pydantic_parameters(typed_model)
         else:
             # No Pydantic model found - skip this tool (for demo purposes)
             print(f"Skipping tool '{func_name}' - no Pydantic parameter model found")
@@ -554,7 +569,7 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
                 source_code=source_code,
                 git_history=git_history,
                 module=module,
-                pydantic_model=pydantic_model,
+                pydantic_model=typed_model,
             )
         )
 

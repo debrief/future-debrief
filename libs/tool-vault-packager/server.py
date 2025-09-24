@@ -4,68 +4,55 @@ import json
 import sys
 import traceback
 from pathlib import Path
-from typing import Optional
+from typing import Any, Dict, Optional
 
-from debrief.types.tools import (
-    ToolCallRequest,
-)
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, ValidationError
 
-try:
-    from fastapi import FastAPI, HTTPException
-    from fastapi.middleware.cors import CORSMiddleware
-    from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
-    from fastapi.staticfiles import StaticFiles
-    from pydantic import BaseModel, ValidationError
-except ImportError:
-    # Handle case where dependencies might not be available yet
-    FastAPI = None
-    HTTPException = None
-    JSONResponse = None
-    StaticFiles = None
-    CORSMiddleware = None
-    BaseModel = None
-    ValidationError = None
+from debrief.types.tools import ToolCallRequest
 
-# Handle imports - try absolute first, then relative
-try:
-    from discovery import discover_tools, generate_index_json
-except ImportError:
+
+def _import_discovery() -> tuple[Any, Any]:
+    """Import discovery helpers with fallbacks for packaged execution."""
+
     try:
-        from .discovery import discover_tools, generate_index_json
+        from discovery import discover_tools as discover, generate_index_json as generate
+
+        return discover, generate
     except ImportError:
-        # Last resort: explicit module loading
         import importlib.util
         import os
-        import sys
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
         discovery_path = os.path.join(current_dir, "discovery.py")
 
-        if os.path.exists(discovery_path):
-            spec = importlib.util.spec_from_file_location("discovery", discovery_path)
-            discovery_module = importlib.util.module_from_spec(spec)
-            sys.modules["discovery"] = discovery_module
-            spec.loader.exec_module(discovery_module)
-
-            from discovery import discover_tools, generate_index_json
-        else:
+        if not os.path.exists(discovery_path):
             raise ImportError("Could not locate discovery module")
 
+        spec = importlib.util.spec_from_file_location("discovery", discovery_path)
+        if spec is None or spec.loader is None:
+            raise ImportError("Could not load discovery module")
 
-# Only define models if BaseModel is available
-if BaseModel is not None:
+        module = importlib.util.module_from_spec(spec)
+        sys.modules["discovery"] = module
+        spec.loader.exec_module(module)
 
-    class ErrorResponse(BaseModel):
-        """Error response model."""
+        from discovery import discover_tools as discover, generate_index_json as generate
 
-        error: str
-        details: Optional[str] = None
-else:
-    # Fallback simple classes when Pydantic is not available
-    class ErrorResponse:
-        def __init__(self, error: str, details: Optional[str] = None):
-            self.error = error
-            self.details = details
+        return discover, generate
+
+
+discover_tools, generate_index_json = _import_discovery()
+
+
+class ErrorResponse(BaseModel):
+    """Error response model."""
+
+    error: str
+    details: Optional[str] = None
 
 
 class ToolVaultServer:
@@ -73,11 +60,6 @@ class ToolVaultServer:
 
     def __init__(self, tools_path: str):
         """Initialize the server with tools from the specified path."""
-        if FastAPI is None:
-            raise ImportError(
-                "FastAPI dependencies not available. Install with: pip install fastapi uvicorn"
-            )
-
         # Store tools_path for use in endpoints
         self.tools_path = tools_path
 
@@ -88,14 +70,13 @@ class ToolVaultServer:
         )
 
         # Add CORS middleware to allow cross-origin requests from SPA
-        if CORSMiddleware:
-            self.app.add_middleware(
-                CORSMiddleware,
-                allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],  # Vite dev server
-                allow_credentials=True,
-                allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-                allow_headers=["*"],
-            )
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],  # Vite dev server
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+            allow_headers=["*"],
+        )
 
         # Discover tools
         try:
@@ -122,9 +103,6 @@ class ToolVaultServer:
             self._setup_archive_static_files()
         else:
             # Running from extracted files - use normal static file serving
-            if StaticFiles is None:
-                return
-
             current_dir = Path(__file__).parent
 
             # Check if we're in package development mode (tmp_package_contents exists)
@@ -249,6 +227,12 @@ class ToolVaultServer:
                 raise HTTPException(status_code=404, detail=f"Tool '{tool_name}' not found")
 
             tool = self.tools_by_name[tool_name]
+
+            if tool.pydantic_model is None:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Tool '{tool_name}' is missing its parameter model",
+                )
 
             try:
                 # Convert arguments to Pydantic parameter object
@@ -439,7 +423,7 @@ class ToolVaultServer:
             return {"status": "healthy", "tools_loaded": len(self.tools)}
 
 
-def create_app(tools_path: str = None) -> FastAPI:
+def create_app(tools_path: Optional[str] = None) -> "FastAPI":
     """
     Create and configure the ToolVault FastAPI application.
 

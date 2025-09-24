@@ -285,18 +285,18 @@ def package_toolvault(
     Raises:
         PackagerError: If packaging fails or tests fail
     """
-    tools_path = Path(tools_path).resolve()
-    output_path = Path(output_path).resolve()
+    tools_dir = Path(tools_path).resolve()
+    output_path_path = Path(output_path).resolve()
 
-    if not tools_path.exists():
-        raise PackagerError(f"Tools directory does not exist: {tools_path}")
+    if not tools_dir.exists():
+        raise PackagerError(f"Tools directory does not exist: {tools_dir}")
 
     # Build SPA first
     spa_build_success = build_spa()
 
     try:
         # Discover and validate tools first
-        tools = discover_tools(str(tools_path))
+        tools = discover_tools(str(tools_dir))
         index_data = generate_index_json(tools)
         print(f"Discovered {len(tools)} tools for packaging")
 
@@ -325,7 +325,7 @@ def package_toolvault(
 
             try:
                 test_config = TestConfig(
-                    tools_directory=str(tools_path),
+                    tools_directory=str(tools_dir),
                     report_and_continue=True,
                     fail_on_any_error=True,
                 )
@@ -378,7 +378,7 @@ def package_toolvault(
 
         # Copy tools directory with new structure
         tools_dest = package_dir / "tools"
-        shutil.copytree(tools_path, tools_dest)
+        shutil.copytree(tools_dir, tools_dest)
 
         # Note: Sample data is now included in each tool's samples/ folder
 
@@ -537,26 +537,26 @@ def package_toolvault(
         print("Tool metadata saved in metadata/ subdirectories")
 
         # Create the .pyz package
-        print(f"Creating .pyz package: {output_path}")
+        print(f"Creating .pyz package: {output_path_path}")
         zipapp.create_archive(
             source=str(package_dir),
-            target=str(output_path),
+            target=str(output_path_path),
             interpreter=python_executable,
             compressed=True,
         )
 
         # Make executable
-        output_path.chmod(0o755)
+        output_path_path.chmod(0o755)
 
-        print(f"Successfully created ToolVault package: {output_path}")
-        print(f"Package size: {output_path.stat().st_size / 1024:.1f} KB")
+        print(f"Successfully created ToolVault package: {output_path_path}")
+        print(f"Package size: {output_path_path.stat().st_size / 1024:.1f} KB")
         print(f"Tools included: {len(tools)}")
 
         # Verify the package
-        if not output_path.exists():
+        if not output_path_path.exists():
             raise PackagerError("Package creation failed - output file not found")
 
-        return str(output_path)
+        return str(output_path_path)
 
     except Exception as e:
         raise PackagerError(f"Failed to create package: {e}")

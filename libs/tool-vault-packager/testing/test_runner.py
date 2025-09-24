@@ -111,12 +111,14 @@ class TestRunner:
         Returns:
             Dictionary containing test report data
         """
-        report = {
+        results: List[Dict[str, Any]] = []
+
+        report: Dict[str, Any] = {
             "total_tests": len(self.test_results),
             "passed_tests": len([r for r in self.test_results if r.success]),
             "failed_tests": len([r for r in self.test_results if not r.success]),
             "tools_tested": len(set(r.tool_name for r in self.test_results)),
-            "results": [],
+            "results": results,
         }
 
         for result in self.test_results:
@@ -130,7 +132,7 @@ class TestRunner:
             if not result.success and result.error_message:
                 result_data["error_message"] = result.error_message
 
-            report["results"].append(result_data)
+            results.append(result_data)
 
         return report
 
