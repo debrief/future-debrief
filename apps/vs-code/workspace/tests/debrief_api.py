@@ -21,7 +21,7 @@ except ImportError:
 
 # Import State classes from the debrief-types package
 try:
-    from debrief.types import TimeState, ViewportState, SelectionState
+    from debrief.types.states import TimeState, ViewportState, SelectionState
 except ImportError as e:
     raise ImportError(
         "debrief-types package is required. Install it with: pip install debrief-types\n"

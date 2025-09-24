@@ -6,28 +6,20 @@ with specific payload types for each command. This ensures type safety when crea
 command responses from tools.
 """
 
-from typing import List, Any, Dict, Optional, Union, Literal
-from pydantic import BaseModel, Field
 from enum import Enum
+from typing import Any, Dict, List, Literal, Optional, Union
+
+from pydantic import BaseModel, Field
 
 # Import base models and existing payload classes from tool_call_response
-from .tool_call_response import (
-    ToolVaultCommand,
-    CommandType,
-    MediaType,
-    DataAxis,
-    ShowDataPayload,
-    ShowImagePayload,
-)
+from .tool_call_response import ToolVaultCommand, ShowDataPayload, ShowImagePayload
 
 # Import Debrief feature types
 from ..features.debrief_feature_collection import DebriefFeature, DebriefFeatureCollection
 
 # Import state types
-from ..states.time_state import TimeState
-from ..states.viewport_state import ViewportState
 from ..states.selection_state import SelectionState
-from ..states.editor_state import EditorState
+from ..states.viewport_state import ViewportState
 
 
 # Feature manipulation commands

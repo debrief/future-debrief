@@ -1,10 +1,11 @@
 """Fast track speed filtering tool using pre-calculated speeds."""
 
-from typing import List, Optional
-from pydantic import BaseModel, Field, ValidationError, model_validator
+from typing import List
+
+from debrief.types.features import DebriefTrackFeature
 from debrief.types.tools import ToolVaultCommand
 from debrief.types.tools.tool_call_response import CommandType
-from debrief.types.features import DebriefTrackFeature
+from pydantic import BaseModel, Field, ValidationError, model_validator
 
 
 class TrackFeatureWithSpeeds(BaseModel):
@@ -15,17 +16,19 @@ class TrackFeatureWithSpeeds(BaseModel):
         description="Track feature data that will be validated as DebriefTrackFeature + speeds constraint"
     )
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_track_with_speeds(self):
         """Validate that track feature has required speeds array."""
         track_feature = self.track_feature
 
         # Additional constraint: require speeds array
         properties = track_feature.properties
-        speeds = getattr(properties, 'speeds', None) if hasattr(properties, 'speeds') else None
+        speeds = getattr(properties, "speeds", None) if hasattr(properties, "speeds") else None
 
         if speeds is None:
-            raise ValueError("Track feature must have a 'speeds' array in properties for fast filtering")
+            raise ValueError(
+                "Track feature must have a 'speeds' array in properties for fast filtering"
+            )
 
         if not isinstance(speeds, list):
             raise ValueError("speeds property must be a list")
@@ -50,10 +53,14 @@ class TrackFeatureWithSpeeds(BaseModel):
         timestamps = properties.timestamps
 
         if len(speeds) != coord_count:
-            raise ValueError(f"speeds array length ({len(speeds)}) must match coordinate count ({coord_count})")
+            raise ValueError(
+                f"speeds array length ({len(speeds)}) must match coordinate count ({coord_count})"
+            )
 
         if timestamps and len(timestamps) != coord_count:
-            raise ValueError(f"timestamps array length ({len(timestamps)}) must match coordinate count ({coord_count})")
+            raise ValueError(
+                f"timestamps array length ({len(timestamps)}) must match coordinate count ({coord_count})"
+            )
 
         return self
 
@@ -65,14 +72,14 @@ class TrackFeatureWithSpeeds(BaseModel):
     @property
     def speeds(self) -> List[float]:
         """Get the speeds array."""
-        return getattr(self.track_feature.properties, 'speeds', [])
+        return getattr(self.track_feature.properties, "speeds", [])
 
     @property
     def timestamps(self) -> List[str]:
         """Get the timestamps as strings."""
         # Convert datetime objects to strings if needed
         timestamps = self.track_feature.properties.timestamps
-        if timestamps and hasattr(timestamps[0], 'isoformat'):
+        if timestamps and hasattr(timestamps[0], "isoformat"):
             return [ts.isoformat() for ts in timestamps]
         return [str(ts) for ts in timestamps] if timestamps else []
 
@@ -88,20 +95,24 @@ class TrackSpeedFilterFastParameters(BaseModel):
                 "id": "track_fast_001",
                 "geometry": {
                     "type": "LineString",
-                    "coordinates": [[0, 0], [0.01, 0.01], [0.02, 0.02]]
+                    "coordinates": [[0, 0], [0.01, 0.01], [0.02, 0.02]],
                 },
                 "properties": {
                     "dataType": "track",
-                    "timestamps": ["2023-01-01T10:00:00Z", "2023-01-01T10:01:00Z", "2023-01-01T10:02:00Z"],
+                    "timestamps": [
+                        "2023-01-01T10:00:00Z",
+                        "2023-01-01T10:01:00Z",
+                        "2023-01-01T10:02:00Z",
+                    ],
                     "speeds": [15.2, 18.7, 12.3],
                     "name": "High Speed Track",
-                    "description": "Track with pre-calculated speeds"
-                }
+                    "description": "Track with pre-calculated speeds",
+                },
             }
-        ]
+        ],
     )
 
-    @model_validator(mode='after')
+    @model_validator(mode="after")
     def validate_track_feature_with_speeds(self):
         """Create and validate the constrained TrackFeatureWithSpeeds."""
         # Use our constrained wrapper for validation
@@ -113,9 +124,8 @@ class TrackSpeedFilterFastParameters(BaseModel):
         default=10.0,
         description="Minimum speed threshold in knots",
         ge=0.0,
-        examples=[5.0, 10.0, 15.0, 20.0]
+        examples=[5.0, 10.0, 15.0, 20.0],
     )
-
 
 
 def track_speed_filter_fast(params: TrackSpeedFilterFastParameters) -> ToolVaultCommand:
@@ -175,7 +185,7 @@ def track_speed_filter_fast(params: TrackSpeedFilterFastParameters) -> ToolVault
         if not high_speed_times:
             return ToolVaultCommand(
                 command=CommandType.SHOW_TEXT,
-                payload=f"No timestamps found where speed >= {min_speed} knots"
+                payload=f"No timestamps found where speed >= {min_speed} knots",
             )
 
         # Return structured data for better visualization
@@ -186,22 +196,20 @@ def track_speed_filter_fast(params: TrackSpeedFilterFastParameters) -> ToolVault
                 "count": len(high_speed_times),
                 "min_speed_threshold": min_speed,
                 "timestamps": high_speed_times,
-                "method": "pre-calculated speeds"
-            }
+                "method": "pre-calculated speeds",
+            },
         )
 
     except ValidationError as e:
         return ToolVaultCommand(
             command=CommandType.SHOW_TEXT,
-            payload=f"Input validation failed: {e.errors()[0]['msg']} at {e.errors()[0]['loc']}"
+            payload=f"Input validation failed: {e.errors()[0]['msg']} at {e.errors()[0]['loc']}",
         )
     except ValueError as e:
         return ToolVaultCommand(
-            command=CommandType.SHOW_TEXT,
-            payload=f"Invalid track data: {str(e)}"
+            command=CommandType.SHOW_TEXT, payload=f"Invalid track data: {str(e)}"
         )
     except Exception as e:
         return ToolVaultCommand(
-            command=CommandType.SHOW_TEXT,
-            payload=f"Speed filtering failed: {str(e)}"
+            command=CommandType.SHOW_TEXT, payload=f"Speed filtering failed: {str(e)}"
         )

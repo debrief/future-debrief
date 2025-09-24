@@ -1,0 +1,12 @@
+# Development and static analysis dependencies
+# Install with: pip install -r requirements-dev.txt
+
+# Core dependencies
+-r requirements.txt
+
+# Static analysis tools
+mypy>=1.8.0
+ruff>=0.1.0
+
+# Type stubs for better mypy support
+types-requests>=2.31.0

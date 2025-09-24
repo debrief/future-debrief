@@ -1,10 +1,11 @@
 """Track speed filtering tool for maritime analysis."""
 
 import math
-from pydantic import BaseModel, Field, ValidationError
+
+from debrief.types.features import DebriefTrackFeature
 from debrief.types.tools import ToolVaultCommand
 from debrief.types.tools.tool_call_response import CommandType
-from debrief.types.features import DebriefTrackFeature
+from pydantic import BaseModel, Field, ValidationError
 
 
 class TrackSpeedFilterParameters(BaseModel):
@@ -18,23 +19,27 @@ class TrackSpeedFilterParameters(BaseModel):
                 "id": "track_001",
                 "geometry": {
                     "type": "LineString",
-                    "coordinates": [[0, 0], [0.01, 0.01], [0.02, 0.02]]
+                    "coordinates": [[0, 0], [0.01, 0.01], [0.02, 0.02]],
                 },
                 "properties": {
                     "dataType": "track",
-                    "timestamps": ["2023-01-01T10:00:00Z", "2023-01-01T10:01:00Z", "2023-01-01T10:02:00Z"],
+                    "timestamps": [
+                        "2023-01-01T10:00:00Z",
+                        "2023-01-01T10:01:00Z",
+                        "2023-01-01T10:02:00Z",
+                    ],
                     "name": "Sample Track",
-                    "description": "Test track for speed analysis"
-                }
+                    "description": "Test track for speed analysis",
+                },
             }
-        ]
+        ],
     )
 
     min_speed: float = Field(
         default=10.0,
         description="Minimum speed threshold in knots",
         ge=0.0,
-        examples=[5.0, 10.0, 15.0, 20.0]
+        examples=[5.0, 10.0, 15.0, 20.0],
     )
 
 
@@ -98,20 +103,20 @@ def track_speed_filter(params: TrackSpeedFilterParameters) -> ToolVaultCommand:
         if len(coordinates) < 2:
             return ToolVaultCommand(
                 command=CommandType.SHOW_TEXT,
-                payload="Track must have at least 2 coordinate points to calculate speed"
+                payload="Track must have at least 2 coordinate points to calculate speed",
             )
 
         timestamps = properties.timestamps
         if timestamps is None:
             return ToolVaultCommand(
                 command=CommandType.SHOW_TEXT,
-                payload="Track feature must have timestamps to calculate speed"
+                payload="Track feature must have timestamps to calculate speed",
             )
 
         if len(timestamps) != len(coordinates):
             return ToolVaultCommand(
                 command=CommandType.SHOW_TEXT,
-                payload=f"Timestamp count ({len(timestamps)}) must match coordinate count ({len(coordinates)})"
+                payload=f"Timestamp count ({len(timestamps)}) must match coordinate count ({len(coordinates)})",
             )
 
         # Calculate speeds and find timestamps exceeding threshold
@@ -133,8 +138,7 @@ def track_speed_filter(params: TrackSpeedFilterParameters) -> ToolVaultCommand:
             dlat = lat2 - lat1
             dlon = lon2 - lon1
 
-            a = (math.sin(dlat/2)**2 +
-                 math.cos(lat1) * math.cos(lat2) * math.sin(dlon/2)**2)
+            a = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
             c = 2 * math.asin(math.sqrt(a))
 
             # Distance in nautical miles (Earth's radius ≈ 3440.065 nautical miles)
@@ -149,13 +153,17 @@ def track_speed_filter(params: TrackSpeedFilterParameters) -> ToolVaultCommand:
             # If speed meets threshold, add the timestamp for this segment
             if speed_knots >= min_speed:
                 # Convert datetime to ISO string for display
-                timestamp_str = timestamps[i + 1].isoformat() if hasattr(timestamps[i + 1], 'isoformat') else str(timestamps[i + 1])
+                timestamp_str = (
+                    timestamps[i + 1].isoformat()
+                    if hasattr(timestamps[i + 1], "isoformat")
+                    else str(timestamps[i + 1])
+                )
                 high_speed_times.append(timestamp_str)
 
         if not high_speed_times:
             return ToolVaultCommand(
                 command=CommandType.SHOW_TEXT,
-                payload=f"No timestamps found where speed >= {min_speed} knots"
+                payload=f"No timestamps found where speed >= {min_speed} knots",
             )
 
         # Return structured data for better visualization
@@ -165,22 +173,20 @@ def track_speed_filter(params: TrackSpeedFilterParameters) -> ToolVaultCommand:
                 "title": f"Track Speed Filter Results (>= {min_speed} knots)",
                 "count": len(high_speed_times),
                 "min_speed_threshold": min_speed,
-                "timestamps": high_speed_times
-            }
+                "timestamps": high_speed_times,
+            },
         )
 
     except ValidationError as e:
         return ToolVaultCommand(
             command=CommandType.SHOW_TEXT,
-            payload=f"Input validation failed: {e.errors()[0]['msg']} at {e.errors()[0]['loc']}"
+            payload=f"Input validation failed: {e.errors()[0]['msg']} at {e.errors()[0]['loc']}",
         )
     except ValueError as e:
         return ToolVaultCommand(
-            command=CommandType.SHOW_TEXT,
-            payload=f"Invalid track data: {str(e)}"
+            command=CommandType.SHOW_TEXT, payload=f"Invalid track data: {str(e)}"
         )
     except Exception as e:
         return ToolVaultCommand(
-            command=CommandType.SHOW_TEXT,
-            payload=f"Speed calculation failed: {str(e)}"
+            command=CommandType.SHOW_TEXT, payload=f"Speed calculation failed: {str(e)}"
         )

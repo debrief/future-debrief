@@ -23,8 +23,30 @@ runs:
         echo "Node version: $(node --version)"
         echo "NPM version: $(npm --version)"
 
-        # Build SPA (copies shared-types and builds automatically)
-        npm run build:spa
+        if [ ! -f "shared-types/src/index.ts" ] || [ ! -d "shared-types/src/types" ]; then
+          echo "❌ shared-types artifacts missing in libs/tool-vault-packager/shared-types"
+          ls -R shared-types || true
+          exit 1
+        fi
+
+        pushd spa >/dev/null
+        npm install
+
+        if [ ! -d "node_modules/@debrief/shared-types/src/types/tools" ]; then
+          echo "❌ shared-types dependency not installed correctly in spa/node_modules"
+          ls -R node_modules/@debrief || true
+          exit 1
+        fi
+
+        if [ ! -f "node_modules/@debrief/shared-types/src/types/tools/tool.ts" ]; then
+          echo "❌ Expected tool.ts in shared-types dependency, but it was not found"
+          ls -R node_modules/@debrief/shared-types/src/types || true
+          exit 1
+        fi
+
+        npm run verify-deps
+        npm run build
+        popd >/dev/null
 
         # Verify SPA was built
         if [ -d "spa/dist" ]; then

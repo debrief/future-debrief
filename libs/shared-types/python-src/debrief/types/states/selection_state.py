@@ -1,7 +1,8 @@
 """SelectionState Pydantic model for maritime analysis feature selection."""
 
+from typing import List, Union
+
 from pydantic import BaseModel, Field, validator
-from typing import List, Union, Set
 
 
 class SelectionState(BaseModel):

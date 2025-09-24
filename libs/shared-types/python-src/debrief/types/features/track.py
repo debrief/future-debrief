@@ -1,10 +1,10 @@
 """Track Pydantic model for maritime track features."""
 
 from datetime import datetime
-from pydantic import BaseModel, Field, field_validator
-from typing import List, Union, Literal, Optional, Any, Dict
-from enum import Enum
+from typing import List, Literal, Optional, Union
+
 from geojson_pydantic import Feature, LineString, MultiLineString
+from pydantic import BaseModel, Field, field_validator
 
 
 # Geometry types are now provided by geojson-pydantic 

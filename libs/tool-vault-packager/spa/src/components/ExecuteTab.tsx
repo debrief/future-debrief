@@ -21,29 +21,19 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
   const [samplesLoading, setSamplesLoading] = useState(false);
   const [samplesError, setSamplesError] = useState<string | null>(null);
   const [toolIndexError] = useState<string | null>(null);
-  const [testMode, setTestMode] = useState(false);
-  const [unifiedSamples, setUnifiedSamples] = useState<Record<string, { input: Record<string, unknown>, expectedOutput?: Record<string, unknown> }> | null>(null);
-  const [testResults, setTestResults] = useState<Record<string, { passed: boolean, actual: any, expected: any }>>({});
-
-  const loadUnifiedSamples = useCallback(async () => {
-    try {
-      const unified = await mcpService.loadUnifiedSampleData(tool.name);
-      setUnifiedSamples(unified);
-    } catch (err) {
-      console.warn('Could not load unified sample data:', err);
-      setUnifiedSamples(null);
-    }
-  }, [tool.name]);
 
   const loadSamples = useCallback(async () => {
     if (!toolIndex?.files.inputs) return;
+    if ((toolIndex as any).tool_name && (toolIndex as any).tool_name !== tool.name) {
+      return;
+    }
 
+    const currentToolName = tool.name;
     setSamplesLoading(true);
     setSamplesError(null);
+    setSamples([]);
+    setSelectedSample('');
     try {
-      // Load unified samples for test mode
-      await loadUnifiedSamples();
-
       const samplePromises = toolIndex.files.inputs.map(async (inputFile: any) => {
         try {
           const content = await mcpService.loadSampleInput(inputFile.path, tool.name);
@@ -63,6 +53,11 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
 
       const loadedSamples = (await Promise.all(samplePromises))
         .filter((sample: any) => sample !== null) as Array<{name: string, content: Record<string, unknown>}>;
+
+      // If tool changed while loading, ignore these results
+      if (tool.name !== currentToolName) {
+        return;
+      }
 
       setSamples(loadedSamples);
 
@@ -90,13 +85,19 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
         setSamplesError(`Failed to load ${toolIndex.files.inputs.length} sample input(s) for this tool`);
       }
     } catch (err) {
+      if (tool.name !== currentToolName) {
+        return;
+      }
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setSamplesError(`Error loading sample inputs: ${errorMessage}`);
       console.error('Error loading samples:', err);
     } finally {
+      if (tool.name !== currentToolName) {
+        return;
+      }
       setSamplesLoading(false);
     }
-  }, [toolIndex, tool.name, loadUnifiedSamples]);
+  }, [toolIndex, tool.name]);
 
   useEffect(() => {
     if (toolIndex?.files.inputs && toolIndex.files.inputs.length > 0) {
@@ -128,6 +129,13 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
     }
   };
 
+  useEffect(() => {
+    setSamples([]);
+    setSelectedSample('');
+    setSamplesError(null);
+    setResult(null);
+  }, [tool.name]);
+
   const handleFormDataChange = (data: Record<string, unknown>) => {
     setFormData(data);
     setInput(JSON.stringify(data, null, 2));
@@ -141,44 +149,6 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
     } catch {
       // Invalid JSON - keep form data as is
     }
-  };
-
-  const handleRunAllTests = async () => {
-    if (!unifiedSamples) return;
-
-    setExecuting(true);
-    setTestResults({});
-
-    const results: Record<string, { passed: boolean, actual: any, expected: any }> = {};
-
-    for (const [sampleName, sampleData] of Object.entries(unifiedSamples)) {
-      try {
-        const response = await mcpService.callTool({
-          name: tool.name,
-          arguments: sampleData.input
-        });
-
-        const actual = response.result;
-        const expected = sampleData.expectedOutput;
-
-        const passed = expected ? JSON.stringify(actual) === JSON.stringify(expected) : true;
-
-        results[sampleName] = {
-          passed,
-          actual,
-          expected
-        };
-      } catch (err) {
-        results[sampleName] = {
-          passed: false,
-          actual: err instanceof Error ? err.message : 'Unknown error',
-          expected: sampleData.expectedOutput
-        };
-      }
-    }
-
-    setTestResults(results);
-    setExecuting(false);
   };
 
   const handleExecute = async () => {
@@ -207,22 +177,6 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
 
       setResult(executionResult);
 
-      // If in test mode and we have a selected sample with expected output, check against it
-      if (testMode && selectedSample && unifiedSamples) {
-        const sampleKey = selectedSample.replace('.json', '');
-        const expectedOutput = unifiedSamples[sampleKey]?.expectedOutput;
-        if (expectedOutput) {
-          const passed = JSON.stringify(response.result) === JSON.stringify(expectedOutput);
-          setTestResults(prev => ({
-            ...prev,
-            [sampleKey]: {
-              passed,
-              actual: response.result,
-              expected: expectedOutput
-            }
-          }));
-        }
-      }
     } catch (err) {
       setResult({
         success: false,
@@ -307,54 +261,6 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
               JSON Input
             </button>
           </div>
-
-          {/* Test Mode Section */}
-          {unifiedSamples && (
-            <div className="test-mode-section">
-              <div className="test-mode-toggle">
-                <label className="test-mode-label">
-                  <input
-                    type="checkbox"
-                    checked={testMode}
-                    onChange={(e) => setTestMode(e.target.checked)}
-                  />
-                  Test Mode (Compare with Expected Output)
-                </label>
-              </div>
-
-              {testMode && (
-                <div className="test-mode-controls">
-                  <button
-                    className="run-all-tests-button"
-                    onClick={handleRunAllTests}
-                    disabled={executing}
-                  >
-                    {executing ? 'Running Tests...' : 'Run All Tests'}
-                  </button>
-
-                  {Object.keys(testResults).length > 0 && (
-                    <div className="test-results-summary">
-                      <h4>Test Results:</h4>
-                      {Object.entries(testResults).map(([sampleName, result]) => (
-                        <div key={sampleName} className={`test-result ${result.passed ? 'passed' : 'failed'}`}>
-                          <span className="test-name">{sampleName}</span>
-                          <span className={`test-status ${result.passed ? 'pass' : 'fail'}`}>
-                            {result.passed ? '✓ PASS' : '✗ FAIL'}
-                          </span>
-                          {!result.passed && (
-                            <div className="test-diff">
-                              <div className="expected">Expected: {JSON.stringify(result.expected, null, 2)}</div>
-                              <div className="actual">Actual: {JSON.stringify(result.actual, null, 2)}</div>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
 
           {inputMethod === 'form' ? (
             <SchemaForm

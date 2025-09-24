@@ -1,8 +1,8 @@
 """TimeState Pydantic model for maritime analysis time control."""
 
 from datetime import datetime
+
 from pydantic import BaseModel, Field
-from typing import Optional
 
 
 class TimeState(BaseModel):

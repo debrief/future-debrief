@@ -149,6 +149,20 @@ export class MCPService {
     }
   }
 
+  async loadSchemaDocument(schemaPath: string, toolName?: string): Promise<unknown> {
+    const url = schemaPath.startsWith('http') ? schemaPath : (toolName ? `${SERVER_BASE_URL}/api/tools/${toolName}/${schemaPath}` : schemaPath);
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`Failed to load schema document: ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(`Error loading schema document from ${url}:`, error);
+      throw error;
+    }
+  }
+
   async loadSourceCode(sourcePath: string, toolName?: string): Promise<string> {
     const url = sourcePath.startsWith('http') ? sourcePath : (toolName ? `${SERVER_BASE_URL}/api/tools/${toolName}/${sourcePath}` : sourcePath);
     try {
@@ -177,23 +191,6 @@ export class MCPService {
     }
   }
 
-  async loadUnifiedSampleData(toolName: string): Promise<Record<string, { input: Record<string, unknown>, expectedOutput?: Record<string, unknown> }> | null> {
-    const url = `${SERVER_BASE_URL}/api/samples/${toolName}_sample.json`;
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        // Return null if sample data doesn't exist (not an error)
-        if (response.status === 404) {
-          return null;
-        }
-        throw new Error(`Failed to load unified sample data: ${response.statusText}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error(`Error loading unified sample data for ${toolName}:`, error);
-      return null;
-    }
-  }
 }
 
 export const mcpService = new MCPService();

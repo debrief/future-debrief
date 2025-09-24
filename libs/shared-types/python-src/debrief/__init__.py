@@ -3,7 +3,6 @@ Debrief Types - Python types and validators for maritime GeoJSON features
 """
 
 import json
-import os
 from pathlib import Path
 
 def _get_version():

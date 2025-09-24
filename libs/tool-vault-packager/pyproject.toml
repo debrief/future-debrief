@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tool_vault_packager"
+version = "1.0.0"
+description = "ToolVault packaging system for creating deployable .pyz files"
+authors = [{name = "ToolVault"}]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.10"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = false
+disallow_untyped_defs = false
+ignore_missing_imports = true
+show_error_codes = true
+warn_unused_configs = true
+exclude = [
+    "shared-types/",
+    "spa/",
+    "node_modules/",
+    "tmp_package_contents/",
+    "dist/",
+    "__pycache__/",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+exclude = [
+    "shared-types/",
+    "spa/",
+    "node_modules/",
+    "tmp_package_contents/",
+    "dist/",
+    "__pycache__/",
+    ".git",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint.isort]
+known-first-party = ["tool_vault_packager"]

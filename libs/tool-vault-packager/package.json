@@ -1,5 +1,5 @@
 {
-  "name": "tool-vault-packager",
+  "name": "tool_vault_packager",
   "version": "1.0.0",
   "description": "ToolVault packaging system for creating deployable .pyz files",
   "main": "cli.py",
@@ -22,7 +22,12 @@
     "test:playwright:dev": "node test-runner.js dev",
     "test:playwright:pyz": "node test-runner.js pyz",
     "validate": "make verify",
-    "verify:shared-types": "test -f shared-types/src/index.ts || (echo '❌ shared-types structure invalid - run: cd ../shared-types && make copy-to-tool-vault-packager' && exit 1)"
+    "verify:shared-types": "test -f shared-types/src/index.ts || (echo '❌ shared-types structure invalid - run: cd ../shared-types && make copy-to-tool-vault-packager' && exit 1)",
+    "install:dev-deps": "make install-dev-deps",
+    "lint": "make lint",
+    "lint:fix": "make lint-fix",
+    "typecheck": "make type-check",
+    "check:all": "make check-all"
   },
   "keywords": [
     "toolvault",

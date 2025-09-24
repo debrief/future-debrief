@@ -56,8 +56,8 @@ Manual validators provide critical validation logic not covered by JSON Schema:
 
 ```typescript
 // Import generated types directly
-import { TrackFeature } from '@debrief/shared-types/src/types/track';
-import { PointFeature } from '@debrief/shared-types/src/types/point';
+import { TrackFeature } from '@debrief/shared-types/src/types/features/track';
+import { PointFeature } from '@debrief/shared-types/src/types/features/point';
 
 // Import validators directly  
 import { validateTrackFeature, validateTimestampsLength } from '@debrief/shared-types/src/validators/track-validator';

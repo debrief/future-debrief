@@ -4,9 +4,8 @@
 Test that verifies Python files are generated correctly by the build process
 """
 
-import os
-import sys
 import importlib.util
+import sys
 from pathlib import Path
 
 # Add the project root to Python path
@@ -124,7 +123,7 @@ def run_tests():
             print(f"✗ {error}")
             failed_tests += 1
     
-    print(f"\nTest Results:")
+    print("\nTest Results:")
     print(f"✓ Passed: {passed_tests}")
     print(f"✗ Failed: {failed_tests}")
     

@@ -1,10 +1,9 @@
 """Viewport grid generator tool for maritime analysis."""
 
-from typing import List
-from pydantic import BaseModel, Field, ValidationError
+from debrief.types.states.viewport_state import ViewportState
 from debrief.types.tools import ToolVaultCommand
 from debrief.types.tools.tool_call_response import CommandType
-from debrief.types.states.viewport_state import ViewportState
+from pydantic import BaseModel, Field, ValidationError
 
 
 class ViewportGridGeneratorParameters(BaseModel):
@@ -15,20 +14,20 @@ class ViewportGridGeneratorParameters(BaseModel):
         examples=[
             {"bounds": [-1.0, -1.0, 1.0, 1.0]},
             {"bounds": [-122.5, 37.7, -122.3, 37.9]},
-            {"bounds": [0.0, 50.0, 2.0, 52.0]}
-        ]
+            {"bounds": [0.0, 50.0, 2.0, 52.0]},
+        ],
     )
 
     lat_interval: float = Field(
         description="Latitude interval between grid points in decimal degrees",
         gt=0.0,
-        examples=[0.1, 0.5, 1.0]
+        examples=[0.1, 0.5, 1.0],
     )
 
     lon_interval: float = Field(
         description="Longitude interval between grid points in decimal degrees",
         gt=0.0,
-        examples=[0.1, 0.5, 1.0]
+        examples=[0.1, 0.5, 1.0],
     )
 
 
@@ -75,13 +74,13 @@ def viewport_grid_generator(params: ViewportGridGeneratorParameters) -> ToolVaul
         if west >= east:
             return ToolVaultCommand(
                 command=CommandType.SHOW_TEXT,
-                payload=f"Invalid viewport bounds: west ({west}) must be less than east ({east})"
+                payload=f"Invalid viewport bounds: west ({west}) must be less than east ({east})",
             )
 
         if south >= north:
             return ToolVaultCommand(
                 command=CommandType.SHOW_TEXT,
-                payload=f"Invalid viewport bounds: south ({south}) must be less than north ({north})"
+                payload=f"Invalid viewport bounds: south ({south}) must be less than north ({north})",
             )
 
         # Check for reasonable intervals to prevent excessive point generation
@@ -94,7 +93,7 @@ def viewport_grid_generator(params: ViewportGridGeneratorParameters) -> ToolVaul
             return ToolVaultCommand(
                 command=CommandType.SHOW_TEXT,
                 payload=f"Grid would generate {estimated_total_points} points (max: {max_points}). "
-                          f"Please increase intervals or reduce viewport size."
+                f"Please increase intervals or reduce viewport size.",
             )
 
         # Generate grid points
@@ -111,43 +110,35 @@ def viewport_grid_generator(params: ViewportGridGeneratorParameters) -> ToolVaul
         if not grid_points:
             return ToolVaultCommand(
                 command=CommandType.SHOW_TEXT,
-                payload="No grid points generated. Check interval values and viewport bounds."
+                payload="No grid points generated. Check interval values and viewport bounds.",
             )
 
         # Create MultiPoint feature
         multipoint_feature = {
             "type": "Feature",
             "id": "generated_grid",
-            "geometry": {
-                "type": "MultiPoint",
-                "coordinates": grid_points
-            },
+            "geometry": {"type": "MultiPoint", "coordinates": grid_points},
             "properties": {
                 "dataType": "zone",
                 "annotationType": "boundary",
                 "name": "Generated Grid",
                 "description": f"Grid with {len(grid_points)} points at {lat_interval}° lat × {lon_interval}° lon intervals",
-                "color": "#0066CC"
-            }
+                "color": "#0066CC",
+            },
         }
 
-        return ToolVaultCommand(
-            command=CommandType.ADD_FEATURES,
-            payload=[multipoint_feature]
-        )
+        return ToolVaultCommand(command=CommandType.ADD_FEATURES, payload=[multipoint_feature])
 
     except ValidationError as e:
         return ToolVaultCommand(
             command=CommandType.SHOW_TEXT,
-            payload=f"Input validation failed: {e.errors()[0]['msg']} at {e.errors()[0]['loc']}"
+            payload=f"Input validation failed: {e.errors()[0]['msg']} at {e.errors()[0]['loc']}",
         )
     except ValueError as e:
         return ToolVaultCommand(
-            command=CommandType.SHOW_TEXT,
-            payload=f"Invalid viewport data: {str(e)}"
+            command=CommandType.SHOW_TEXT, payload=f"Invalid viewport data: {str(e)}"
         )
     except Exception as e:
         return ToolVaultCommand(
-            command=CommandType.SHOW_TEXT,
-            payload=f"Grid generation failed: {str(e)}"
+            command=CommandType.SHOW_TEXT, payload=f"Grid generation failed: {str(e)}"
         )

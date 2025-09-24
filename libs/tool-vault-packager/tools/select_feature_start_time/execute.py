@@ -1,38 +1,45 @@
 """Set TimeState current to the earliest timestamp from features."""
 
-from typing import List
-from pydantic import BaseModel, Field
 from datetime import datetime
+from typing import List
 
 # Use hierarchical imports from shared-types
 from debrief.types.features import DebriefFeature
 from debrief.types.states import TimeState
 from debrief.types.tools import ToolVaultCommand
 from debrief.types.tools.tool_call_response import CommandType
+from pydantic import BaseModel, Field
+
 
 class SelectFeatureStartTimeParameters(BaseModel):
     """Parameters for select_feature_start_time tool."""
 
     features: List[DebriefFeature] = Field(
         description="Array of Debrief features to analyze for timestamps",
-        examples=[[{
-            "type": "Feature",
-            "id": "track-001",
-            "geometry": {"type": "LineString", "coordinates": [[0, 0], [1, 1]]},
-            "properties": {
-                "dataType": "track",
-                "timestamps": ["2024-01-01T10:00:00Z", "2024-01-01T11:00:00Z"]
-            }
-        }]]
+        examples=[
+            [
+                {
+                    "type": "Feature",
+                    "id": "track-001",
+                    "geometry": {"type": "LineString", "coordinates": [[0, 0], [1, 1]]},
+                    "properties": {
+                        "dataType": "track",
+                        "timestamps": ["2024-01-01T10:00:00Z", "2024-01-01T11:00:00Z"],
+                    },
+                }
+            ]
+        ],
     )
 
     current_time_state: TimeState = Field(
         description="Current time state to update",
-        examples=[{
-            "current": "2024-01-01T12:00:00Z",
-            "start": "2024-01-01T00:00:00Z",
-            "end": "2024-01-01T23:59:59Z"
-        }]
+        examples=[
+            {
+                "current": "2024-01-01T12:00:00Z",
+                "start": "2024-01-01T00:00:00Z",
+                "end": "2024-01-01T23:59:59Z",
+            }
+        ],
     )
 
 
@@ -57,7 +64,7 @@ def select_feature_start_time(params: SelectFeatureStartTimeParameters) -> ToolV
             properties = feature.properties
             if not properties:
                 continue
-            timestamps = getattr(properties, 'timestamps', None)
+            timestamps = getattr(properties, "timestamps", None)
 
             if not timestamps:
                 continue
@@ -65,7 +72,7 @@ def select_feature_start_time(params: SelectFeatureStartTimeParameters) -> ToolV
             # Parse timestamps and find the earliest
             for timestamp_str in timestamps:
                 try:
-                    timestamp = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+                    timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
                     if earliest_timestamp is None or timestamp < earliest_timestamp:
                         earliest_timestamp = timestamp
                 except (ValueError, AttributeError):
@@ -73,22 +80,20 @@ def select_feature_start_time(params: SelectFeatureStartTimeParameters) -> ToolV
 
         if earliest_timestamp is None:
             return ToolVaultCommand(
-                command=CommandType.SHOW_TEXT,
-                payload="No valid timestamps found in features"
+                command=CommandType.SHOW_TEXT, payload="No valid timestamps found in features"
             )
 
         # Create setState command with updated time state
         return ToolVaultCommand(
             command=CommandType.SET_TIME_STATE,
             payload={
-                "current": earliest_timestamp.isoformat().replace('+00:00', 'Z'),
-                "start": params.current_time_state.start.isoformat().replace('+00:00', 'Z'),
-                "end": params.current_time_state.end.isoformat().replace('+00:00', 'Z')
-            }
+                "current": earliest_timestamp.isoformat().replace("+00:00", "Z"),
+                "start": params.current_time_state.start.isoformat().replace("+00:00", "Z"),
+                "end": params.current_time_state.end.isoformat().replace("+00:00", "Z"),
+            },
         )
 
     except Exception as e:
         return ToolVaultCommand(
-            command=CommandType.SHOW_TEXT,
-            payload=f"Error finding earliest timestamp: {str(e)}"
+            command=CommandType.SHOW_TEXT, payload=f"Error finding earliest timestamp: {str(e)}"
         )

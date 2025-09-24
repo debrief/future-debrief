@@ -63,7 +63,7 @@ def test_pydantic_model_imports():
             print(f"✗ Error importing {class_name} from {module_name}: {e}")
             failed_tests += 1
 
-    print(f"\nTest Results:")
+    print("\nTest Results:")
     print(f"✓ Passed: {passed_tests}")
     print(f"✗ Failed: {failed_tests}")
 
@@ -80,7 +80,17 @@ def test_basic_validation():
         from debrief.types.features.track import DebriefTrackFeature
 
         # Test that we can create a simple instance (validation will occur)
-        # This is just a basic smoke test
+        instance = DebriefTrackFeature(
+            type="Feature",
+            geometry={
+                "type": "LineString",
+                "coordinates": [[0, 0], [1, 1]]
+            },
+            properties={
+                "dataType": "track"
+            }
+        )
+        assert instance.geometry.type == "LineString"
         print("✓ Pydantic validation framework is working")
 
     except Exception as e:

@@ -1,9 +1,10 @@
 """Point Pydantic model for maritime reference point features."""
 
 from datetime import datetime
-from pydantic import BaseModel, Field, field_validator
-from typing import List, Union, Literal, Optional
+from typing import Literal, Optional
+
 from geojson_pydantic import Feature, Point
+from pydantic import BaseModel, Field, field_validator
 
 
 # Point geometry is now provided by geojson-pydantic

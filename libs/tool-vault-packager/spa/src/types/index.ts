@@ -1,5 +1,8 @@
 // Import types from generated shared-types
-import type { JSONSchema, JSONSchemaProperty } from '@debrief/shared-types/src/types/tools/json_schema';
+import type {
+  JSONSchema,
+  JSONSchemaProperty,
+} from '@debrief/shared-types/src/types/tools/json_schema';
 import type { Tool } from '@debrief/shared-types/src/types/tools/tool';
 import type { ToolListResponse } from '@debrief/shared-types/src/types/tools/tool_list_response';
 import type { ToolCallRequest } from '@debrief/shared-types/src/types/tools/tool_call_request';
@@ -36,7 +39,7 @@ export interface AppState {
   globalIndex: GlobalToolIndexModel | null;
 }
 
-export type TabType = 'info' | 'execute' | 'code';
+export type TabType = 'info' | 'execute' | 'code' | 'schemas';
 
 export interface LoadingState {
   tools: boolean;

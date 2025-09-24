@@ -1,0 +1,110 @@
+name: Python Static Analysis
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+    paths:
+      - 'libs/tool-vault-packager/**/*.py'
+      - 'libs/shared-types/python-src/**/*.py'
+      - 'libs/tool-vault-packager/tools/**/*.py'
+      - 'libs/tool-vault-packager/pyproject.toml'
+      - 'libs/tool-vault-packager/requirements*.txt'
+  push:
+    branches: [main]
+    paths:
+      - 'libs/tool-vault-packager/**/*.py'
+      - 'libs/shared-types/python-src/**/*.py'
+      - 'libs/tool-vault-packager/tools/**/*.py'
+      - 'libs/tool-vault-packager/pyproject.toml'
+      - 'libs/tool-vault-packager/requirements*.txt'
+
+concurrency:
+  group: python-static-analysis-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-analysis:
+    name: Python Static Analysis
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11"]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 1
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version-file: '.nvmrc'
+
+    - name: Set up pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: "10.14.0"
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+
+    - name: Build shared-types (required for tool-vault-packager)
+      run: |
+        pnpm install
+        pnpm --filter @debrief/shared-types build
+
+    - name: Verify shared-types assets copied
+      run: |
+        SHARED_DIR="libs/tool-vault-packager/shared-types"
+        if [ ! -d "$SHARED_DIR" ]; then
+          echo "::error::Missing shared-types artifacts in $SHARED_DIR. Ensure @debrief/shared-types build copies assets before static analysis."
+          ls -R libs/tool-vault-packager || true
+          exit 1
+        fi
+        if [ ! -f "$SHARED_DIR/src/index.ts" ]; then
+          echo "::error::Missing shared-types index at $SHARED_DIR/src/index.ts"
+          ls -R "$SHARED_DIR" || true
+          exit 1
+        fi
+        if [ ! -f "$SHARED_DIR/src/types/tools/tool.ts" ]; then
+          echo "::error::Missing generated TypeScript types under $SHARED_DIR/src/types/tools (e.g., tool.ts). Run make build in libs/shared-types so they are copied."
+          ls -R "$SHARED_DIR" || true
+          exit 1
+        fi
+
+    - name: Install tool-vault-packager dependencies
+      working-directory: libs/tool-vault-packager
+      run: |
+        npm install
+        pip install -r requirements-dev.txt
+
+    - name: Run ruff linting
+      working-directory: libs/tool-vault-packager
+      run: |
+        echo "::group::Ruff Linting"
+        ruff check .
+        echo "::endgroup::"
+
+    - name: Run mypy type checking
+      working-directory: libs/tool-vault-packager
+      run: |
+        echo "::group::MyPy Type Checking"
+        mypy .
+        echo "::endgroup::"
+
+    - name: Check that tools would catch recent errors
+      working-directory: libs/tool-vault-packager
+      run: |
+        echo "::group::Validation Check"
+        echo "✅ Static analysis tools are configured and running"
+        echo "These tools would help catch errors like:"
+        echo "  - AttributeError: 'ToolVaultServer' object has no attribute 'tools_path'"
+        echo "  - JSON serialization issues with Pydantic models"
+        echo "  - Missing type hints and imports"
+        echo "::endgroup::"

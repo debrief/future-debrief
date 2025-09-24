@@ -122,24 +122,25 @@ Key directories:
 
 **TypeScript**: Import directly from generated files
 ```typescript
-import { DebriefTrackFeature } from './src/types/featurecollection';
-import { TimeState } from './src/types/timestate';
+import { DebriefTrackFeature } from './src/types/features/debrief_feature_collection';
+import { TimeState } from './src/types/states/time_state';
 ```
 
 **From consuming packages** (like `../../apps/vs-code`):
 ```typescript
 // State types (generated from pydantic_models/states/)
-import { TimeState } from '@debrief/shared-types/src/types/timestate';
-import { ViewportState } from '@debrief/shared-types/src/types/viewportstate';
-import { SelectionState } from '@debrief/shared-types/src/types/selectionstate';
-import { EditorState } from '@debrief/shared-types/src/types/editorstate';
-import { CurrentState } from '@debrief/shared-types/src/types/currentstate';
+import { TimeState } from '@debrief/shared-types/src/types/states/time_state';
+import { ViewportState } from '@debrief/shared-types/src/types/states/viewport_state';
+import { SelectionState } from '@debrief/shared-types/src/types/states/selection_state';
+import { EditorState } from '@debrief/shared-types/src/types/states/editor_state';
+import { CurrentState } from '@debrief/shared-types/src/types/states/current_state';
 
 // Feature types (generated from pydantic_models/features/)
-import { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types/src/types/featurecollection';
+import { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types/src/types/features/debrief_feature_collection';
 
 // Tool types (generated from pydantic_models/tools/)
-import { ToolIndexModel, GlobalToolIndexModel } from '@debrief/shared-types/src/types/tools';
+import { ToolIndexModel } from '@debrief/shared-types/src/types/tools/tool_index';
+import { GlobalToolIndexModel } from '@debrief/shared-types/src/types/tools/global_tool_index';
 
 // Validators
 import { validateFeatureCollectionComprehensive, validateFeatureByType, classifyFeature } from '@debrief/shared-types/src/validators';

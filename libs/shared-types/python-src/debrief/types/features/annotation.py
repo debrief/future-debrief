@@ -1,10 +1,19 @@
 """Annotation Pydantic model for maritime zone/annotation features."""
 
 from datetime import datetime
-from pydantic import BaseModel, Field, field_validator
-from typing import List, Union, Literal, Optional
 from enum import Enum
-from geojson_pydantic import Feature, Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon
+from typing import Literal, Optional, Union
+
+from geojson_pydantic import (
+    Feature,
+    LineString,
+    MultiLineString,
+    MultiPoint,
+    MultiPolygon,
+    Point,
+    Polygon,
+)
+from pydantic import BaseModel, Field
 
 
 class AnnotationType(str, Enum):
