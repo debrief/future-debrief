@@ -77,38 +77,38 @@ def generate_highlighted_source_html(tool_name: str, source_code: str) -> str:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{tool_name} - Complete Source File</title>
     <style>
-        body {{ 
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
-            margin: 20px; 
+        body {{
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            margin: 20px;
             background-color: #f8f9fa;
             line-height: 1.4;
         }}
-        .container {{ 
-            background-color: white; 
-            padding: 20px; 
-            border-radius: 8px; 
+        .container {{
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }}
-        .header {{ 
-            border-bottom: 2px solid #e9ecef; 
-            padding-bottom: 10px; 
-            margin-bottom: 20px; 
+        .header {{
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
         }}
-        .tool-name {{ 
-            font-size: 24px; 
-            font-weight: bold; 
-            color: #333; 
+        .tool-name {{
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
         }}
-        .code-container {{ 
-            background-color: #f8f9fa; 
-            border: 1px solid #e9ecef; 
-            border-radius: 4px; 
-            padding: 15px; 
+        .code-container {{
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
             font-size: 14px;
             overflow-x: auto;
             line-height: 1.5;
         }}
-        
+
         /* Ensure Pygments styles don't leak to other elements */
         .code-container * {{
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
@@ -133,34 +133,34 @@ def generate_highlighted_source_html(tool_name: str, source_code: str) -> str:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{tool_name} - Complete Source File</title>
     <style>
-        body {{ 
-            font-family: 'Consolas', 'Monaco', 'Courier New', monospace; 
-            margin: 20px; 
+        body {{
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            margin: 20px;
             background-color: #f8f9fa;
             line-height: 1.4;
         }}
-        .container {{ 
-            background-color: white; 
-            padding: 20px; 
-            border-radius: 8px; 
+        .container {{
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }}
-        .header {{ 
-            border-bottom: 2px solid #e9ecef; 
-            padding-bottom: 10px; 
-            margin-bottom: 20px; 
+        .header {{
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
         }}
-        .tool-name {{ 
-            font-size: 24px; 
-            font-weight: bold; 
-            color: #333; 
+        .tool-name {{
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
         }}
-        .source-code {{ 
-            background-color: #f8f9fa; 
-            border: 1px solid #e9ecef; 
-            border-radius: 4px; 
-            padding: 15px; 
-            white-space: pre-wrap; 
+        .source-code {{
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            white-space: pre-wrap;
             font-size: 14px;
             overflow-x: auto;
         }}
@@ -201,11 +201,11 @@ if __name__ == "__main__":
     # Always use bundled tools for .pyz execution
     # Only add --tools-path if not already provided by user
     tools_path_provided = any(arg.startswith("--tools-path") for arg in sys.argv[1:])
-    
+
     if not tools_path_provided:
         # Use special bundled tools path that the discovery system will recognize
         sys.argv.insert(1, "--tools-path=__bundled__")
-    
+
     main()
 '''
 
@@ -221,7 +221,7 @@ pydantic>=2.0.0
 def build_spa() -> bool:
     """
     Build the SPA for integration into the package.
-    
+
     Returns:
         True if build succeeded, False otherwise
     """

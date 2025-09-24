@@ -18,17 +18,17 @@ class ToolValidationError(Exception):
 def validate_json_against_schema(data: Any, schema: Dict[str, Any]) -> bool:
     """
     Validate JSON data against a JSON Schema.
-    
+
     This is a basic implementation. In Phase 2, this will be enhanced
     with proper Pydantic integration and shared-types schemas.
-    
+
     Args:
         data: The data to validate
         schema: JSON Schema dictionary
-        
+
     Returns:
         True if valid, raises exception if invalid
-        
+
     Raises:
         ToolValidationError: If validation fails
     """
@@ -55,15 +55,15 @@ def validate_json_against_schema(data: Any, schema: Dict[str, Any]) -> bool:
 def validate_tool_input(tool_name: str, arguments: Dict[str, Any], tool_schema: Dict[str, Any]) -> bool:
     """
     Validate tool input arguments against the tool's schema.
-    
+
     Args:
         tool_name: Name of the tool
         arguments: Input arguments to validate
         tool_schema: Tool's input schema
-        
+
     Returns:
         True if valid
-        
+
     Raises:
         ToolValidationError: If validation fails
     """
@@ -94,15 +94,15 @@ def validate_tool_input(tool_name: str, arguments: Dict[str, Any], tool_schema: 
 def validate_tool_output(tool_name: str, result: Any, tool_schema: Dict[str, Any] = None) -> Dict[str, Any]:
     """
     Validate and wrap tool output according to MCP specification.
-    
+
     Args:
         tool_name: Name of the tool
         result: Tool execution result
         tool_schema: Tool's output schema (optional)
-        
+
     Returns:
         Wrapped result dictionary
-        
+
     Raises:
         ToolValidationError: If validation fails
     """
@@ -122,7 +122,7 @@ class ToolExecutionValidator:
     def __init__(self, tools_metadata: Dict[str, Dict[str, Any]]):
         """
         Initialize validator with tools metadata.
-        
+
         Args:
             tools_metadata: Dictionary mapping tool names to their metadata
         """
@@ -132,15 +132,15 @@ class ToolExecutionValidator:
     def validate_and_execute(self, tool_name: str, tool_function, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """
         Validate arguments and execute tool with proper error handling.
-        
+
         Args:
             tool_name: Name of the tool
             tool_function: The tool function to execute
             arguments: Input arguments
-            
+
         Returns:
             Validated and wrapped result
-            
+
         Raises:
             ToolValidationError: If validation or execution fails
         """
@@ -164,11 +164,11 @@ class ToolExecutionValidator:
 def create_pydantic_validator(schema: Dict[str, Any], model_name: str = "ToolModel"):
     """
     Create a Pydantic model from JSON Schema (placeholder for Phase 2).
-    
+
     Args:
         schema: JSON Schema dictionary
         model_name: Name for the Pydantic model
-        
+
     Returns:
         Pydantic model class or None if not available
     """

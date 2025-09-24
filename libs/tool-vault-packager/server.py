@@ -28,10 +28,10 @@ except ImportError:
 
 # Handle imports - try absolute first, then relative
 try:
-    from discovery import ToolMetadata, discover_tools, generate_index_json
+    from discovery import discover_tools, generate_index_json
 except ImportError:
     try:
-        from .discovery import ToolMetadata, discover_tools, generate_index_json
+        from .discovery import discover_tools, generate_index_json
     except ImportError:
         # Last resort: explicit module loading
         import importlib.util
@@ -439,10 +439,10 @@ class ToolVaultServer:
 def create_app(tools_path: str = None) -> FastAPI:
     """
     Create and configure the ToolVault FastAPI application.
-    
+
     Args:
         tools_path: Path to tools directory. If None, uses default path.
-        
+
     Returns:
         Configured FastAPI application instance
     """

@@ -435,17 +435,17 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
 def discover_tools(tools_path: str) -> List[ToolMetadata]:
     """
     Discover tools in the specified directory using the new folder structure.
-    
+
     Each tool should be in its own folder containing:
     - execute.py: The tool implementation with exactly one public function
     - samples/: Directory with sample JSON input files
-    
+
     Args:
         tools_path: Path to the tools directory or "__bundled__" for .pyz files
-        
+
     Returns:
         List of ToolMetadata objects for discovered tools
-        
+
     Raises:
         ToolDiscoveryError: If discovery fails or validation errors occur
     """

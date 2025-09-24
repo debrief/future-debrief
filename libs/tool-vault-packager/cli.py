@@ -185,7 +185,7 @@ Examples:
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     # List tools command
-    list_parser = subparsers.add_parser("list-tools", help="List all available tools")
+    subparsers.add_parser("list-tools", help="List all available tools")
 
     # Call tool command
     call_parser = subparsers.add_parser("call-tool", help="Call a specific tool")
@@ -198,7 +198,7 @@ Examples:
     serve_parser.add_argument("--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)")
 
     # Show details command
-    details_parser = subparsers.add_parser("show-details", help="Show detailed tool information including source code and git history")
+    subparsers.add_parser("show-details", help="Show detailed tool information including source code and git history")
 
 
     # Parse arguments

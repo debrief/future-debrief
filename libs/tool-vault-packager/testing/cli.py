@@ -48,7 +48,7 @@ def main():
     )
 
     # List tools command
-    list_parser = subparsers.add_parser("list-tools", help="List discovered tools")
+    subparsers.add_parser("list-tools", help="List discovered tools")
 
     args = parser.parse_args()
 
