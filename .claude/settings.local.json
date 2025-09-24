@@ -179,7 +179,10 @@
       "Bash(tsc:*)",
       "Bash(./.husky/pre-push:*)",
       "Bash(mypy:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "WebFetch(domain:jy95.github.io)",
+      "WebFetch(domain:apitools.dev)",
+      "Bash(generate-schema-doc:*)"
     ]
   }
 }

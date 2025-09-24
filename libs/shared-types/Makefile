@@ -59,7 +59,7 @@ YELLOW := \033[33m
 RED := \033[31m
 RESET := \033[0m
 
-.PHONY: help clean build build-dist generate test dev force-generate generate-schemas generate-typescript copy-typescript copy-to-tool-vault-packager verify verify-artifacts verify-tests verify-typecheck
+.PHONY: help clean build build-dist generate test dev force-generate generate-schemas generate-typescript copy-typescript copy-to-tool-vault-packager generate-docs clean-docs verify verify-artifacts verify-tests verify-typecheck
 
 # Default target
 help: ## Show this help message
@@ -187,6 +187,11 @@ copy-to-tool-vault-packager: ## Copy Python sources and required TypeScript type
 			cp -r dist/python ../tool-vault-packager/shared-types/dist/; \
 			echo "$(BLUE)  Copied Python wheel for packaging$(RESET)"; \
 		fi; \
+		if [ -d "derived/docs" ]; then \
+			mkdir -p ../tool-vault-packager/shared-types/derived; \
+			cp -r derived/docs ../tool-vault-packager/shared-types/derived/; \
+			echo "$(BLUE)  Copied schema documentation for .pyz packaging$(RESET)"; \
+		fi; \
 		echo '{' > ../tool-vault-packager/shared-types/package.json; \
 		echo '  "name": "@debrief/shared-types",' >> ../tool-vault-packager/shared-types/package.json; \
 		echo '  "version": "1.0.0",' >> ../tool-vault-packager/shared-types/package.json; \
@@ -198,6 +203,38 @@ copy-to-tool-vault-packager: ## Copy Python sources and required TypeScript type
 	else \
 		echo "$(YELLOW)⚠ tool-vault-packager not found, skipping copy$(RESET)"; \
 	fi
+
+# Documentation generation variables
+DOCS_DIR := derived/docs
+DOCS_INDEX := $(DOCS_DIR)/index.html
+DOCS_STAMP := $(DOCS_DIR)/.docs-generated
+
+# Generate HTML documentation from JSON schemas
+generate-docs: $(DOCS_STAMP) ## Generate interactive HTML documentation from JSON schemas
+
+$(DOCS_STAMP): $(ALL_SCHEMA_FILES)
+	@echo "$(BLUE)Generating HTML documentation from JSON schemas...$(RESET)"
+	@mkdir -p $(DOCS_DIR)
+	@if command -v generate-schema-doc >/dev/null 2>&1; then \
+		generate-schema-doc derived/json-schema $(DOCS_DIR) \
+			--config template_name=js_offline \
+			--expand-buttons \
+			--link-to-reused-ref \
+			--copy-css \
+			--copy-js; \
+		python3 create-docs-index.py; \
+		echo "$(GREEN)✓ Schema documentation generated in $(DOCS_DIR)$(RESET)"; \
+		touch $(DOCS_STAMP); \
+	else \
+		echo "$(YELLOW)⚠ json-schema-for-humans not installed. Run: pip install json-schema-for-humans$(RESET)"; \
+		echo "$(RED)✗ Documentation generation failed$(RESET)"; \
+		exit 1; \
+	fi
+
+clean-docs: ## Clean generated documentation
+	@echo "$(YELLOW)Cleaning generated documentation...$(RESET)"
+	@rm -rf $(DOCS_DIR)
+	@echo "$(GREEN)✓ Documentation cleaned$(RESET)"
 
 build: generate $(COMPILED_TS) $(PYTHON_WHEEL) copy-to-tool-vault-packager ## Build TypeScript and Python wheel (conditional)
 	@echo "$(GREEN)✓ Build complete$(RESET)"
