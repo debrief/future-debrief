@@ -32,7 +32,7 @@ verify-static-analysis: ## Run static analysis as part of verification (blocking
 	@echo "$(BLUE)🔍 Running static analysis...$(RESET)"
 	@if command -v ruff >/dev/null 2>&1 && command -v mypy >/dev/null 2>&1; then \
 		echo "$(BLUE)📦 Static analysis tools available, running checks...$(RESET)"; \
-		$(MAKE) check-all; \
+		$(MAKE) check-all || { echo "$(RED)❌ Static analysis checks failed$(RESET)" >&2; exit 1; }; \
 	else \
 		echo "$(BLUE)📦 Static analysis tools not installed (optional in gradual cleanup mode)$(RESET)"; \
 		echo "$(BLUE)💡 To install: make install-dev-deps$(RESET)"; \
@@ -53,7 +53,10 @@ lint-fix: ## Run ruff linting with auto-fix and formatting
 
 type-check: ## Run mypy type checking
 	@echo "$(BLUE)🔍 Running mypy type checking...$(RESET)"
-	@mypy $(PYTHON_FILES) && echo "$(GREEN)✅ Type checking passed$(RESET)"
+	@mypy $(PYTHON_FILES) && echo "$(GREEN)✅ Type checking passed$(RESET)" || { \
+		echo "$(RED)❌ Type checking failed$(RESET)" >&2; \
+		exit 1; \
+	}
 
 check-all: lint type-check ## Run all static analysis checks
 	@echo "$(GREEN)✅ All static analysis checks completed$(RESET)"

@@ -30,11 +30,11 @@ verify-artifacts: $(DIST_FILES) ## Verify build artifacts are up-to-date
 
 verify-tests: ## Run tests without rebuilding
 	@echo "$(BLUE)🧪 Running tests...$(RESET)"
-	@pnpm test && echo "$(GREEN)✅ Tests passed$(RESET)" || (echo "$(RED)❌ Tests failed$(RESET)" && exit 1)
+	@pnpm test && echo "$(GREEN)✅ Tests passed$(RESET)" || (echo "$(RED)❌ Tests failed$(RESET)" >&2 && exit 1)
 
 verify-typecheck: ## Type check without compilation
 	@echo "$(BLUE)🔍 Type checking...$(RESET)"
-	@pnpm typecheck && echo "$(GREEN)✅ Type check passed$(RESET)" || (echo "$(RED)❌ Type check failed$(RESET)" && exit 1)
+	@pnpm typecheck && echo "$(GREEN)✅ Type check passed$(RESET)" || (echo "$(RED)❌ Type check failed$(RESET)" >&2 && exit 1)
 
 # Build artifacts must be newer than source files
 $(DIST_FILES): $(NEWEST_SRC)
