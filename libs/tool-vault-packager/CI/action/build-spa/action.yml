@@ -23,6 +23,12 @@ runs:
         echo "Node version: $(node --version)"
         echo "NPM version: $(npm --version)"
 
+        if [ ! -f "shared-types/src/index.ts" ] || [ ! -d "shared-types/src/types" ]; then
+          echo "❌ shared-types artifacts missing in libs/tool-vault-packager/shared-types"
+          ls -R shared-types || true
+          exit 1
+        fi
+
         # Build SPA (copies shared-types and builds automatically)
         npm run build:spa
 

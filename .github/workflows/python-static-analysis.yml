@@ -61,9 +61,20 @@ jobs:
 
     - name: Verify shared-types assets copied
       run: |
-        if [ ! -d "libs/tool-vault-packager/shared-types" ]; then
-          echo "::error::Missing shared-types artifacts in libs/tool-vault-packager/shared-types. Ensure @debrief/shared-types build copies assets before static analysis."
+        SHARED_DIR="libs/tool-vault-packager/shared-types"
+        if [ ! -d "$SHARED_DIR" ]; then
+          echo "::error::Missing shared-types artifacts in $SHARED_DIR. Ensure @debrief/shared-types build copies assets before static analysis."
           ls -R libs/tool-vault-packager || true
+          exit 1
+        fi
+        if [ ! -f "$SHARED_DIR/src/index.ts" ]; then
+          echo "::error::Missing shared-types index at $SHARED_DIR/src/index.ts"
+          ls -R "$SHARED_DIR" || true
+          exit 1
+        fi
+        if [ ! -f "$SHARED_DIR/src/types/Tool.ts" ]; then
+          echo "::error::Missing generated TypeScript types under $SHARED_DIR/src/types (e.g., Tool.ts). Run make build in libs/shared-types so they are copied."
+          ls -R "$SHARED_DIR" || true
           exit 1
         fi
 
