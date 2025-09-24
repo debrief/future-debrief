@@ -1,6 +1,6 @@
 """Set TimeState current to the earliest timestamp from features."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 # Use hierarchical imports from shared-types
@@ -69,13 +69,24 @@ def select_feature_start_time(params: SelectFeatureStartTimeParameters) -> ToolV
                 continue
 
             # Parse timestamps and find the earliest
-            for timestamp_str in timestamps:
-                try:
-                    timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
-                    if earliest_timestamp is None or timestamp < earliest_timestamp:
-                        earliest_timestamp = timestamp
-                except (ValueError, AttributeError):
+            for timestamp_value in timestamps:
+                timestamp = None
+
+                if isinstance(timestamp_value, datetime):
+                    timestamp = timestamp_value
+                elif isinstance(timestamp_value, str):
+                    try:
+                        timestamp = datetime.fromisoformat(timestamp_value.replace("Z", "+00:00"))
+                    except ValueError:
+                        continue
+                else:
                     continue
+
+                if timestamp.tzinfo is None:
+                    timestamp = timestamp.replace(tzinfo=timezone.utc)
+
+                if earliest_timestamp is None or timestamp < earliest_timestamp:
+                    earliest_timestamp = timestamp
 
         if earliest_timestamp is None:
             return ShowTextCommand(payload="No valid timestamps found in features")
