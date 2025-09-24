@@ -317,7 +317,7 @@ describe('ToolFilterService', () => {
 
       // Create service with short timeout
       const shortTimeoutService = new ToolFilterService();
-      (shortTimeoutService as any).cacheInvalidationTime = 10;
+      (shortTimeoutService as any).cacheInvalidationTime = 50;
 
       // Add first entry
       shortTimeoutService.getApplicableTools([feature1], toolsData);
@@ -339,7 +339,7 @@ describe('ToolFilterService', () => {
         expect(statsAfterClearing.expiredEntries).toBe(0);
 
         done();
-      }, 15);
+      }, 120);
     });
   });
 
