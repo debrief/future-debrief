@@ -20,6 +20,7 @@ export function ToolView({ tool }: ToolViewProps) {
   const loadToolIndex = useCallback(async () => {
     setLoading(true);
     setError(null);
+    setToolIndex(null);
     try {
       const index = await mcpService.loadToolIndex(tool.name);
       setToolIndex(index);

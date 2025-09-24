@@ -37,9 +37,15 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
 
   const loadSamples = useCallback(async () => {
     if (!toolIndex?.files.inputs) return;
+    if ((toolIndex as any).tool_name && (toolIndex as any).tool_name !== tool.name) {
+      return;
+    }
 
+    const currentToolName = tool.name;
     setSamplesLoading(true);
     setSamplesError(null);
+    setSamples([]);
+    setSelectedSample('');
     try {
       // Load unified samples for test mode
       await loadUnifiedSamples();
@@ -63,6 +69,11 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
 
       const loadedSamples = (await Promise.all(samplePromises))
         .filter((sample: any) => sample !== null) as Array<{name: string, content: Record<string, unknown>}>;
+
+      // If tool changed while loading, ignore these results
+      if (tool.name !== currentToolName) {
+        return;
+      }
 
       setSamples(loadedSamples);
 
@@ -90,10 +101,16 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
         setSamplesError(`Failed to load ${toolIndex.files.inputs.length} sample input(s) for this tool`);
       }
     } catch (err) {
+      if (tool.name !== currentToolName) {
+        return;
+      }
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
       setSamplesError(`Error loading sample inputs: ${errorMessage}`);
       console.error('Error loading samples:', err);
     } finally {
+      if (tool.name !== currentToolName) {
+        return;
+      }
       setSamplesLoading(false);
     }
   }, [toolIndex, tool.name, loadUnifiedSamples]);
@@ -127,6 +144,12 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
       setSamplesError(null);
     }
   };
+
+  useEffect(() => {
+    setSamples([]);
+    setSelectedSample('');
+    setSamplesError(null);
+  }, [tool.name]);
 
   const handleFormDataChange = (data: Record<string, unknown>) => {
     setFormData(data);
