@@ -8,7 +8,11 @@ RED := \033[31m
 RESET := \033[0m
 
 # Source files to check
-PYTHON_FILES := $(shell find . -name "*.py" -not -path "./shared-types/*" -not -path "./spa/node_modules/*" -not -path "./node_modules/*")
+PYTHON_FILES := $(shell find . -name "*.py" \
+  -not -path "./shared-types/*" \
+  -not -path "./spa/node_modules/*" \
+  -not -path "./node_modules/*" \
+  -not -path "./tmp_package_contents/*")
 SPA_FILES := $(shell find spa/src -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx")
 NEWEST_PYTHON := $(shell ls -t $(PYTHON_FILES) | head -1)
 NEWEST_SPA := $(shell ls -t $(SPA_FILES) | head -1)
