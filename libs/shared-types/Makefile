@@ -3,6 +3,7 @@
 
 # File pattern definitions
 PYDANTIC_FILES := $(shell find python-src/debrief/types -name "*.py" -type f || true)
+PYTHON_DEPS_STAMP := .python-deps-installed
 # Define expected schema files based on known structure (avoid shell dependency issues)
 EXPECTED_SCHEMAS := derived/json-schema/features/track.schema.json \
                    derived/json-schema/features/point.schema.json \
@@ -71,10 +72,17 @@ help: ## Show this help message
 clean: ## Clean all generated files
 	@echo "$(YELLOW)Cleaning generated files...$(RESET)"
 	@rm -rf derived/ dist/ src/types/ || true
+	@rm -f $(PYTHON_DEPS_STAMP)
 	@echo "$(GREEN)✓ Clean complete$(RESET)"
 
+$(PYTHON_DEPS_STAMP): requirements.txt
+	@echo "$(BLUE)Installing Python build dependencies...$(RESET)"
+	@pip install -r requirements.txt
+	@touch $(PYTHON_DEPS_STAMP)
+	@echo "$(GREEN)✓ Python dependencies installed$(RESET)"
+
 # JSON Schema generation from Pydantic models - triggered by any Pydantic file change
-derived/json-schema/.schemas-generated: $(PYDANTIC_FILES) generate_schemas.py
+derived/json-schema/.schemas-generated: $(PYTHON_DEPS_STAMP) $(PYDANTIC_FILES) generate_schemas.py
 	@echo "$(BLUE)Generating JSON schemas from Pydantic models...$(RESET)"
 	@python3 generate_schemas.py
 	@touch derived/json-schema/.schemas-generated
@@ -121,7 +129,7 @@ generate-typescript: $(TS_FILES) ## Generate all TypeScript files
 
 copy-typescript: $(COPIED_TS_FILES) ## Copy TypeScript files to src/types
 
-generate: derived/json-schema/.schemas-generated $(COPIED_TS_FILES) ## Generate all types and copy files (conditional)
+generate: $(PYTHON_DEPS_STAMP) derived/json-schema/.schemas-generated $(COPIED_TS_FILES) ## Generate all types and copy files (conditional)
 	@echo "$(GREEN)✓ All type generation complete$(RESET)"
 
 generate-typescript-force: ## Force TypeScript generation after schemas exist
