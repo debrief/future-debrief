@@ -1,7 +1,6 @@
 """Word counting tool for text analysis."""
 
-from debrief.types.tools import ToolVaultCommand
-from debrief.types.tools.tool_call_response import CommandType
+from debrief.types.tools import ShowTextCommand, ToolVaultCommand
 from pydantic import BaseModel, Field
 
 
@@ -52,4 +51,4 @@ def word_count(params: WordCountParameters) -> ToolVaultCommand:
         count = len(text.strip().split())
 
     # Return ToolVault command object
-    return ToolVaultCommand(command=CommandType.SHOW_TEXT, payload=f"Word count: {count}")
+    return ShowTextCommand(payload=f"Word count: {count}")

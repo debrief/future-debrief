@@ -5,8 +5,7 @@ from typing import List, Union
 # Use hierarchical imports from shared-types
 from debrief.types.states.editor_state import EditorState
 from debrief.types.states.selection_state import SelectionState
-from debrief.types.tools import ToolVaultCommand
-from debrief.types.tools.tool_call_response import CommandType
+from debrief.types.tools import SetSelectionCommand, ShowTextCommand, ToolVaultCommand
 from pydantic import BaseModel, Field
 
 
@@ -56,15 +55,12 @@ def select_all_visible(params: SelectAllVisibleParameters) -> ToolVaultCommand:
 
         # Check if we have viewport state and feature collection
         if not editor_state.viewportState or not editor_state.viewportState.bounds:
-            return ToolVaultCommand(
-                command=CommandType.SHOW_TEXT,
+            return ShowTextCommand(
                 payload="No viewport bounds available in editor state",
             )
 
         if not editor_state.featureCollection or not editor_state.featureCollection.features:
-            return ToolVaultCommand(
-                command=CommandType.SHOW_TEXT, payload="No features available in editor state"
-            )
+            return ShowTextCommand(payload="No features available in editor state")
 
         # Extract viewport bounds [west, south, east, north]
         viewport_bounds = editor_state.viewportState.bounds
@@ -139,11 +135,7 @@ def select_all_visible(params: SelectAllVisibleParameters) -> ToolVaultCommand:
         selection_state = SelectionState(selectedIds=visible_feature_ids)
 
         # Return setSelection command
-        return ToolVaultCommand(
-            command=CommandType.SET_SELECTION, payload=selection_state.model_dump()
-        )
+        return SetSelectionCommand(payload=selection_state)
 
     except Exception as e:
-        return ToolVaultCommand(
-            command=CommandType.SHOW_TEXT, payload=f"Error selecting visible features: {str(e)}"
-        )
+        return ShowTextCommand(payload=f"Error selecting visible features: {str(e)}")

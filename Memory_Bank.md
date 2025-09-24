@@ -1768,7 +1768,43 @@ const { start, end, current } = timeState;
 
 ---
 
-*Last Updated: 2025-09-11*  
-*Total Sections Compressed: 25 major implementations*  
+### ToolVault Command Type Enforcement - Issue #148 ✅
+**Objective**: Prevent ad-hoc `ToolVaultCommand` instantiation so every tool response uses the strongly-typed command classes.
+
+- Converted `ToolVaultCommand` into an abstract base (`ABC`) that raises `TypeError` if someone tries to instantiate it directly.
+- Added a runtime regression test to prove the abstract behaviour and to assert that concrete commands (e.g. `ShowTextCommand`) are still usable.
+- Introduced a dedicated `SetTimeStateCommand` and re-exported it so the new command list matches all enum members.
+- Updated every tool under `libs/tool-vault-packager/tools/**/execute.py` to return the appropriate typed command and payload model (e.g. `ViewportState`, `SelectionState`, `TimeState`).
+
+**Key Snippet:**
+```python
+from debrief.types.tools import ShowTextCommand
+
+return ShowTextCommand(payload="No features provided to fit viewport")
+```
+
+**Validation Notes:**
+- ✅ Manual runtime check: new `test_tool_vault_command.py` proves the abstract-class guard and subclass behaviour.
+- ✅ `python -m testing.cli test` (tool-vault-packager) now green after aligning sample baselines with typed command output.
+- 🔶 `pnpm typecheck` blocked — pnpm now requires Node ≥18.12, sandbox provides Node v16.15.0.
+- 🔶 `npm test` (tool-vault-packager) expects `dist/toolvault.pyz`; build fails because Vite/TypeScript toolchain also requires Node ≥18/20.
+- 🔶 `python -m pytest …` cannot run here (`pytest` missing in sandbox Python env).
+
+**Impact**: Enforces typed ToolVault command usage across the ecosystem, eliminating loosely typed payloads and aligning tool outputs with the shared-types contract.
+
+**Key Files**:
+- `libs/shared-types/python-src/debrief/types/tools/tool_call_response.py`
+- `libs/shared-types/python-src/debrief/types/tools/commands.py`
+- `libs/tool-vault-packager/tools/*/execute.py`
+- `libs/tool-vault-packager/tools/*/samples/*.json`
+- `libs/shared-types/tests/python/test_tool_vault_command.py`
+
+**Branch**: `issue-148` | **Commit**: _pending_  
+**Final Status:** ✅ **IMPLEMENTED** with environment-related test blockers documented for follow-up.
+
+---
+
+*Last Updated: 2025-09-24*  
+*Total Sections Compressed: 26 major implementations*  
 
 *Focus: Key decisions, file locations, and navigation for future developers*
