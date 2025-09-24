@@ -28,11 +28,11 @@ help: ## Show this help message
 verify: verify-artifacts verify-tests verify-static-analysis ## Fast verification (timestamp-based)
 	@echo "$(GREEN)✅ All tool-vault-packager verifications passed!$(RESET)"
 
-verify-static-analysis: ## Run static analysis as part of verification (non-blocking)
-	@echo "$(BLUE)🔍 Running static analysis (non-blocking)...$(RESET)"
+verify-static-analysis: ## Run static analysis as part of verification (blocking)
+	@echo "$(BLUE)🔍 Running static analysis...$(RESET)"
 	@if command -v ruff >/dev/null 2>&1 && command -v mypy >/dev/null 2>&1; then \
 		echo "$(BLUE)📦 Static analysis tools available, running checks...$(RESET)"; \
-		$(MAKE) check-all || echo "$(RED)⚠️  Static analysis issues found (non-blocking in gradual cleanup mode)$(RESET)"; \
+		$(MAKE) check-all; \
 	else \
 		echo "$(BLUE)📦 Static analysis tools not installed (optional in gradual cleanup mode)$(RESET)"; \
 		echo "$(BLUE)💡 To install: make install-dev-deps$(RESET)"; \
@@ -51,9 +51,9 @@ lint-fix: ## Run ruff linting with auto-fix and formatting
 	@echo "$(BLUE)🔧 Running ruff with auto-fix and formatting...$(RESET)"
 	@ruff check . --fix && ruff format . && echo "$(GREEN)✅ Code formatted and fixed$(RESET)" || (echo "$(RED)❌ Some issues couldn't be auto-fixed$(RESET)" && true)
 
-type-check: ## Run mypy type checking (non-blocking)
+type-check: ## Run mypy type checking
 	@echo "$(BLUE)🔍 Running mypy type checking...$(RESET)"
-	@mypy . && echo "$(GREEN)✅ Type checking passed$(RESET)" || (echo "$(RED)❌ Type checking issues found (non-blocking)$(RESET)" && true)
+	@mypy $(PYTHON_FILES) && echo "$(GREEN)✅ Type checking passed$(RESET)"
 
 check-all: lint type-check ## Run all static analysis checks
 	@echo "$(GREEN)✅ All static analysis checks completed$(RESET)"
