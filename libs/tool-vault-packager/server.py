@@ -80,13 +80,16 @@ class ToolVaultServer:
         """Initialize the server with tools from the specified path."""
         if FastAPI is None:
             raise ImportError("FastAPI dependencies not available. Install with: pip install fastapi uvicorn")
-        
+
+        # Store tools_path for use in endpoints
+        self.tools_path = tools_path
+
         self.app = FastAPI(
             title="ToolVault Server",
             description="MCP-compatible tool execution server",
             version="1.0.0"
         )
-        
+
         # Add CORS middleware to allow cross-origin requests from SPA
         if CORSMiddleware:
             self.app.add_middleware(
@@ -96,7 +99,7 @@ class ToolVaultServer:
                 allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
                 allow_headers=["*"],
             )
-        
+
         # Discover tools
         try:
             self.tools = discover_tools(tools_path)
@@ -268,8 +271,14 @@ class ToolVaultServer:
                 params_obj = tool.pydantic_model(**kwargs)
                 result = tool.function(params_obj)
 
-                # Ensure result is a ToolVault command object
-                if not isinstance(result, dict) or "command" not in result:
+                # Handle different result types
+                if hasattr(result, 'model_dump'):
+                    # It's a Pydantic model (like ToolVaultCommand)
+                    command_result = result.model_dump()
+                elif isinstance(result, dict) and "command" in result:
+                    # It's already a dict with command structure
+                    command_result = result
+                else:
                     # Wrap non-command results as showText for backward compatibility
                     if isinstance(result, (str, int, float, bool)):
                         command_result = {
@@ -281,8 +290,6 @@ class ToolVaultServer:
                             "command": "showData",
                             "payload": result
                         }
-                else:
-                    command_result = result
 
                 # Return according to new schema format
                 return JSONResponse(content={
