@@ -1,8 +1,6 @@
 """Validation system for ToolVault tools and inputs/outputs."""
 
-import json
-from typing import Dict, Any, List, Union
-from pathlib import Path
+from typing import Any, Dict
 
 try:
     from pydantic import BaseModel, ValidationError, create_model
@@ -37,7 +35,7 @@ def validate_json_against_schema(data: Any, schema: Dict[str, Any]) -> bool:
     # Basic type checking for now
     if "type" in schema:
         expected_type = schema["type"]
-        
+
         if expected_type == "string" and not isinstance(data, str):
             raise ToolValidationError(f"Expected string, got {type(data).__name__}")
         elif expected_type == "integer" and not isinstance(data, int):
@@ -50,7 +48,7 @@ def validate_json_against_schema(data: Any, schema: Dict[str, Any]) -> bool:
             raise ToolValidationError(f"Expected array, got {type(data).__name__}")
         elif expected_type == "object" and not isinstance(data, dict):
             raise ToolValidationError(f"Expected object, got {type(data).__name__}")
-    
+
     return True
 
 
@@ -71,15 +69,15 @@ def validate_tool_input(tool_name: str, arguments: Dict[str, Any], tool_schema: 
     """
     if "inputSchema" not in tool_schema:
         return True  # No schema to validate against
-    
+
     input_schema = tool_schema["inputSchema"]
-    
+
     # Check required parameters
     required_params = input_schema.get("required", [])
     for param in required_params:
         if param not in arguments:
             raise ToolValidationError(f"Missing required parameter '{param}' for tool '{tool_name}'")
-    
+
     # Validate each parameter
     properties = input_schema.get("properties", {})
     for param_name, param_value in arguments.items():
@@ -89,7 +87,7 @@ def validate_tool_input(tool_name: str, arguments: Dict[str, Any], tool_schema: 
                 validate_json_against_schema(param_value, param_schema)
             except ToolValidationError as e:
                 raise ToolValidationError(f"Parameter '{param_name}' validation failed: {e}")
-    
+
     return True
 
 
@@ -114,13 +112,13 @@ def validate_tool_output(tool_name: str, result: Any, tool_schema: Dict[str, Any
         "result": result,
         "isError": False
     }
-    
+
     return wrapped_result
 
 
 class ToolExecutionValidator:
     """Validator for tool execution with caching and performance optimization."""
-    
+
     def __init__(self, tools_metadata: Dict[str, Dict[str, Any]]):
         """
         Initialize validator with tools metadata.
@@ -130,7 +128,7 @@ class ToolExecutionValidator:
         """
         self.tools_metadata = tools_metadata
         self._validation_cache = {}
-    
+
     def validate_and_execute(self, tool_name: str, tool_function, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """
         Validate arguments and execute tool with proper error handling.
@@ -150,14 +148,14 @@ class ToolExecutionValidator:
         if tool_name in self.tools_metadata:
             tool_schema = self.tools_metadata[tool_name]
             validate_tool_input(tool_name, arguments, tool_schema)
-        
+
         try:
             # Execute the tool
             result = tool_function(**arguments)
-            
+
             # Validate and wrap output
             return validate_tool_output(tool_name, result)
-            
+
         except Exception as e:
             # Handle execution errors
             raise ToolValidationError(f"Tool '{tool_name}' execution failed: {str(e)}")
@@ -176,7 +174,7 @@ def create_pydantic_validator(schema: Dict[str, Any], model_name: str = "ToolMod
     """
     if BaseModel is None or create_model is None:
         return None
-    
+
     # This is a placeholder implementation
     # In Phase 2, this will be properly implemented with shared-types integration
     return None

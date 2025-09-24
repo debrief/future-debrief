@@ -1,10 +1,11 @@
 """Track speed filtering tool for maritime analysis."""
 
 import math
-from pydantic import BaseModel, Field, ValidationError
+
+from debrief.types.features import DebriefTrackFeature
 from debrief.types.tools import ToolVaultCommand
 from debrief.types.tools.tool_call_response import CommandType
-from debrief.types.features import DebriefTrackFeature
+from pydantic import BaseModel, Field, ValidationError
 
 
 class TrackSpeedFilterParameters(BaseModel):

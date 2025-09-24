@@ -1,14 +1,15 @@
 """Set TimeState current to the earliest timestamp from features."""
 
-from typing import List
-from pydantic import BaseModel, Field
 from datetime import datetime
+from typing import List
 
 # Use hierarchical imports from shared-types
 from debrief.types.features import DebriefFeature
 from debrief.types.states import TimeState
 from debrief.types.tools import ToolVaultCommand
 from debrief.types.tools.tool_call_response import CommandType
+from pydantic import BaseModel, Field
+
 
 class SelectFeatureStartTimeParameters(BaseModel):
     """Parameters for select_feature_start_time tool."""

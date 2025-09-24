@@ -1,10 +1,9 @@
 """Viewport grid generator tool for maritime analysis."""
 
-from typing import List
-from pydantic import BaseModel, Field, ValidationError
+from debrief.types.states.viewport_state import ViewportState
 from debrief.types.tools import ToolVaultCommand
 from debrief.types.tools.tool_call_response import CommandType
-from debrief.types.states.viewport_state import ViewportState
+from pydantic import BaseModel, Field, ValidationError
 
 
 class ViewportGridGeneratorParameters(BaseModel):

@@ -1,8 +1,8 @@
 """Word counting tool for text analysis."""
 
-from pydantic import BaseModel, Field
 from debrief.types.tools import ToolVaultCommand
 from debrief.types.tools.tool_call_response import CommandType
+from pydantic import BaseModel, Field
 
 
 class WordCountParameters(BaseModel):

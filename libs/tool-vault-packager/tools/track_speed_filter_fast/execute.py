@@ -1,10 +1,11 @@
 """Fast track speed filtering tool using pre-calculated speeds."""
 
-from typing import List, Optional
-from pydantic import BaseModel, Field, ValidationError, model_validator
+from typing import List
+
+from debrief.types.features import DebriefTrackFeature
 from debrief.types.tools import ToolVaultCommand
 from debrief.types.tools.tool_call_response import CommandType
-from debrief.types.features import DebriefTrackFeature
+from pydantic import BaseModel, Field, ValidationError, model_validator
 
 
 class TrackFeatureWithSpeeds(BaseModel):

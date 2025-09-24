@@ -2,10 +2,10 @@
 
 import json
 from dataclasses import dataclass
-from typing import Dict, Any, List, Optional
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from .tool_tester import ToolTester, BaselineGenerator, TestResult
+from .tool_tester import BaselineGenerator, TestResult, ToolTester
 
 
 @dataclass
@@ -86,7 +86,7 @@ class TestRunner:
 
         # Summary
         print(f"\n{'='*50}")
-        print(f"Test Summary:")
+        print("Test Summary:")
         print(f"Total tests: {total_tests}")
         print(f"Passed: {total_tests - failed_tests}")
         print(f"Failed: {failed_tests}")

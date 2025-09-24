@@ -1,26 +1,20 @@
 """FastAPI server for ToolVault runtime with MCP-compatible endpoints."""
 
 import json
-import traceback
-from typing import Dict, Any, List, Optional
-from pathlib import Path
 import sys
-
+import traceback
+from pathlib import Path
+from typing import Optional
 
 from debrief.types.tools import (
-    GlobalToolIndexModel,
-    ToolIndexModel,
     ToolCallRequest,
-    ToolArgument,
-    ToolCallResponse,
-    ToolVaultCommand
 )
 
 try:
     from fastapi import FastAPI, HTTPException
-    from fastapi.responses import JSONResponse, HTMLResponse, PlainTextResponse
-    from fastapi.staticfiles import StaticFiles
     from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+    from fastapi.staticfiles import StaticFiles
     from pydantic import BaseModel, ValidationError
 except ImportError:
     # Handle case where dependencies might not be available yet
@@ -34,15 +28,15 @@ except ImportError:
 
 # Handle imports - try absolute first, then relative
 try:
-    from discovery import discover_tools, generate_index_json, ToolMetadata
+    from discovery import ToolMetadata, discover_tools, generate_index_json
 except ImportError:
     try:
-        from .discovery import discover_tools, generate_index_json, ToolMetadata
+        from .discovery import ToolMetadata, discover_tools, generate_index_json
     except ImportError:
         # Last resort: explicit module loading
-        import sys
         import importlib.util
         import os
+        import sys
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
         discovery_path = os.path.join(current_dir, "discovery.py")
@@ -53,7 +47,7 @@ except ImportError:
             sys.modules["discovery"] = discovery_module
             spec.loader.exec_module(discovery_module)
 
-            from discovery import discover_tools, generate_index_json, ToolMetadata
+            from discovery import discover_tools, generate_index_json
         else:
             raise ImportError("Could not locate discovery module")
 
@@ -75,7 +69,7 @@ else:
 
 class ToolVaultServer:
     """ToolVault FastAPI server implementation."""
-    
+
     def __init__(self, tools_path: str):
         """Initialize the server with tools from the specified path."""
         if FastAPI is None:
@@ -107,18 +101,18 @@ class ToolVaultServer:
             self.tools_by_name = {tool.name: tool for tool in self.tools}
         except Exception as e:
             raise RuntimeError(f"Failed to initialize tools: {e}")
-        
+
         # Setup static files for SPA
         self._setup_static_files()
-        
+
         # Setup routes
         self._setup_routes()
-    
-    
+
+
     def _setup_static_files(self):
         """Setup static file serving for SPA."""
         import sys
-        
+
         # Check if running from a .pyz file
         if str(sys.argv[0]).endswith('.pyz'):
             # Running from packaged archive - need to handle static files differently
@@ -128,9 +122,9 @@ class ToolVaultServer:
             # Running from extracted files - use normal static file serving
             if StaticFiles is None:
                 return
-            
+
             current_dir = Path(__file__).parent
-            
+
             # Check if we're in package development mode (tmp_package_contents exists)
             tmp_static = current_dir / "tmp_package_contents" / "static"
             if tmp_static.exists():
@@ -138,65 +132,64 @@ class ToolVaultServer:
             else:
                 # Development mode - use spa/dist
                 static_dir = current_dir / "spa" / "dist"
-            
+
             if static_dir.exists():
                 # Mount static files at /ui/
                 self.app.mount("/ui", StaticFiles(directory=str(static_dir), html=True), name="spa")
                 print(f"SPA mounted at /ui/ serving from: {static_dir}")
             else:
                 print("Warning: No SPA static files found")
-    
-    
+
+
     def _setup_archive_static_files(self):
         """Setup static file serving from within a .pyz archive."""
-        import zipfile
         import sys
-        from io import BytesIO
-        
+        import zipfile
+
         try:
             # Get the .pyz file path
             pyz_path = sys.argv[0]
-            
+
             # Read files from archive
             with zipfile.ZipFile(pyz_path, 'r') as zf:
                 static_files = {}
-                
+
                 # Find all static files in the archive
                 for file_info in zf.infolist():
                     if file_info.filename.startswith('static/'):
                         # Read the file content
                         static_files[file_info.filename] = zf.read(file_info.filename)
-                
+
                 if static_files:
                     # Set up custom route handlers for static files
                     self._setup_archive_routes(static_files)
                     print(f"SPA mounted at /ui/ serving {len(static_files)} files from archive")
                 else:
                     print("Warning: No static files found in archive")
-                    
+
         except Exception as e:
             print(f"Error setting up archive static files: {e}")
-    
-    
+
+
     def _setup_archive_routes(self, static_files: dict):
         """Set up route handlers for static files from archive."""
         from fastapi.responses import Response
-        
+
         @self.app.get("/ui/")
         @self.app.get("/ui/{file_path:path}")
         async def serve_spa_files(file_path: str = "index.html"):
             """Serve SPA files from the archive."""
-            
+
             # Handle root path
             if file_path == "" or file_path == "/":
                 file_path = "index.html"
-            
+
             # Build the full path
             full_path = f"static/{file_path}"
-            
+
             if full_path in static_files:
                 content = static_files[full_path]
-                
+
                 # Determine content type
                 content_type = "text/html"
                 if file_path.endswith('.js'):
@@ -209,7 +202,7 @@ class ToolVaultServer:
                     content_type = "image/png"
                 elif file_path.endswith('.ico'):
                     content_type = "image/x-icon"
-                
+
                 return Response(content=content, media_type=content_type)
             else:
                 # For SPA routing, serve index.html for unknown paths
@@ -217,11 +210,11 @@ class ToolVaultServer:
                     return Response(content=static_files["static/index.html"], media_type="text/html")
                 else:
                     raise HTTPException(status_code=404, detail="File not found")
-    
-    
+
+
     def _setup_routes(self):
         """Setup FastAPI routes."""
-        
+
         @self.app.get("/")
         async def root():
             """Root endpoint providing basic server information and API discovery."""
@@ -237,7 +230,7 @@ class ToolVaultServer:
                     "health": "/health"
                 }
             }
-        
+
         @self.app.get("/tools/list")
         async def list_tools():
             """MCP-compatible tools list endpoint."""
@@ -248,7 +241,7 @@ class ToolVaultServer:
                     status_code=500,
                     detail=f"Failed to list tools: {str(e)}"
                 )
-        
+
         @self.app.post("/tools/call")
         async def call_tool(request: ToolCallRequest):
             """MCP-compatible tool call endpoint."""
@@ -314,12 +307,12 @@ class ToolVaultServer:
                         "isError": True
                     }
                 )
-        
+
         @self.app.get("/api/tools/{full_path:path}")
         async def get_tool_file(full_path: str):
             """Serve any file from the tools directory structure."""
             import sys
-            
+
             # Check if running from a .pyz file
             if hasattr(sys, '_MEIPASS') or str(sys.argv[0]).endswith('.pyz'):
                 # Running from packaged archive - read from zip
@@ -330,7 +323,7 @@ class ToolVaultServer:
                         tools_file_path = f"tools/{full_path}"
                         if tools_file_path in zf.namelist():
                             content = zf.read(tools_file_path).decode('utf-8')
-                            
+
                             # Determine content type and serve file
                             if full_path.endswith('.html'):
                                 return HTMLResponse(content=content)
@@ -356,7 +349,7 @@ class ToolVaultServer:
                         tools_root = Path(*sample_tool_dir.parts[:tools_index + 1])
                     else:
                         tools_root = sample_tool_dir.parent
-                        
+
                     # Check if we should use tmp_package_contents instead (development mode)
                     current_dir = Path(__file__).parent
                     tmp_tools = current_dir / "tmp_package_contents" / "tools"
@@ -364,20 +357,20 @@ class ToolVaultServer:
                         tools_root = tmp_tools
                 else:
                     raise HTTPException(status_code=500, detail="No tools available")
-                
+
                 # Construct the full file path
                 requested_file = tools_root / full_path
-                
+
                 # Security check - ensure file is within tools directory
                 try:
                     requested_file.resolve().relative_to(tools_root.resolve())
                 except ValueError:
                     raise HTTPException(status_code=403, detail="Access denied - path outside tools directory")
-                
+
                 # Check if file exists
                 if not requested_file.exists():
                     raise HTTPException(status_code=404, detail=f"File '{full_path}' not found")
-                
+
                 # Determine content type and serve file
                 if full_path.endswith('.html'):
                     content = requested_file.read_text(encoding='utf-8')
@@ -455,7 +448,7 @@ def create_app(tools_path: str = None) -> FastAPI:
     """
     if tools_path is None:
         current_dir = Path(__file__).parent
-        
+
         # Check if we're running from a .pyz file
         if str(current_dir).endswith('.pyz'):
             # Running from .pyz - use internal tools directory
@@ -468,6 +461,6 @@ def create_app(tools_path: str = None) -> FastAPI:
             else:
                 # Fallback to regular tools directory
                 tools_path = str(current_dir / "tools")
-    
+
     server = ToolVaultServer(tools_path)
     return server.app

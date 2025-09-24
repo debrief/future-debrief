@@ -1,20 +1,17 @@
 """Core tool testing functionality for ToolVault packager."""
 
 import json
+import tempfile
 import traceback
 from dataclasses import dataclass
-from typing import Dict, Any, List, Optional, Union
 from pathlib import Path
-import importlib.util
-import sys
-import tempfile
-import shutil
+from typing import Any, Dict, List, Optional
 
 try:
-    from ..discovery import discover_tools, ToolMetadata
+    from ..discovery import ToolMetadata, discover_tools
 except ImportError:
     # Handle case when running as script
-    from discovery import discover_tools, ToolMetadata
+    from discovery import ToolMetadata, discover_tools
 
 
 @dataclass
@@ -192,7 +189,6 @@ class ToolTester:
             expected_output = sample_content.get("expectedOutput")
 
             # Create a temporary file to pass to run_single_test
-            import tempfile
             with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_file:
                 json.dump(input_data, temp_file, indent=2)
                 temp_file_path = temp_file.name

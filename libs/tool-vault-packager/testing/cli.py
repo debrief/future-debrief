@@ -2,9 +2,8 @@
 
 import argparse
 import sys
-from pathlib import Path
 
-from .test_runner import TestRunner, TestConfig
+from .test_runner import TestConfig, TestRunner
 
 
 def main():

@@ -1,10 +1,9 @@
 """Feature color toggling tool for GeoJSON FeatureCollections."""
 
-import copy
-from pydantic import BaseModel, Field, ValidationError
+from debrief.types.features import DebriefFeatureCollection
 from debrief.types.tools import ToolVaultCommand
 from debrief.types.tools.tool_call_response import CommandType
-from debrief.types.features import DebriefFeatureCollection
+from pydantic import BaseModel, Field, ValidationError
 
 
 class ToggleFirstFeatureColorParameters(BaseModel):

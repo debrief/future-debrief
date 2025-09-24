@@ -1,13 +1,13 @@
 """Select all features that are visible within the current viewport bounds."""
 
 from typing import List, Union
-from pydantic import BaseModel, Field
 
 # Use hierarchical imports from shared-types
 from debrief.types.states.editor_state import EditorState
 from debrief.types.states.selection_state import SelectionState
 from debrief.types.tools import ToolVaultCommand
 from debrief.types.tools.tool_call_response import CommandType
+from pydantic import BaseModel, Field
 
 
 class SelectAllVisibleParameters(BaseModel):
@@ -118,7 +118,7 @@ def select_all_visible(params: SelectAllVisibleParameters) -> ToolVaultCommand:
                     feature_id = feature.id if hasattr(feature, 'id') and feature.id is not None else f"feature_{len(visible_feature_ids)}"
                     visible_feature_ids.append(feature_id)
 
-            except Exception as e:
+            except Exception:
                 # Skip features with invalid geometry
                 continue
 

@@ -1,12 +1,12 @@
 """Calculate bounds of features and set viewport to fit them."""
 
 from typing import List
-from pydantic import BaseModel, Field
 
 # Use hierarchical imports from shared-types
 from debrief.types.features import DebriefFeature
 from debrief.types.tools import ToolVaultCommand
 from debrief.types.tools.tool_call_response import CommandType
+from pydantic import BaseModel, Field
 
 
 class FitToSelectionParameters(BaseModel):

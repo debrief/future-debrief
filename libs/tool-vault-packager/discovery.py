@@ -4,18 +4,16 @@ import importlib.util
 import inspect
 import json
 import subprocess
-from typing import Dict, Any, List, Callable, get_type_hints, Optional, Union
 from pathlib import Path
-import sys
-
+from typing import Any, Callable, Dict, List, Optional, Union, get_type_hints
 
 from debrief.types.tools import (
-    ToolMetadataModel,
-    GlobalToolIndexModel,
     GitHistoryEntry,
-    SampleInputData,
-    ToolVaultCommand,
+    GlobalToolIndexModel,
     JSONSchemaType,
+    SampleInputData,
+    ToolMetadataModel,
+    ToolVaultCommand,
 )
 
 
@@ -98,18 +96,18 @@ def extract_first_sentence(text: str) -> str:
     """Extract the first sentence from a text description."""
     if not text:
         return text
-    
+
     # Find the first sentence ending with a period, exclamation, or question mark
     import re
-    
+
     # Look for sentence endings followed by whitespace or end of string
     sentence_endings = r'[.!?](?:\s+|$)'
     match = re.search(sentence_endings, text)
-    
+
     if match:
         # Return everything up to and including the sentence ending punctuation
         return text[:match.end()].rstrip()
-    
+
     # If no sentence ending found, return the entire text (fallback)
     return text
 
@@ -119,7 +117,7 @@ def extract_type_annotations(func: Callable) -> Dict[str, str]:
     try:
         type_hints = get_type_hints(func)
         annotations = {}
-        
+
         # Get parameter types
         sig = inspect.signature(func)
         for param_name, _ in sig.parameters.items():
@@ -129,7 +127,7 @@ def extract_type_annotations(func: Callable) -> Dict[str, str]:
                 raise ToolDiscoveryError(
                     f"Missing type annotation for parameter '{param_name}' in function '{func.__name__}'"
                 )
-        
+
         # Get return type
         if 'return' in type_hints:
             annotations['return'] = str(type_hints['return'])
@@ -137,7 +135,7 @@ def extract_type_annotations(func: Callable) -> Dict[str, str]:
             raise ToolDiscoveryError(
                 f"Missing return type annotation for function '{func.__name__}'"
             )
-            
+
         return annotations
     except Exception as e:
         raise ToolDiscoveryError(f"Failed to extract type annotations from '{func.__name__}': {e}")
@@ -239,10 +237,10 @@ def extract_pydantic_parameters(pydantic_model: type) -> Dict[str, Any]:
 def load_sample_inputs(inputs_dir: Path) -> List[Dict[str, Any]]:
     """Load sample input JSON files from a tool's samples directory."""
     sample_inputs = []
-    
+
     if not inputs_dir.exists():
         return sample_inputs
-    
+
     for json_file in inputs_dir.glob("*.json"):
         try:
             with open(json_file, 'r') as f:
@@ -254,7 +252,7 @@ def load_sample_inputs(inputs_dir: Path) -> List[Dict[str, Any]]:
                 })
         except Exception as e:
             print(f"Warning: Failed to load sample input {json_file}: {e}")
-    
+
     return sample_inputs
 
 
@@ -277,30 +275,30 @@ def get_git_history(file_path: Path, max_commits: int = 10) -> List[Dict[str, An
     try:
         # Get the git log for the specific file
         cmd = [
-            'git', 'log', 
+            'git', 'log',
             f'--max-count={max_commits}',
-            '--pretty=format:%H|%an|%ae|%ad|%s', 
+            '--pretty=format:%H|%an|%ae|%ad|%s',
             '--date=iso',
             '--follow',  # Follow file renames
             str(file_path)
         ]
-        
+
         result = subprocess.run(
-            cmd, 
-            capture_output=True, 
-            text=True, 
+            cmd,
+            capture_output=True,
+            text=True,
             cwd=file_path.parent,
             timeout=10
         )
-        
+
         if result.returncode != 0:
             return []
-        
+
         commits = []
         for line in result.stdout.strip().split('\n'):
             if not line:
                 continue
-                
+
             try:
                 parts = line.split('|', 4)
                 if len(parts) == 5:
@@ -316,9 +314,9 @@ def get_git_history(file_path: Path, max_commits: int = 10) -> List[Dict[str, An
                     })
             except ValueError:
                 continue
-        
+
         return commits
-        
+
     except Exception as e:
         print(f"Warning: Failed to get git history for {file_path}: {e}")
         return []
@@ -326,12 +324,12 @@ def get_git_history(file_path: Path, max_commits: int = 10) -> List[Dict[str, An
 
 def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
     """Discover tools from within a .pyz zipfile."""
-    import zipfile
-    import tempfile
     import os
-    
+    import tempfile
+    import zipfile
+
     tools = []
-    
+
     with zipfile.ZipFile(zip_path, 'r') as zf:
         # Find all tool directories (directories containing execute.py)
         tool_dirs = set()
@@ -342,14 +340,14 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
                 if len(parts) >= 3:  # tools/toolname/execute.py
                     tool_dir = parts[1]
                     tool_dirs.add(tool_dir)
-        
+
         # Process each tool directory
         for tool_name in tool_dirs:
             execute_path = f'tools/{tool_name}/execute.py'
-            
+
             if execute_path not in zf.namelist():
                 continue
-                
+
             # Extract and load the execute.py module
             with tempfile.NamedTemporaryFile(mode='w+', suffix='.py', delete=False) as temp_file:
                 try:
@@ -357,31 +355,31 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
                     module_content = zf.read(execute_path).decode('utf-8')
                     temp_file.write(module_content)
                     temp_file.flush()
-                    
+
                     # Load the module
                     module_name = f"{tool_name}_execute"
                     spec = importlib.util.spec_from_file_location(module_name, temp_file.name)
                     if spec is None or spec.loader is None:
                         continue
-                        
+
                     module = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(module)
-                    
+
                     # Find public functions
                     public_functions = [
                         (name, obj) for name, obj in inspect.getmembers(module, inspect.isfunction)
                         if not name.startswith("_") and obj.__module__ == module_name
                     ]
-                    
+
                     if len(public_functions) != 1:
                         continue
-                    
+
                     func_name, func = public_functions[0]
-                    
+
                     # Extract metadata
                     description = extract_first_sentence(extract_function_docstring(func))
                     type_annotations = extract_type_annotations(func)
-                    
+
                     # Build parameters schema from Pydantic model
                     pydantic_model = detect_pydantic_parameter_model(func, module)
                     if pydantic_model:
@@ -391,7 +389,7 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
                         # No Pydantic model found - tool needs to be migrated
                         print(f"Warning: Tool '{func_name}' does not have a Pydantic parameter model. Skipping.")
                         continue
-                    
+
                     # Load sample inputs from zip
                     sample_inputs = []
                     inputs_prefix = f'tools/{tool_name}/samples/'
@@ -408,10 +406,10 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
                                 })
                             except Exception:
                                 pass  # Skip invalid JSON files
-                    
+
                     # Get return type
                     return_type = type_annotations.get('return', 'object')
-                    
+
                     tools.append(ToolMetadata(
                         name=func_name,
                         function=func,
@@ -426,11 +424,11 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
                         module=module,  # Store module reference for Pydantic detection
                         pydantic_model=pydantic_model
                     ))
-                    
+
                 finally:
                     # Clean up temp file
                     os.unlink(temp_file.name)
-    
+
     return tools
 
 
@@ -457,42 +455,42 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
         import sys
         pyz_path = sys.argv[0]  # This will be the .pyz file path
         return discover_tools_from_zip(pyz_path)
-    
+
     tools = []
     tools_dir = Path(tools_path)
-    
+
     if not tools_dir.exists():
         raise ToolDiscoveryError(f"Tools directory does not exist: {tools_path}")
-    
+
     # Find all subdirectories that contain execute.py
     for tool_dir in tools_dir.iterdir():
         if not tool_dir.is_dir() or tool_dir.name.startswith("__"):
             continue
-        
+
         execute_file = tool_dir / "execute.py"
         if not execute_file.exists():
             continue
-        
+
         tool_name = tool_dir.name
-        
+
         # Load the execute.py module
         module_name = f"{tool_name}_execute"
         spec = importlib.util.spec_from_file_location(module_name, execute_file)
         if spec is None or spec.loader is None:
             continue
-            
+
         try:
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
         except Exception as e:
             raise ToolDiscoveryError(f"Failed to load tool '{tool_name}': {e}")
-        
+
         # Find public functions in the module
         public_functions = [
             (name, obj) for name, obj in inspect.getmembers(module, inspect.isfunction)
             if not name.startswith("_") and obj.__module__ == module_name
         ]
-        
+
         if len(public_functions) == 0:
             raise ToolDiscoveryError(f"Tool '{tool_name}' has no public functions in execute.py")
         elif len(public_functions) > 1:
@@ -501,13 +499,13 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
                 f"Tool '{tool_name}' has multiple public functions: {func_names}. "
                 f"Each tool module must have exactly one public function."
             )
-        
+
         func_name, func = public_functions[0]
-        
+
         # Extract metadata
         description = extract_first_sentence(extract_function_docstring(func))
         type_annotations = extract_type_annotations(func)
-        
+
         # Build parameters schema from Pydantic model
         pydantic_model = detect_pydantic_parameter_model(func, module)
         if pydantic_model:
@@ -517,20 +515,20 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
             # No Pydantic model found - skip this tool (for demo purposes)
             print(f"Skipping tool '{func_name}' - no Pydantic parameter model found")
             continue
-        
+
         # Get return type
         return_type = type_annotations.get('return', 'object')
-        
+
         # Load sample inputs
         inputs_dir = tool_dir / "samples"
         sample_inputs = load_sample_inputs(inputs_dir)
-        
+
         # Get pretty-printed source code
         source_code = get_pretty_printed_source(func, execute_file)
-        
+
         # Get git history for this tool's execute.py
         git_history = get_git_history(execute_file)
-        
+
         tools.append(ToolMetadata(
             name=func_name,
             function=func,
@@ -545,10 +543,10 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
             module=module,
             pydantic_model=pydantic_model
         ))
-    
+
     if not tools:
         raise ToolDiscoveryError(f"No valid tools found in: {tools_path}")
-    
+
     return tools
 
 
@@ -610,7 +608,7 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
     Returns:
         GlobalToolIndexModel instance with typed tools
     """
-    from debrief.types.tools import Tool, JSONSchema
+    from debrief.types.tools import JSONSchema, Tool
 
     tools_list = []
 
@@ -670,8 +668,8 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
             print(f"   Output schema contains invalid JSONSchema fields: {sorted(invalid_fields)}")
             print(f"   Valid JSONSchema fields are: {sorted(valid_jsonschema_fields)}")
             print(f"   Tool output schema: {command_schema}")
-            print(f"\n💡 To fix this, update the JSONSchema model to support these fields")
-            print(f"   or modify the ToolVaultCommand schema to only use valid fields.")
+            print("\n💡 To fix this, update the JSONSchema model to support these fields")
+            print("   or modify the ToolVaultCommand schema to only use valid fields.")
             raise ToolDiscoveryError(
                 f"Tool '{tool.name}' has incompatible output schema. "
                 f"Invalid fields: {sorted(invalid_fields)}. "
@@ -741,7 +739,7 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
         except Exception as e:
             print(f"\n❌ TOOL CREATION FAILED for tool '{tool.name}':")
             print(f"   Error: {e}")
-            print(f"   Tool fields being passed:")
+            print("   Tool fields being passed:")
             print(f"     - name: {tool.name}")
             print(f"     - description: {tool.description}")
             print(f"     - inputSchema: {json_properties}")

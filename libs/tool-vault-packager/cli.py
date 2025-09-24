@@ -4,27 +4,27 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
 # Handle imports - try relative first, then absolute
 try:
     from discovery import discover_tools, generate_index_json
-    from server import create_app
     from packager import output_tool_details
+    from server import create_app
 except ImportError:
     try:
         from .discovery import discover_tools, generate_index_json
-        from .server import create_app
         from .packager import output_tool_details
+        from .server import create_app
     except ImportError:
         # Last resort: try explicit module paths
-        import sys
         import importlib.util
-        
+
         # Get the directory containing this file
         import os
+        import sys
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        
+
         # Load modules directly
         for module_name in ['discovery', 'server', 'packager']:
             module_path = os.path.join(current_dir, f"{module_name}.py")
@@ -33,10 +33,10 @@ except ImportError:
                 module = importlib.util.module_from_spec(spec)
                 sys.modules[module_name] = module
                 spec.loader.exec_module(module)
-        
+
         from discovery import discover_tools, generate_index_json
-        from server import create_app
         from packager import output_tool_details
+        from server import create_app
 
 
 def list_tools_command(tools_path: str):
@@ -44,15 +44,15 @@ def list_tools_command(tools_path: str):
     try:
         tools = discover_tools(tools_path)
         index_data = generate_index_json(tools)
-        
+
         print("Available Tools:")
         print("=" * 50)
-        
+
         for tool_info in index_data["tools"]:
             print(f"\nTool: {tool_info['name']}")
             print(f"Description: {tool_info['description']}")
             print("Parameters:")
-            
+
             if tool_info['inputSchema']['properties']:
                 for param_name, param_info in tool_info['inputSchema']['properties'].items():
                     param_type = param_info.get('type', 'unknown')
@@ -60,9 +60,9 @@ def list_tools_command(tools_path: str):
                     print(f"  - {param_name} ({param_type}): {param_desc}")
             else:
                 print("  No parameters")
-        
+
         print(f"\nTotal tools: {len(index_data['tools'])}")
-        
+
     except Exception as e:
         print(f"Error listing tools: {e}", file=sys.stderr)
         sys.exit(1)
@@ -133,26 +133,26 @@ def serve_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
     except ImportError:
         print("Error: uvicorn is required to run the server. Install with: pip install uvicorn", file=sys.stderr)
         sys.exit(1)
-    
+
     try:
         # Validate tools before starting server
         tools = discover_tools(tools_path)
         print(f"Discovered {len(tools)} tools")
-        
+
         # Create the app
         app = create_app(tools_path)
-        
+
         print(f"Server starting on http://{host}:{port}")
         print(f"Web interface: http://{host}:{port}/ui/")
         print(f"MCP API: http://{host}:{port}/tools/list")
         print(f"Tools directory: {tools_path}")
-        print(f"Additional endpoints:")
+        print("Additional endpoints:")
         print(f"  - POST http://{host}:{port}/tools/call")
         print(f"  - GET  http://{host}:{port}/health")
-        
+
         # Start the server
         uvicorn.run(app, host=host, port=port)
-        
+
     except Exception as e:
         print(f"Error starting server: {e}", file=sys.stderr)
         sys.exit(1)
@@ -173,41 +173,41 @@ Examples:
   python toolvault.pyz show-details            # Show detailed tool info with source code and git history
         """
     )
-    
+
     # Global arguments
     parser.add_argument(
         "--tools-path",
         default="tools",
         help="Path to tools directory (default: bundled tools for .pyz packages)"
     )
-    
+
     # Subcommands
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
-    
+
     # List tools command
     list_parser = subparsers.add_parser("list-tools", help="List all available tools")
-    
+
     # Call tool command
     call_parser = subparsers.add_parser("call-tool", help="Call a specific tool")
     call_parser.add_argument("tool_name", help="Name of the tool to call (use list-tools to see available tools)")
     call_parser.add_argument("arguments", help="Tool arguments as JSON string (e.g., '{\"text\": \"hello world\"}')")
-    
+
     # Serve command
     serve_parser = subparsers.add_parser("serve", help="Start the ToolVault server")
     serve_parser.add_argument("--port", type=int, default=8000, help="Server port (default: 8000)")
     serve_parser.add_argument("--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)")
-    
+
     # Show details command
     details_parser = subparsers.add_parser("show-details", help="Show detailed tool information including source code and git history")
-    
-    
+
+
     # Parse arguments
     args = parser.parse_args()
-    
+
     if not args.command:
         parser.print_help()
         sys.exit(1)
-    
+
     # Resolve tools path (handle special bundled case)
     if args.tools_path == "__bundled__":
         tools_path_str = "__bundled__"
@@ -217,7 +217,7 @@ Examples:
             print(f"Error: Tools directory does not exist: {tools_path}", file=sys.stderr)
             sys.exit(1)
         tools_path_str = str(tools_path)
-    
+
     # Execute command
     if args.command == "list-tools":
         list_tools_command(tools_path_str)
