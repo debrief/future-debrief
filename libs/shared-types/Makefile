@@ -178,6 +178,33 @@ copy-to-tool-vault-packager: ## Copy Python sources and required TypeScript type
 			cp -r src/types ../tool-vault-packager/shared-types/src/; \
 			echo "$(BLUE)  Copied TypeScript types for SPA$(RESET)"; \
 		fi; \
+		alias_dir=../tool-vault-packager/shared-types/src/types; \
+		mkdir -p "$$alias_dir"; \
+		echo "$(BLUE)  Creating compatibility shims for legacy type imports$(RESET)"; \
+		python3 - "$$alias_dir" <<'PY'; \
+import sys
+from pathlib import Path
+
+alias_dir = Path(sys.argv[1])
+
+shim_sources = {
+    "JSONSchema.ts": "export type { JSONSchema, JSONSchemaProperty } from './tools/json_schema';\n",
+    "Tool.ts": "export type { Tool } from './tools/tool';\n",
+    "ToolListResponse.ts": "export type { ToolListResponse } from './tools/tool_list_response';\n",
+    "ToolCallRequest.ts": "export type { ToolCallRequest } from './tools/tool_call_request';\n",
+    "ToolCallResponse.ts": "export type { ToolCallResponse } from './tools/tool_call_response';\n",
+    "GlobalToolIndexModel.ts": "export type { GlobalToolIndexModel } from './tools/global_tool_index';\n",
+    "ToolIndexModel.ts": "export type { ToolIndexModel } from './tools/tool_index';\n",
+    "ToolFileReference.ts": "export type { ToolFileReference } from './tools/tool_file_reference';\n",
+    "SampleInputReference.ts": "export type { SampleInputReference } from './tools/sample_input_reference';\n",
+    "GitHistoryEntry.ts": "export type { GitHistoryEntry } from './tools/git_history_entry';\n",
+    "GitHistory.ts": "export type { GitHistory } from './tools/git_history';\n",
+}
+
+for filename, content in shim_sources.items():
+    target = alias_dir / filename
+    target.write_text(content, encoding="utf-8")
+PY
 		if [ -f "src/index.ts" ]; then \
 			cp src/index.ts ../tool-vault-packager/shared-types/src/; \
 			echo "$(BLUE)  Copied TypeScript index file$(RESET)"; \
