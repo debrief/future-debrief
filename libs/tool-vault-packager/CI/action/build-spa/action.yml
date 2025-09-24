@@ -29,8 +29,24 @@ runs:
           exit 1
         fi
 
-        # Build SPA (copies shared-types and builds automatically)
-        npm run build:spa
+        pushd spa >/dev/null
+        npm install
+
+        if [ ! -d "node_modules/@debrief/shared-types/src/types" ]; then
+          echo "❌ shared-types dependency not installed correctly in spa/node_modules"
+          ls -R node_modules/@debrief || true
+          exit 1
+        fi
+
+        if [ ! -f "node_modules/@debrief/shared-types/src/types/Tool.ts" ]; then
+          echo "❌ Expected Tool.ts in shared-types dependency, but it was not found"
+          ls -R node_modules/@debrief/shared-types/src/types || true
+          exit 1
+        fi
+
+        npm run verify-deps
+        npm run build
+        popd >/dev/null
 
         # Verify SPA was built
         if [ -d "spa/dist" ]; then
