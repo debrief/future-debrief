@@ -19,6 +19,7 @@ try:
     from pygments import highlight
     from pygments.formatters import HtmlFormatter
     from pygments.lexers import PythonLexer
+
     PYGMENTS_AVAILABLE = True
 except ImportError:
     PYGMENTS_AVAILABLE = False
@@ -42,6 +43,7 @@ except ImportError:
 
 class PackagerError(Exception):
     """Raised when packaging encounters an error."""
+
     pass
 
 
@@ -52,10 +54,7 @@ def generate_highlighted_source_html(tool_name: str, source_code: str) -> str:
         # Use Pygments for syntax highlighting
         lexer = PythonLexer()
         formatter = HtmlFormatter(
-            style='default',
-            noclasses=True,
-            linenos=False,
-            cssclass='pygments-highlight'
+            style="default", noclasses=True, linenos=False, cssclass="pygments-highlight"
         )
         highlighted_code = highlight(source_code, lexer, formatter)
 
@@ -63,12 +62,16 @@ def generate_highlighted_source_html(tool_name: str, source_code: str) -> str:
         import re
 
         # Extract just the content from the <pre> tag, removing any outer divs
-        pre_match = re.search(r'<pre[^>]*>(.*?)</pre>', highlighted_code, re.DOTALL)
+        pre_match = re.search(r"<pre[^>]*>(.*?)</pre>", highlighted_code, re.DOTALL)
         if pre_match:
-            highlighted_content = f'<pre style="margin: 0; background: transparent;">{pre_match.group(1)}</pre>'
+            highlighted_content = (
+                f'<pre style="margin: 0; background: transparent;">{pre_match.group(1)}</pre>'
+            )
         else:
             # Fallback: wrap in <pre> with clean styling
-            highlighted_content = f'<pre style="margin: 0; background: transparent;">{highlighted_code}</pre>'
+            highlighted_content = (
+                f'<pre style="margin: 0; background: transparent;">{highlighted_code}</pre>'
+            )
 
         html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -246,7 +249,9 @@ def build_spa() -> bool:
                 return False
 
         # Build the SPA
-        result = subprocess.run(["npm", "run", "build"], cwd=spa_dir, capture_output=True, text=True)
+        result = subprocess.run(
+            ["npm", "run", "build"], cwd=spa_dir, capture_output=True, text=True
+        )
         if result.returncode != 0:
             print(f"SPA build failed: {result.stderr}")
             return False
@@ -263,7 +268,7 @@ def package_toolvault(
     tools_path: str,
     output_path: str = "toolvault.pyz",
     python_executable: str = "/usr/bin/env python3",
-    run_tests: bool = True
+    run_tests: bool = True,
 ) -> str:
     """
     Package ToolVault into a self-contained .pyz file.
@@ -314,15 +319,15 @@ def package_toolvault(
         if TestRunner is None or TestConfig is None:
             print("⚠️ Testing framework not available - skipping tests")
         else:
-            print("\n" + "="*50)
+            print("\n" + "=" * 50)
             print("Running tool tests before packaging...")
-            print("="*50)
+            print("=" * 50)
 
             try:
                 test_config = TestConfig(
                     tools_directory=str(tools_path),
                     report_and_continue=True,
-                    fail_on_any_error=True
+                    fail_on_any_error=True,
                 )
 
                 test_runner = TestRunner(test_config)
@@ -351,13 +356,7 @@ def package_toolvault(
         source_dir = Path(__file__).parent
 
         # Core modules to include
-        core_modules = [
-            "__init__.py",
-            "discovery.py",
-            "server.py",
-            "cli.py",
-            "packager.py"
-        ]
+        core_modules = ["__init__.py", "discovery.py", "server.py", "cli.py", "packager.py"]
 
         for module in core_modules:
             source_file = source_dir / module
@@ -373,7 +372,9 @@ def package_toolvault(
             shutil.copytree(testing_dir, testing_dest)
             print("Testing framework copied to package")
         else:
-            print("Warning: Testing directory not found - test commands may not work in packaged version")
+            print(
+                "Warning: Testing directory not found - test commands may not work in packaged version"
+            )
 
         # Copy tools directory with new structure
         tools_dest = package_dir / "tools"
@@ -393,17 +394,17 @@ def package_toolvault(
 
         # Generate and save index.json
         index_path = package_dir / "index.json"
-        with open(index_path, 'w') as f:
+        with open(index_path, "w") as f:
             json.dump(index_data, f, indent=2)
 
         # Create __main__.py entry point
         main_path = package_dir / "__main__.py"
-        with open(main_path, 'w') as f:
+        with open(main_path, "w") as f:
             f.write(create_main_module())
 
         # Create requirements.txt for documentation
         req_path = package_dir / "requirements.txt"
-        with open(req_path, 'w') as f:
+        with open(req_path, "w") as f:
             f.write(create_requirements_content())
 
         # Save detailed tool metadata to metadata folder
@@ -416,26 +417,27 @@ def package_toolvault(
             # Save git history
             if tool.git_history:
                 git_history_file = tool_metadata_dir / "git_history.json"
-                with open(git_history_file, 'w') as f:
+                with open(git_history_file, "w") as f:
                     json.dump(tool.git_history, f, indent=2)
 
             # Save source code as HTML with syntax highlighting
             if tool.source_code:
                 source_file = tool_metadata_dir / "source_code.html"
                 html_content = generate_highlighted_source_html(tool.name, tool.source_code)
-                with open(source_file, 'w') as f:
+                with open(source_file, "w") as f:
                     f.write(html_content)
-
 
             # Create tool-specific tool.json for SPA navigation using typed models
             sample_input_refs = []
             for sample_input in tool.sample_inputs:
-                sample_input_refs.append(SampleInputReference(
-                    name=sample_input["name"],
-                    path=f"samples/{sample_input['file']}",
-                    description=f"Sample input: {sample_input['name']}",
-                    type="json"
-                ))
+                sample_input_refs.append(
+                    SampleInputReference(
+                        name=sample_input["name"],
+                        path=f"samples/{sample_input['file']}",
+                        description=f"Sample input: {sample_input['name']}",
+                        type="json",
+                    )
+                )
 
             schema_refs = []
 
@@ -450,7 +452,8 @@ def package_toolvault(
             elif tool.parameters:
                 # Fallback: build a minimal schema from discovered parameters
                 required_fields = [
-                    name for name, schema in tool.parameters.items()
+                    name
+                    for name, schema in tool.parameters.items()
                     if isinstance(schema, dict) and schema.get("required")
                 ]
                 properties = {}
@@ -463,75 +466,71 @@ def package_toolvault(
                     "type": "object",
                     "properties": properties,
                     "required": required_fields,
-                    "additionalProperties": False
+                    "additionalProperties": False,
                 }
 
             if input_schema:
                 input_schema_path = schemas_dir / "input_schema.json"
-                with open(input_schema_path, 'w') as f:
+                with open(input_schema_path, "w") as f:
                     json.dump(input_schema, f, indent=2)
                 schema_refs.append(
                     ToolFileReference(
                         path="metadata/schemas/input_schema.json",
                         description=(
                             f"Input schema ({tool.pydantic_model.__name__})"
-                            if tool.pydantic_model is not None else
-                            "Input schema"
+                            if tool.pydantic_model is not None
+                            else "Input schema"
                         ),
-                        type="json"
+                        type="json",
                     )
                 )
 
             # Always expose the ToolVault command output schema for reference
             output_schema = ToolVaultCommand.model_json_schema()
             output_schema_path = schemas_dir / "output_schema.json"
-            with open(output_schema_path, 'w') as f:
+            with open(output_schema_path, "w") as f:
                 json.dump(output_schema, f, indent=2)
             schema_refs.append(
                 ToolFileReference(
                     path="metadata/schemas/output_schema.json",
                     description="Output schema (ToolVault command)",
-                    type="json"
+                    type="json",
                 )
             )
 
             tool_files = ToolFilesCollection(
                 execute=ToolFileReference(
-                    path="execute.py",
-                    description="Main tool implementation",
-                    type="python"
+                    path="execute.py", description="Main tool implementation", type="python"
                 ),
                 source_code=ToolFileReference(
                     path="metadata/source_code.html",
                     description="Pretty-printed source code",
-                    type="html"
+                    type="html",
                 ),
                 git_history=ToolFileReference(
-                    path="metadata/git_history.json",
-                    description="Git commit history",
-                    type="json"
+                    path="metadata/git_history.json", description="Git commit history", type="json"
                 ),
                 inputs=sample_input_refs,
-                schemas=schema_refs
+                schemas=schema_refs,
             )
 
             tool_stats = ToolStatsModel(
                 sample_inputs_count=len(tool.sample_inputs),
                 git_commits_count=len(tool.git_history),
-                source_code_length=len(tool.source_code) if tool.source_code else 0
+                source_code_length=len(tool.source_code) if tool.source_code else 0,
             )
 
             tool_index_model = ToolIndexModel(
                 tool_name=tool.name,
                 description=tool.description,
                 files=tool_files,
-                stats=tool_stats
+                stats=tool_stats,
             )
 
             # Save tool index in the package directory
             package_tool_dir = package_dir / "tools" / Path(tool.tool_dir).name
             package_tool_index_file = package_tool_dir / "tool.json"
-            with open(package_tool_index_file, 'w') as f:
+            with open(package_tool_index_file, "w") as f:
                 json.dump(tool_index_model.model_dump(), f, indent=2)
 
         print(f"Package contents created in {package_dir}")
@@ -543,7 +542,7 @@ def package_toolvault(
             source=str(package_dir),
             target=str(output_path),
             interpreter=python_executable,
-            compressed=True
+            compressed=True,
         )
 
         # Make executable
@@ -582,7 +581,9 @@ def output_tool_details(tools_path: str) -> None:
             if tool.git_history:
                 print(f"\nGit History ({len(tool.git_history)} commits):")
                 for i, commit in enumerate(tool.git_history[:5]):  # Show first 5 commits
-                    print(f"  {i+1}. {commit['hash'][:8]} - {commit['message']} ({commit['date'][:10]})")
+                    print(
+                        f"  {i + 1}. {commit['hash'][:8]} - {commit['message']} ({commit['date'][:10]})"
+                    )
                 if len(tool.git_history) > 5:
                     print(f"  ... and {len(tool.git_history) - 5} more commits")
 
@@ -590,9 +591,9 @@ def output_tool_details(tools_path: str) -> None:
                 print(f"\nSource Code ({len(tool.source_code)} characters):")
                 print("-" * 40)
                 # Show first 10 lines of source code
-                lines = tool.source_code.split('\n')
+                lines = tool.source_code.split("\n")
                 for i, line in enumerate(lines[:10]):
-                    print(f"{i+1:3d}: {line}")
+                    print(f"{i + 1:3d}: {line}")
                 if len(lines) > 10:
                     print(f"    ... and {len(lines) - 10} more lines")
                 print("-" * 40)
@@ -608,27 +609,23 @@ def main():
     """CLI entry point for the packager."""
     import argparse
 
-    parser = argparse.ArgumentParser(
-        description="Package ToolVault into a deployable .pyz file"
-    )
+    parser = argparse.ArgumentParser(description="Package ToolVault into a deployable .pyz file")
+    parser.add_argument("tools_path", help="Path to tools directory")
     parser.add_argument(
-        "tools_path",
-        help="Path to tools directory"
-    )
-    parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         default="toolvault.pyz",
-        help="Output path for .pyz file (default: toolvault.pyz)"
+        help="Output path for .pyz file (default: toolvault.pyz)",
     )
     parser.add_argument(
         "--python",
         default="/usr/bin/env python3",
-        help="Python executable for shebang (default: /usr/bin/env python3)"
+        help="Python executable for shebang (default: /usr/bin/env python3)",
     )
     parser.add_argument(
         "--show-details",
         action="store_true",
-        help="Show detailed tool information including source code and git history (no packaging)"
+        help="Show detailed tool information including source code and git history (no packaging)",
     )
 
     args = parser.parse_args()
@@ -640,9 +637,7 @@ def main():
 
     try:
         package_toolvault(
-            tools_path=args.tools_path,
-            output_path=args.output,
-            python_executable=args.python
+            tools_path=args.tools_path, output_path=args.output, python_executable=args.python
         )
     except PackagerError as e:
         print(f"Error: {e}", file=sys.stderr)

@@ -11,6 +11,7 @@ from .tool_tester import BaselineGenerator, TestResult, ToolTester
 @dataclass
 class TestConfig:
     """Configuration for test runner."""
+
     tools_directory: str = "./tools"
     samples_directory: str = "./samples"
     report_and_continue: bool = True
@@ -50,8 +51,12 @@ class TestRunner:
             sample_data = self.baseline_generator.load_sample_data(tool_name)
 
             if sample_data is None:
-                print(f"  Warning: No sample data found for {tool_name}. Skipping regression tests.")
-                print(f"  Run baseline generation first: python -m testing.cli generate-baseline {tool_name}")
+                print(
+                    f"  Warning: No sample data found for {tool_name}. Skipping regression tests."
+                )
+                print(
+                    f"  Run baseline generation first: python -m testing.cli generate-baseline {tool_name}"
+                )
                 continue
 
             # Run tests for this tool
@@ -85,7 +90,7 @@ class TestRunner:
                 print(f"  ✗ Some tests failed for {tool_name}")
 
         # Summary
-        print(f"\n{'='*50}")
+        print(f"\n{'=' * 50}")
         print("Test Summary:")
         print(f"Total tests: {total_tests}")
         print(f"Passed: {total_tests - failed_tests}")
@@ -111,7 +116,7 @@ class TestRunner:
             "passed_tests": len([r for r in self.test_results if r.success]),
             "failed_tests": len([r for r in self.test_results if not r.success]),
             "tools_tested": len(set(r.tool_name for r in self.test_results)),
-            "results": []
+            "results": [],
         }
 
         for result in self.test_results:
@@ -119,7 +124,7 @@ class TestRunner:
                 "tool_name": result.tool_name,
                 "input_file": result.input_file,
                 "success": result.success,
-                "execution_time": result.execution_time
+                "execution_time": result.execution_time,
             }
 
             if not result.success and result.error_message:
@@ -137,7 +142,7 @@ class TestRunner:
         """
         report = self.generate_test_report()
 
-        with open(output_file, 'w') as f:
+        with open(output_file, "w") as f:
             json.dump(report, f, indent=2)
 
         print(f"Test report saved to: {output_file}")

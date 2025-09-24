@@ -19,6 +19,7 @@ from debrief.types.tools import (
 
 class ToolDiscoveryError(Exception):
     """Raised when tool discovery encounters an error."""
+
     pass
 
 
@@ -38,7 +39,7 @@ class ToolMetadata:
         source_code: Optional[str] = None,
         git_history: Optional[List[Dict[str, Any]]] = None,
         module=None,
-        pydantic_model: Optional[type] = None
+        pydantic_model: Optional[type] = None,
     ):
         self.name = name
         self.function = function
@@ -101,12 +102,12 @@ def extract_first_sentence(text: str) -> str:
     import re
 
     # Look for sentence endings followed by whitespace or end of string
-    sentence_endings = r'[.!?](?:\s+|$)'
+    sentence_endings = r"[.!?](?:\s+|$)"
     match = re.search(sentence_endings, text)
 
     if match:
         # Return everything up to and including the sentence ending punctuation
-        return text[:match.end()].rstrip()
+        return text[: match.end()].rstrip()
 
     # If no sentence ending found, return the entire text (fallback)
     return text
@@ -129,8 +130,8 @@ def extract_type_annotations(func: Callable) -> Dict[str, str]:
                 )
 
         # Get return type
-        if 'return' in type_hints:
-            annotations['return'] = str(type_hints['return'])
+        if "return" in type_hints:
+            annotations["return"] = str(type_hints["return"])
         else:
             raise ToolDiscoveryError(
                 f"Missing return type annotation for function '{func.__name__}'"
@@ -173,28 +174,36 @@ def detect_pydantic_parameter_model(func: Callable, module=None) -> Optional[typ
         pydantic_models = []
         for name, obj in inspect.getmembers(module, inspect.isclass):
             # Check if it's a Pydantic BaseModel
-            if hasattr(obj, '__bases__'):
+            if hasattr(obj, "__bases__"):
                 for base in obj.__mro__:  # Method resolution order includes all base classes
-                    if base.__name__ == 'BaseModel' and hasattr(base, 'model_json_schema'):
+                    if base.__name__ == "BaseModel" and hasattr(base, "model_json_schema"):
                         # Found a Pydantic BaseModel, check if it's a parameter model
-                        if name.endswith('Parameters'):
+                        if name.endswith("Parameters"):
                             pydantic_models.append(obj)
                             break
 
         # If we found Pydantic parameter models, check if they're used in function annotations
         for model in pydantic_models:
             for param_name, param_type in type_hints.items():
-                if param_name == 'return':
+                if param_name == "return":
                     continue
 
                 # Check if the parameter type annotation references our Pydantic model
                 # Handle Union types like Union[WordCountParameters, str] (for backward compatibility)
-                if hasattr(param_type, '__origin__') and param_type.__origin__ is Union:
+                if hasattr(param_type, "__origin__") and param_type.__origin__ is Union:
                     # Check if any of the Union types is our Pydantic model
                     for union_type in param_type.__args__:
-                        if union_type is model or (hasattr(union_type, '__name__') and hasattr(model, '__name__') and union_type.__name__ == model.__name__):
+                        if union_type is model or (
+                            hasattr(union_type, "__name__")
+                            and hasattr(model, "__name__")
+                            and union_type.__name__ == model.__name__
+                        ):
                             return model
-                elif param_type is model or (hasattr(param_type, '__name__') and hasattr(model, '__name__') and param_type.__name__ == model.__name__):
+                elif param_type is model or (
+                    hasattr(param_type, "__name__")
+                    and hasattr(model, "__name__")
+                    and param_type.__name__ == model.__name__
+                ):
                     return model
 
         # If no direct annotation match, return the first parameter model if any
@@ -219,12 +228,12 @@ def extract_pydantic_parameters(pydantic_model: type) -> Dict[str, Any]:
         schema = pydantic_model.model_json_schema()
 
         # Extract properties (parameters) from the schema
-        parameters = schema.get('properties', {})
+        parameters = schema.get("properties", {})
 
         # Add required field information to each parameter
-        required_fields = schema.get('required', [])
+        required_fields = schema.get("required", [])
         for param_name, param_schema in parameters.items():
-            param_schema['required'] = param_name in required_fields
+            param_schema["required"] = param_name in required_fields
 
         return parameters
     except Exception as e:
@@ -243,13 +252,11 @@ def load_sample_inputs(inputs_dir: Path) -> List[Dict[str, Any]]:
 
     for json_file in inputs_dir.glob("*.json"):
         try:
-            with open(json_file, 'r') as f:
+            with open(json_file, "r") as f:
                 sample_data = json.load(f)
-                sample_inputs.append({
-                    "name": json_file.stem,
-                    "file": json_file.name,
-                    "data": sample_data
-                })
+                sample_inputs.append(
+                    {"name": json_file.stem, "file": json_file.name, "data": sample_data}
+                )
         except Exception as e:
             print(f"Warning: Failed to load sample input {json_file}: {e}")
 
@@ -260,7 +267,7 @@ def get_pretty_printed_source(func: Callable, file_path: Path) -> str:
     """Extract and format the complete source file."""
     try:
         # Primary: read the entire file for complete context
-        return file_path.read_text(encoding='utf-8')
+        return file_path.read_text(encoding="utf-8")
     except Exception as e:
         # Fallback: get just the function if file read fails
         try:
@@ -275,43 +282,39 @@ def get_git_history(file_path: Path, max_commits: int = 10) -> List[Dict[str, An
     try:
         # Get the git log for the specific file
         cmd = [
-            'git', 'log',
-            f'--max-count={max_commits}',
-            '--pretty=format:%H|%an|%ae|%ad|%s',
-            '--date=iso',
-            '--follow',  # Follow file renames
-            str(file_path)
+            "git",
+            "log",
+            f"--max-count={max_commits}",
+            "--pretty=format:%H|%an|%ae|%ad|%s",
+            "--date=iso",
+            "--follow",  # Follow file renames
+            str(file_path),
         ]
 
         result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            cwd=file_path.parent,
-            timeout=10
+            cmd, capture_output=True, text=True, cwd=file_path.parent, timeout=10
         )
 
         if result.returncode != 0:
             return []
 
         commits = []
-        for line in result.stdout.strip().split('\n'):
+        for line in result.stdout.strip().split("\n"):
             if not line:
                 continue
 
             try:
-                parts = line.split('|', 4)
+                parts = line.split("|", 4)
                 if len(parts) == 5:
                     commit_hash, author_name, author_email, date, message = parts
-                    commits.append({
-                        "hash": commit_hash,
-                        "author": {
-                            "name": author_name,
-                            "email": author_email
-                        },
-                        "date": date,
-                        "message": message
-                    })
+                    commits.append(
+                        {
+                            "hash": commit_hash,
+                            "author": {"name": author_name, "email": author_email},
+                            "date": date,
+                            "message": message,
+                        }
+                    )
             except ValueError:
                 continue
 
@@ -330,29 +333,29 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
 
     tools = []
 
-    with zipfile.ZipFile(zip_path, 'r') as zf:
+    with zipfile.ZipFile(zip_path, "r") as zf:
         # Find all tool directories (directories containing execute.py)
         tool_dirs = set()
         for file_info in zf.namelist():
-            if file_info.startswith('tools/') and file_info.endswith('/execute.py'):
+            if file_info.startswith("tools/") and file_info.endswith("/execute.py"):
                 # Extract tool directory name
-                parts = file_info.split('/')
+                parts = file_info.split("/")
                 if len(parts) >= 3:  # tools/toolname/execute.py
                     tool_dir = parts[1]
                     tool_dirs.add(tool_dir)
 
         # Process each tool directory
         for tool_name in tool_dirs:
-            execute_path = f'tools/{tool_name}/execute.py'
+            execute_path = f"tools/{tool_name}/execute.py"
 
             if execute_path not in zf.namelist():
                 continue
 
             # Extract and load the execute.py module
-            with tempfile.NamedTemporaryFile(mode='w+', suffix='.py', delete=False) as temp_file:
+            with tempfile.NamedTemporaryFile(mode="w+", suffix=".py", delete=False) as temp_file:
                 try:
                     # Extract and write the module content
-                    module_content = zf.read(execute_path).decode('utf-8')
+                    module_content = zf.read(execute_path).decode("utf-8")
                     temp_file.write(module_content)
                     temp_file.flush()
 
@@ -367,7 +370,8 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
 
                     # Find public functions
                     public_functions = [
-                        (name, obj) for name, obj in inspect.getmembers(module, inspect.isfunction)
+                        (name, obj)
+                        for name, obj in inspect.getmembers(module, inspect.isfunction)
                         if not name.startswith("_") and obj.__module__ == module_name
                     ]
 
@@ -387,43 +391,49 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
                         parameters = extract_pydantic_parameters(pydantic_model)
                     else:
                         # No Pydantic model found - tool needs to be migrated
-                        print(f"Warning: Tool '{func_name}' does not have a Pydantic parameter model. Skipping.")
+                        print(
+                            f"Warning: Tool '{func_name}' does not have a Pydantic parameter model. Skipping."
+                        )
                         continue
 
                     # Load sample inputs from zip
                     sample_inputs = []
-                    inputs_prefix = f'tools/{tool_name}/samples/'
+                    inputs_prefix = f"tools/{tool_name}/samples/"
                     for file_info in zf.namelist():
-                        if file_info.startswith(inputs_prefix) and file_info.endswith('.json'):
+                        if file_info.startswith(inputs_prefix) and file_info.endswith(".json"):
                             try:
-                                json_content = zf.read(file_info).decode('utf-8')
+                                json_content = zf.read(file_info).decode("utf-8")
                                 sample_data = json.loads(json_content)
-                                file_name = file_info.split('/')[-1]
-                                sample_inputs.append({
-                                    "name": file_name.replace('.json', ''),
-                                    "file": file_name,
-                                    "data": sample_data
-                                })
+                                file_name = file_info.split("/")[-1]
+                                sample_inputs.append(
+                                    {
+                                        "name": file_name.replace(".json", ""),
+                                        "file": file_name,
+                                        "data": sample_data,
+                                    }
+                                )
                             except Exception:
                                 pass  # Skip invalid JSON files
 
                     # Get return type
-                    return_type = type_annotations.get('return', 'object')
+                    return_type = type_annotations.get("return", "object")
 
-                    tools.append(ToolMetadata(
-                        name=func_name,
-                        function=func,
-                        description=description,
-                        parameters=parameters,
-                        return_type=return_type,
-                        module_path=execute_path,
-                        tool_dir=f'tools/{tool_name}',
-                        sample_inputs=sample_inputs,
-                        source_code=module_content,  # Use the extracted module content
-                        git_history=[],  # Not available in zip files
-                        module=module,  # Store module reference for Pydantic detection
-                        pydantic_model=pydantic_model
-                    ))
+                    tools.append(
+                        ToolMetadata(
+                            name=func_name,
+                            function=func,
+                            description=description,
+                            parameters=parameters,
+                            return_type=return_type,
+                            module_path=execute_path,
+                            tool_dir=f"tools/{tool_name}",
+                            sample_inputs=sample_inputs,
+                            source_code=module_content,  # Use the extracted module content
+                            git_history=[],  # Not available in zip files
+                            module=module,  # Store module reference for Pydantic detection
+                            pydantic_model=pydantic_model,
+                        )
+                    )
 
                 finally:
                     # Clean up temp file
@@ -453,6 +463,7 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
     if tools_path == "__bundled__":
         # We're running from a .pyz file - get the path to the current .pyz
         import sys
+
         pyz_path = sys.argv[0]  # This will be the .pyz file path
         return discover_tools_from_zip(pyz_path)
 
@@ -487,7 +498,8 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
 
         # Find public functions in the module
         public_functions = [
-            (name, obj) for name, obj in inspect.getmembers(module, inspect.isfunction)
+            (name, obj)
+            for name, obj in inspect.getmembers(module, inspect.isfunction)
             if not name.startswith("_") and obj.__module__ == module_name
         ]
 
@@ -517,7 +529,7 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
             continue
 
         # Get return type
-        return_type = type_annotations.get('return', 'object')
+        return_type = type_annotations.get("return", "object")
 
         # Load sample inputs
         inputs_dir = tool_dir / "samples"
@@ -529,20 +541,22 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
         # Get git history for this tool's execute.py
         git_history = get_git_history(execute_file)
 
-        tools.append(ToolMetadata(
-            name=func_name,
-            function=func,
-            description=description,
-            parameters=parameters,
-            return_type=return_type,
-            module_path=str(execute_file),
-            tool_dir=str(tool_dir),
-            sample_inputs=sample_inputs,
-            source_code=source_code,
-            git_history=git_history,
-            module=module,
-            pydantic_model=pydantic_model
-        ))
+        tools.append(
+            ToolMetadata(
+                name=func_name,
+                function=func,
+                description=description,
+                parameters=parameters,
+                return_type=return_type,
+                module_path=str(execute_file),
+                tool_dir=str(tool_dir),
+                sample_inputs=sample_inputs,
+                source_code=source_code,
+                git_history=git_history,
+                module=module,
+                pydantic_model=pydantic_model,
+            )
+        )
 
     if not tools:
         raise ToolDiscoveryError(f"No valid tools found in: {tools_path}")
@@ -570,16 +584,23 @@ def generate_tool_schema(tool: ToolMetadata) -> Dict[str, Any]:
         "properties": {
             "command": {
                 "type": "string",
-                "enum": ["addFeatures", "updateFeatures", "deleteFeatures", "setFeatureCollection",
-                        "showText", "showData", "showImage", "logMessage", "composite"],
-                "description": "The ToolVault command type"
+                "enum": [
+                    "addFeatures",
+                    "updateFeatures",
+                    "deleteFeatures",
+                    "setFeatureCollection",
+                    "showText",
+                    "showData",
+                    "showImage",
+                    "logMessage",
+                    "composite",
+                ],
+                "description": "The ToolVault command type",
             },
-            "payload": {
-                "description": "The command-specific payload data"
-            }
+            "payload": {"description": "The command-specific payload data"},
         },
         "required": ["command", "payload"],
-        "additionalProperties": False
+        "additionalProperties": False,
     }
 
     # For more specific return types like Union[ShowTextResult, SetFeatureCollectionResult],
@@ -592,9 +613,9 @@ def generate_tool_schema(tool: ToolMetadata) -> Dict[str, Any]:
             "type": "object",
             "properties": tool.parameters,
             "required": list(tool.parameters.keys()),
-            "additionalProperties": False
+            "additionalProperties": False,
         },
-        "outputSchema": output_schema
+        "outputSchema": output_schema,
     }
 
 
@@ -627,7 +648,7 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
             for param_name, param_schema in tool.parameters.items():
                 # Extract required field and remove it from the property schema
                 param_copy = param_schema.copy()
-                is_required = param_copy.pop('required', False)
+                is_required = param_copy.pop("required", False)
                 if is_required:
                     required_fields.append(param_name)
 
@@ -640,26 +661,56 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
         # Validate and report schema compatibility - using enhanced JSONSchema model
         valid_jsonschema_fields = {
             # Meta-schema information
-            '$schema', '$id', '$ref',
+            "$schema",
+            "$id",
+            "$ref",
             # Core schema fields
-            'type', 'title', 'description', 'examples', '$comment',
+            "type",
+            "title",
+            "description",
+            "examples",
+            "$comment",
             # Value constraints
-            'enum', 'const', 'default',
+            "enum",
+            "const",
+            "default",
             # Numeric constraints
-            'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf',
+            "minimum",
+            "maximum",
+            "exclusiveMinimum",
+            "exclusiveMaximum",
+            "multipleOf",
             # String constraints
-            'minLength', 'maxLength', 'pattern', 'format',
+            "minLength",
+            "maxLength",
+            "pattern",
+            "format",
             # Array constraints
-            'items', 'minItems', 'maxItems', 'uniqueItems', 'contains',
+            "items",
+            "minItems",
+            "maxItems",
+            "uniqueItems",
+            "contains",
             # Object constraints
-            'properties', 'required', 'additionalProperties', 'patternProperties',
-            'propertyNames', 'minProperties', 'maxProperties',
+            "properties",
+            "required",
+            "additionalProperties",
+            "patternProperties",
+            "propertyNames",
+            "minProperties",
+            "maxProperties",
             # Schema composition
-            'allOf', 'anyOf', 'oneOf', 'not',
+            "allOf",
+            "anyOf",
+            "oneOf",
+            "not",
             # Conditional schemas
-            'if', 'then', 'else',
+            "if",
+            "then",
+            "else",
             # Definitions and references
-            '$defs', 'definitions'
+            "$defs",
+            "definitions",
         }
         invalid_fields = set(command_schema.keys()) - valid_jsonschema_fields
 
@@ -677,32 +728,59 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
             )
 
         # Validate properties within the schema
-        schema_properties = command_schema.get('properties', {})
+        schema_properties = command_schema.get("properties", {})
         for prop_name, prop_schema in schema_properties.items():
             valid_property_fields = {
                 # Core schema fields
-                'type', 'description', 'title',
+                "type",
+                "description",
+                "title",
                 # Value constraints
-                'enum', 'const', 'default', 'examples',
+                "enum",
+                "const",
+                "default",
+                "examples",
                 # Numeric constraints
-                'minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf',
+                "minimum",
+                "maximum",
+                "exclusiveMinimum",
+                "exclusiveMaximum",
+                "multipleOf",
                 # String constraints
-                'minLength', 'maxLength', 'pattern', 'format',
+                "minLength",
+                "maxLength",
+                "pattern",
+                "format",
                 # Array constraints
-                'items', 'minItems', 'maxItems', 'uniqueItems',
+                "items",
+                "minItems",
+                "maxItems",
+                "uniqueItems",
                 # Object constraints
-                'properties', 'required', 'additionalProperties', 'patternProperties',
-                'propertyNames', 'minProperties', 'maxProperties',
+                "properties",
+                "required",
+                "additionalProperties",
+                "patternProperties",
+                "propertyNames",
+                "minProperties",
+                "maxProperties",
                 # Schema composition
-                'allOf', 'anyOf', 'oneOf', 'not',
+                "allOf",
+                "anyOf",
+                "oneOf",
+                "not",
                 # References
-                '$ref'
+                "$ref",
             }
             invalid_prop_fields = set(prop_schema.keys()) - valid_property_fields
 
             if invalid_prop_fields:
-                print(f"\n❌ PROPERTY SCHEMA INCOMPATIBILITY in tool '{tool.name}', property '{prop_name}':")
-                print(f"   Property contains invalid JSONSchemaProperty fields: {sorted(invalid_prop_fields)}")
+                print(
+                    f"\n❌ PROPERTY SCHEMA INCOMPATIBILITY in tool '{tool.name}', property '{prop_name}':"
+                )
+                print(
+                    f"   Property contains invalid JSONSchemaProperty fields: {sorted(invalid_prop_fields)}"
+                )
                 print(f"   Valid JSONSchemaProperty fields: {sorted(valid_property_fields)}")
                 print(f"   Property schema: {prop_schema}")
                 raise ToolDiscoveryError(
@@ -731,10 +809,10 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
                     type=JSONSchemaType.OBJECT,
                     properties=json_properties,
                     required=required_fields,
-                    additionalProperties=False
+                    additionalProperties=False,
                 ),
                 outputSchema=output_schema,
-                tool_url=f"/api/tools/{tool_dir_name}/tool.json"
+                tool_url=f"/api/tools/{tool_dir_name}/tool.json",
             )
         except Exception as e:
             print(f"\n❌ TOOL CREATION FAILED for tool '{tool.name}':")
@@ -750,10 +828,7 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
         tools_list.append(tool_instance)
 
     return GlobalToolIndexModel(
-        tools=tools_list,
-        version="1.0.0",
-        description="ToolVault packaged tools",
-        packageInfo=None
+        tools=tools_list, version="1.0.0", description="ToolVault packaged tools", packageInfo=None
     )
 
 

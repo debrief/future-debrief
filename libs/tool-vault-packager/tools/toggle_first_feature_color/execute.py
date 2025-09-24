@@ -19,11 +19,11 @@ class ToggleFirstFeatureColorParameters(BaseModel):
                         "type": "Feature",
                         "id": "feature_001",
                         "properties": {"color": "red", "dataType": "point"},
-                        "geometry": {"type": "Point", "coordinates": [0, 0]}
+                        "geometry": {"type": "Point", "coordinates": [0, 0]},
                     }
-                ]
+                ],
             }
-        ]
+        ],
     )
 
 
@@ -68,7 +68,7 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Too
         if not feature_collection.features or len(feature_collection.features) == 0:
             return ToolVaultCommand(
                 command=CommandType.SHOW_TEXT,
-                payload="No features found in the collection to toggle color"
+                payload="No features found in the collection to toggle color",
             )
 
         # Convert to dict for modification (since we need to return a dict)
@@ -87,23 +87,18 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Too
             first_feature["properties"]["color"] = "red"
 
         # Return ToolVault command to update the feature collection
-        return ToolVaultCommand(
-            command=CommandType.SET_FEATURE_COLLECTION,
-            payload=result
-        )
+        return ToolVaultCommand(command=CommandType.SET_FEATURE_COLLECTION, payload=result)
 
     except ValidationError as e:
         return ToolVaultCommand(
             command=CommandType.SHOW_TEXT,
-            payload=f"Input validation failed: {e.errors()[0]['msg']} at {e.errors()[0]['loc']}"
+            payload=f"Input validation failed: {e.errors()[0]['msg']} at {e.errors()[0]['loc']}",
         )
     except ValueError as e:
         return ToolVaultCommand(
-            command=CommandType.SHOW_TEXT,
-            payload=f"Invalid feature collection data: {str(e)}"
+            command=CommandType.SHOW_TEXT, payload=f"Invalid feature collection data: {str(e)}"
         )
     except Exception as e:
         return ToolVaultCommand(
-            command=CommandType.SHOW_TEXT,
-            payload=f"Color toggle failed: {str(e)}"
+            command=CommandType.SHOW_TEXT, payload=f"Color toggle failed: {str(e)}"
         )

@@ -1,5 +1,5 @@
 {
-  "name": "tool-vault-packager",
+  "name": "tool_vault_packager",
   "version": "1.0.0",
   "description": "ToolVault packaging system for creating deployable .pyz files",
   "main": "cli.py",

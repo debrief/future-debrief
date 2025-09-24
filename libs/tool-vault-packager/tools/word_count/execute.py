@@ -15,8 +15,8 @@ class WordCountParameters(BaseModel):
             "Hello world",
             "This is a longer text with multiple words to count",
             "",
-            "Single"
-        ]
+            "Single",
+        ],
     )
 
 
@@ -52,7 +52,4 @@ def word_count(params: WordCountParameters) -> ToolVaultCommand:
         count = len(text.strip().split())
 
     # Return ToolVault command object
-    return ToolVaultCommand(
-        command=CommandType.SHOW_TEXT,
-        payload=f"Word count: {count}"
-    )
+    return ToolVaultCommand(command=CommandType.SHOW_TEXT, payload=f"Word count: {count}")

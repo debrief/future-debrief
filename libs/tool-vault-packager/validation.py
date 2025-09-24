@@ -12,6 +12,7 @@ except ImportError:
 
 class ToolValidationError(Exception):
     """Raised when tool validation fails."""
+
     pass
 
 
@@ -52,7 +53,9 @@ def validate_json_against_schema(data: Any, schema: Dict[str, Any]) -> bool:
     return True
 
 
-def validate_tool_input(tool_name: str, arguments: Dict[str, Any], tool_schema: Dict[str, Any]) -> bool:
+def validate_tool_input(
+    tool_name: str, arguments: Dict[str, Any], tool_schema: Dict[str, Any]
+) -> bool:
     """
     Validate tool input arguments against the tool's schema.
 
@@ -76,7 +79,9 @@ def validate_tool_input(tool_name: str, arguments: Dict[str, Any], tool_schema: 
     required_params = input_schema.get("required", [])
     for param in required_params:
         if param not in arguments:
-            raise ToolValidationError(f"Missing required parameter '{param}' for tool '{tool_name}'")
+            raise ToolValidationError(
+                f"Missing required parameter '{param}' for tool '{tool_name}'"
+            )
 
     # Validate each parameter
     properties = input_schema.get("properties", {})
@@ -91,7 +96,9 @@ def validate_tool_input(tool_name: str, arguments: Dict[str, Any], tool_schema: 
     return True
 
 
-def validate_tool_output(tool_name: str, result: Any, tool_schema: Dict[str, Any] = None) -> Dict[str, Any]:
+def validate_tool_output(
+    tool_name: str, result: Any, tool_schema: Dict[str, Any] = None
+) -> Dict[str, Any]:
     """
     Validate and wrap tool output according to MCP specification.
 
@@ -108,10 +115,7 @@ def validate_tool_output(tool_name: str, result: Any, tool_schema: Dict[str, Any
     """
     # For now, just wrap the result
     # In Phase 2, this will include proper schema validation
-    wrapped_result = {
-        "result": result,
-        "isError": False
-    }
+    wrapped_result = {"result": result, "isError": False}
 
     return wrapped_result
 
@@ -129,7 +133,9 @@ class ToolExecutionValidator:
         self.tools_metadata = tools_metadata
         self._validation_cache = {}
 
-    def validate_and_execute(self, tool_name: str, tool_function, arguments: Dict[str, Any]) -> Dict[str, Any]:
+    def validate_and_execute(
+        self, tool_name: str, tool_function, arguments: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Validate arguments and execute tool with proper error handling.
 

@@ -52,11 +52,12 @@ except ImportError:
             raise ImportError("Could not locate discovery module")
 
 
-
 # Only define models if BaseModel is available
 if BaseModel is not None:
+
     class ErrorResponse(BaseModel):
         """Error response model."""
+
         error: str
         details: Optional[str] = None
 else:
@@ -73,7 +74,9 @@ class ToolVaultServer:
     def __init__(self, tools_path: str):
         """Initialize the server with tools from the specified path."""
         if FastAPI is None:
-            raise ImportError("FastAPI dependencies not available. Install with: pip install fastapi uvicorn")
+            raise ImportError(
+                "FastAPI dependencies not available. Install with: pip install fastapi uvicorn"
+            )
 
         # Store tools_path for use in endpoints
         self.tools_path = tools_path
@@ -81,7 +84,7 @@ class ToolVaultServer:
         self.app = FastAPI(
             title="ToolVault Server",
             description="MCP-compatible tool execution server",
-            version="1.0.0"
+            version="1.0.0",
         )
 
         # Add CORS middleware to allow cross-origin requests from SPA
@@ -108,13 +111,12 @@ class ToolVaultServer:
         # Setup routes
         self._setup_routes()
 
-
     def _setup_static_files(self):
         """Setup static file serving for SPA."""
         import sys
 
         # Check if running from a .pyz file
-        if str(sys.argv[0]).endswith('.pyz'):
+        if str(sys.argv[0]).endswith(".pyz"):
             # Running from packaged archive - need to handle static files differently
             print("Detected packaged mode - setting up archive static file serving")
             self._setup_archive_static_files()
@@ -140,7 +142,6 @@ class ToolVaultServer:
             else:
                 print("Warning: No SPA static files found")
 
-
     def _setup_archive_static_files(self):
         """Setup static file serving from within a .pyz archive."""
         import sys
@@ -151,12 +152,12 @@ class ToolVaultServer:
             pyz_path = sys.argv[0]
 
             # Read files from archive
-            with zipfile.ZipFile(pyz_path, 'r') as zf:
+            with zipfile.ZipFile(pyz_path, "r") as zf:
                 static_files = {}
 
                 # Find all static files in the archive
                 for file_info in zf.infolist():
-                    if file_info.filename.startswith('static/'):
+                    if file_info.filename.startswith("static/"):
                         # Read the file content
                         static_files[file_info.filename] = zf.read(file_info.filename)
 
@@ -169,7 +170,6 @@ class ToolVaultServer:
 
         except Exception as e:
             print(f"Error setting up archive static files: {e}")
-
 
     def _setup_archive_routes(self, static_files: dict):
         """Set up route handlers for static files from archive."""
@@ -192,25 +192,26 @@ class ToolVaultServer:
 
                 # Determine content type
                 content_type = "text/html"
-                if file_path.endswith('.js'):
+                if file_path.endswith(".js"):
                     content_type = "application/javascript"
-                elif file_path.endswith('.css'):
+                elif file_path.endswith(".css"):
                     content_type = "text/css"
-                elif file_path.endswith('.svg'):
+                elif file_path.endswith(".svg"):
                     content_type = "image/svg+xml"
-                elif file_path.endswith('.png'):
+                elif file_path.endswith(".png"):
                     content_type = "image/png"
-                elif file_path.endswith('.ico'):
+                elif file_path.endswith(".ico"):
                     content_type = "image/x-icon"
 
                 return Response(content=content, media_type=content_type)
             else:
                 # For SPA routing, serve index.html for unknown paths
                 if "static/index.html" in static_files:
-                    return Response(content=static_files["static/index.html"], media_type="text/html")
+                    return Response(
+                        content=static_files["static/index.html"], media_type="text/html"
+                    )
                 else:
                     raise HTTPException(status_code=404, detail="File not found")
-
 
     def _setup_routes(self):
         """Setup FastAPI routes."""
@@ -227,8 +228,8 @@ class ToolVaultServer:
                     "tools": "/tools/list",
                     "call": "/tools/call",
                     "ui": "/ui/",
-                    "health": "/health"
-                }
+                    "health": "/health",
+                },
             }
 
         @self.app.get("/tools/list")
@@ -237,10 +238,7 @@ class ToolVaultServer:
             try:
                 return JSONResponse(content=self.index_data)
             except Exception as e:
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Failed to list tools: {str(e)}"
-                )
+                raise HTTPException(status_code=500, detail=f"Failed to list tools: {str(e)}")
 
         @self.app.post("/tools/call")
         async def call_tool(request: ToolCallRequest):
@@ -248,10 +246,7 @@ class ToolVaultServer:
             tool_name = request.name
 
             if tool_name not in self.tools_by_name:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Tool '{tool_name}' not found"
-                )
+                raise HTTPException(status_code=404, detail=f"Tool '{tool_name}' not found")
 
             tool = self.tools_by_name[tool_name]
 
@@ -265,7 +260,7 @@ class ToolVaultServer:
                 result = tool.function(params_obj)
 
                 # Handle different result types
-                if hasattr(result, 'model_dump'):
+                if hasattr(result, "model_dump"):
                     # It's a Pydantic model (like ToolVaultCommand)
                     command_result = result.model_dump()
                 elif isinstance(result, dict) and "command" in result:
@@ -274,27 +269,17 @@ class ToolVaultServer:
                 else:
                     # Wrap non-command results as showText for backward compatibility
                     if isinstance(result, (str, int, float, bool)):
-                        command_result = {
-                            "command": "showText",
-                            "payload": str(result)
-                        }
+                        command_result = {"command": "showText", "payload": str(result)}
                     else:
-                        command_result = {
-                            "command": "showData",
-                            "payload": result
-                        }
+                        command_result = {"command": "showData", "payload": result}
 
                 # Return according to new schema format
-                return JSONResponse(content={
-                    "result": command_result,
-                    "isError": False
-                })
+                return JSONResponse(content={"result": command_result, "isError": False})
 
             except TypeError as e:
                 # Handle argument validation errors
                 raise HTTPException(
-                    status_code=400,
-                    detail=f"Invalid arguments for tool '{tool_name}': {str(e)}"
+                    status_code=400, detail=f"Invalid arguments for tool '{tool_name}': {str(e)}"
                 )
             except Exception as e:
                 # Handle tool execution errors
@@ -304,8 +289,8 @@ class ToolVaultServer:
                     content={
                         "error": f"Tool execution failed: {str(e)}",
                         "details": error_details,
-                        "isError": True
-                    }
+                        "isError": True,
+                    },
                 )
 
         @self.app.get("/api/tools/{full_path:path}")
@@ -314,28 +299,31 @@ class ToolVaultServer:
             import sys
 
             # Check if running from a .pyz file
-            if hasattr(sys, '_MEIPASS') or str(sys.argv[0]).endswith('.pyz'):
+            if hasattr(sys, "_MEIPASS") or str(sys.argv[0]).endswith(".pyz"):
                 # Running from packaged archive - read from zip
                 import zipfile
+
                 try:
                     pyz_path = sys.argv[0]
-                    with zipfile.ZipFile(pyz_path, 'r') as zf:
+                    with zipfile.ZipFile(pyz_path, "r") as zf:
                         tools_file_path = f"tools/{full_path}"
                         if tools_file_path in zf.namelist():
-                            content = zf.read(tools_file_path).decode('utf-8')
+                            content = zf.read(tools_file_path).decode("utf-8")
 
                             # Determine content type and serve file
-                            if full_path.endswith('.html'):
+                            if full_path.endswith(".html"):
                                 return HTMLResponse(content=content)
-                            elif full_path.endswith('.json'):
+                            elif full_path.endswith(".json"):
                                 return JSONResponse(content=json.loads(content))
-                            elif full_path.endswith('.py'):
+                            elif full_path.endswith(".py"):
                                 return PlainTextResponse(content=content, media_type="text/plain")
                             else:
                                 # Default to plain text for other file types
                                 return PlainTextResponse(content=content, media_type="text/plain")
                         else:
-                            raise HTTPException(status_code=404, detail=f"File '{full_path}' not found in archive")
+                            raise HTTPException(
+                                status_code=404, detail=f"File '{full_path}' not found in archive"
+                            )
                 except Exception as e:
                     raise HTTPException(status_code=500, detail=f"Error reading from archive: {e}")
             else:
@@ -344,9 +332,9 @@ class ToolVaultServer:
                 if self.tools:
                     # Use the parent directory of any tool to find the tools root
                     sample_tool_dir = Path(self.tools[0].tool_dir)
-                    if 'tools' in sample_tool_dir.parts:
-                        tools_index = sample_tool_dir.parts.index('tools')
-                        tools_root = Path(*sample_tool_dir.parts[:tools_index + 1])
+                    if "tools" in sample_tool_dir.parts:
+                        tools_index = sample_tool_dir.parts.index("tools")
+                        tools_root = Path(*sample_tool_dir.parts[: tools_index + 1])
                     else:
                         tools_root = sample_tool_dir.parent
 
@@ -365,25 +353,27 @@ class ToolVaultServer:
                 try:
                     requested_file.resolve().relative_to(tools_root.resolve())
                 except ValueError:
-                    raise HTTPException(status_code=403, detail="Access denied - path outside tools directory")
+                    raise HTTPException(
+                        status_code=403, detail="Access denied - path outside tools directory"
+                    )
 
                 # Check if file exists
                 if not requested_file.exists():
                     raise HTTPException(status_code=404, detail=f"File '{full_path}' not found")
 
                 # Determine content type and serve file
-                if full_path.endswith('.html'):
-                    content = requested_file.read_text(encoding='utf-8')
+                if full_path.endswith(".html"):
+                    content = requested_file.read_text(encoding="utf-8")
                     return HTMLResponse(content=content)
-                elif full_path.endswith('.json'):
-                    content = requested_file.read_text(encoding='utf-8')
+                elif full_path.endswith(".json"):
+                    content = requested_file.read_text(encoding="utf-8")
                     return JSONResponse(content=json.loads(content))
-                elif full_path.endswith('.py'):
-                    content = requested_file.read_text(encoding='utf-8')
+                elif full_path.endswith(".py"):
+                    content = requested_file.read_text(encoding="utf-8")
                     return PlainTextResponse(content=content, media_type="text/plain")
                 else:
                     # Default to plain text for other file types
-                    content = requested_file.read_text(encoding='utf-8')
+                    content = requested_file.read_text(encoding="utf-8")
                     return PlainTextResponse(content=content, media_type="text/plain")
 
         @self.app.get("/api/samples/{sample_file}")
@@ -392,20 +382,25 @@ class ToolVaultServer:
             import sys
 
             # Check if running from a .pyz file
-            if hasattr(sys, '_MEIPASS') or str(sys.argv[0]).endswith('.pyz'):
+            if hasattr(sys, "_MEIPASS") or str(sys.argv[0]).endswith(".pyz"):
                 # Running from packaged archive - read from zip
                 import zipfile
+
                 try:
                     pyz_path = sys.argv[0]
-                    with zipfile.ZipFile(pyz_path, 'r') as zf:
+                    with zipfile.ZipFile(pyz_path, "r") as zf:
                         sample_file_path = f"samples/{sample_file}"
                         if sample_file_path in zf.namelist():
-                            content = zf.read(sample_file_path).decode('utf-8')
+                            content = zf.read(sample_file_path).decode("utf-8")
                             return JSONResponse(content=json.loads(content))
                         else:
-                            raise HTTPException(status_code=404, detail=f"Sample file '{sample_file}' not found")
+                            raise HTTPException(
+                                status_code=404, detail=f"Sample file '{sample_file}' not found"
+                            )
                 except Exception as e:
-                    raise HTTPException(status_code=500, detail=f"Error reading sample file: {str(e)}")
+                    raise HTTPException(
+                        status_code=500, detail=f"Error reading sample file: {str(e)}"
+                    )
             else:
                 # Running in development mode - serve from filesystem
                 samples_dir = Path(self.tools_path).parent / "samples"
@@ -415,20 +410,28 @@ class ToolVaultServer:
                 try:
                     requested_file.resolve().relative_to(samples_dir.resolve())
                 except ValueError:
-                    raise HTTPException(status_code=403, detail="Access denied: file outside samples directory")
+                    raise HTTPException(
+                        status_code=403, detail="Access denied: file outside samples directory"
+                    )
 
                 # Check if file exists
                 if not requested_file.exists():
-                    raise HTTPException(status_code=404, detail=f"Sample file '{sample_file}' not found")
+                    raise HTTPException(
+                        status_code=404, detail=f"Sample file '{sample_file}' not found"
+                    )
 
                 # Parse and return JSON content
                 try:
-                    content = requested_file.read_text(encoding='utf-8')
+                    content = requested_file.read_text(encoding="utf-8")
                     return JSONResponse(content=json.loads(content))
                 except json.JSONDecodeError as e:
-                    raise HTTPException(status_code=500, detail=f"Invalid JSON in sample file: {str(e)}")
+                    raise HTTPException(
+                        status_code=500, detail=f"Invalid JSON in sample file: {str(e)}"
+                    )
                 except Exception as e:
-                    raise HTTPException(status_code=500, detail=f"Error reading sample file: {str(e)}")
+                    raise HTTPException(
+                        status_code=500, detail=f"Error reading sample file: {str(e)}"
+                    )
 
         @self.app.get("/health")
         async def health():
@@ -450,7 +453,7 @@ def create_app(tools_path: str = None) -> FastAPI:
         current_dir = Path(__file__).parent
 
         # Check if we're running from a .pyz file
-        if str(current_dir).endswith('.pyz'):
+        if str(current_dir).endswith(".pyz"):
             # Running from .pyz - use internal tools directory
             tools_path = str(current_dir / "tools")
         else:

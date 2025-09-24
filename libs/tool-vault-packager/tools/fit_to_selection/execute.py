@@ -14,18 +14,22 @@ class FitToSelectionParameters(BaseModel):
 
     features: List[DebriefFeature] = Field(
         description="Array of Debrief features to calculate bounds for",
-        examples=[[{
-            "type": "Feature",
-            "id": "track-001",
-            "geometry": {"type": "LineString", "coordinates": [[0, 0], [1, 1]]},
-            "properties": {"dataType": "track"}
-        }]]
+        examples=[
+            [
+                {
+                    "type": "Feature",
+                    "id": "track-001",
+                    "geometry": {"type": "LineString", "coordinates": [[0, 0], [1, 1]]},
+                    "properties": {"dataType": "track"},
+                }
+            ]
+        ],
     )
 
     padding: float = Field(
         default=0.1,
         description="Additional padding around bounds as percentage (0.1 = 10%)",
-        examples=[0.1, 0.05, 0.2]
+        examples=[0.1, 0.05, 0.2],
     )
 
 
@@ -45,13 +49,12 @@ def fit_to_selection(params: FitToSelectionParameters) -> ToolVaultCommand:
     try:
         if not params.features:
             return ToolVaultCommand(
-                command=CommandType.SHOW_TEXT,
-                payload="No features provided to fit viewport"
+                command=CommandType.SHOW_TEXT, payload="No features provided to fit viewport"
             )
 
         # Initialize bounds tracking
-        min_lng, min_lat = float('inf'), float('inf')
-        max_lng, max_lat = float('-inf'), float('-inf')
+        min_lng, min_lat = float("inf"), float("inf")
+        max_lng, max_lat = float("-inf"), float("-inf")
 
         def process_coordinates(coords):
             """Recursively process coordinates of any geometry type."""
@@ -74,16 +77,15 @@ def fit_to_selection(params: FitToSelectionParameters) -> ToolVaultCommand:
             geometry = feature.geometry
             if not geometry:
                 continue
-            coords = getattr(geometry, 'coordinates', [])
+            coords = getattr(geometry, "coordinates", [])
 
             if coords:
                 process_coordinates(coords)
 
         # Check if we found any valid coordinates
-        if min_lng == float('inf'):
+        if min_lng == float("inf"):
             return ToolVaultCommand(
-                command=CommandType.SHOW_TEXT,
-                payload="No valid coordinates found in features"
+                command=CommandType.SHOW_TEXT, payload="No valid coordinates found in features"
             )
 
         # Apply padding
@@ -104,19 +106,13 @@ def fit_to_selection(params: FitToSelectionParameters) -> ToolVaultCommand:
             min_lng - lng_padding,  # west
             min_lat - lat_padding,  # south
             max_lng + lng_padding,  # east
-            max_lat + lat_padding   # north
+            max_lat + lat_padding,  # north
         ]
 
         # Create setViewport command
-        return ToolVaultCommand(
-            command=CommandType.SET_VIEWPORT,
-            payload={
-                "bounds": bounds
-            }
-        )
+        return ToolVaultCommand(command=CommandType.SET_VIEWPORT, payload={"bounds": bounds})
 
     except Exception as e:
         return ToolVaultCommand(
-            command=CommandType.SHOW_TEXT,
-            payload=f"Error calculating feature bounds: {str(e)}"
+            command=CommandType.SHOW_TEXT, payload=f"Error calculating feature bounds: {str(e)}"
         )

@@ -10,19 +10,13 @@ def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(description="ToolVault Testing Framework")
     parser.add_argument(
-        "--tools-dir",
-        default="./tools",
-        help="Path to tools directory (default: ./tools)"
+        "--tools-dir", default="./tools", help="Path to tools directory (default: ./tools)"
     )
     parser.add_argument(
-        "--samples-dir",
-        default="./samples",
-        help="Path to samples directory (default: ./samples)"
+        "--samples-dir", default="./samples", help="Path to samples directory (default: ./samples)"
     )
     parser.add_argument(
-        "--no-fail-on-error",
-        action="store_true",
-        help="Don't fail packaging even if tests fail"
+        "--no-fail-on-error", action="store_true", help="Don't fail packaging even if tests fail"
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
@@ -32,19 +26,16 @@ def main():
     test_parser.add_argument(
         "--report-only",
         action="store_true",
-        help="Report all errors but don't stop on first failure"
+        help="Report all errors but don't stop on first failure",
     )
-    test_parser.add_argument(
-        "--save-report",
-        help="Save test report to specified file"
-    )
+    test_parser.add_argument("--save-report", help="Save test report to specified file")
 
     # Generate baseline command
-    baseline_parser = subparsers.add_parser("generate-baseline", help="Generate baseline expected outputs")
+    baseline_parser = subparsers.add_parser(
+        "generate-baseline", help="Generate baseline expected outputs"
+    )
     baseline_parser.add_argument(
-        "tool_name",
-        nargs="?",
-        help="Specific tool name (omit for all tools)"
+        "tool_name", nargs="?", help="Specific tool name (omit for all tools)"
     )
 
     # List tools command
@@ -60,7 +51,7 @@ def main():
     config = TestConfig(
         tools_directory=args.tools_dir,
         samples_directory=args.samples_dir,
-        fail_on_any_error=not args.no_fail_on_error
+        fail_on_any_error=not args.no_fail_on_error,
     )
 
     runner = TestRunner(config)

@@ -17,6 +17,7 @@ except ImportError:
 @dataclass
 class TestResult:
     """Result of a single tool test."""
+
     tool_name: str
     input_file: str
     success: bool
@@ -98,7 +99,9 @@ class ToolTester:
         except Exception as e:
             raise Exception(f"Tool execution failed: {str(e)}")
 
-    def run_single_test(self, tool_name: str, input_file: Path, expected_output: Optional[Dict[str, Any]] = None) -> TestResult:
+    def run_single_test(
+        self, tool_name: str, input_file: Path, expected_output: Optional[Dict[str, Any]] = None
+    ) -> TestResult:
         """Run a single test for a tool with specific input.
 
         Args:
@@ -115,7 +118,7 @@ class ToolTester:
 
         try:
             # Load input data
-            with open(input_file, 'r') as f:
+            with open(input_file, "r") as f:
                 input_data = json.load(f)
 
             # Execute tool
@@ -128,7 +131,7 @@ class ToolTester:
 
             if expected_output is not None:
                 # Convert Pydantic models to dictionaries for comparison
-                if hasattr(output, 'model_dump'):
+                if hasattr(output, "model_dump"):
                     output_dict = output.model_dump()
                 else:
                     output_dict = output
@@ -140,12 +143,16 @@ class ToolTester:
 
                     if output_json != expected_json:
                         success = False
-                        error_message = f"Output mismatch. Expected: {expected_output}, Got: {output_dict}"
+                        error_message = (
+                            f"Output mismatch. Expected: {expected_output}, Got: {output_dict}"
+                        )
                 except (TypeError, ValueError):
                     # Fallback to direct comparison if JSON serialization fails
                     if output_dict != expected_output:
                         success = False
-                        error_message = f"Output mismatch. Expected: {expected_output}, Got: {output_dict}"
+                        error_message = (
+                            f"Output mismatch. Expected: {expected_output}, Got: {output_dict}"
+                        )
 
             return TestResult(
                 tool_name=tool_name,
@@ -154,7 +161,7 @@ class ToolTester:
                 output=output,
                 expected_output=expected_output,
                 error_message=error_message,
-                execution_time=execution_time
+                execution_time=execution_time,
             )
 
         except Exception as e:
@@ -164,10 +171,12 @@ class ToolTester:
                 input_file=str(input_file),
                 success=False,
                 error_message=f"Test execution failed: {str(e)}\n{traceback.format_exc()}",
-                execution_time=execution_time
+                execution_time=execution_time,
             )
 
-    def run_all_tests_for_tool(self, tool_name: str, sample_data: Optional[Dict[str, Dict[str, Any]]] = None) -> List[TestResult]:
+    def run_all_tests_for_tool(
+        self, tool_name: str, sample_data: Optional[Dict[str, Dict[str, Any]]] = None
+    ) -> List[TestResult]:
         """Run all tests for a specific tool.
 
         Args:
@@ -182,14 +191,14 @@ class ToolTester:
 
         for sample_file in sample_files:
             # Load the sample file which contains both input and expectedOutput
-            with open(sample_file, 'r') as f:
+            with open(sample_file, "r") as f:
                 sample_content = json.load(f)
 
             input_data = sample_content.get("input", {})
             expected_output = sample_content.get("expectedOutput")
 
             # Create a temporary file to pass to run_single_test
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as temp_file:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as temp_file:
                 json.dump(input_data, temp_file, indent=2)
                 temp_file_path = temp_file.name
 
@@ -201,6 +210,7 @@ class ToolTester:
             finally:
                 # Clean up temp file
                 import os
+
                 os.unlink(temp_file_path)
 
         return results
@@ -245,7 +255,7 @@ class BaselineGenerator:
             sample_key = sample_file.stem  # filename without extension
 
             # Load sample data
-            with open(sample_file, 'r') as f:
+            with open(sample_file, "r") as f:
                 sample_content = json.load(f)
 
             # Extract input data from the sample structure
@@ -255,14 +265,11 @@ class BaselineGenerator:
             try:
                 expected_output = self.tester.execute_tool(tool_name, input_data)
 
-                sample_content = {
-                    "input": input_data,
-                    "expectedOutput": expected_output
-                }
+                sample_content = {"input": input_data, "expectedOutput": expected_output}
 
                 # Save individual sample file
                 sample_file = samples_dir / f"{sample_key}.json"
-                with open(sample_file, 'w') as f:
+                with open(sample_file, "w") as f:
                     json.dump(sample_content, f, indent=2)
 
                 print(f"Generated sample: {sample_file}")
@@ -274,12 +281,12 @@ class BaselineGenerator:
                 sample_content = {
                     "input": input_data,
                     "expectedOutput": None,
-                    "baseline_error": str(e)
+                    "baseline_error": str(e),
                 }
 
                 # Save individual sample file even with error
                 sample_file = samples_dir / f"{sample_key}.json"
-                with open(sample_file, 'w') as f:
+                with open(sample_file, "w") as f:
                     json.dump(sample_content, f, indent=2)
 
                 print(f"Generated sample with error: {sample_file}")
@@ -307,7 +314,7 @@ class BaselineGenerator:
         # Save each sample as a separate file with the same name as the input
         for sample_key, sample_content in sample_data.items():
             sample_file = samples_dir / f"{sample_key}.json"
-            with open(sample_file, 'w') as f:
+            with open(sample_file, "w") as f:
                 json.dump(sample_content, f, indent=2)
             print(f"Sample data saved to: {sample_file}")
 
@@ -367,7 +374,7 @@ class BaselineGenerator:
         for sample_file in samples_dir.glob("*.json"):
             sample_key = sample_file.stem  # filename without extension
             try:
-                with open(sample_file, 'r') as f:
+                with open(sample_file, "r") as f:
                     sample_content = json.load(f)
                     # Extract just the sample content (input and expectedOutput are already unified)
                     sample_data[sample_key] = sample_content

@@ -23,10 +23,11 @@ except ImportError:
         # Get the directory containing this file
         import os
         import sys
+
         current_dir = os.path.dirname(os.path.abspath(__file__))
 
         # Load modules directly
-        for module_name in ['discovery', 'server', 'packager']:
+        for module_name in ["discovery", "server", "packager"]:
             module_path = os.path.join(current_dir, f"{module_name}.py")
             if os.path.exists(module_path):
                 spec = importlib.util.spec_from_file_location(module_name, module_path)
@@ -53,10 +54,10 @@ def list_tools_command(tools_path: str):
             print(f"Description: {tool_info['description']}")
             print("Parameters:")
 
-            if tool_info['inputSchema']['properties']:
-                for param_name, param_info in tool_info['inputSchema']['properties'].items():
-                    param_type = param_info.get('type', 'unknown')
-                    param_desc = param_info.get('description', 'No description')
+            if tool_info["inputSchema"]["properties"]:
+                for param_name, param_info in tool_info["inputSchema"]["properties"].items():
+                    param_type = param_info.get("type", "unknown")
+                    param_desc = param_info.get("description", "No description")
                     print(f"  - {param_name} ({param_type}): {param_desc}")
             else:
                 print("  No parameters")
@@ -112,10 +113,7 @@ def call_tool_command(tools_path: str, tool_name: str, arguments: Dict[str, Any]
         result = call_tool_with_pydantic_support(tool, arguments)
 
         # Print result as JSON
-        output = {
-            "result": result,
-            "isError": False
-        }
+        output = {"result": result, "isError": False}
         print(json.dumps(output, indent=2, default=str))
 
     except TypeError as e:
@@ -131,7 +129,10 @@ def serve_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
     try:
         import uvicorn
     except ImportError:
-        print("Error: uvicorn is required to run the server. Install with: pip install uvicorn", file=sys.stderr)
+        print(
+            "Error: uvicorn is required to run the server. Install with: pip install uvicorn",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     try:
@@ -158,8 +159,6 @@ def serve_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
         sys.exit(1)
 
 
-
-
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -171,14 +170,14 @@ Examples:
   python toolvault.pyz call-tool <tool> <args> # Execute a specific tool
   python toolvault.pyz serve --port 8000       # Start MCP-compatible server
   python toolvault.pyz show-details            # Show detailed tool info with source code and git history
-        """
+        """,
     )
 
     # Global arguments
     parser.add_argument(
         "--tools-path",
         default="tools",
-        help="Path to tools directory (default: bundled tools for .pyz packages)"
+        help="Path to tools directory (default: bundled tools for .pyz packages)",
     )
 
     # Subcommands
@@ -189,17 +188,24 @@ Examples:
 
     # Call tool command
     call_parser = subparsers.add_parser("call-tool", help="Call a specific tool")
-    call_parser.add_argument("tool_name", help="Name of the tool to call (use list-tools to see available tools)")
-    call_parser.add_argument("arguments", help="Tool arguments as JSON string (e.g., '{\"text\": \"hello world\"}')")
+    call_parser.add_argument(
+        "tool_name", help="Name of the tool to call (use list-tools to see available tools)"
+    )
+    call_parser.add_argument(
+        "arguments", help='Tool arguments as JSON string (e.g., \'{"text": "hello world"}\')'
+    )
 
     # Serve command
     serve_parser = subparsers.add_parser("serve", help="Start the ToolVault server")
     serve_parser.add_argument("--port", type=int, default=8000, help="Server port (default: 8000)")
-    serve_parser.add_argument("--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)")
+    serve_parser.add_argument(
+        "--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)"
+    )
 
     # Show details command
-    subparsers.add_parser("show-details", help="Show detailed tool information including source code and git history")
-
+    subparsers.add_parser(
+        "show-details", help="Show detailed tool information including source code and git history"
+    )
 
     # Parse arguments
     args = parser.parse_args()

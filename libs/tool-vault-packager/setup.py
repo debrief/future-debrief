@@ -12,8 +12,8 @@ long_description = readme_path.read_text() if readme_path.exists() else ""
 requirements_path = Path(__file__).parent / "requirements.txt"
 requirements = []
 if requirements_path.exists():
-    requirements = requirements_path.read_text().strip().split('\n')
-    requirements = [req.strip() for req in requirements if req.strip() and not req.startswith('#')]
+    requirements = requirements_path.read_text().strip().split("\n")
+    requirements = [req.strip() for req in requirements if req.strip() and not req.startswith("#")]
 
 setup(
     name="toolvault-packager",
