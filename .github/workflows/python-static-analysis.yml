@@ -59,6 +59,14 @@ jobs:
         pnpm install
         pnpm --filter @debrief/shared-types build
 
+    - name: Verify shared-types assets copied
+      run: |
+        if [ ! -d "libs/tool-vault-packager/shared-types" ]; then
+          echo "::error::Missing shared-types artifacts in libs/tool-vault-packager/shared-types. Ensure @debrief/shared-types build copies assets before static analysis."
+          ls -R libs/tool-vault-packager || true
+          exit 1
+        fi
+
     - name: Install tool-vault-packager dependencies
       working-directory: libs/tool-vault-packager
       run: |
