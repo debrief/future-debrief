@@ -88,14 +88,14 @@ jobs:
       working-directory: libs/tool-vault-packager
       run: |
         echo "::group::Ruff Linting"
-        ruff check . || echo "::warning::Ruff found issues (non-blocking in gradual cleanup mode)"
+        ruff check .
         echo "::endgroup::"
 
     - name: Run mypy type checking
       working-directory: libs/tool-vault-packager
       run: |
         echo "::group::MyPy Type Checking"
-        mypy . || echo "::warning::MyPy found issues (non-blocking in gradual cleanup mode)"
+        mypy .
         echo "::endgroup::"
 
     - name: Check that tools would catch recent errors
