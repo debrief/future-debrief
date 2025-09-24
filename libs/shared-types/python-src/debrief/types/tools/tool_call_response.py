@@ -1,9 +1,10 @@
 """ToolCallResponse Pydantic model for tool execution results."""
 
+from abc import ABC
 from enum import Enum
 from typing import Any, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_serializer
 
 
 class CommandType(str, Enum):
@@ -85,8 +86,20 @@ class CompositeCommand(BaseModel):
         extra = "forbid"
 
 
-class ToolVaultCommand(BaseModel):
+def _normalise_output(value: Any) -> Any:
+    """Recursively normalise command output for JSON comparisons."""
+    if isinstance(value, dict):
+        return {key: _normalise_output(val) for key, val in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_normalise_output(item) for item in value]
+    if isinstance(value, Enum):
+        return value.value
+    return value
+
+
+class ToolVaultCommand(BaseModel, ABC):
     """A command returned by a ToolVault tool."""
+
     command: CommandType = Field(
         ...,
         description="The command type"
@@ -98,6 +111,34 @@ class ToolVaultCommand(BaseModel):
 
     class Config:
         extra = "forbid"
+
+    def __init__(self, **data: Any) -> None:
+        """Prevent direct instantiation of the abstract base command."""
+        if self.__class__ is ToolVaultCommand:
+            raise TypeError("ToolVaultCommand is abstract and cannot be instantiated directly")
+        super().__init__(**data)
+
+    @model_serializer(mode="plain")
+    def _serialize(self) -> Any:
+        """Ensure commands serialise with enum values, lists, and without nulls."""
+        data = {
+            "command": self.command,
+            "payload": self.payload,
+        }
+        return _normalise_output(data)
+
+
+def _tool_vault_command_model_dump(self: ToolVaultCommand, *args: Any, **kwargs: Any) -> Any:
+    """Monkey-patched serializer to match legacy expectations by default."""
+    if "mode" not in kwargs:
+        kwargs["mode"] = "json"
+    if "exclude_none" not in kwargs:
+        kwargs["exclude_none"] = False
+    data = BaseModel.model_dump(self, *args, **kwargs)
+    return _normalise_output(data)
+
+
+ToolVaultCommand.model_dump = _tool_vault_command_model_dump  # type: ignore[attr-defined]
 
 
 class ToolCallResponse(BaseModel):

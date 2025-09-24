@@ -19,6 +19,7 @@ from ..features.debrief_feature_collection import DebriefFeature, DebriefFeature
 
 # Import state types
 from ..states.selection_state import SelectionState
+from ..states.time_state import TimeState
 from ..states.viewport_state import ViewportState
 
 
@@ -75,6 +76,15 @@ class SetSelectionCommand(ToolVaultCommand):
     payload: SelectionState = Field(
         ...,
         description="Selection state to set"
+    )
+
+
+class SetTimeStateCommand(ToolVaultCommand):
+    """Command to update the editor time state."""
+    command: Literal["setTimeState"] = "setTimeState"
+    payload: TimeState = Field(
+        ...,
+        description="Time state to apply"
     )
 
 # Display commands
@@ -150,6 +160,7 @@ SpecificCommand = Union[
     SetFeatureCollectionCommand,
     SetViewportCommand,
     SetSelectionCommand,
+    SetTimeStateCommand,
     ShowTextCommand,
     ShowDataCommand,
     ShowImageCommand,
