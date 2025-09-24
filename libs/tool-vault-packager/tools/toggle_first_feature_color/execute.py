@@ -1,8 +1,11 @@
 """Feature color toggling tool for GeoJSON FeatureCollections."""
 
 from debrief.types.features import DebriefFeatureCollection
-from debrief.types.tools import ToolVaultCommand
-from debrief.types.tools.tool_call_response import CommandType
+from debrief.types.tools import (
+    SetFeatureCollectionCommand,
+    ShowTextCommand,
+    ToolVaultCommand,
+)
 from pydantic import BaseModel, Field, ValidationError
 
 
@@ -66,8 +69,7 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Too
 
         # Check if the collection has features
         if not feature_collection.features or len(feature_collection.features) == 0:
-            return ToolVaultCommand(
-                command=CommandType.SHOW_TEXT,
+            return ShowTextCommand(
                 payload="No features found in the collection to toggle color",
             )
 
@@ -87,18 +89,15 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Too
             first_feature["properties"]["color"] = "red"
 
         # Return ToolVault command to update the feature collection
-        return ToolVaultCommand(command=CommandType.SET_FEATURE_COLLECTION, payload=result)
+        updated_collection = DebriefFeatureCollection.model_validate(result)
+
+        return SetFeatureCollectionCommand(payload=updated_collection)
 
     except ValidationError as e:
-        return ToolVaultCommand(
-            command=CommandType.SHOW_TEXT,
+        return ShowTextCommand(
             payload=f"Input validation failed: {e.errors()[0]['msg']} at {e.errors()[0]['loc']}",
         )
     except ValueError as e:
-        return ToolVaultCommand(
-            command=CommandType.SHOW_TEXT, payload=f"Invalid feature collection data: {str(e)}"
-        )
+        return ShowTextCommand(payload=f"Invalid feature collection data: {str(e)}")
     except Exception as e:
-        return ToolVaultCommand(
-            command=CommandType.SHOW_TEXT, payload=f"Color toggle failed: {str(e)}"
-        )
+        return ShowTextCommand(payload=f"Color toggle failed: {str(e)}")

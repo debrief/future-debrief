@@ -1,13 +1,12 @@
 """Set TimeState current to the earliest timestamp from features."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 # Use hierarchical imports from shared-types
 from debrief.types.features import DebriefFeature
 from debrief.types.states import TimeState
-from debrief.types.tools import ToolVaultCommand
-from debrief.types.tools.tool_call_response import CommandType
+from debrief.types.tools import SetTimeStateCommand, ShowTextCommand, ToolVaultCommand
 from pydantic import BaseModel, Field
 
 
@@ -70,30 +69,33 @@ def select_feature_start_time(params: SelectFeatureStartTimeParameters) -> ToolV
                 continue
 
             # Parse timestamps and find the earliest
-            for timestamp_str in timestamps:
-                try:
-                    timestamp = datetime.fromisoformat(timestamp_str.replace("Z", "+00:00"))
-                    if earliest_timestamp is None or timestamp < earliest_timestamp:
-                        earliest_timestamp = timestamp
-                except (ValueError, AttributeError):
+            for timestamp_value in timestamps:
+                timestamp = None
+
+                if isinstance(timestamp_value, datetime):
+                    timestamp = timestamp_value
+                elif isinstance(timestamp_value, str):
+                    try:
+                        timestamp = datetime.fromisoformat(timestamp_value.replace("Z", "+00:00"))
+                    except ValueError:
+                        continue
+                else:
                     continue
 
-        if earliest_timestamp is None:
-            return ToolVaultCommand(
-                command=CommandType.SHOW_TEXT, payload="No valid timestamps found in features"
-            )
+                if timestamp.tzinfo is None:
+                    timestamp = timestamp.replace(tzinfo=timezone.utc)
 
-        # Create setState command with updated time state
-        return ToolVaultCommand(
-            command=CommandType.SET_TIME_STATE,
-            payload={
-                "current": earliest_timestamp.isoformat().replace("+00:00", "Z"),
-                "start": params.current_time_state.start.isoformat().replace("+00:00", "Z"),
-                "end": params.current_time_state.end.isoformat().replace("+00:00", "Z"),
-            },
+                if earliest_timestamp is None or timestamp < earliest_timestamp:
+                    earliest_timestamp = timestamp
+
+        if earliest_timestamp is None:
+            return ShowTextCommand(payload="No valid timestamps found in features")
+
+        updated_time_state = params.current_time_state.model_copy(
+            update={"current": earliest_timestamp}
         )
+
+        return SetTimeStateCommand(payload=updated_time_state)
 
     except Exception as e:
-        return ToolVaultCommand(
-            command=CommandType.SHOW_TEXT, payload=f"Error finding earliest timestamp: {str(e)}"
-        )
+        return ShowTextCommand(payload=f"Error finding earliest timestamp: {str(e)}")

@@ -3,8 +3,7 @@
 from typing import List
 
 from debrief.types.features import DebriefTrackFeature
-from debrief.types.tools import ToolVaultCommand
-from debrief.types.tools.tool_call_response import CommandType
+from debrief.types.tools import ShowDataCommand, ShowTextCommand, ToolVaultCommand
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
 
@@ -183,14 +182,12 @@ def track_speed_filter_fast(params: TrackSpeedFilterFastParameters) -> ToolVault
                 high_speed_times.append(timestamps[i])
 
         if not high_speed_times:
-            return ToolVaultCommand(
-                command=CommandType.SHOW_TEXT,
+            return ShowTextCommand(
                 payload=f"No timestamps found where speed >= {min_speed} knots",
             )
 
         # Return structured data for better visualization
-        return ToolVaultCommand(
-            command=CommandType.SHOW_DATA,
+        return ShowDataCommand(
             payload={
                 "title": f"Fast Track Speed Filter Results (>= {min_speed} knots)",
                 "count": len(high_speed_times),
@@ -201,15 +198,10 @@ def track_speed_filter_fast(params: TrackSpeedFilterFastParameters) -> ToolVault
         )
 
     except ValidationError as e:
-        return ToolVaultCommand(
-            command=CommandType.SHOW_TEXT,
+        return ShowTextCommand(
             payload=f"Input validation failed: {e.errors()[0]['msg']} at {e.errors()[0]['loc']}",
         )
     except ValueError as e:
-        return ToolVaultCommand(
-            command=CommandType.SHOW_TEXT, payload=f"Invalid track data: {str(e)}"
-        )
+        return ShowTextCommand(payload=f"Invalid track data: {str(e)}")
     except Exception as e:
-        return ToolVaultCommand(
-            command=CommandType.SHOW_TEXT, payload=f"Speed filtering failed: {str(e)}"
-        )
+        return ShowTextCommand(payload=f"Speed filtering failed: {str(e)}")
