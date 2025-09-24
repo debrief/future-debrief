@@ -42,12 +42,12 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
   const toolFilterService = useMemo(() => new ToolFilterService(), []);
 
   // Get applicable tools from filter service and track which tools are available
-  const { availableTools, applicableToolNames } = useMemo(() => {
+  const { availableTools, applicableToolNames, warnings } = useMemo(() => {
     if (!enableSmartFiltering || !toolList.tools) {
       // Phase 1: Show all tools, all are considered applicable
       const tools = toolList.tools || [];
       const toolNames = new Set(tools.map(tool => tool.name));
-      return { availableTools: tools, applicableToolNames: toolNames };
+      return { availableTools: tools, applicableToolNames: toolNames, warnings: [] };
     }
 
     // Phase 2: Use ToolFilterService
@@ -56,24 +56,29 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
       const result = toolFilterService.getApplicableTools(selectedFeatures, toolsData);
       const applicableNames = new Set(result.tools.map(tool => tool.name));
 
-      // Update warnings only when filtering is active
-      if (!showAll) {
-        setFilterWarnings(result.warnings);
-      } else {
-        setFilterWarnings([]); // Clear warnings when showing all
-      }
-
       // Return filtered tools or all tools based on showAll prop
       const tools = showAll ? toolList.tools || [] : result.tools;
-      return { availableTools: tools, applicableToolNames: applicableNames };
+
+      // Determine warnings based on filtering state
+      const warnings = !showAll ? result.warnings : [];
+
+      return { availableTools: tools, applicableToolNames: applicableNames, warnings };
     } catch (error) {
       console.error('Error filtering tools:', error);
-      setFilterWarnings(['Error filtering tools - showing all available tools']);
       const tools = toolList.tools || [];
       const toolNames = new Set(tools.map(tool => tool.name));
-      return { availableTools: tools, applicableToolNames: toolNames };
+      return {
+        availableTools: tools,
+        applicableToolNames: toolNames,
+        warnings: ['Error filtering tools - showing all available tools']
+      };
     }
   }, [toolList.tools, selectedFeatures, enableSmartFiltering, showAll, toolFilterService]);
+
+  // Update filter warnings based on computed results
+  React.useEffect(() => {
+    setFilterWarnings(warnings);
+  }, [warnings]);
 
   // Apply search filtering to the available tools
   const searchFilteredTools = useMemo(() => {
@@ -118,6 +123,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
     }
   }, []);
 
+  // Handle click outside to close menu
   React.useEffect(() => {
     if (isMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
