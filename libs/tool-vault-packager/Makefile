@@ -17,7 +17,7 @@ NEWEST_SPA := $(shell ls -t $(SPA_FILES) | head -1)
 REQUIRED_FILES := dist/toolvault.pyz shared-types/python-src shared-types/src spa/dist/index.html
 REQUIRED_DIRS := spa/node_modules node_modules
 
-.PHONY: help verify verify-artifacts verify-tests verify-typecheck
+.PHONY: help verify verify-artifacts verify-tests verify-typecheck lint lint-fix type-check check-all install-dev-deps
 
 help: ## Show this help message
 	@echo "$(BLUE)tool-vault-packager - Fast Verification$(RESET)"
@@ -25,8 +25,38 @@ help: ## Show this help message
 	@echo "$(GREEN)Available targets:$(RESET)"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(BLUE)%-15s$(RESET) %s\n", $$1, $$2}'
 
-verify: verify-artifacts verify-tests ## Fast verification (timestamp-based)
+verify: verify-artifacts verify-tests verify-static-analysis ## Fast verification (timestamp-based)
 	@echo "$(GREEN)✅ All tool-vault-packager verifications passed!$(RESET)"
+
+verify-static-analysis: ## Run static analysis as part of verification (non-blocking)
+	@echo "$(BLUE)🔍 Running static analysis (non-blocking)...$(RESET)"
+	@if command -v ruff >/dev/null 2>&1 && command -v mypy >/dev/null 2>&1; then \
+		echo "$(BLUE)📦 Static analysis tools available, running checks...$(RESET)"; \
+		$(MAKE) check-all || echo "$(RED)⚠️  Static analysis issues found (non-blocking in gradual cleanup mode)$(RESET)"; \
+	else \
+		echo "$(BLUE)📦 Static analysis tools not installed (optional in gradual cleanup mode)$(RESET)"; \
+		echo "$(BLUE)💡 To install: make install-dev-deps$(RESET)"; \
+	fi
+
+# Static Analysis Targets
+install-dev-deps: ## Install development dependencies including static analysis tools
+	@echo "$(BLUE)📦 Installing development dependencies...$(RESET)"
+	@pip install -r requirements-dev.txt && echo "$(GREEN)✅ Development dependencies installed$(RESET)" || (echo "$(RED)❌ Failed to install development dependencies$(RESET)" && exit 1)
+
+lint: ## Run ruff linting (non-blocking)
+	@echo "$(BLUE)🔍 Running ruff linting...$(RESET)"
+	@ruff check . && echo "$(GREEN)✅ Linting passed$(RESET)" || (echo "$(RED)❌ Linting issues found (non-blocking)$(RESET)" && true)
+
+lint-fix: ## Run ruff linting with auto-fix and formatting
+	@echo "$(BLUE)🔧 Running ruff with auto-fix and formatting...$(RESET)"
+	@ruff check . --fix && ruff format . && echo "$(GREEN)✅ Code formatted and fixed$(RESET)" || (echo "$(RED)❌ Some issues couldn't be auto-fixed$(RESET)" && true)
+
+type-check: ## Run mypy type checking (non-blocking)
+	@echo "$(BLUE)🔍 Running mypy type checking...$(RESET)"
+	@mypy . && echo "$(GREEN)✅ Type checking passed$(RESET)" || (echo "$(RED)❌ Type checking issues found (non-blocking)$(RESET)" && true)
+
+check-all: lint type-check ## Run all static analysis checks
+	@echo "$(GREEN)✅ All static analysis checks completed$(RESET)"
 
 verify-artifacts: $(REQUIRED_FILES) $(REQUIRED_DIRS) ## Verify build artifacts are up-to-date
 	@echo "$(GREEN)✅ All build artifacts are up-to-date$(RESET)"

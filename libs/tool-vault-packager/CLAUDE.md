@@ -29,6 +29,13 @@ Refer to README.md for user documentation and DEVELOPERS.md for detailed archite
 - `npm run test:playwright:ui` - Run Playwright tests with UI
 - `npm run test:playwright:both` - Run tests against both dev server and pyz package
 
+### Static Analysis
+- `npm run install:dev-deps` - Install development dependencies including static analysis tools
+- `npm run lint` - Run ruff linting (non-blocking)
+- `npm run lint:fix` - Run ruff with auto-fix and formatting
+- `npm run typecheck` - Run mypy type checking (non-blocking)
+- `npm run check:all` - Run all static analysis checks
+
 ### Direct Python Commands
 ```bash
 # Start server for development
