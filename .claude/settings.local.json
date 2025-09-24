@@ -178,7 +178,8 @@
       "Bash(./scripts/validate-pre-push.sh:*)",
       "Bash(tsc:*)",
       "Bash(./.husky/pre-push:*)",
-      "Bash(mypy:*)"
+      "Bash(mypy:*)",
+      "Bash(git merge:*)"
     ]
   }
 }
