@@ -26,10 +26,8 @@
       "type": "FeatureCollection",
       "features": [
         {
-          "bbox": null,
           "type": "Feature",
           "geometry": {
-            "bbox": null,
             "type": "Point",
             "coordinates": [
               0.0,
@@ -44,8 +42,7 @@
             "name": "Test Point",
             "description": null,
             "color": "blue"
-          },
-          "id": null
+          }
         }
       ],
       "bbox": null,
