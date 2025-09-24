@@ -95,6 +95,26 @@ class ToolVaultServer:
         except Exception as e:
             raise RuntimeError(f"Failed to initialize tools: {e}")
 
+        # Detect runtime context
+        self._running_from_archive = hasattr(sys, "_MEIPASS") or str(sys.argv[0]).endswith(".pyz")
+
+        # Pre-compute sample lookups when serving from the filesystem
+        self.samples_by_tool: dict[str, dict[str, Path]] = {}
+        self.samples_by_name: dict[str, Path] = {}
+        if not self._running_from_archive:
+            for tool in self.tools:
+                samples_dir = Path(tool.tool_dir) / "samples"
+                if not samples_dir.exists():
+                    continue
+
+                file_map: dict[str, Path] = {}
+                for sample_path in samples_dir.glob("*.json"):
+                    file_map[sample_path.name] = sample_path
+                    self.samples_by_name.setdefault(sample_path.name, sample_path)
+
+                if file_map:
+                    self.samples_by_tool[tool.name] = file_map
+
         # Setup static files for SPA
         self._setup_static_files()
 
@@ -286,6 +306,45 @@ class ToolVaultServer:
                     },
                 )
 
+        def _load_json_from_archive(inner_path: str) -> JSONResponse:
+            import zipfile
+
+            try:
+                pyz_path = sys.argv[0]
+                with zipfile.ZipFile(pyz_path, "r") as zf:
+                    if inner_path in zf.namelist():
+                        content = zf.read(inner_path).decode("utf-8")
+                        return JSONResponse(content=json.loads(content))
+            except json.JSONDecodeError as exc:
+                raise HTTPException(status_code=500, detail=f"Invalid JSON in sample file: {exc}")
+            except Exception as exc:
+                raise HTTPException(status_code=500, detail=f"Error reading archive: {exc}")
+
+            raise HTTPException(status_code=404, detail=f"File '{inner_path}' not found")
+
+        @self.app.get("/api/tools/{tool_name}/samples/{sample_file}")
+        async def get_tool_sample(tool_name: str, sample_file: str):
+            """Serve a specific sample file for a tool."""
+
+            if self._running_from_archive:
+                return _load_json_from_archive(f"tools/{tool_name}/samples/{sample_file}")
+
+            sample_map = self.samples_by_tool.get(tool_name, {})
+            file_path = sample_map.get(sample_file)
+            if file_path is None or not file_path.exists():
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"Sample file '{sample_file}' not found for tool '{tool_name}'",
+                )
+
+            try:
+                content = file_path.read_text(encoding="utf-8")
+                return JSONResponse(content=json.loads(content))
+            except json.JSONDecodeError as exc:
+                raise HTTPException(status_code=500, detail=f"Invalid JSON in sample file: {exc}")
+            except Exception as exc:
+                raise HTTPException(status_code=500, detail=f"Error reading sample file: {exc}")
+
         @self.app.get("/api/tools/{full_path:path}")
         async def get_tool_file(full_path: str):
             """Serve any file from the tools directory structure."""
@@ -371,60 +430,31 @@ class ToolVaultServer:
 
         @self.app.get("/api/samples/{sample_file}")
         async def get_sample_file(sample_file: str):
-            """Serve sample files from the samples directory."""
-            import sys
+            """Serve a sample file by its filename, searching all tools."""
 
-            # Check if running from a .pyz file
-            if hasattr(sys, "_MEIPASS") or str(sys.argv[0]).endswith(".pyz"):
-                # Running from packaged archive - read from zip
-                import zipfile
+            if self._running_from_archive:
+                for tool in self.tools_by_name.values():
+                    archive_path = f"tools/{tool.name}/samples/{sample_file}"
+                    try:
+                        return _load_json_from_archive(archive_path)
+                    except HTTPException as exc:
+                        if exc.status_code != 404:
+                            raise
+                        # Try next tool
+                        continue
+                raise HTTPException(status_code=404, detail=f"Sample file '{sample_file}' not found")
 
-                try:
-                    pyz_path = sys.argv[0]
-                    with zipfile.ZipFile(pyz_path, "r") as zf:
-                        sample_file_path = f"samples/{sample_file}"
-                        if sample_file_path in zf.namelist():
-                            content = zf.read(sample_file_path).decode("utf-8")
-                            return JSONResponse(content=json.loads(content))
-                        else:
-                            raise HTTPException(
-                                status_code=404, detail=f"Sample file '{sample_file}' not found"
-                            )
-                except Exception as e:
-                    raise HTTPException(
-                        status_code=500, detail=f"Error reading sample file: {str(e)}"
-                    )
-            else:
-                # Running in development mode - serve from filesystem
-                samples_dir = Path(self.tools_path).parent / "samples"
-                requested_file = samples_dir / sample_file
+            file_path = self.samples_by_name.get(sample_file)
+            if file_path is None or not file_path.exists():
+                raise HTTPException(status_code=404, detail=f"Sample file '{sample_file}' not found")
 
-                # Security check: ensure the file is within the samples directory
-                try:
-                    requested_file.resolve().relative_to(samples_dir.resolve())
-                except ValueError:
-                    raise HTTPException(
-                        status_code=403, detail="Access denied: file outside samples directory"
-                    )
-
-                # Check if file exists
-                if not requested_file.exists():
-                    raise HTTPException(
-                        status_code=404, detail=f"Sample file '{sample_file}' not found"
-                    )
-
-                # Parse and return JSON content
-                try:
-                    content = requested_file.read_text(encoding="utf-8")
-                    return JSONResponse(content=json.loads(content))
-                except json.JSONDecodeError as e:
-                    raise HTTPException(
-                        status_code=500, detail=f"Invalid JSON in sample file: {str(e)}"
-                    )
-                except Exception as e:
-                    raise HTTPException(
-                        status_code=500, detail=f"Error reading sample file: {str(e)}"
-                    )
+            try:
+                content = file_path.read_text(encoding="utf-8")
+                return JSONResponse(content=json.loads(content))
+            except json.JSONDecodeError as exc:
+                raise HTTPException(status_code=500, detail=f"Invalid JSON in sample file: {exc}")
+            except Exception as exc:
+                raise HTTPException(status_code=500, detail=f"Error reading sample file: {exc}")
 
         @self.app.get("/health")
         async def health():
