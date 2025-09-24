@@ -41,16 +41,20 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
 
   const toolFilterService = useMemo(() => new ToolFilterService(), []);
 
-  const availableTools = useMemo(() => {
+  // Get applicable tools from filter service and track which tools are available
+  const { availableTools, applicableToolNames } = useMemo(() => {
     if (!enableSmartFiltering || !toolList.tools) {
-      // Phase 1: Show all tools
-      return toolList.tools || [];
+      // Phase 1: Show all tools, all are considered applicable
+      const tools = toolList.tools || [];
+      const toolNames = new Set(tools.map(tool => tool.name));
+      return { availableTools: tools, applicableToolNames: toolNames };
     }
 
-    // Phase 2: Use ToolFilterService but respect showAll setting
+    // Phase 2: Use ToolFilterService
     try {
       const toolsData = { tools: toolList.tools };
       const result = toolFilterService.getApplicableTools(selectedFeatures, toolsData);
+      const applicableNames = new Set(result.tools.map(tool => tool.name));
 
       // Update warnings only when filtering is active
       if (!showAll) {
@@ -60,11 +64,14 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
       }
 
       // Return filtered tools or all tools based on showAll prop
-      return showAll ? toolList.tools || [] : result.tools;
+      const tools = showAll ? toolList.tools || [] : result.tools;
+      return { availableTools: tools, applicableToolNames: applicableNames };
     } catch (error) {
       console.error('Error filtering tools:', error);
       setFilterWarnings(['Error filtering tools - showing all available tools']);
-      return toolList.tools || [];
+      const tools = toolList.tools || [];
+      const toolNames = new Set(tools.map(tool => tool.name));
+      return { availableTools: tools, applicableToolNames: toolNames };
     }
   }, [toolList.tools, selectedFeatures, enableSmartFiltering, showAll, toolFilterService]);
 
@@ -85,7 +92,12 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
     setIsMenuOpen(prev => !prev);
   }, []);
 
-  const handleCommandSelect = useCallback((tool: Tool) => {
+  const handleCommandSelect = useCallback((tool: Tool, isApplicable: boolean) => {
+    // Only execute if tool is applicable
+    if (!isApplicable) {
+      return;
+    }
+
     const command: SelectedCommand = {
       tool,
       parameters: {} // Could be extended later for parameter collection
@@ -173,19 +185,26 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
             </div>
           ) : (
             <div className="tools-list">
-              {searchFilteredTools.map((tool) => (
-                <button
-                  key={tool.name}
-                  className="tool-menu-item"
-                  onClick={() => handleCommandSelect(tool)}
-                  role="menuitem"
-                >
-                  <div className="tool-name">{tool.name}</div>
-                  {showDescriptions && (
-                    <div className="tool-description">{tool.description}</div>
-                  )}
-                </button>
-              ))}
+              {searchFilteredTools.map((tool) => {
+                const isApplicable = applicableToolNames.has(tool.name);
+                const isDisabled = enableSmartFiltering && showAll && !isApplicable;
+
+                return (
+                  <button
+                    key={tool.name}
+                    className={`tool-menu-item ${isDisabled ? 'disabled' : ''}`}
+                    onClick={() => handleCommandSelect(tool, isApplicable)}
+                    role="menuitem"
+                    disabled={isDisabled}
+                    aria-disabled={isDisabled}
+                  >
+                    <div className="tool-name">{tool.name}</div>
+                    {showDescriptions && (
+                      <div className="tool-description">{tool.description}</div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
 
