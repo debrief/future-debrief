@@ -117,7 +117,7 @@ async function testSchemaValidation(filename, schema) {
       let schemaName;
       if (uri === 'https://schemas.debrief.com/features/debrief-feature.schema.json') {
         // Special case for DebriefFeature union schema
-        schemaName = 'debrief_feature.schema.json';
+        schemaName = 'debrief-feature.schema.json';
       } else {
         // Regular feature schemas
         schemaName = uri.replace('https://schemas.debrief.com/features/', '').replace('-feature.schema.json', '.schema.json');
@@ -137,7 +137,7 @@ async function testSchemaValidation(filename, schema) {
     // Handle DebriefFeature schema reference
     if (uri === 'debrief-feature.schema.json') {
       try {
-        const schema = loadSchema('debrief_feature.schema.json');
+        const schema = loadSchema('debrief-feature.schema.json');
         const schemaForValidation = { ...schema };
         delete schemaForValidation.$schema;
         delete schemaForValidation.$id;

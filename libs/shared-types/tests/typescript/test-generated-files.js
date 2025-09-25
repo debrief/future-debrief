@@ -25,7 +25,7 @@ const EXPECTED_EXPORTS = {
   'features/track.ts': ['DebriefTrackFeature'],
   'features/point.ts': ['DebriefPointFeature'],
   'features/annotation.ts': ['DebriefAnnotationFeature'],
-  'features/debrief_feature_collection.ts': ['DebriefFeatureCollection', 'DebriefTrackFeature', 'DebriefPointFeature', 'DebriefAnnotationFeature'],
+  'features/debrief_feature_collection.ts': ['DebriefFeatureCollection'],
   'states/time_state.ts': ['TimeState'],
   'states/viewport_state.ts': ['ViewportState'],
   'states/selection_state.ts': ['SelectionState'],

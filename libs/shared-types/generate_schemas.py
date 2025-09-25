@@ -332,13 +332,13 @@ def main():
         "title": "DebriefFeature",
         "description": "Union type for any Debrief feature (track, point, or annotation)",
         "anyOf": [
-            {"$ref": "track-feature.schema.json"},
-            {"$ref": "point-feature.schema.json"},
-            {"$ref": "annotation-feature.schema.json"}
+            {"$ref": "track.schema.json"},
+            {"$ref": "point.schema.json"},
+            {"$ref": "annotation.schema.json"}
         ]
     }
 
-    debrief_feature_path = output_dir / "features" / "debrief_feature.schema.json"
+    debrief_feature_path = output_dir / "features" / "debrief-feature.schema.json"
     debrief_feature_path.parent.mkdir(parents=True, exist_ok=True)
     with open(debrief_feature_path, 'w') as f:
         json.dump(debrief_feature_schema, f, indent=2)

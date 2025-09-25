@@ -99,10 +99,13 @@ $(TS_FILES): derived/json-schema/.schemas-generated
 			mkdir -p "$$(dirname "$$ts_file")"; \
 			if [ ! -f "$$ts_file" ] || [ "$$schema" -nt "$$ts_file" ]; then \
 				echo "$(BLUE)  Generating $$ts_file...$(RESET)"; \
-				NODE_NO_WARNINGS=1 npx json-schema-to-typescript "$$schema" --output "$$ts_file"; \
+				schema_dir=$$(dirname "$$schema"); \
+				NODE_NO_WARNINGS=1 npx json-schema-to-typescript "$$schema" --output "$$ts_file" --cwd "$$schema_dir" --no-declareExternallyReferenced; \
 			fi; \
 		fi; \
 	done
+	@echo "$(BLUE)Post-processing TypeScript files to add imports...$(RESET)"
+	@node post_process_typescript.js
 	@touch $(TS_FILES)
 
 # Copy TypeScript files to src/types for compatibility (preserving directory structure)
@@ -118,6 +121,8 @@ $(COPIED_TS_FILES): $(TS_FILES)
 			fi; \
 		fi; \
 	done
+	@echo "$(BLUE)Post-processing copied TypeScript files...$(RESET)"
+	@cd src/types && node ../../post_process_typescript.js
 	@touch $(COPIED_TS_FILES)
 
 
@@ -139,8 +144,11 @@ generate-typescript-force: ## Force TypeScript generation after schemas exist
 		ts_file=$$(echo "$$schema" | sed 's|derived/json-schema/|derived/typescript/|' | sed 's|\.schema\.json|.ts|'); \
 		mkdir -p "$$(dirname "$$ts_file")"; \
 		echo "$(BLUE)Generating TypeScript (3) for $$schema...$(RESET)"; \
-		NODE_NO_WARNINGS=1 npx json-schema-to-typescript "$$schema" --output "$$ts_file"; \
+		schema_dir=$$(dirname "$$schema"); \
+		NODE_NO_WARNINGS=1 npx json-schema-to-typescript "$$schema" --output "$$ts_file" --cwd "$$schema_dir" --no-declareExternallyReferenced; \
 	done
+	@echo "$(BLUE)Post-processing TypeScript files to add imports...$(RESET)"
+	@node post_process_typescript.js
 
 copy-typescript-force: ## Force copy TypeScript files after generation
 	@find derived/typescript -name "*.ts" -type f | while read ts_file; do \
