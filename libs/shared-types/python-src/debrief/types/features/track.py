@@ -13,6 +13,10 @@ from pydantic import BaseModel, Field, field_validator
 
 class TrackProperties(BaseModel):
     """Properties for track features."""
+    model_config = {
+        "extra": "forbid"
+    }
+
     dataType: Literal["track"] = Field(
         "track",
         description="Discriminator to identify this as a track feature"
@@ -33,9 +37,6 @@ class TrackProperties(BaseModel):
         True,
         description="Whether this track is visible on the map"
     )
-
-    class Config:
-        extra = "forbid"  # Prevent additional properties
 
 
 class DebriefTrackFeature(Feature[Union[LineString, MultiLineString], TrackProperties]):

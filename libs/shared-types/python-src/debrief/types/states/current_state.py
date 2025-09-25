@@ -25,5 +25,9 @@ class CurrentState(BaseModel):
         description="History count for this editor"
     )
 
-    class Config:
-        extra = "forbid"  # No additional properties
+    model_config = {
+        "extra": "forbid",
+        "json_schema_extra": {
+            "$id": "https://schemas.debrief.com/states/current-state.schema.json"
+        }
+    }

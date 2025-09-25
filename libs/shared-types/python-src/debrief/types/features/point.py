@@ -13,6 +13,10 @@ from pydantic import BaseModel, Field, field_validator
 
 class PointProperties(BaseModel):
     """Properties for reference point features."""
+    model_config = {
+        "extra": "forbid"
+    }
+
     dataType: Literal["reference-point"] = Field(
         "reference-point",
         description="Discriminator to identify this as a reference point feature"
@@ -41,9 +45,6 @@ class PointProperties(BaseModel):
         True,
         description="Whether this point is visible on the map"
     )
-
-    class Config:
-        extra = "forbid"  # Prevent additional properties
 
 
 class DebriefPointFeature(Feature[Point, PointProperties]):

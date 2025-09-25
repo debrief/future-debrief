@@ -31,6 +31,10 @@ class AnnotationType(str, Enum):
 
 class AnnotationProperties(BaseModel):
     """Properties for annotation features."""
+    model_config = {
+        "extra": "forbid"
+    }
+
     dataType: Literal["zone"] = Field(
         "zone",
         description="Discriminator to identify this as a zone feature"
@@ -64,9 +68,6 @@ class AnnotationProperties(BaseModel):
         True,
         description="Whether this annotation is visible on the map"
     )
-
-    class Config:
-        extra = "forbid"  # Prevent additional properties
 
 
 class DebriefAnnotationFeature(Feature[Union[Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon], AnnotationProperties]):

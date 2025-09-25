@@ -14,6 +14,10 @@ DebriefFeature = Union[DebriefTrackFeature, DebriefPointFeature, DebriefAnnotati
 
 class FeatureCollectionProperties(BaseModel):
     """Properties for FeatureCollection."""
+    model_config = {
+        "extra": "forbid"
+    }
+
     name: Optional[str] = Field(
         None,
         description="Human readable name for this collection"
@@ -35,12 +39,15 @@ class FeatureCollectionProperties(BaseModel):
         description="Version of this collection"
     )
 
-    class Config:
-        extra = "forbid"  # Prevent additional properties
-
 
 class DebriefFeatureCollection(BaseModel):
     """A GeoJSON FeatureCollection containing mixed feature types for maritime analysis."""
+    model_config = {
+        "extra": "forbid",
+        "json_schema_extra": {
+            "$id": "https://schemas.debrief.com/features/feature-collection.schema.json"
+        }
+    }
 
     type: Literal["FeatureCollection"] = "FeatureCollection"
     features: List[DebriefFeature] = Field(
@@ -54,6 +61,3 @@ class DebriefFeatureCollection(BaseModel):
         description="Bounding box of the feature collection"
     )
     properties: Optional[FeatureCollectionProperties] = None
-
-    class Config:
-        extra = "forbid"  # No additional properties at top level
