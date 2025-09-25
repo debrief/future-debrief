@@ -82,11 +82,13 @@ $(PYTHON_DEPS_STAMP): requirements.txt
 	@echo "$(GREEN)✓ Python dependencies installed$(RESET)"
 
 # JSON Schema generation from Pydantic models - triggered by any Pydantic file change
-derived/json-schema/.schemas-generated: $(PYTHON_DEPS_STAMP) $(PYDANTIC_FILES) generate_schemas.py post_process_schemas.py
+derived/json-schema/.schemas-generated: $(PYTHON_DEPS_STAMP) $(PYDANTIC_FILES) generate_schemas.py post_process_schemas.py check_schema_refs.py
 	@echo "$(BLUE)Generating JSON schemas from Pydantic models...$(RESET)"
 	@python3 generate_schemas.py
 	@echo "$(BLUE)Post-processing schemas for external references...$(RESET)"
 	@python3 post_process_schemas.py
+	@echo "$(BLUE)Checking for missing schema references and creating stubs...$(RESET)"
+	@python3 check_schema_refs.py >/dev/null 2>&1 || true
 	@touch derived/json-schema/.schemas-generated
 	@echo "$(GREEN)✓ JSON Schema generation complete$(RESET)"
 
@@ -106,6 +108,8 @@ $(TS_FILES): derived/json-schema/.schemas-generated
 	done
 	@echo "$(BLUE)Post-processing TypeScript files to add imports...$(RESET)"
 	@node post_process_typescript.js
+	@echo "$(BLUE)Adding missing type definitions...$(RESET)"
+	@node fix_types.js >/dev/null 2>&1 || true
 	@touch $(TS_FILES)
 
 # Copy TypeScript files to src/types for compatibility (preserving directory structure)
@@ -149,6 +153,8 @@ generate-typescript-force: ## Force TypeScript generation after schemas exist
 	done
 	@echo "$(BLUE)Post-processing TypeScript files to add imports...$(RESET)"
 	@node post_process_typescript.js
+	@echo "$(BLUE)Adding missing type definitions...$(RESET)"
+	@node fix_types.js >/dev/null 2>&1 || true
 
 copy-typescript-force: ## Force copy TypeScript files after generation
 	@find derived/typescript -name "*.ts" -type f | while read ts_file; do \

@@ -41,27 +41,15 @@ export {
   validateFeatureCollectionComprehensive
 } from './validators/featurecollection-validator';
 
-// Re-export types for convenience
-export type {
-  DebriefTrackFeature,
-  DebriefPointFeature,
-  DebriefAnnotationFeature,
-  DebriefFeatureCollection
-} from './types/features/debrief_feature_collection';
-
-// Re-export state types
-export type { TimeState } from './types/states/time_state';
-export type { ViewportState } from './types/states/viewport_state';
-export type { SelectionState } from './types/states/selection_state';
-export type { EditorState } from './types/states/editor_state';
-export type { CurrentState } from './types/states/current_state';
+// Re-export all base types for convenience
+export * from './types/base-types';
 
 // Import types for union
 import type {
   DebriefTrackFeature,
   DebriefPointFeature,
   DebriefAnnotationFeature
-} from './types/features/debrief_feature_collection';
+} from './types/base-types';
 
 // Union type for any Debrief feature
 export type DebriefFeature = DebriefTrackFeature | DebriefPointFeature | DebriefAnnotationFeature;

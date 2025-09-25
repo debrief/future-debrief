@@ -11,7 +11,7 @@ function addMissingTypes(filePath) {
   let content = fs.readFileSync(filePath, 'utf8');
 
   // Skip files that already have been processed to avoid duplicates
-  if (content.includes('// Enhanced post-processed')) {
+  if (content.includes('// Enhanced post-processed - missing type definitions added')) {
     return false;
   }
 
@@ -37,8 +37,28 @@ function addMissingTypes(filePath) {
   }
 
   // Find insertion point (after header comment)
-  let insertIndex = lines.findIndex(line => line.includes('DO NOT MODIFY')) + 3;
-  if (insertIndex < 0) insertIndex = 0;
+  let insertIndex = -1;
+
+  // Look for the closing comment */ or the start of actual code
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].includes('*/') && i > 0 && lines[i - 1].includes('DO NOT MODIFY')) {
+      insertIndex = i + 1;
+      break;
+    }
+  }
+
+  // If not found, try to find just after any header comment
+  if (insertIndex === -1) {
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].trim() === '*/' || lines[i].startsWith('export ') || lines[i].startsWith('//')) {
+        insertIndex = i + 1;
+        break;
+      }
+    }
+  }
+
+  // Final fallback
+  if (insertIndex === -1) insertIndex = 6;
 
   imports.push('// Enhanced post-processed - missing type definitions added');
 
@@ -67,6 +87,18 @@ function addMissingTypes(filePath) {
     'SampleInputsCount': 'export type SampleInputsCount = number;',
     'GitCommitsCount': 'export type GitCommitsCount = number;',
     'SourceCodeLength': 'export type SourceCodeLength = number;',
+    'Timestamp': 'export type Timestamp = string;',
+    'LogLevel': 'export type LogLevel = "debug" | "info" | "warning" | "error";',
+    'Version': 'export type Version = string;',
+    'Description2': 'export type Description2 = string;',
+    'Tools': 'export type Tools = any;',
+    'Arguments': 'export type Arguments = any;',
+    'Iserror': 'export type Iserror = boolean;',
+    'ToolUrl': 'export type ToolUrl = string;',
+    'JSONSchemaType': 'export type JSONSchemaType = string;',
+    'Additionalproperties': 'export type Additionalproperties = boolean;',
+    'Allowedgeometrytypes': 'export type Allowedgeometrytypes = string[];',
+    'Alloweddatatypes': 'export type Alloweddatatypes = string[];',
 
     // GeoJSON types
     'Position': 'export type Position = [number, number] | [number, number, number];',
@@ -97,6 +129,29 @@ function addMissingTypes(filePath) {
     // Tool types
     'Parameters': 'export type Parameters<T = any> = T;',
     'ReturnType': 'export type ReturnType<T = any> = T;',
+    'JSONSchema': 'export type JSONSchema = any;',
+    'JSONSchema1': 'export type JSONSchema1 = any;',
+    'ToolVaultCommand': 'export type ToolVaultCommand = any;',
+    'ShowImagePayload': 'export type ShowImagePayload = any;',
+    'Feature': 'export interface Feature { type: "Feature"; geometry: Geometry; properties: Properties; }',
+
+    // Complex imported types that need to be defined here
+    'ToolFileReference': 'export interface ToolFileReference { path: Path; description: Description; type: Type; }',
+    'ToolFileReference1': 'export interface ToolFileReference1 { path: Path; description: Description; type: Type; }',
+    'ToolFileReference2': 'export interface ToolFileReference2 { path: Path; description: Description; type: Type; }',
+    'ToolFilesCollection': 'export interface ToolFilesCollection { execute: ToolFileReference; source_code: ToolFileReference1; git_history: ToolFileReference2; inputs?: Inputs; schemas?: Schemas; }',
+    'ToolStatsModel': 'export interface ToolStatsModel { sample_inputs_count?: SampleInputsCount; git_commits_count?: GitCommitsCount; source_code_length?: SourceCodeLength; }',
+    'GitHistory': 'export type GitHistory = any;',
+    'PackageInfo': 'export type PackageInfo = any;',
+    'TimeState': 'export interface TimeState { current?: Current; start?: Start; end?: End; }',
+    'ViewportState': 'export interface ViewportState { bounds?: Bounds; center?: Position; zoom?: number; }',
+    'SelectionState': 'export interface SelectionState { selectedIds?: Selectedids; }',
+    'DebriefFeatureCollection': 'export interface DebriefFeatureCollection { type?: Type; features: Features; bbox?: Bbox9; properties?: FeatureCollectionProperties | null; }',
+
+    // Individual feature types that are missing from debrief_feature_collection
+    'DebriefTrackFeature': 'export interface DebriefTrackFeature { type: "Feature"; geometry: Geometry; properties: TrackProperties; }',
+    'DebriefPointFeature': 'export interface DebriefPointFeature { type: "Feature"; geometry: Geometry; properties: PointProperties; }',
+    'DebriefAnnotationFeature': 'export interface DebriefAnnotationFeature { type: "Feature"; geometry: Geometry; properties: AnnotationProperties; }',
   };
 
   // Geometry types (more complex)

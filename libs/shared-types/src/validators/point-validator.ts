@@ -3,7 +3,7 @@
  * These validators work with the generated types and provide additional validation logic
  */
 
-import { DebriefPointFeature } from '../types/features/debrief_feature_collection';
+import type { DebriefPointFeature } from '../types/base-types';
 
 /**
  * Type-safe helper to check if a value is a non-null object
