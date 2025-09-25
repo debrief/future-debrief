@@ -1843,6 +1843,36 @@ const toolbarContent = (
 
 ---
 
+**Agent:** Codex Implementation Agent
+**Task Reference:** Issue #153 – OutlineViewParent integration
+
+**Summary:**
+Hooked the VS Code outline panel up to the new OutlineViewParent composite, exposing execute events back to the extension host.
+
+**Details:**
+- Extended the vanilla web-component bridge with `createOutlineViewParent` so debuggable webviews can spin up the composite (`libs/web-components/src/vanilla-generated.tsx`).
+- Swapped the VS Code outline webview over to OutlineViewParent, provided a placeholder tool catalogue, and relayed execute payloads through the webview message channel (`apps/vs-code/src/providers/panels/debriefOutlineProvider.ts`).
+- Added host-side logging for execute requests to verify the event plumbing end-to-end.
+
+**Output/Result:**
+```ts
+// apps/vs-code/src/providers/panels/debriefOutlineProvider.ts
+const outlineComponent = window.DebriefWebComponents.createOutlineViewParent(container, {
+  featureCollection: outlineData.featureCollection,
+  selectedFeatureIds: outlineData.selectedFeatureIds,
+  toolList,
+  onSelectionChange: (ids) => vscode.postMessage({ type: 'selectionChanged', selectedIds: ids }),
+  onCommandExecute: (command, selectedFeatures) => vscode.postMessage({ type: 'executeCommand', command, selectedFeatures }),
+  enableSmartFiltering: true,
+});
+```
+
+**Status:** Completed
+**Issues/Blockers:** Unable to run VS Code/web-components builds locally—the sandbox still supplies Node 16.15.0 while pnpm tooling expects ≥18.12.
+**Next Steps (Optional):** Retry `pnpm --filter @debrief/web-components build` and the VS Code integration tests after upgrading Node.
+
+---
+
 *Last Updated: 2025-09-25*  
 *Total Sections Compressed: 27 major implementations*  
 
