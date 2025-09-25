@@ -1803,8 +1803,77 @@ return ShowTextCommand(payload="No features provided to fit viewport")
 **Final Status:** ✅ **IMPLEMENTED** with environment-related test blockers documented for follow-up.
 
 ---
+**Agent:** Codex Implementation Agent
+**Task Reference:** Issue #153 – OutlineViewParent integration
 
-*Last Updated: 2025-09-24*  
-*Total Sections Compressed: 26 major implementations*  
+**Summary:**
+Reworked the OutlineView toolbar to accept injected controls and introduced the OutlineViewParent composite that links OutlineView selection state with ToolExecuteButton execution, unlocking the new tool workflow for the VS Code webview.
+
+**Details:**
+- Removed the deprecated “Conditional Execute” dropdown from `OutlineView` and replaced it with a flexible `toolbar` slot while fixing selection propagation and control handlers (`libs/web-components/src/OutlineView/OutlineView.tsx`).
+- Added `OutlineViewParent`, a controlled wrapper that syncs OutlineView selections with ToolExecuteButton, emits console logs for future WebSocket integration, and forwards existing outline callbacks (`libs/web-components/src/OutlineViewParent/OutlineViewParent.tsx`).
+- Authored focused Jest tests covering toolbar rendering, selection events, command forwarding, and console logging for the new composite (`libs/web-components/src/OutlineView/OutlineView.test.tsx`, `libs/web-components/src/OutlineViewParent/OutlineViewParent.test.tsx`).
+- Delivered comprehensive Storybook scaffolding that simulates external state management, multiple tool configurations, and console logging guidance (`libs/web-components/src/OutlineViewParent/OutlineViewParent.stories.tsx`).
+- Updated library exports so React consumers can import the new composite and its props in one step (`libs/web-components/src/index.ts`).
+
+**Output/Result:**
+```tsx
+// libs/web-components/src/OutlineViewParent/OutlineViewParent.tsx
+const toolbarContent = (
+  <>
+    <ToolExecuteButton
+      toolList={toolList}
+      selectedFeatures={selectedFeatures}
+      onCommandExecute={handleCommandExecute}
+      disabled={isExecuteDisabled}
+      enableSmartFiltering={enableSmartFiltering}
+      showAll={showAllTools}
+      showDescriptions={showToolDescriptions}
+      buttonText={buttonText}
+      menuPosition={menuPosition}
+    />
+    {additionalToolbarContent}
+  </>
+);
+```
+
+**Status:** Completed
+**Issues/Blockers:** Automated tests could not be executed; `pnpm --filter @debrief/web-components test` requires Node ≥18.12 (sandbox provides v16.15.0) and attempting `npx pnpm@7.33.6 …` failed due to restricted network access.
+**Next Steps (Optional):** Once a Node ≥18 environment is available, reinstall dependencies and run `pnpm --filter @debrief/web-components test` to confirm the new suite.
+
+---
+
+**Agent:** Codex Implementation Agent
+**Task Reference:** Issue #153 – OutlineViewParent integration
+
+**Summary:**
+Hooked the VS Code outline panel up to the new OutlineViewParent composite, exposing execute events back to the extension host.
+
+**Details:**
+- Extended the vanilla web-component bridge with `createOutlineViewParent` so debuggable webviews can spin up the composite (`libs/web-components/src/vanilla-generated.tsx`).
+- Swapped the VS Code outline webview over to OutlineViewParent, provided a placeholder tool catalogue, and relayed execute payloads through the webview message channel (`apps/vs-code/src/providers/panels/debriefOutlineProvider.ts`).
+- Added host-side logging for execute requests to verify the event plumbing end-to-end.
+
+**Output/Result:**
+```ts
+// apps/vs-code/src/providers/panels/debriefOutlineProvider.ts
+const outlineComponent = window.DebriefWebComponents.createOutlineViewParent(container, {
+  featureCollection: outlineData.featureCollection,
+  selectedFeatureIds: outlineData.selectedFeatureIds,
+  toolList,
+  onSelectionChange: (ids) => vscode.postMessage({ type: 'selectionChanged', selectedIds: ids }),
+  onCommandExecute: (command, selectedFeatures) => vscode.postMessage({ type: 'executeCommand', command, selectedFeatures }),
+  enableSmartFiltering: true,
+});
+```
+
+**Status:** Completed
+**Issues/Blockers:** Unable to run VS Code/web-components builds locally—the sandbox still supplies Node 16.15.0 while pnpm tooling expects ≥18.12.
+**Next Steps (Optional):** Retry `pnpm --filter @debrief/web-components build` and the VS Code integration tests after upgrading Node.
+
+---
+
+*Last Updated: 2025-09-25*  
+*Total Sections Compressed: 27 major implementations*  
 
 *Focus: Key decisions, file locations, and navigation for future developers*

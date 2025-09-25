@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
 import { GlobalController } from '../../core/globalController';
 import { SelectionState, DebriefFeatureCollection } from '@debrief/shared-types';
+import type { ToolListResponse } from '@debrief/shared-types/src/types/tools/tool_list_response';
 
 export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'debrief.outline';
@@ -104,6 +106,8 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
       vscode.Uri.joinPath(extensionUri, 'media', 'web-components.css')
     );
 
+    const toolList = this._getDefaultToolList();
+
     return `<!DOCTYPE html>
       <html lang="en">
       <head>
@@ -148,20 +152,30 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
           const vscode = acquireVsCodeApi();
           window.vscode = vscode;
           const outlineData = ${JSON.stringify(data)};
+          const toolList = ${JSON.stringify(toolList)};
           
           function initializeOutlineView() {
             const container = document.getElementById('outline-container');
             if (!container || !window.DebriefWebComponents) return;
             
-            const outlineComponent = window.DebriefWebComponents.createOutlineView(container, {
+            const outlineComponent = window.DebriefWebComponents.createOutlineViewParent(container, {
               featureCollection: outlineData.featureCollection,
               selectedFeatureIds: outlineData.selectedFeatureIds,
+              toolList,
               onSelectionChange: (ids) => {
                 window.vscode.postMessage({
                   type: 'selectionChanged',
                   selectedIds: ids
                 });
               },
+              onCommandExecute: (command, selectedFeatures) => {
+                window.vscode.postMessage({
+                  type: 'executeCommand',
+                  command,
+                  selectedFeatures
+                });
+              },
+              enableSmartFiltering: true,
               onFeatureVisibilityChange: (id, visible) => {
                 window.vscode.postMessage({
                   type: 'visibilityChanged',
@@ -276,6 +290,11 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
             // Handle collapse all
             // Handle collapse all
             break;
+
+          case 'executeCommand':
+            console.log('[DebriefOutlineProvider] Execute command requested:', message.command);
+            console.log('[DebriefOutlineProvider] Selected features:', message.selectedFeatures);
+            break;
         }
       },
       undefined,
@@ -324,6 +343,42 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
     // Dispose all event subscriptions
     this._subscriptions.forEach(disposable => disposable.dispose());
     this._subscriptions = [];
+  }
+
+  private _getDefaultToolList(): ToolListResponse {
+    const resourceToolList = this._loadToolListFromResources();
+    if (resourceToolList) {
+      return resourceToolList;
+    }
+
+    return {
+      version: '1.0.0',
+      description: 'VS Code tool catalogue placeholder',
+      tools: []
+    };
+  }
+
+  private _loadToolListFromResources(): ToolListResponse | undefined {
+    try {
+      const extension = vscode.extensions.getExtension('ian.vs-code');
+      if (!extension) {
+        return undefined;
+      }
+
+      const toolIndexUri = vscode.Uri.joinPath(extension.extensionUri, 'resources', 'tool-index.json');
+      const toolIndexPath = toolIndexUri.fsPath;
+
+      if (!fs.existsSync(toolIndexPath)) {
+        return undefined;
+      }
+
+      const fileContents = fs.readFileSync(toolIndexPath, 'utf8');
+      const parsed = JSON.parse(fileContents) as ToolListResponse;
+      return parsed;
+    } catch (error) {
+      console.error('[DebriefOutlineProvider] Failed to load tool-index.json', error);
+      return undefined;
+    }
   }
 
   /**

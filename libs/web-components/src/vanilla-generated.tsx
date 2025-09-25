@@ -7,12 +7,13 @@ import { MapComponent, MapComponentProps, GeoJSONFeature, MapState } from './Map
 import { TimeController, TimeControllerProps } from './TimeController/TimeController';
 import { PropertiesView, PropertiesViewProps } from './PropertiesView/PropertiesView';
 import { OutlineView, OutlineViewProps } from './OutlineView/OutlineView';
+import { OutlineViewParent, OutlineViewParentProps } from './OutlineViewParent/OutlineViewParent';
 import { CurrentStateTable, StateFieldRow } from './CurrentStateTable/CurrentStateTable';
 import { CurrentState } from '@debrief/shared-types';
 import './vanilla.css';
 
 // Re-export types for compatibility
-export type { GeoJSONFeature, MapState, TimeControllerProps, PropertiesViewProps, OutlineViewProps, StateFieldRow };
+export type { GeoJSONFeature, MapState, TimeControllerProps, PropertiesViewProps, OutlineViewProps, OutlineViewParentProps, StateFieldRow };
 
 // Wrapper interfaces - maintain API compatibility with manual vanilla.ts
 export interface GeoJSONFeatureCollection {
@@ -103,6 +104,13 @@ class VanillaOutlineViewWrapper extends ReactComponentWrapper<OutlineViewProps> 
   }
 }
 
+// OutlineViewParent wrapper
+class VanillaOutlineViewParentWrapper extends ReactComponentWrapper<OutlineViewParentProps> {
+  protected renderComponent(): React.ReactElement {
+    return React.createElement(OutlineViewParent, this.currentProps);
+  }
+}
+
 // CurrentStateTable wrapper
 class VanillaCurrentStateTableWrapper extends ReactComponentWrapper<VanillaCurrentStateTableProps> {
   constructor(container: HTMLElement, props: VanillaCurrentStateTableProps) {
@@ -176,6 +184,18 @@ export function createOutlineView(container: HTMLElement, props: OutlineViewProp
   };
 }
 
+export function createOutlineViewParent(container: HTMLElement, props: OutlineViewParentProps): {
+  destroy: () => void;
+  updateProps: (newProps: Partial<OutlineViewParentProps>) => void;
+} {
+  const wrapper = new VanillaOutlineViewParentWrapper(container, props);
+
+  return {
+    destroy: () => wrapper.destroy(),
+    updateProps: (newProps: Partial<OutlineViewParentProps>) => wrapper.updateProps(newProps),
+  };
+}
+
 export function createCurrentStateTable(container: HTMLElement, props: VanillaCurrentStateTableProps): {
   destroy: () => void;
   updateProps: (newProps: Partial<VanillaCurrentStateTableProps>) => void;
@@ -244,6 +264,7 @@ if (typeof window !== 'undefined') {
       createPropertiesView,
       createMapComponent,
       createOutlineView,
+      createOutlineViewParent,
       createCurrentStateTable
     };
   } else {
@@ -252,6 +273,7 @@ if (typeof window !== 'undefined') {
       createPropertiesView,
       createMapComponent,
       createOutlineView,
+      createOutlineViewParent,
       createCurrentStateTable
     });
   }
@@ -265,6 +287,7 @@ declare global {
       createPropertiesView: typeof createPropertiesView;
       createMapComponent: typeof createMapComponent;
       createOutlineView: typeof createOutlineView;
+      createOutlineViewParent: typeof createOutlineViewParent;
       createCurrentStateTable: typeof createCurrentStateTable;
     };
   }
