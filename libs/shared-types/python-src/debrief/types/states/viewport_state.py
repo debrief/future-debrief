@@ -22,6 +22,7 @@ class ViewportState(BaseModel):
         return v
 
     model_config = {
+        "extra": "forbid",
         "json_schema_extra": {
             "examples": [
                 {
