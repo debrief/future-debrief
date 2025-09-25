@@ -37,6 +37,9 @@ class TrackProperties(BaseModel):
 class DebriefTrackFeature(Feature[Union[LineString, MultiLineString], TrackProperties]):
     """A GeoJSON Feature representing a track with LineString or MultiLineString geometry."""
 
+    # Override to make properties required (not Optional)
+    properties: TrackProperties
+
     @field_validator('geometry')
     @classmethod
     def validate_track_geometry(cls, v):

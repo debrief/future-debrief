@@ -67,3 +67,6 @@ class AnnotationProperties(BaseModel):
 
 class DebriefAnnotationFeature(Feature[Union[Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon], AnnotationProperties]):
     """A GeoJSON Feature representing an annotation with any geometry type."""
+
+    # Override to make properties required (not Optional)
+    properties: AnnotationProperties

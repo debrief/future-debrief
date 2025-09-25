@@ -45,6 +45,9 @@ class PointProperties(BaseModel):
 class DebriefPointFeature(Feature[Point, PointProperties]):
     """A GeoJSON Feature representing a point with time properties."""
 
+    # Override to make properties required (not Optional)
+    properties: PointProperties
+
     @field_validator('geometry')
     @classmethod
     def validate_point_geometry(cls, v):
