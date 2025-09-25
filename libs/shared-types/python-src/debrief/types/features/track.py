@@ -31,7 +31,7 @@ class TrackProperties(BaseModel):
     )
 
     class Config:
-        extra = "allow"  # Allow additional properties
+        extra = "forbid"  # Prevent additional properties
 
 
 class DebriefTrackFeature(Feature[Union[LineString, MultiLineString], TrackProperties]):

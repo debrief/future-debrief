@@ -36,7 +36,7 @@ class FeatureCollectionProperties(BaseModel):
     )
 
     class Config:
-        extra = "allow"  # Allow additional properties
+        extra = "forbid"  # Prevent additional properties
 
 
 class DebriefFeatureCollection(BaseModel):

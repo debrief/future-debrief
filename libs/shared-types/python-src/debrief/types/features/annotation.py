@@ -62,7 +62,7 @@ class AnnotationProperties(BaseModel):
     )
 
     class Config:
-        extra = "allow"  # Allow additional properties
+        extra = "forbid"  # Prevent additional properties
 
 
 class DebriefAnnotationFeature(Feature[Union[Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon], AnnotationProperties]):

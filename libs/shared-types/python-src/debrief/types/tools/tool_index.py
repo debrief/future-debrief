@@ -30,8 +30,8 @@ class ToolFilesCollection(BaseModel):
         description="Generated schema documents associated with this tool"
     )
 
-    # class Config:
-    #    extra = "forbid"
+    class Config:
+        extra = "forbid"
 
 
 class ToolIndexModel(BaseModel):

@@ -39,7 +39,7 @@ class PointProperties(BaseModel):
     )
 
     class Config:
-        extra = "allow"  # Allow additional properties
+        extra = "forbid"  # Prevent additional properties
 
 
 class DebriefPointFeature(Feature[Point, PointProperties]):
