@@ -77,11 +77,13 @@ def generate_json_schema(model_class, output_path, use_external_refs=False):
 def fix_schema_references(schema, class_to_key_mapping=None, group_name=None):
     """Fix $ref references in schema to use our file naming convention and remove duplicated definitions."""
     geojson_types = ["Point", "LineString", "MultiLineString", "Polygon", "MultiPoint", "MultiPolygon"]
+    # Position types should also be removed since they belong to GeoJSON geometries
+    position_types = ["Position2D", "Position3D"]
 
     if isinstance(schema, dict):
-        # Remove GeoJSON geometry definitions from $defs since they'll be external references
+        # Remove GeoJSON geometry definitions and their position dependencies from $defs
         if "$defs" in schema:
-            for geojson_type in geojson_types:
+            for geojson_type in geojson_types + position_types:
                 if geojson_type in schema["$defs"]:
                     del schema["$defs"][geojson_type]
 
@@ -322,6 +324,24 @@ def main():
     print("Generating individual schemas...")
     for output_path, model_class in individual_models.items():
         generate_json_schema(model_class, Path(output_path))
+
+    # Generate a reusable DebriefFeature schema for the union type
+    print("Generating DebriefFeature union schema...")
+    debrief_feature_schema = {
+        "$id": "https://schemas.debrief.com/features/debrief-feature.schema.json",
+        "title": "DebriefFeature",
+        "description": "Union type for any Debrief feature (track, point, or annotation)",
+        "anyOf": [
+            {"$ref": "track-feature.schema.json"},
+            {"$ref": "point-feature.schema.json"},
+            {"$ref": "annotation-feature.schema.json"}
+        ]
+    }
+
+    debrief_feature_path = output_dir / "features" / "debrief_feature.schema.json"
+    debrief_feature_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(debrief_feature_path, 'w') as f:
+        json.dump(debrief_feature_schema, f, indent=2)
 
     print("JSON Schema generation complete!")
 

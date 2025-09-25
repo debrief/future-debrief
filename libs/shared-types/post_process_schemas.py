@@ -52,24 +52,30 @@ def replace_inline_definitions():
 
     schema = load_schema(fc_schema_path)
 
-    # Mapping of inline definitions to external references
+    # Mapping of inline definitions to external references and property definitions that should be removed
     external_refs = {
         "DebriefTrackFeature": "https://schemas.debrief.com/features/track-feature.schema.json",
         "DebriefPointFeature": "https://schemas.debrief.com/features/point-feature.schema.json",
         "DebriefAnnotationFeature": "https://schemas.debrief.com/features/annotation-feature.schema.json"
     }
 
-    # Replace inline definitions with external references in the features array
+    # Property definitions that should be removed since they now belong to individual feature schemas
+    property_defs_to_remove = [
+        "TrackProperties",
+        "PointProperties",
+        "AnnotationProperties",
+        "AnnotationType"  # This belongs to annotation schema
+    ]
+
+    # Replace inline union definition with DebriefFeature schema reference
     if "properties" in schema and "features" in schema["properties"]:
         features_def = schema["properties"]["features"]
         if "items" in features_def and "anyOf" in features_def["items"]:
-            # Replace each $ref in the anyOf list
-            for item in features_def["items"]["anyOf"]:
-                if "$ref" in item:
-                    ref_key = item["$ref"].replace("#/$defs/", "")
-                    if ref_key in external_refs:
-                        item["$ref"] = external_refs[ref_key]
-                        print(f"Replaced {ref_key} with external reference")
+            # Replace the entire anyOf union with a reference to DebriefFeature schema
+            features_def["items"] = {
+                "$ref": "debrief-feature.schema.json"
+            }
+            print("Replaced feature union with DebriefFeature schema reference")
 
     # Remove the now-unused definitions from $defs
     if "$defs" in schema:
@@ -77,6 +83,12 @@ def replace_inline_definitions():
             if key in schema["$defs"]:
                 del schema["$defs"][key]
                 print(f"Removed inline definition for {key}")
+
+        # Also remove property definitions that now belong to individual schemas
+        for key in property_defs_to_remove:
+            if key in schema["$defs"]:
+                del schema["$defs"][key]
+                print(f"Removed property definition for {key}")
 
     save_schema(schema, fc_schema_path)
     print(f"Updated feature collection schema")

@@ -114,7 +114,14 @@ async function testSchemaValidation(filename, schema) {
 
     // Handle feature schema references (HTTP URLs)
     if (uri.startsWith('https://schemas.debrief.com/features/')) {
-      const schemaName = uri.replace('https://schemas.debrief.com/features/', '').replace('-feature.schema.json', '.schema.json');
+      let schemaName;
+      if (uri === 'https://schemas.debrief.com/features/debrief-feature.schema.json') {
+        // Special case for DebriefFeature union schema
+        schemaName = 'debrief_feature.schema.json';
+      } else {
+        // Regular feature schemas
+        schemaName = uri.replace('https://schemas.debrief.com/features/', '').replace('-feature.schema.json', '.schema.json');
+      }
       try {
         const schema = loadSchema(schemaName);
         const schemaForValidation = { ...schema };
@@ -124,6 +131,20 @@ async function testSchemaValidation(filename, schema) {
         return schemaForValidation;
       } catch (error) {
         throw new Error(`Could not load feature schema ${uri}: ${error.message}`);
+      }
+    }
+
+    // Handle DebriefFeature schema reference
+    if (uri === 'debrief-feature.schema.json') {
+      try {
+        const schema = loadSchema('debrief_feature.schema.json');
+        const schemaForValidation = { ...schema };
+        delete schemaForValidation.$schema;
+        delete schemaForValidation.$id;
+        // console.log(`  ✓ Loaded DebriefFeature union schema`);
+        return schemaForValidation;
+      } catch (error) {
+        throw new Error(`Could not load DebriefFeature schema: ${error.message}`);
       }
     }
 
