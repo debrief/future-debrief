@@ -172,7 +172,7 @@ export function validateMultiPolygonCoordinates(coordinates: unknown): boolean {
 /**
  * Validates geometry coordinates based on type
  */
-export function validateGeometryCoordinates(geometry: any): boolean {
+export function validateGeometryCoordinates(geometry: Record<string, unknown>): boolean {
   switch (geometry.type) {
     case 'Point':
       return validatePointCoordinates(geometry.coordinates);
@@ -225,7 +225,7 @@ export function validateAnnotationFeatureComprehensive(feature: unknown): {
   const validatedFeature = feature as DebriefAnnotationFeature;
   
   // Detailed geometry validation
-  if (!validateGeometryCoordinates(validatedFeature.geometry)) {
+  if (validatedFeature.geometry && !validateGeometryCoordinates(validatedFeature.geometry)) {
     errors.push('Invalid geometry coordinates');
   }
   
