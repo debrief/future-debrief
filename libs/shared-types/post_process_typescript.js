@@ -9,7 +9,13 @@ const fs = require('fs');
 const path = require('path');
 
 function addImportsToTypeScript(filePath) {
-  const content = fs.readFileSync(filePath, 'utf8');
+  let content = fs.readFileSync(filePath, 'utf8');
+
+  // Skip files that already have post-processing marker to avoid duplicates
+  if (content.includes('// Post-processed by post_process_typescript.js')) {
+    return;
+  }
+
   const lines = content.split('\n');
 
   // Find the end of the header comments (after the "DO NOT MODIFY" comment)
@@ -19,7 +25,7 @@ function addImportsToTypeScript(filePath) {
   const imports = [];
   const typeReferences = new Set();
 
-  // Scan for undefined types that need imports
+  // Scan for undefined types that need imports or definitions
   const typeRegex = /\b([A-Z][a-zA-Z0-9]*)\b/g;
   let match;
 
@@ -29,8 +35,9 @@ function addImportsToTypeScript(filePath) {
 
     while ((match = typeRegex.exec(line)) !== null) {
       const typeName = match[1];
-      // Skip primitive types and common TS types
+      // Skip primitive types, common TS types, and already defined types
       if (['String', 'Number', 'Boolean', 'Object', 'Array', 'Date', 'RegExp', 'Error'].includes(typeName)) continue;
+      if (content.includes(`export interface ${typeName}`) || content.includes(`export type ${typeName}`)) continue;
       typeReferences.add(typeName);
     }
   }
@@ -46,26 +53,104 @@ function addImportsToTypeScript(filePath) {
   const isFeatureFile = relativePath.startsWith('features/');
   const isStateFile = relativePath.startsWith('states/');
 
-  // Add imports for common types referenced in different contexts
-  if (typeReferences.has('Command')) {
-    imports.push('export type Command = string;');
-  }
+  // Add marker to indicate post-processing
+  imports.push('// Post-processed by post_process_typescript.js');
 
-  if (typeReferences.has('Payload')) {
-    if (isToolFile && relativePath.includes('add_features_command')) {
-      imports.push('import type { DebriefFeature } from "../features/debrief-feature";');
+  // Handle specific cases based on file type and content
+  if (isToolFile && relativePath.includes('add_features_command')) {
+    imports.push('import type { DebriefFeature } from "../features/debrief-feature";');
+    if (typeReferences.has('Command') || content.includes('Command')) {
+      imports.push('export type Command = string;');
+    }
+    if (typeReferences.has('Payload') || content.includes('Payload')) {
       imports.push('export type Payload = DebriefFeature[];');
-    } else {
+    }
+  } else if (isStateFile && relativePath.includes('current_state')) {
+    // Handle missing types in current_state.ts
+    if (typeReferences.has('Editorid') || content.includes('Editorid')) {
+      imports.push('export type Editorid = string;');
+    }
+    if (typeReferences.has('Filename') || content.includes('Filename')) {
+      imports.push('export type Filename = string;');
+    }
+    if (typeReferences.has('Historycount') || content.includes('Historycount')) {
+      imports.push('export type Historycount = number;');
+    }
+    if (typeReferences.has('EditorState') || content.includes('EditorState')) {
+      imports.push('import type { EditorState } from "./editor_state";');
+    }
+  } else if (isStateFile && relativePath.includes('editor_state')) {
+    // Handle missing types in editor_state.ts
+    if (typeReferences.has('DebriefFeatureCollection') || content.includes('DebriefFeatureCollection')) {
+      imports.push('import type { DebriefFeatureCollection } from "../features/debrief_feature_collection";');
+    }
+  } else {
+    // General handling for other files
+    if (typeReferences.has('Command') || content.includes('Command')) {
+      imports.push('export type Command = string;');
+    }
+
+    if (typeReferences.has('Payload') || content.includes('Payload')) {
       imports.push('export type Payload = unknown[];');
+    }
+
+    // Add basic GeoJSON types if referenced but not defined
+    const basicTypes = {
+      'Bbox': 'export type Bbox = [number, number, number, number] | [number, number, number, number, number, number];',
+      'Position': 'export type Position = [number, number] | [number, number, number];',
+      'Position2D': 'export type Position2D = [number, number];',
+      'Position3D': 'export type Position3D = [number, number, number];',
+      'Type': 'export type Type = string;',
+      'Properties': 'export type Properties = { [key: string]: any; } | null;'
+    };
+
+    for (const [typeName, definition] of Object.entries(basicTypes)) {
+      if ((typeReferences.has(typeName) || content.includes(typeName)) && !content.includes(`export type ${typeName}`)) {
+        imports.push(definition);
+      }
+    }
+
+    // Handle GeoJSON geometry types
+    const geometryTypes = ['Point', 'LineString', 'Polygon', 'MultiPoint', 'MultiLineString', 'MultiPolygon', 'GeometryCollection'];
+    const referencedGeometryTypes = geometryTypes.filter(type =>
+      (typeReferences.has(type) || content.includes(type)) && !content.includes(`export interface ${type}`)
+    );
+
+    if (referencedGeometryTypes.length > 0) {
+      imports.push('// Basic GeoJSON geometry types');
+      if (referencedGeometryTypes.includes('Point')) {
+        imports.push('export interface Point { type: "Point"; coordinates: Position; }');
+      }
+      if (referencedGeometryTypes.includes('LineString')) {
+        imports.push('export interface LineString { type: "LineString"; coordinates: Position[]; }');
+      }
+      if (referencedGeometryTypes.includes('Polygon')) {
+        imports.push('export interface Polygon { type: "Polygon"; coordinates: Position[][]; }');
+      }
+      if (referencedGeometryTypes.includes('MultiPoint')) {
+        imports.push('export interface MultiPoint { type: "MultiPoint"; coordinates: Position[]; }');
+      }
+      if (referencedGeometryTypes.includes('MultiLineString')) {
+        imports.push('export interface MultiLineString { type: "MultiLineString"; coordinates: Position[][]; }');
+      }
+      if (referencedGeometryTypes.includes('MultiPolygon')) {
+        imports.push('export interface MultiPolygon { type: "MultiPolygon"; coordinates: Position[][][]; }');
+      }
+      if (referencedGeometryTypes.includes('GeometryCollection')) {
+        imports.push('export interface GeometryCollection { type: "GeometryCollection"; geometries: Geometry[]; }');
+      }
+
+      // Add union type for Geometry if any geometry types are referenced
+      imports.push('export type Geometry = Point | LineString | Polygon | MultiPoint | MultiLineString | MultiPolygon | GeometryCollection;');
     }
   }
 
   // If we have imports to add, insert them
-  if (imports.length > 0) {
+  if (imports.length > 1) { // More than just the marker comment
     lines.splice(insertIndex, 0, '', ...imports, '');
     const newContent = lines.join('\n');
     fs.writeFileSync(filePath, newContent);
-    console.log(`Added ${imports.length} imports to ${relativePath}`);
+    console.log(`Added ${imports.length - 1} imports/types to ${relativePath}`);
   }
 }
 
