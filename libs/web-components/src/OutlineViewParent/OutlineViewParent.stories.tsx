@@ -119,6 +119,20 @@ const OutlineViewParentDemo: React.FC<OutlineViewParentDemoProps> = ({
   const [showDescriptions, setShowDescriptions] = React.useState(initialShowDescriptions);
   const [lastCommandSummary, setLastCommandSummary] = React.useState<string | null>(null);
 
+  const selectedFeatureDetails = React.useMemo(() => {
+    if (!featureCollection) {
+      return [];
+    }
+
+    const featureMap = new Map<string, DebriefFeature>(
+      featureCollection.features.map((feature) => [String(feature.id), feature as DebriefFeature])
+    );
+
+    return selection
+      .map((id) => featureMap.get(id))
+      .filter((feature): feature is DebriefFeature => Boolean(feature));
+  }, [featureCollection, selection]);
+
   const handleCommandExecute = React.useCallback(
     (command: SelectedCommand, features: DebriefFeature[]) => {
       setLastCommandSummary(`${command.tool.name} executed on ${features.length} feature(s)`);
