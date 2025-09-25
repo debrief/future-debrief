@@ -225,7 +225,7 @@ export function validateAnnotationFeatureComprehensive(feature: unknown): {
   const validatedFeature = feature as DebriefAnnotationFeature;
   
   // Detailed geometry validation
-  if (validatedFeature.geometry && !validateGeometryCoordinates(validatedFeature.geometry)) {
+  if (validatedFeature.geometry && !validateGeometryCoordinates(validatedFeature.geometry as unknown as Record<string, unknown>)) {
     errors.push('Invalid geometry coordinates');
   }
   

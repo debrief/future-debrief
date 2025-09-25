@@ -46,7 +46,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
     if (!enableSmartFiltering || !toolList.tools) {
       // Phase 1: Show all tools, all are considered applicable
       const tools = toolList.tools || [];
-      const toolNames = new Set(tools.map(tool => tool.name));
+      const toolNames = new Set(tools.map((tool: Tool) => tool.name));
       return { availableTools: tools, applicableToolNames: toolNames, warnings: [] };
     }
 
@@ -66,7 +66,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
     } catch (error) {
       console.error('Error filtering tools:', error);
       const tools = toolList.tools || [];
-      const toolNames = new Set(tools.map(tool => tool.name));
+      const toolNames = new Set(tools.map((tool: Tool) => tool.name));
       return {
         availableTools: tools,
         applicableToolNames: toolNames,
@@ -87,7 +87,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
     }
 
     const query = searchQuery.toLowerCase();
-    return availableTools.filter(tool =>
+    return availableTools.filter((tool: Tool) =>
       tool.name.toLowerCase().includes(query) ||
       (tool.description && tool.description.toLowerCase().includes(query))
     );
@@ -191,7 +191,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
             </div>
           ) : (
             <div className="tools-list">
-              {searchFilteredTools.map((tool) => {
+              {searchFilteredTools.map((tool: Tool) => {
                 const isApplicable = applicableToolNames.has(tool.name);
                 const isDisabled = enableSmartFiltering && showAll && !isApplicable;
 

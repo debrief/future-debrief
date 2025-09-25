@@ -29,15 +29,16 @@ export function validateTimestampsLength(feature: DebriefTrackFeature): boolean 
   }
 
   if (!feature.geometry) return false;
-  const coordinates = feature.geometry.coordinates;
-  
+
   // Handle LineString geometry
   if (feature.geometry.type === "LineString") {
+    const coordinates = (feature.geometry as any).coordinates;
     return feature.properties.timestamps.length === coordinates.length;
   }
-  
+
   // Handle MultiLineString geometry
   if (feature.geometry.type === "MultiLineString") {
+    const coordinates = (feature.geometry as any).coordinates;
     // Calculate total points across all LineStrings
     const totalPoints = (coordinates as Array<Array<number[]>>)
       .reduce((sum, lineString) => sum + lineString.length, 0);

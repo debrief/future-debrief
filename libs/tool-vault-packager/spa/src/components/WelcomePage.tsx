@@ -65,6 +65,20 @@ export function WelcomePage({ globalIndex, tools, loading }: WelcomePageProps) {
           aggregated tool catalog from{' '}
           <a href="/tools/list" target="_blank" rel="noopener noreferrer">/tools/list</a> when you need the raw index.
         </p>
+        <div style={{ marginTop: '1rem' }}>
+          <a
+            href="/ui/schemas/index.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-primary"
+            style={{ marginRight: '0.5rem' }}
+          >
+            📋 View Schemas
+          </a>
+          <span style={{ fontSize: '0.9rem', color: '#6c757d' }}>
+            Interactive documentation for all JSON schemas
+          </span>
+        </div>
       </div>
     </div>
   );
