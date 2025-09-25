@@ -228,7 +228,7 @@ function FormField({ name, property, value, onChange, required, path }: FormFiel
             <FormField
               key={propName}
               name={propName}
-              property={propSchema}
+              property={propSchema as JSONSchemaProperty}
               value={objectValue[propName]}
               onChange={(val) => updateProperty(propName, val)}
               required={property.required?.includes(propName) || false}
@@ -307,7 +307,7 @@ export function SchemaForm({ schema, initialValue = {}, onChange, className }: S
         <FormField
           key={propName}
           name={propName}
-          property={propSchema}
+          property={propSchema as JSONSchemaProperty}
           value={formData[propName]}
           onChange={(val) => updateTopLevelProperty(propName, val)}
           required={schema.required?.includes(propName) || false}

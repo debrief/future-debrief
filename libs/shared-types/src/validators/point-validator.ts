@@ -168,8 +168,13 @@ export function validatePointFeatureComprehensive(feature: unknown): {
   const validatedFeature = feature as DebriefPointFeature;
   
   // Geographic coordinate validation
-  if (!validatedFeature.geometry || !validateGeographicCoordinates(validatedFeature.geometry.coordinates as number[])) {
-    errors.push('Coordinates are outside valid geographic ranges');
+  if (!validatedFeature.geometry) {
+    errors.push('Geometry is required');
+  } else {
+    const geometry = validatedFeature.geometry as any;
+    if (geometry.coordinates && !validateGeographicCoordinates(geometry.coordinates as number[])) {
+      errors.push('Coordinates are outside valid geographic ranges');
+    }
   }
   
   // Time property validation
