@@ -100,12 +100,65 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
   }
 
   const handleSelection = (event: VscTreeSelectEvent) => {
-    const detail = event.detail as unknown as { selectedItems?: Array<{ id: string | null }> }
-    const selectedItems = detail?.selectedItems ?? []
-    const selectedIds = selectedItems
-      .map(item => item?.id ?? null)
-      .filter((id): id is string => typeof id === 'string' && id.length > 0)
+    const selectedItems = extractSelectedItems(event.detail as unknown)
+    const selectedIds = Array.from(new Set(selectedItems
+      .map(extractIdFromItem)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0)))
+
     onSelectionChange(selectedIds)
+  }
+
+  const extractSelectedItems = (detail: unknown): unknown[] => {
+    if (!detail) {
+      return []
+    }
+
+    if (Array.isArray(detail)) {
+      return detail
+    }
+
+    if (typeof detail === 'object') {
+      const maybeSelectedItems = (detail as { selectedItems?: unknown }).selectedItems
+      if (Array.isArray(maybeSelectedItems)) {
+        return maybeSelectedItems
+      }
+    }
+
+    return []
+  }
+
+  const extractIdFromItem = (item: unknown): string | null => {
+    if (!item) {
+      return null
+    }
+
+    if (typeof item === 'object') {
+      const candidate = item as { id?: string | number | null; value?: string | number | null; dataset?: Record<string, unknown>; getAttribute?: (name: string) => string | null }
+
+      if (candidate.id !== undefined && candidate.id !== null) {
+        return String(candidate.id)
+      }
+
+      if (candidate.value !== undefined && candidate.value !== null) {
+        return String(candidate.value)
+      }
+
+      if (typeof candidate.dataset === 'object') {
+        const datasetId = candidate.dataset?.id
+        if (typeof datasetId === 'string' && datasetId.length > 0) {
+          return datasetId
+        }
+      }
+
+      if (typeof candidate.getAttribute === 'function') {
+        const attrId = candidate.getAttribute('id') || candidate.getAttribute('data-id')
+        if (attrId) {
+          return attrId
+        }
+      }
+    }
+
+    return null
   }
 
   function featureIsVisible(feature: DebriefFeature): boolean {

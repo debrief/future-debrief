@@ -119,6 +119,20 @@ const OutlineViewParentDemo: React.FC<OutlineViewParentDemoProps> = ({
   const [showDescriptions, setShowDescriptions] = React.useState(initialShowDescriptions);
   const [lastCommandSummary, setLastCommandSummary] = React.useState<string | null>(null);
 
+  const selectedFeatureDetails = React.useMemo(() => {
+    if (!featureCollection) {
+      return [];
+    }
+
+    const featureMap = new Map<string, DebriefFeature>(
+      featureCollection.features.map((feature) => [String(feature.id), feature as DebriefFeature])
+    );
+
+    return selection
+      .map((id) => featureMap.get(id))
+      .filter((feature): feature is DebriefFeature => Boolean(feature));
+  }, [featureCollection, selection]);
+
   const handleCommandExecute = React.useCallback(
     (command: SelectedCommand, features: DebriefFeature[]) => {
       setLastCommandSummary(`${command.tool.name} executed on ${features.length} feature(s)`);
@@ -212,8 +226,10 @@ const OutlineViewParentDemo: React.FC<OutlineViewParentDemoProps> = ({
           <p>Active selection: {selection.length} feature(s)</p>
           {selection.length > 0 ? (
             <ul>
-              {selection.map((id) => (
-                <li key={id}>{id}</li>
+              {selectedFeatureDetails.map((feature) => (
+                <li key={String(feature.id)}>
+                  {feature.properties?.name || feature.id} ({feature.properties?.dataType ?? 'unknown'})
+                </li>
               ))}
             </ul>
           ) : (
@@ -267,9 +283,20 @@ const OutlineViewParentDemo: React.FC<OutlineViewParentDemoProps> = ({
         <section>
           <h4>Last Command</h4>
           {lastCommandSummary ? (
-            <code style={{ display: 'inline-block', padding: '4px 8px', background: '#fff', borderRadius: '4px' }}>
-              {lastCommandSummary}
-            </code>
+            <>
+              <code style={{ display: 'inline-block', padding: '4px 8px', background: '#fff', borderRadius: '4px' }}>
+                {lastCommandSummary}
+              </code>
+              {selectedFeatureDetails.length > 0 && (
+                <ul style={{ marginTop: '8px' }}>
+                  {selectedFeatureDetails.map((feature) => (
+                    <li key={`executed-${String(feature.id)}`}>
+                      {feature.properties?.name || feature.id}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           ) : (
             <p style={{ color: '#777' }}>Execute a tool to populate this summary.</p>
           )}

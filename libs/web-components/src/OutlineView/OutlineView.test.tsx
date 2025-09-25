@@ -59,4 +59,30 @@ describe('OutlineView', () => {
 
     expect(handleSelectionChange).toHaveBeenCalledWith(['feature-1']);
   });
+
+  it('extracts ids from HTMLElement-like selected items', () => {
+    const handleSelectionChange = jest.fn();
+
+    render(
+      <OutlineView
+        featureCollection={sampleFeatureCollection}
+        selectedFeatureIds={[]}
+        onSelectionChange={handleSelectionChange}
+      />
+    );
+
+    const tree = screen.getByTestId('outline-view-tree');
+    const mockElement = {
+      getAttribute: (name: string) => (name === 'id' ? 'feature-1' : null)
+    };
+
+    fireEvent(
+      tree,
+      new CustomEvent('vsc-tree-select', {
+        detail: { selectedItems: [mockElement] }
+      })
+    );
+
+    expect(handleSelectionChange).toHaveBeenCalledWith(['feature-1']);
+  });
 });
