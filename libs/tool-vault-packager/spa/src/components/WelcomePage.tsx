@@ -63,7 +63,7 @@ export function WelcomePage({ globalIndex, tools, loading }: WelcomePageProps) {
         <p>
           Each tool now publishes JSON schema documentation in its Schemas tab. You can also download the
           aggregated tool catalog from{' '}
-          <a href="/tools/list" target="_blank" rel="noopener noreferrer">/tools/list</a> when you need the raw index.
+          <a href="/tools/list" target="_blank" rel="noopener noreferrer">/tools/list</a> when you need the raw index 3.
         </p>
         <div style={{ marginTop: '1rem' }}>
           <a
