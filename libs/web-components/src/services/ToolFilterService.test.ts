@@ -43,7 +43,7 @@ describe('ToolFilterService', () => {
     properties: {
       dataType: 'reference-point',
       name: 'Test Point',
-      timestamp: '2024-01-01T00:00:00Z'
+      time: '2024-01-01T00:00:00Z'
     }
   });
 

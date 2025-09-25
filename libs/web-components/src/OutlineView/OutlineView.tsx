@@ -66,8 +66,8 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
   // Calculate visibility state based on selected features using feature.properties.visible
   const getVisibilityState = (): VisibilityState => {
     if (selectedFeatureIds.length === 0) return VisibilityState.AllVisible
-    
-    const selectedFeatures = featureCollection.features.filter(f => 
+
+    const selectedFeatures = featureCollection.features.filter(f =>
       selectedFeatureIds.includes(String(f.id))
     )
     const hiddenCount = selectedFeatures.filter(f => f.properties?.visible === false).length
