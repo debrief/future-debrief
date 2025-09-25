@@ -108,6 +108,8 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
     onSelectionChange(selectedIds)
   }
 
+  // TODO: we should use proper typing to handle the array selection.  It _Should_
+  // be the same in storybook and vs-extension.
   const extractSelectedItems = (detail: unknown): unknown[] => {
     if (!detail) {
       return []
