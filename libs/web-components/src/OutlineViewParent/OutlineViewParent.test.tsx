@@ -76,13 +76,13 @@ describe('OutlineViewParent', () => {
     const executeButton = screen.getByRole('button', { name: /Execute Tools/i });
     expect(executeButton).toBeDisabled();
 
-    const tree = screen.getByTestId('outline-view-tree');
-    fireEvent(
-      tree,
-      new CustomEvent('vsc-tree-select', {
-        detail: [{ id: 'feature-1' }]
-      })
-    );
+  const tree = screen.getByTestId('outline-view-tree');
+  fireEvent(
+    tree,
+    new CustomEvent('vsc-tree-select', {
+      detail: { selectedItems: [{ id: 'feature-1' }] }
+    })
+  );
 
     await waitFor(() => expect(handleSelectionChange).toHaveBeenCalledWith(['feature-1']));
     await waitFor(() => expect(executeButton).not.toBeDisabled());

@@ -100,8 +100,11 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
   }
 
   const handleSelection = (event: VscTreeSelectEvent) => {
-    const selectedItems = event.detail as unknown as Array<{ id: string | null }>
-    const selectedIds = selectedItems.map(item => item.id).filter((id): id is string => Boolean(id))
+    const detail = event.detail as unknown as { selectedItems?: Array<{ id: string | null }> }
+    const selectedItems = detail?.selectedItems ?? []
+    const selectedIds = selectedItems
+      .map(item => item?.id ?? null)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0)
     onSelectionChange(selectedIds)
   }
 

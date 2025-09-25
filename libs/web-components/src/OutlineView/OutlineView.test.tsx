@@ -48,7 +48,7 @@ describe('OutlineView', () => {
     );
 
     const tree = screen.getByTestId('outline-view-tree');
-    const eventDetail = [{ id: 'feature-1' }, { id: null }];
+    const eventDetail = { selectedItems: [{ id: 'feature-1' }, { id: null }] };
 
     fireEvent(
       tree,
