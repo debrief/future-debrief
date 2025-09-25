@@ -6,10 +6,12 @@ export { MapComponent } from './MapComponent/MapComponent';
 export { CurrentStateTable } from './CurrentStateTable/CurrentStateTable';
 export { OutlineView } from './OutlineView/OutlineView';
 export { ToolExecuteButton } from './ToolExecuteButton/ToolExecuteButton';
+export { OutlineViewParent } from './OutlineViewParent/OutlineViewParent';
 
 // Type exports
 export type { TimeControllerProps } from './TimeController/TimeController';
 export type { PropertiesViewProps } from './PropertiesView/PropertiesView';
 export type { MapComponentProps, GeoJSONFeature, GeoJSONFeatureCollection, MapState } from './MapComponent/MapComponent';
-export type { OutlineViewProps, ToolIndex } from './OutlineView/OutlineView';
+export type { OutlineViewProps } from './OutlineView/OutlineView';
 export type { ToolExecuteButtonProps, SelectedCommand } from './ToolExecuteButton/ToolExecuteButton';
+export type { OutlineViewParentProps } from './OutlineViewParent/OutlineViewParent';

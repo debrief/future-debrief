@@ -14,7 +14,7 @@ The OutlineView component provides a hierarchical tree view of features in a Fea
 
 **Key Features:**
 - **Tri-state hide/reveal toggle** - Shows different icons based on visibility state
-- **Conditional execute dropdown** - Appears when toolIndex is provided (currently deferred)
+- **Toolbar integration point** - Consumers can inject additional toolbar content via the \`toolbar\` prop
 - **Delete functionality** - Remove selected features
 - **Collapse all** - Collapse tree view
 - **View item buttons** - Individual view buttons for each feature
@@ -53,15 +53,15 @@ The component branches tree items based on feature dataType and includes view bu
     selectedFeatureIds: {
       description: 'Array of selected feature IDs',
     },
-    toolIndex: {
-      description: 'Optional array of tools for execute dropdown (currently deferred)',
-    },
     onSelectionChange: { action: 'selection-changed' },
     onFeatureVisibilityChange: { action: 'visibility-changed' },
-    onExecuteTool: { action: 'tool-executed' },
     onViewFeature: { action: 'view-feature' },
     onDeleteFeatures: { action: 'delete-features' },
     onCollapseAll: { action: 'collapse-all' },
+    toolbar: {
+      description: 'Optional React node rendered at the end of the toolbar',
+      control: false,
+    },
   },
 }
 
@@ -126,23 +126,31 @@ export const WithSelection: Story = {
 }
 
 /**
- * Future state with tools available in the execute dropdown.
- * Currently deferred but shows how the component would work with toolIndex.
+ * Demonstrates providing custom toolbar content using the toolbar prop.
  */
-export const WithTools: Story = {
+export const WithCustomToolbar: Story = {
   args: {
     featureCollection: populatedFeatureCollection,
-    selectedFeatureIds: [String(populatedFeatureCollection.features[0]?.id)].filter(Boolean),
-    toolIndex: [
-      { id: 'export-csv', name: 'Export to CSV', description: 'Export selected features as CSV' },
-      { id: 'calculate-distance', name: 'Calculate Distance', description: 'Calculate total distance' },
-      { id: 'merge-tracks', name: 'Merge Tracks', description: 'Merge selected tracks' },
-    ],
+    selectedFeatureIds: populatedFeatureCollection.features.slice(0, 1).map(f => String(f.id)),
     onSelectionChange: (ids) => console.log('Selection changed:', ids),
     onFeatureVisibilityChange: (id, visible) => console.log('Visibility changed:', id, visible),
-    onExecuteTool: (toolId, featureIds) => console.log('Tool executed:', toolId, 'on features:', featureIds),
     onViewFeature: (id) => console.log('View feature:', id),
     onDeleteFeatures: (ids) => console.log('Delete features:', ids),
     onCollapseAll: () => console.log('Collapse all'),
+    toolbar: (
+      <button
+        style={{
+          backgroundColor: 'var(--vscode-button-background)',
+          color: 'var(--vscode-button-foreground)',
+          border: 'none',
+          padding: '4px 8px',
+          borderRadius: '2px',
+          cursor: 'pointer'
+        }}
+        onClick={() => console.log('Custom toolbar action')}
+      >
+        Custom Action
+      </button>
+    ),
   },
 }
