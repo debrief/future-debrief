@@ -10,6 +10,7 @@ const Ajv = require('ajv');
 const addFormats = require('ajv-formats');
 
 const FEATURES_SCHEMA_DIR = path.join(__dirname, '..', '..', 'derived', 'json-schema', 'features');
+const GEOJSON_SCHEMA_DIR = path.join(__dirname, '..', '..', 'derived', 'json-schema', 'geojson');
 const TEST_DATA_DIR = path.join(__dirname, 'data');
 
 const SCHEMA_FILES = [
@@ -55,7 +56,7 @@ function loadSchema(filename) {
   if (!fs.existsSync(schemaPath)) {
     throw new Error(`Schema file not found: ${filename}`);
   }
-  
+
   const schemaContent = fs.readFileSync(schemaPath, 'utf8');
   try {
     const schema = JSON.parse(schemaContent);
@@ -66,47 +67,100 @@ function loadSchema(filename) {
   }
 }
 
+function loadGeoJsonSchema(filename) {
+  const schemaPath = path.join(GEOJSON_SCHEMA_DIR, filename);
+  if (!fs.existsSync(schemaPath)) {
+    throw new Error(`GeoJSON schema file not found: ${filename}`);
+  }
 
-function testSchemaValidation(filename, schema) {
+  const schemaContent = fs.readFileSync(schemaPath, 'utf8');
+  try {
+    const schema = JSON.parse(schemaContent);
+    return schema;
+  } catch (error) {
+    throw new Error(`Invalid JSON in GeoJSON schema ${filename}: ${error.message}`);
+  }
+}
+
+
+async function testSchemaValidation(filename, schema) {
   // Create a copy without $schema to avoid AJV meta-schema issues
   const schemaForValidation = { ...schema };
   delete schemaForValidation.$schema;
   
-  const ajv = new Ajv({ 
-    strict: false, 
+  // Custom schema loader for AJV
+  async function loadExternalSchema(uri) {
+    // console.log(`  Loading external schema: ${uri}`);
+
+    // Handle GeoJSON schema references (both relative and HTTP URLs)
+    if (uri.startsWith('../geojson/') || uri.startsWith('geojson/') || uri.startsWith('https://schemas.debrief.com/geojson/')) {
+      let filename;
+      if (uri.startsWith('https://schemas.debrief.com/geojson/')) {
+        filename = uri.replace('https://schemas.debrief.com/geojson/', '');
+      } else {
+        filename = uri.replace(/^(\.\.\/)?(geojson\/)/, '');
+      }
+      try {
+        const schema = loadGeoJsonSchema(filename);
+        const schemaForValidation = { ...schema };
+        delete schemaForValidation.$schema;
+        delete schemaForValidation.$id;
+        // console.log(`  ✓ Loaded GeoJSON schema: ${filename}`);
+        return schemaForValidation;
+      } catch (error) {
+        throw new Error(`Could not load GeoJSON schema ${uri}: ${error.message}`);
+      }
+    }
+
+    // Handle feature schema references (HTTP URLs)
+    if (uri.startsWith('https://schemas.debrief.com/features/')) {
+      const schemaName = uri.replace('https://schemas.debrief.com/features/', '').replace('-feature.schema.json', '.schema.json');
+      try {
+        const schema = loadSchema(schemaName);
+        const schemaForValidation = { ...schema };
+        delete schemaForValidation.$schema;
+        delete schemaForValidation.$id;
+        // console.log(`  ✓ Loaded feature schema: ${schemaName}`);
+        return schemaForValidation;
+      } catch (error) {
+        throw new Error(`Could not load feature schema ${uri}: ${error.message}`);
+      }
+    }
+
+    throw new Error(`Unknown external schema: ${uri}`);
+  }
+
+  const ajv = new Ajv({
+    strict: false,
     validateFormats: true,
-    loadSchema: false,
+    loadSchema: loadExternalSchema,
     meta: false
   });
   addFormats(ajv);
-  
-  // For featurecollection schema, we need to add the referenced schemas
-  if (filename === 'FeatureCollection.schema.json') {
-    // Load and add the referenced schemas to AJV
-    try {
-      const trackSchema = loadSchema('Track.schema.json');
-      const pointSchema = loadSchema('Point.schema.json');
-      const annotationSchema = loadSchema('Annotation.schema.json');
-      
-      // Remove $schema properties and add to AJV
-      const trackForValidation = { ...trackSchema };
-      delete trackForValidation.$schema;
-      const pointForValidation = { ...pointSchema };
-      delete pointForValidation.$schema;
-      const annotationForValidation = { ...annotationSchema };
-      delete annotationForValidation.$schema;
-      
-      ajv.addSchema(trackForValidation, 'Track.schema.json');
-      ajv.addSchema(pointForValidation, 'Point.schema.json');
-      ajv.addSchema(annotationForValidation, 'Annotation.schema.json');
-    } catch (error) {
-      console.log(`⚠ Warning: Could not add referenced schemas: ${error.message}`);
+
+  // GeoJSON schemas will be loaded on-demand by the loadExternalSchema function
+
+  // For feature collection schema, load other feature schemas
+  if (filename === 'debrief_feature_collection.schema.json') {
+    const featureSchemas = ['track.schema.json', 'point.schema.json', 'annotation.schema.json'];
+    for (const featureFile of featureSchemas) {
+      try {
+        const featureSchema = loadSchema(featureFile);
+        const schemaForValidation = { ...featureSchema };
+        delete schemaForValidation.$schema;
+        ajv.addSchema(schemaForValidation, featureFile);
+      } catch (error) {
+        console.log(`⚠ Warning: Could not load feature schema ${featureFile}: ${error.message}`);
+      }
     }
   }
   
+  // Debug: show what schemas AJV has loaded (commented out for cleaner output)
+  // console.log('  AJV schemas:', Object.keys(ajv.schemas || {}));
+
   let validate;
   try {
-    validate = ajv.compile(schemaForValidation);
+    validate = await ajv.compileAsync(schemaForValidation);
     console.log(`✓ Schema compiles: ${filename}`);
   } catch (error) {
     throw new Error(`Schema compilation failed for ${filename}: ${error.message}`);
@@ -153,17 +207,17 @@ function testSchemaStructure(filename, schema) {
 }
 
 
-function runTests() {
+async function runTests() {
   console.log('Testing JSON Schema files...\n');
-  
+
   let passedTests = 0;
   let failedTests = 0;
-  
+
   for (const filename of SCHEMA_FILES) {
     try {
       const schema = loadSchema(filename);
       testSchemaStructure(filename, schema);
-      testSchemaValidation(filename, schema);
+      await testSchemaValidation(filename, schema);
       passedTests++;
     } catch (error) {
       console.error(`✗ ${error.message}`);
@@ -186,7 +240,10 @@ function runTests() {
 
 // Only run if called directly
 if (require.main === module) {
-  runTests();
+  runTests().catch(error => {
+    console.error('Test execution failed:', error);
+    process.exit(1);
+  });
 }
 
 module.exports = { runTests };

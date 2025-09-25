@@ -82,9 +82,11 @@ $(PYTHON_DEPS_STAMP): requirements.txt
 	@echo "$(GREEN)✓ Python dependencies installed$(RESET)"
 
 # JSON Schema generation from Pydantic models - triggered by any Pydantic file change
-derived/json-schema/.schemas-generated: $(PYTHON_DEPS_STAMP) $(PYDANTIC_FILES) generate_schemas.py
+derived/json-schema/.schemas-generated: $(PYTHON_DEPS_STAMP) $(PYDANTIC_FILES) generate_schemas.py post_process_schemas.py
 	@echo "$(BLUE)Generating JSON schemas from Pydantic models...$(RESET)"
 	@python3 generate_schemas.py
+	@echo "$(BLUE)Post-processing schemas for external references...$(RESET)"
+	@python3 post_process_schemas.py
 	@touch derived/json-schema/.schemas-generated
 	@echo "$(GREEN)✓ JSON Schema generation complete$(RESET)"
 
