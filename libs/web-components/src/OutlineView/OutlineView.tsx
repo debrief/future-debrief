@@ -32,15 +32,15 @@ export interface OutlineViewProps {
 }
 
 // Group features by their dataType
-const groupFeaturesByType = (features: DebriefFeature[]) => {
-  return features.reduce((acc, feature) => {
+const groupFeaturesByType = (features: DebriefFeature[]): Record<string, DebriefFeature[]> => {
+  return features.reduce<Record<string, DebriefFeature[]>>((acc, feature) => {
     const type = feature.properties?.dataType || 'unknown'
     if (!acc[type]) {
       acc[type] = []
     }
     acc[type].push(feature)
     return acc
-  }, {} as Record<string, DebriefFeature[]>)
+  }, {})
 }
 
 // Tri-state visibility enum
@@ -61,16 +61,17 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
   onDeleteFeatures,
   onCollapseAll,
 }) => {
-  const groupedFeatures = groupFeaturesByType(featureCollection.features)
+  const features = featureCollection.features as DebriefFeature[]
+  const groupedFeatures = groupFeaturesByType(features)
 
   // Calculate visibility state based on selected features using feature.properties.visible
   const getVisibilityState = (): VisibilityState => {
     if (selectedFeatureIds.length === 0) return VisibilityState.AllVisible
 
-    const selectedFeatures = featureCollection.features.filter(f =>
-      selectedFeatureIds.includes(String(f.id))
+    const selectedFeatures = features.filter((feature: DebriefFeature) =>
+      selectedFeatureIds.includes(String(feature.id))
     )
-    const hiddenCount = selectedFeatures.filter(f => f.properties?.visible === false).length
+    const hiddenCount = selectedFeatures.filter((feature: DebriefFeature) => feature.properties?.visible === false).length
     
     if (hiddenCount === 0) return VisibilityState.AllVisible
     if (hiddenCount === selectedFeatures.length) return VisibilityState.NoneVisible
@@ -172,10 +173,10 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
         )}
       </VscodeToolbarContainer>
       <VscodeTree multiSelect onVscTreeSelect={handleSelection} >
-        {(Object.entries(groupedFeatures) as [string, DebriefFeature[]][]).map(([type, features]) => (
+        {(Object.entries(groupedFeatures) as [string, DebriefFeature[]][]).map(([type, featureList]) => (
           <VscodeTreeItem key={type}>
             <span>{type}</span>
-            {features.map((feature: DebriefFeature) => (
+            {featureList.map((feature: DebriefFeature) => (
               <VscodeTreeItem key={String(feature.id)} id={String(feature.id)}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                   <VscodeIcon name={featureIsVisible(feature) ? "eye" : "eye-closed"} />
@@ -184,8 +185,8 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
                   </span>
                   {onViewFeature && (
                     <VscodeToolbarButton 
-                      onChange={(e) => {
-                        e.stopPropagation() // Prevent tree item selection
+                      onChange={(event) => {
+                        event.stopPropagation() // Prevent tree item selection
                         onViewFeature(String(feature.id))
                       }}
                       style={{ marginLeft: 'auto', fontSize: '12px', padding: '2px 4px' }}

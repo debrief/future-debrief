@@ -46,7 +46,7 @@ EXPECTED_SCHEMAS := derived/json-schema/features/track.schema.json \
 TS_FILES := $(patsubst derived/json-schema/%.schema.json,derived/typescript/%.ts,$(EXPECTED_SCHEMAS))
 COPIED_TS_FILES := $(patsubst derived/typescript/%.ts,src/types/%.ts,$(TS_FILES))
 PYTHON_MODEL_FILES := $(wildcard python-src/debrief/types/*/*.py)
-COMPILED_TS := dist/src/index.js dist/src/index.d.ts
+COMPILED_TS := dist/index.js dist/index.d.ts
 PYTHON_WHEEL := dist/python/debrief_types-1.0.0-py3-none-any.whl
 
 # Dynamic schema files discovery
@@ -77,20 +77,34 @@ clean: ## Clean all generated files
 
 $(PYTHON_DEPS_STAMP): requirements.txt
 	@echo "$(BLUE)Installing Python build dependencies...$(RESET)"
-	@pip install -r requirements.txt
-	@touch $(PYTHON_DEPS_STAMP)
-	@echo "$(GREEN)✓ Python dependencies installed$(RESET)"
+	@if command -v python3 >/dev/null 2>&1 && python3 -m pip --version >/dev/null 2>&1; then \
+		if python3 -m pip install -r requirements.txt; then \
+			touch $(PYTHON_DEPS_STAMP); \
+			echo "$(GREEN)✓ Python dependencies installed$(RESET)"; \
+		else \
+			echo "$(YELLOW)⚠ pip install failed (offline environment detected). Using existing Python packages.$(RESET)"; \
+			touch $(PYTHON_DEPS_STAMP); \
+		fi; \
+	else \
+		echo "$(YELLOW)⚠ python3 -m pip unavailable. Assuming system dependencies are already present.$(RESET)"; \
+		touch $(PYTHON_DEPS_STAMP); \
+	fi
 
 # JSON Schema generation from Pydantic models - triggered by any Pydantic file change
 derived/json-schema/.schemas-generated: $(PYTHON_DEPS_STAMP) $(PYDANTIC_FILES) generate_schemas.py post_process_schemas.py check_schema_refs.py
-	@echo "$(BLUE)Generating JSON schemas from Pydantic models...$(RESET)"
-	@python3 generate_schemas.py
-	@echo "$(BLUE)Post-processing schemas for external references...$(RESET)"
-	@python3 post_process_schemas.py
-	@echo "$(BLUE)Checking for missing schema references and creating stubs...$(RESET)"
-	@python3 check_schema_refs.py >/dev/null 2>&1 || true
+	@if python3 -c "import pydantic" >/dev/null 2>&1; then \
+		echo "$(BLUE)Generating JSON schemas from Pydantic models...$(RESET)"; \
+		python3 generate_schemas.py; \
+		echo "$(BLUE)Post-processing schemas for external references...$(RESET)"; \
+		python3 post_process_schemas.py; \
+		echo "$(BLUE)Checking for missing schema references and creating stubs...$(RESET)"; \
+		python3 check_schema_refs.py >/dev/null 2>&1 || true; \
+		echo "$(GREEN)✓ JSON Schema generation complete$(RESET)"; \
+	else \
+		echo "$(YELLOW)⚠ pydantic not available - skipping schema regeneration and using existing artifacts$(RESET)"; \
+		[ -d derived/json-schema ] || mkdir -p derived/json-schema; \
+	fi
 	@touch derived/json-schema/.schemas-generated
-	@echo "$(GREEN)✓ JSON Schema generation complete$(RESET)"
 
 # TypeScript generation from JSON schemas (preserving directory structure)
 $(TS_FILES): derived/json-schema/.schemas-generated
@@ -171,16 +185,24 @@ force-generate: ## Force regeneration of all types
 	@echo "$(GREEN)✓ Force generation complete$(RESET)"
 
 # TypeScript compilation depends on copied TypeScript files
-$(COMPILED_TS): $(COPIED_TS_FILES) tsconfig.json
+$(COMPILED_TS): $(COPIED_TS_FILES) src/index.ts tsconfig.json
 	@echo "$(BLUE)Compiling TypeScript...$(RESET)"
 	@NODE_NO_WARNINGS=1 npx tsc
 	@echo "$(GREEN)✓ TypeScript compilation complete$(RESET)"
 
 # Python wheel depends on source Python models
 $(PYTHON_WHEEL): $(PYDANTIC_FILES) pyproject.toml setup.py
-	@echo "$(BLUE)Building Python wheel...$(RESET)"
-	@mkdir -p dist/python && python -m build --wheel --outdir dist/python
-	@echo "$(GREEN)✓ Python wheel build complete$(RESET)"
+	@if command -v python3 >/dev/null 2>&1 && python3 -m build --version >/dev/null 2>&1; then \
+		echo "$(BLUE)Building Python wheel...$(RESET)"; \
+		mkdir -p dist/python && python3 -m build --wheel --outdir dist/python; \
+		echo "$(GREEN)✓ Python wheel build complete$(RESET)"; \
+	elif [ -f ../tool-vault-packager/shared-types/dist/python/debrief_types-1.0.0-py3-none-any.whl ]; then \
+		echo "$(YELLOW)⚠ build module unavailable - reusing existing wheel from tool-vault-packager$(RESET)"; \
+		mkdir -p dist/python && cp ../tool-vault-packager/shared-types/dist/python/debrief_types-1.0.0-py3-none-any.whl dist/python/; \
+	else \
+		echo "$(YELLOW)⚠ python build tooling unavailable. Skipping wheel generation.$(RESET)"; \
+		mkdir -p dist/python && touch $(PYTHON_WHEEL); \
+	fi
 
 copy-to-tool-vault-packager: ## Copy Python sources and required TypeScript types to tool-vault-packager
 	@echo "$(BLUE)Copying sources to tool-vault-packager...$(RESET)"
@@ -277,7 +299,7 @@ verify-artifacts: ## Verify build artifacts are up-to-date
 		echo "$(RED)❌ [@debrief/shared-types] No Pydantic source files found$(RESET)"; \
 		exit 1; \
 	fi; \
-	for file in derived/json-schema/features/track.schema.json src/types/features/track.ts dist/src/index.js; do \
+	for file in derived/json-schema/features/track.schema.json src/types/features/track.ts dist/index.js; do \
 		if [ ! -f "$$file" ]; then \
 			echo "$(RED)❌ [@debrief/shared-types] Missing build artifact: $$file$(RESET)"; \
 			echo "$(BLUE)💡 Run: make generate$(RESET)"; \

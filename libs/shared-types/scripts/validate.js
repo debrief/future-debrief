@@ -61,8 +61,8 @@ function validateBuildArtifacts() {
     'src/types/features/track.ts',
     'src/types/features/point.ts',
     'src/types/features/annotation.ts',
-    'dist/src/index.js',
-    'dist/src/index.d.ts'
+    'dist/index.js',
+    'dist/index.d.ts'
   ];
 
   const missingFiles = [];
