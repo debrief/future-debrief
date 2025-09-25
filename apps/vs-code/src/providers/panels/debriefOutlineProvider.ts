@@ -346,39 +346,42 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
   }
 
   private _getDefaultToolList(): ToolListResponse {
-    const resourceToolList = this._loadToolListFromResources();
-    if (resourceToolList) {
-      return resourceToolList;
-    }
-
     return {
       version: '1.0.0',
       description: 'VS Code tool catalogue placeholder',
-      tools: []
+      tools: [
+        {
+          name: 'fit_to_selection',
+          description: 'Fit the map view to the currently selected features.',
+          tool_url: 'command:debrief.fitToSelection',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              selected_features: {
+                type: 'array',
+                description: 'Features selected in the outline view.'
+              }
+            },
+            required: []
+          }
+        },
+        {
+          name: 'export_selection',
+          description: 'Export the selected features to the developer console.',
+          tool_url: 'command:debrief.exportSelection',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              selected_features: {
+                type: 'array',
+                description: 'Features selected in the outline view.'
+              }
+            },
+            required: []
+          }
+        }
+      ]
     };
-  }
-
-  private _loadToolListFromResources(): ToolListResponse | undefined {
-    try {
-      const extension = vscode.extensions.getExtension('ian.vs-code');
-      if (!extension) {
-        return undefined;
-      }
-
-      const toolIndexUri = vscode.Uri.joinPath(extension.extensionUri, 'resources', 'tool-index.json');
-      const toolIndexPath = toolIndexUri.fsPath;
-
-      if (!fs.existsSync(toolIndexPath)) {
-        return undefined;
-      }
-
-      const fileContents = fs.readFileSync(toolIndexPath, 'utf8');
-      const parsed = JSON.parse(fileContents) as ToolListResponse;
-      return parsed;
-    } catch (error) {
-      console.error('[DebriefOutlineProvider] Failed to load tool-index.json', error);
-      return undefined;
-    }
   }
 
   /**
