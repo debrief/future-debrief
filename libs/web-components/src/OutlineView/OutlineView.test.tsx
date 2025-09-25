@@ -29,7 +29,7 @@ describe('OutlineView', () => {
         featureCollection={sampleFeatureCollection}
         selectedFeatureIds={[]}
         onSelectionChange={jest.fn()}
-        toolbar={<span>Custom Toolbar</span>}
+        toolbarItems={[<span key="custom">Custom Toolbar</span>]}
       />
     );
 

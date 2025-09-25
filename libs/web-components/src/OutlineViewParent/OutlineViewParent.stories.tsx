@@ -30,199 +30,94 @@ For basic outline-only scenarios continue using **OutlineView**. For scenarios t
 export default meta;
 type Story = StoryObj<typeof OutlineViewParent>;
 
-const maritimeFeatureCollection: DebriefFeatureCollection = {
-  type: 'FeatureCollection',
-  features: [
-    {
-      type: 'Feature',
-      id: 'track-alpha',
-      geometry: {
-        type: 'LineString',
-        coordinates: [
-          [-4.82, 55.94],
-          [-4.86, 55.97],
-          [-4.9, 56.0]
-        ]
-      },
-      properties: {
-        dataType: 'track',
-        name: 'Alpha Patrol Track',
-        timestamps: [
-          '2024-03-18T08:00:00Z',
-          '2024-03-18T08:05:00Z',
-          '2024-03-18T08:10:00Z'
-        ],
-        visible: true
-      }
-    },
-    {
-      type: 'Feature',
-      id: 'track-bravo',
-      geometry: {
-        type: 'LineString',
-        coordinates: [
-          [-4.95, 55.92],
-          [-4.97, 55.95],
-          [-5.01, 55.99]
-        ]
-      },
-      properties: {
-        dataType: 'track',
-        name: 'Bravo Escort Track',
-        timestamps: [
-          '2024-03-18T08:15:00Z',
-          '2024-03-18T08:20:00Z',
-          '2024-03-18T08:25:00Z'
-        ]
-      }
-    },
-    {
-      type: 'Feature',
-      id: 'point-harbour',
-      geometry: {
-        type: 'Point',
-        coordinates: [-4.88, 55.93]
-      },
-      properties: {
-        dataType: 'reference-point',
-        name: 'Harbour Entrance'
-      }
-    },
-    {
-      type: 'Feature',
-      id: 'zone-patrol',
-      geometry: {
-        type: 'Polygon',
-        coordinates: [
-          [
-            [-4.94, 55.91],
-            [-4.84, 55.91],
-            [-4.84, 55.99],
-            [-4.94, 55.99],
-            [-4.94, 55.91]
-          ]
-        ]
-      },
-      properties: {
-        dataType: 'zone',
-        name: 'Patrol Box',
-        visible: true
-      }
-    }
-  ]
-};
-
-const maritimeToolList: ToolListResponse = {
-  version: '1.0.0',
-  description: 'Sample maritime tool catalogue',
-  tools: [
-    {
-      name: 'track_speed_filter',
-      description: 'Highlight track segments that exceed a speed threshold.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          track_feature: {
-            description: 'Track feature to analyse',
-            examples: ['track-alpha']
-          },
-          min_speed: {
-            type: 'number',
-            description: 'Minimum speed in knots',
-            default: 12
-          }
-        },
-        required: ['track_feature'],
-        additionalProperties: false
-      },
-      tool_url: '/api/tools/track_speed_filter/tool.json'
-    },
-    {
-      name: 'point_in_zone',
-      description: 'Check whether a point lies inside a patrol zone polygon.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          point_feature: {
-            description: 'Reference point to test'
-          },
-          zone_feature: {
-            description: 'Zone polygon defining the allowed area'
-          }
-        },
-        required: ['point_feature', 'zone_feature'],
-        additionalProperties: false
-      },
-      tool_url: '/api/tools/point_in_zone/tool.json'
-    },
-    {
-      name: 'merge_tracks',
-      description: 'Combine multiple patrol tracks into a consolidated route.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          primary_track: {
-            description: 'Primary track to retain metadata from'
-          },
-          secondary_track: {
-            description: 'Additional track to merge'
-          }
-        },
-        required: ['primary_track', 'secondary_track'],
-        additionalProperties: false
-      },
-      tool_url: '/api/tools/merge_tracks/tool.json'
-    }
-  ]
-};
-
 interface OutlineViewParentDemoProps {
   initialSelection?: string[];
   initialSmartFiltering?: boolean;
   initialShowAllTools?: boolean;
   initialShowDescriptions?: boolean;
-  activeToolNames?: string[];
 }
+
+interface SampleDataState {
+  featureCollection: DebriefFeatureCollection | null;
+  toolList: ToolListResponse | null;
+  loading: boolean;
+  error: string | null;
+}
+
+const SAMPLE_FEATURES_URL = '/large-sample.plot.json';
+const SAMPLE_TOOLS_URL = '/tool-index.json';
+
+const useSampleData = (): SampleDataState => {
+  const [state, setState] = React.useState<SampleDataState>({
+    featureCollection: null,
+    toolList: null,
+    loading: true,
+    error: null
+  });
+
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const loadData = async () => {
+      try {
+        const [featureResponse, toolResponse] = await Promise.all([
+          fetch(SAMPLE_FEATURES_URL),
+          fetch(SAMPLE_TOOLS_URL)
+        ]);
+
+        if (!featureResponse.ok) {
+          throw new Error(`Failed to load feature data (${featureResponse.status})`);
+        }
+        if (!toolResponse.ok) {
+          throw new Error(`Failed to load tool data (${toolResponse.status})`);
+        }
+
+        const featureJson = await featureResponse.json();
+        const toolJson = await toolResponse.json();
+
+        if (!cancelled) {
+          setState({
+            featureCollection: featureJson as DebriefFeatureCollection,
+            toolList: toolJson as ToolListResponse,
+            loading: false,
+            error: null
+          });
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setState({
+            featureCollection: null,
+            toolList: null,
+            loading: false,
+            error: error instanceof Error ? error.message : 'Unknown error when loading sample data'
+          });
+          console.error('[OutlineViewParent stories] Failed to load sample data', error);
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return state;
+};
 
 const OutlineViewParentDemo: React.FC<OutlineViewParentDemoProps> = ({
   initialSelection = [],
   initialSmartFiltering = true,
   initialShowAllTools = false,
-  initialShowDescriptions = true,
-  activeToolNames
+  initialShowDescriptions = true
 }) => {
-  const availableToolNames = React.useMemo(
-    () => maritimeToolList.tools?.map((tool) => tool.name) ?? [],
-    []
-  );
-
+  const { featureCollection, toolList, loading, error } = useSampleData();
   const [selection, setSelection] = React.useState<string[]>(initialSelection);
   const [enableSmartFiltering, setEnableSmartFiltering] = React.useState(initialSmartFiltering);
   const [showAllTools, setShowAllTools] = React.useState(initialShowAllTools);
   const [showDescriptions, setShowDescriptions] = React.useState(initialShowDescriptions);
-  const [activeTools, setActiveTools] = React.useState<string[]>(
-    activeToolNames ?? availableToolNames
-  );
   const [lastCommandSummary, setLastCommandSummary] = React.useState<string | null>(null);
-
-  const filteredToolList = React.useMemo<ToolListResponse>(() => {
-    if (activeTools.length === availableToolNames.length) {
-      return maritimeToolList;
-    }
-
-    return {
-      ...maritimeToolList,
-      tools: maritimeToolList.tools?.filter((tool) => activeTools.includes(tool.name)) ?? []
-    };
-  }, [activeTools, availableToolNames.length]);
-
-  const handleToolToggle = (toolName: string) => {
-    setActiveTools((current) =>
-      current.includes(toolName)
-        ? current.filter((name) => name !== toolName)
-        : [...current, toolName]
-    );
-  };
 
   const handleCommandExecute = React.useCallback(
     (command: SelectedCommand, features: DebriefFeature[]) => {
@@ -230,6 +125,40 @@ const OutlineViewParentDemo: React.FC<OutlineViewParentDemoProps> = ({
     },
     []
   );
+
+  if (loading) {
+    return (
+      <div
+        style={{
+          padding: '24px',
+          border: '1px solid #d0d0d5',
+          borderRadius: '8px',
+          background: '#f6f6f9'
+        }}
+      >
+        <h3>Loading sample data…</h3>
+        <p>Fetching `large-sample.plot.json` and `tool-index.json` from the Storybook public directory.</p>
+      </div>
+    );
+  }
+
+  if (error || !featureCollection || !toolList) {
+    return (
+      <div
+        style={{
+          padding: '24px',
+          border: '1px solid #f0b4b4',
+          borderRadius: '8px',
+          background: '#fff5f5',
+          color: '#8b2c2c'
+        }}
+      >
+        <h3>Unable to load sample data</h3>
+        <p>{error ?? 'Unknown error encountered while loading Storybook assets.'}</p>
+        <p>Ensure `large-sample.plot.json` and `tool-index.json` are present in `.storybook/public/`.</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', gap: '24px', height: '600px', alignItems: 'stretch' }}>
@@ -245,8 +174,8 @@ const OutlineViewParentDemo: React.FC<OutlineViewParentDemoProps> = ({
         }}
       >
         <OutlineViewParent
-          featureCollection={maritimeFeatureCollection}
-          toolList={filteredToolList}
+          featureCollection={featureCollection}
+          toolList={toolList}
           selectedFeatureIds={selection}
           onSelectionChange={setSelection}
           onCommandExecute={handleCommandExecute}
@@ -335,25 +264,6 @@ const OutlineViewParentDemo: React.FC<OutlineViewParentDemoProps> = ({
           </div>
         </section>
 
-        <section style={{ marginBottom: '20px' }}>
-          <h4>Active Tools</h4>
-          <p style={{ marginTop: 0, color: '#777' }}>
-            Toggle tools to simulate conditional availability based on mission context.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {availableToolNames.map((toolName) => (
-              <label key={toolName}>
-                <input
-                  type="checkbox"
-                  checked={activeTools.includes(toolName)}
-                  onChange={() => handleToolToggle(toolName)}
-                />{' '}
-                {toolName}
-              </label>
-            ))}
-          </div>
-        </section>
-
         <section>
           <h4>Last Command</h4>
           {lastCommandSummary ? (
@@ -376,7 +286,6 @@ export const DefaultIntegration: Story = {
 export const SingleToolScenario: Story = {
   render: () => (
     <OutlineViewParentDemo
-      activeToolNames={['track_speed_filter']}
       initialSmartFiltering={false}
       initialShowDescriptions={false}
     />
@@ -386,9 +295,8 @@ export const SingleToolScenario: Story = {
 export const ConditionalAvailability: Story = {
   render: () => (
     <OutlineViewParentDemo
-      initialSelection={['point-harbour']}
+      initialSelection={[]}
       initialShowAllTools={false}
-      activeToolNames={['point_in_zone', 'merge_tracks']}
     />
   )
 };

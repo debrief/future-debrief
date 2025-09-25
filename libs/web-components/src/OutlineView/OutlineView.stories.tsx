@@ -137,8 +137,9 @@ export const WithCustomToolbar: Story = {
     onViewFeature: (id) => console.log('View feature:', id),
     onDeleteFeatures: (ids) => console.log('Delete features:', ids),
     onCollapseAll: () => console.log('Collapse all'),
-    toolbar: (
+    toolbarItems: [
       <button
+        key="custom-action"
         style={{
           backgroundColor: 'var(--vscode-button-background)',
           color: 'var(--vscode-button-foreground)',
@@ -151,6 +152,6 @@ export const WithCustomToolbar: Story = {
       >
         Custom Action
       </button>
-    ),
+    ],
   },
 }

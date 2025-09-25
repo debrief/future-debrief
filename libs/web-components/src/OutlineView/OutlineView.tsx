@@ -17,7 +17,7 @@ export interface OutlineViewProps {
   onViewFeature?: (featureId: string) => void
   onDeleteFeatures?: (ids: string[]) => void
   onCollapseAll?: () => void
-  toolbar?: React.ReactNode
+  toolbarItems?: React.ReactNode[]
 }
 
 // Group features by their dataType
@@ -47,7 +47,7 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
   onViewFeature,
   onDeleteFeatures,
   onCollapseAll,
-  toolbar,
+  toolbarItems = [],
 }) => {
   const groupedFeatures = groupFeaturesByType(featureCollection.features)
 
@@ -139,9 +139,11 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
           </VscodeToolbarButton>
         )}
 
-        {toolbar && (
+        {toolbarItems.length > 0 && (
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {toolbar}
+            {toolbarItems.map((item, index) => (
+              <React.Fragment key={index}>{item}</React.Fragment>
+            ))}
           </div>
         )}
       </VscodeToolbarContainer>

@@ -5,7 +5,7 @@ import { OutlineView, type OutlineViewProps } from '../OutlineView/OutlineView';
 import { ToolExecuteButton, type SelectedCommand } from '../ToolExecuteButton/ToolExecuteButton';
 
 export interface OutlineViewParentProps
-  extends Omit<OutlineViewProps, 'selectedFeatureIds' | 'onSelectionChange' | 'toolbar'> {
+  extends Omit<OutlineViewProps, 'selectedFeatureIds' | 'onSelectionChange' | 'toolbarItems'> {
   featureCollection: DebriefFeatureCollection;
   toolList: ToolListResponse;
   selectedFeatureIds?: string[];
@@ -86,9 +86,10 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
     [onCommandExecute, selectedFeatures]
   );
 
-  const toolbarContent = (
-    <>
+  const toolbarItems = React.useMemo(() => {
+    const items: React.ReactNode[] = [
       <ToolExecuteButton
+        key="tool-execute"
         toolList={toolList}
         selectedFeatures={selectedFeatures}
         onCommandExecute={handleCommandExecute}
@@ -99,16 +100,32 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
         showAll={showAllTools}
         showDescriptions={showToolDescriptions}
       />
-      {additionalToolbarContent}
-    </>
-  );
+    ];
+
+    if (additionalToolbarContent) {
+      items.push(<React.Fragment key="additional">{additionalToolbarContent}</React.Fragment>);
+    }
+
+    return items;
+  }, [
+    additionalToolbarContent,
+    buttonText,
+    enableSmartFiltering,
+    handleCommandExecute,
+    isExecuteDisabled,
+    menuPosition,
+    selectedFeatures,
+    showAllTools,
+    showToolDescriptions,
+    toolList
+  ]);
 
   return (
     <OutlineView
       featureCollection={featureCollection}
       selectedFeatureIds={effectiveSelectedIds}
       onSelectionChange={handleSelectionChange}
-      toolbar={toolbarContent}
+      toolbarItems={toolbarItems}
       {...outlineViewCallbacks}
     />
   );
