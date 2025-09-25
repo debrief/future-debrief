@@ -29,6 +29,10 @@ class TrackProperties(BaseModel):
         None,
         description="Additional description or notes about this track"
     )
+    visible: bool = Field(
+        True,
+        description="Whether this track is visible on the map"
+    )
 
     class Config:
         extra = "forbid"  # Prevent additional properties

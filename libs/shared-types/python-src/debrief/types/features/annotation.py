@@ -60,6 +60,10 @@ class AnnotationProperties(BaseModel):
         None,
         description="Additional description or notes about this annotation"
     )
+    visible: bool = Field(
+        True,
+        description="Whether this annotation is visible on the map"
+    )
 
     class Config:
         extra = "forbid"  # Prevent additional properties

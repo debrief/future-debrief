@@ -37,6 +37,10 @@ class PointProperties(BaseModel):
         None,
         description="Additional description or notes for this point"
     )
+    visible: bool = Field(
+        True,
+        description="Whether this point is visible on the map"
+    )
 
     class Config:
         extra = "forbid"  # Prevent additional properties
