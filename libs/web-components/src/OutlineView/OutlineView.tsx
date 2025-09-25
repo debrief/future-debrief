@@ -105,7 +105,6 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
     const selectedIds = Array.from(new Set(selectedItems
       .map(extractIdFromItem)
       .filter((id): id is string => typeof id === 'string' && id.length > 0)))
-
     onSelectionChange(selectedIds)
   }
 
