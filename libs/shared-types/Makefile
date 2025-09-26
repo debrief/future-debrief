@@ -141,6 +141,8 @@ $(COPIED_TS_FILES): $(TS_FILES)
 	done
 	@echo "$(BLUE)Post-processing copied TypeScript files...$(RESET)"
 	@cd src/types && node ../../post_process_typescript.js
+	@echo "$(BLUE)Adding missing type definitions to copied files...$(RESET)"
+	@node fix_types.js >/dev/null 2>&1 || true
 	@touch $(COPIED_TS_FILES)
 
 
