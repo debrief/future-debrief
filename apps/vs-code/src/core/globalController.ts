@@ -1,6 +1,7 @@
 
 import * as vscode from 'vscode';
 import { TimeState, ViewportState, SelectionState, DebriefFeatureCollection, EditorState } from '@debrief/shared-types';
+import { ToolVaultServerService } from '../services/toolVaultServer';
 
 export { EditorState };
 
@@ -32,19 +33,22 @@ export interface StateUpdatePayload {
  */
 export class GlobalController {
     private static _instance: GlobalController;
-    
+
     // State storage: editorId → EditorState
     private editorStates = new Map<string, EditorState>();
-    
+
     // Track the currently active editor
     private _activeEditorId?: string;
-    
+
     // Event system
     private eventHandlers = new Map<StateEventType, Set<StateEventHandler | ActiveEditorChangedHandler>>();
-    
+
     // VS Code event emitter for integration
     private _onDidChangeState = new vscode.EventEmitter<{ editorId: string; eventType: StateEventType; state: EditorState }>();
     public readonly onDidChangeState = this._onDidChangeState.event;
+
+    // Tool Vault Server integration
+    private toolVaultServer?: ToolVaultServerService;
     
     private constructor() {
         this.initializeEventHandlers();
@@ -316,6 +320,39 @@ export class GlobalController {
     }
     
     /**
+     * Initialize Tool Vault Server integration
+     */
+    public initializeToolVaultServer(toolVaultServer: ToolVaultServerService): void {
+        this.toolVaultServer = toolVaultServer;
+    }
+
+    /**
+     * Get the tool index from the Tool Vault Server
+     */
+    public async getToolIndex(): Promise<unknown> {
+        if (!this.toolVaultServer) {
+            throw new Error('Tool Vault server is not initialized');
+        }
+
+        return this.toolVaultServer.getToolIndex();
+    }
+
+    /**
+     * Execute a tool command with the given parameters
+     */
+    public async executeTool(toolName: string, parameters: Record<string, unknown>): Promise<{ success: boolean; result?: unknown; error?: string }> {
+        if (!this.toolVaultServer) {
+            return {
+                success: false,
+                error: 'Tool Vault server is not initialized'
+            };
+        }
+
+        return this.toolVaultServer.executeToolCommand(toolName, parameters);
+    }
+
+
+    /**
      * Dispose of the GlobalController and clean up resources
      */
     public dispose(): void {
@@ -323,5 +360,6 @@ export class GlobalController {
         this.eventHandlers.clear();
         this.editorStates.clear();
         this._activeEditorId = undefined;
+        this.toolVaultServer = undefined;
     }
 }

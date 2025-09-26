@@ -101,9 +101,10 @@ export function activate(context: vscode.ExtensionContext) {
                 await toolVaultServer!.startServer();
 
                 // Load tool index and show success notification
-                const tools = await toolVaultServer!.getToolIndex();
+                const toolIndex = await toolVaultServer!.getToolIndex();
+                const toolCount = (toolIndex as any)?.tools?.length ?? 'unknown number of';
                 vscode.window.showInformationMessage(
-                    `Tool Vault server started successfully with ${tools.length} tools available.`
+                    `Tool Vault server started successfully with ${toolCount} tools available.`
                 );
             } else if (config && config.autoStart && !config.serverPath) {
                 vscode.window.showInformationMessage(
@@ -227,9 +228,10 @@ export function activate(context: vscode.ExtensionContext) {
             try {
                 if (toolVaultServer) {
                     await toolVaultServer.restartServer();
-                    const tools = await toolVaultServer.getToolIndex();
+                    const toolIndex = await toolVaultServer.getToolIndex();
+                    const toolCount = (toolIndex as any)?.tools?.length ?? 'unknown number of';
                     vscode.window.showInformationMessage(
-                        `Tool Vault server restarted successfully with ${tools.length} tools available.`
+                        `Tool Vault server restarted successfully with ${toolCount} tools available.`
                     );
                 } else {
                     vscode.window.showErrorMessage('Tool Vault server service is not initialized.');
@@ -248,6 +250,11 @@ export function activate(context: vscode.ExtensionContext) {
     // Initialize Global Controller (new centralized state management)
     globalController = GlobalController.getInstance();
     context.subscriptions.push(globalController);
+
+    // Initialize Tool Vault Server integration in GlobalController
+    if (toolVaultServer) {
+        globalController.initializeToolVaultServer(toolVaultServer);
+    }
     
     // Initialize Editor Activation Handler
     activationHandler = new EditorActivationHandler(globalController);
