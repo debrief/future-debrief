@@ -41,9 +41,18 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
     selectedFeatureIds: string[];
     currentEditorId?: string;
   } {
-    const currentEditorId = this._globalController.activeEditorId || this._globalController.getEditorIds()[0];
-    
+    const activeEditorId = this._globalController.activeEditorId;
+    const allEditorIds = this._globalController.getEditorIds();
+    const currentEditorId = activeEditorId || allEditorIds[0];
+
+    console.warn('[DebriefOutlineProvider] Debug info:', {
+      activeEditorId,
+      allEditorIds,
+      currentEditorId
+    });
+
     if (!currentEditorId) {
+      console.warn('[DebriefOutlineProvider] No current editor ID found');
       return {
         featureCollection: { type: 'FeatureCollection', features: [] },
         selectedFeatureIds: [],
@@ -290,7 +299,15 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
             break;
 
           case 'executeCommand':
-            await this._executeToolCommand(message.command, message.selectedFeatures);
+            // Extract tool name from the command object
+            let toolName: string = 'unknown-tool';
+            if (typeof message.command === 'string') {
+              toolName = message.command;
+            } else if (message.command && typeof message.command === 'object') {
+              const cmd = message.command as { name?: string; tool?: { name?: string } };
+              toolName = cmd.name || (cmd.tool && cmd.tool.name) || 'unknown-tool';
+            }
+            await this._executeToolCommand(toolName, message.selectedFeatures);
             break;
         }
       },
@@ -318,7 +335,12 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
       this._updateWebviewData();
     });
     
-    const activeEditorSubscription = this._globalController.on('activeEditorChanged', async () => {
+    const activeEditorSubscription = this._globalController.on('activeEditorChanged', async (data) => {
+      console.warn('[DebriefOutlineProvider] activeEditorChanged event received:', {
+        previousEditorId: data.previousEditorId,
+        currentEditorId: data.currentEditorId,
+        globalControllerActiveId: this._globalController.activeEditorId
+      });
       await this._update(); // Full refresh when editor changes
     });
 
@@ -349,12 +371,18 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
    */
   private async _executeToolCommand(commandName: string, selectedFeatures: unknown[]): Promise<void> {
     try {
-      console.warn(`[DebriefOutlineProvider] Executing tool: ${commandName} with ${selectedFeatures.length} selected features`);
 
       // Execute tool through GlobalController
-      const result = await this._globalController.executeTool(commandName, {
-        features: selectedFeatures
-      });
+      // Note: Different tools expect different parameter names
+      // For track_speed_filter_fast, it expects 'track_feature' parameter
+      let parameters: Record<string, unknown>;
+      if (commandName === 'track_speed_filter_fast') {
+        parameters = { track_feature: selectedFeatures[0] }; // This tool expects a single feature
+      } else {
+        parameters = { features: selectedFeatures }; // Default parameter name
+      }
+
+      const result = await this._globalController.executeTool(commandName, parameters);
 
       if (!result.success) {
         const errorMessage = `Tool execution failed: ${result.error || 'Unknown error'}`;
@@ -363,15 +391,68 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
         return;
       }
 
-      // Show success notification
+      // Show success notification with option to view results
       const successMessage = `Tool "${commandName}" executed successfully`;
       console.warn('[DebriefOutlineProvider] Tool execution success:', result.result);
-      vscode.window.showInformationMessage(successMessage);
+
+      vscode.window.showInformationMessage(
+        successMessage,
+        'View Results',
+        'Copy Results'
+      ).then(selection => {
+        if (selection === 'View Results') {
+          this._showToolResults(commandName, result.result);
+        } else if (selection === 'Copy Results') {
+          this._copyToolResults(result.result);
+        }
+      });
 
     } catch (error) {
       const errorMessage = `Failed to execute tool "${commandName}": ${error instanceof Error ? error.message : String(error)}`;
       console.error('[DebriefOutlineProvider] Tool execution error:', error);
       vscode.window.showErrorMessage(errorMessage);
+    }
+  }
+
+  /**
+   * Show tool results in a new document window
+   */
+  private async _showToolResults(toolName: string, results: unknown): Promise<void> {
+    try {
+      // Format results as pretty JSON
+      const formattedResults = JSON.stringify(results, null, 2);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const fileName = `tool-results-${toolName}-${timestamp}.json`;
+
+      // Create new untitled document with results
+      const document = await vscode.workspace.openTextDocument({
+        content: formattedResults,
+        language: 'json'
+      });
+
+      // Show the document
+      await vscode.window.showTextDocument(document);
+
+      vscode.window.showInformationMessage(
+        `Tool results opened in new document. Save as "${fileName}" if needed.`
+      );
+    } catch (error) {
+      console.error('[DebriefOutlineProvider] Error showing tool results:', error);
+      vscode.window.showErrorMessage(`Failed to show tool results: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Copy tool results to clipboard
+   */
+  private async _copyToolResults(results: unknown): Promise<void> {
+    try {
+      const formattedResults = JSON.stringify(results, null, 2);
+      await vscode.env.clipboard.writeText(formattedResults);
+      vscode.window.showInformationMessage('Tool results copied to clipboard');
+    } catch (error) {
+      console.error('[DebriefOutlineProvider] Error copying tool results:', error);
+      vscode.window.showErrorMessage(`Failed to copy tool results: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
