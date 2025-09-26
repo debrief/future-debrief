@@ -72,13 +72,15 @@ export class ToolVaultServerService {
   }
 
   private async _startServer(): Promise<void> {
+    let pythonInterpreter = 'python'; // Default fallback
+
     try {
       this.config = this.configService.getConfiguration();
       this.log(`Loading configuration from: ${this.configService.getConfigurationSource()}`);
       this.log(`Server path: ${this.config.serverPath}`);
       this.log(`Host: ${this.config.host}:${this.config.port}`);
 
-      const pythonInterpreter = await this.detectPythonInterpreter();
+      pythonInterpreter = await this.detectPythonInterpreter();
       this.log(`Using Python interpreter: ${pythonInterpreter}`);
 
       // Check if port is available
@@ -265,12 +267,26 @@ export class ToolVaultServerService {
     }
 
     try {
+      // Transform to the format expected by tool-vault server
+      // Convert object parameters to array of {name, value} objects
+      const argumentsArray = Object.entries(command.parameters || {}).map(([name, value]) => ({
+        name,
+        value
+      }));
+
+      const payload = {
+        name: command.command,
+        arguments: argumentsArray
+      };
+
+      this.log(`Sending payload: ${JSON.stringify(payload, null, 2)}`);
+
       const response = await fetch(`http://${this.config.host}:${this.config.port}/tools/call`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(command),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -435,7 +451,7 @@ export class ToolVaultServerService {
 
       // Log command execution attempt
       this.log(`Executing tool: ${toolName}`);
-      this.log(`Selected features: ${JSON.stringify(parameters, null, 2)}`);
+      this.log(`Parameters: ${JSON.stringify(parameters, null, 2)}`);
 
       // Execute command on server
       const response = await this.executeCommand({
