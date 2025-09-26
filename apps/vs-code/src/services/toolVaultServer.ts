@@ -80,14 +80,24 @@ export class ToolVaultServerService {
       this.log(`Server path: ${this.config.serverPath}`);
       this.log(`Host: ${this.config.host}:${this.config.port}`);
 
+      // First, check if there's already a compatible server running
+      console.log('[ToolVaultServer] Checking for existing server...');
+      const existingServerCheck = await this.healthCheck();
+      if (existingServerCheck) {
+        console.log('[ToolVaultServer] Found existing compatible server - using it');
+        this.log('Connected to existing Tool Vault server on ' + this.config.host + ':' + this.config.port);
+        return; // Success - no need to start new process
+      }
+
+      console.log('[ToolVaultServer] No existing server found - starting new instance');
       pythonInterpreter = await this.detectPythonInterpreter();
       this.log(`Using Python interpreter: ${pythonInterpreter}`);
 
-      // Check if port is available
+      // Check if port is available (we already checked for Tool Vault server above)
       const isPortAvailable = await this.checkPortAvailable(this.config.port);
       if (!isPortAvailable) {
         throw new Error(
-          `Port ${this.config.port} is already in use. Please configure a different port ` +
+          `Port ${this.config.port} is already in use by another service. Please configure a different port ` +
           `in VS Code settings (debrief.toolVault.port) or stop the process using this port.`
         );
       }
@@ -128,6 +138,7 @@ export class ToolVaultServerService {
       // Handle process events
       this.process.on('error', (error) => {
         this.log(`Process error: ${error.message}`);
+        console.log('[ToolVaultServer] Process error - clearing config');
         this.process = null;
         this.config = null; // Clear config when process fails
       });
@@ -135,12 +146,20 @@ export class ToolVaultServerService {
       this.process.on('exit', (code, signal) => {
         this.log(`Process exited with code ${code}, signal ${signal}`);
         this.process = null;
-        this.config = null; // Clear config when process stops
+        // Only clear config on non-zero exit codes (failures)
+        // Some servers exit gracefully after starting (daemon pattern)
+        if (code !== 0) {
+          console.log('[ToolVaultServer] Process failed with code', code, '- clearing config');
+          this.config = null;
+        } else {
+          console.log('[ToolVaultServer] Process exited gracefully with code', code, '- keeping config');
+        }
       });
 
       // Wait for server to be ready
       await this.waitForServerReady();
       this.log('Tool Vault server started successfully');
+      console.log('[ToolVaultServer] Server startup completed successfully');
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -160,6 +179,7 @@ export class ToolVaultServerService {
       this.log(`Diagnostics:\n${diagnostics.join('\n')}`);
 
       // Clear config on startup failure
+      console.log('[ToolVaultServer] Startup failure - clearing config');
       this.config = null;
       await this.stopServer();
       throw new Error(`Tool Vault server startup failed.\n${diagnostics.join('\n')}`);
@@ -170,13 +190,30 @@ export class ToolVaultServerService {
    * Stop the Tool Vault server gracefully
    */
   async stopServer(): Promise<void> {
+    const configBackup = this.config; // Save config before clearing
+
     if (!this.process) {
-      this.log('Tool Vault server is not running');
-      this.config = null; // Clear config even if process is null
+      this.log('Tool Vault server process not found - attempting HTTP shutdown');
+      // Try to stop server via HTTP if we have config
+      if (configBackup?.host && configBackup?.port) {
+        try {
+          await this.shutdownViaHttp(configBackup);
+          this.log('Tool Vault server stopped via HTTP');
+        } catch {
+          this.log('HTTP shutdown failed - server may have already stopped');
+        }
+      }
+      // Clear config after attempting shutdown
+      console.log('[ToolVaultServer] Explicit stop - clearing config');
+      this.config = null;
       return;
     }
 
     this.log('Stopping Tool Vault server...');
+
+    // Clear config immediately when explicitly stopping
+    console.log('[ToolVaultServer] Process-based stop - clearing config');
+    this.config = null;
 
     return new Promise<void>((resolve) => {
       const process = this.process!;
@@ -186,7 +223,6 @@ export class ToolVaultServerService {
         if (!resolved) {
           resolved = true;
           this.process = null;
-          this.config = null; // Clear config when manually stopped
           this.log('Tool Vault server stopped');
           resolve();
         }
@@ -221,7 +257,20 @@ export class ToolVaultServerService {
    * Check if the server is currently running
    */
   isRunning(): boolean {
-    return this.process !== null && !this.process.killed;
+    // Server is considered running if we have a successful startup (config loaded)
+    // and either the process is still running OR a health check would pass
+    // The process might exit after successful startup (daemon pattern)
+    const hasConfig = this.config !== null;
+    const hasProcess = this.process !== null;
+
+    console.log('[ToolVaultServer] isRunning() check - hasConfig:', hasConfig, 'hasProcess:', hasProcess);
+    if (hasConfig) {
+      console.log('[ToolVaultServer] Config present - host:', this.config?.host, 'port:', this.config?.port);
+    } else {
+      console.log('[ToolVaultServer] No config found - server not considered running');
+    }
+
+    return hasConfig;
   }
 
   /**
@@ -450,6 +499,39 @@ export class ToolVaultServerService {
   }
 
   /**
+   * Attempt to shutdown server via HTTP request
+   */
+  private async shutdownViaHttp(config: ToolVaultConfig): Promise<void> {
+    try {
+      // Create an AbortController for timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+      try {
+        const response = await fetch(`http://${config.host}:${config.port}/shutdown`, {
+          method: 'POST',
+          signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          this.log('Server acknowledged shutdown request');
+        } else {
+          throw new Error(`HTTP ${response.status}`);
+        }
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        throw fetchError;
+      }
+    } catch (error) {
+      // If no shutdown endpoint exists, the server will keep running
+      // This is expected for many server implementations
+      throw new Error(`HTTP shutdown not supported: ${error}`);
+    }
+  }
+
+  /**
    * Restart the server (stop and start)
    */
   async restartServer(): Promise<void> {
@@ -464,7 +546,13 @@ export class ToolVaultServerService {
    */
   async executeToolCommand(toolName: string, parameters: Record<string, unknown>): Promise<{ success: boolean; result?: unknown; error?: string }> {
     try {
-      if (!this.isRunning()) {
+      const isRunning = this.isRunning();
+      const hasConfig = this.config !== null;
+      const hasProcess = this.process !== null;
+
+      this.log(`Tool execution check - isRunning: ${isRunning}, hasConfig: ${hasConfig}, hasProcess: ${hasProcess}`);
+
+      if (!isRunning) {
         return {
           success: false,
           error: 'Tool Vault server is not running'
