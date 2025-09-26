@@ -129,11 +129,13 @@ export class ToolVaultServerService {
       this.process.on('error', (error) => {
         this.log(`Process error: ${error.message}`);
         this.process = null;
+        this.config = null; // Clear config when process fails
       });
 
       this.process.on('exit', (code, signal) => {
         this.log(`Process exited with code ${code}, signal ${signal}`);
         this.process = null;
+        this.config = null; // Clear config when process stops
       });
 
       // Wait for server to be ready
@@ -157,6 +159,8 @@ export class ToolVaultServerService {
       console.error(`[ToolVault Diagnostics]\n${diagnostics.join('\n')}`);
       this.log(`Diagnostics:\n${diagnostics.join('\n')}`);
 
+      // Clear config on startup failure
+      this.config = null;
       await this.stopServer();
       throw new Error(`Tool Vault server startup failed.\n${diagnostics.join('\n')}`);
     }
@@ -168,6 +172,7 @@ export class ToolVaultServerService {
   async stopServer(): Promise<void> {
     if (!this.process) {
       this.log('Tool Vault server is not running');
+      this.config = null; // Clear config even if process is null
       return;
     }
 
@@ -181,6 +186,7 @@ export class ToolVaultServerService {
         if (!resolved) {
           resolved = true;
           this.process = null;
+          this.config = null; // Clear config when manually stopped
           this.log('Tool Vault server stopped');
           resolve();
         }
@@ -215,9 +221,7 @@ export class ToolVaultServerService {
    * Check if the server is currently running
    */
   isRunning(): boolean {
-    // For now, just check if we have a config - we'll rely on health checks for actual status
-    // The process might exit after starting the server, so process status isn't reliable
-    return this.config !== null;
+    return this.process !== null && !this.process.killed;
   }
 
   /**
