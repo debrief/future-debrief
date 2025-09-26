@@ -81,15 +81,12 @@ export class ToolVaultServerService {
       this.log(`Host: ${this.config.host}:${this.config.port}`);
 
       // First, check if there's already a compatible server running
-      console.log('[ToolVaultServer] Checking for existing server...');
       const existingServerCheck = await this.healthCheck();
       if (existingServerCheck) {
-        console.log('[ToolVaultServer] Found existing compatible server - using it');
         this.log('Connected to existing Tool Vault server on ' + this.config.host + ':' + this.config.port);
         return; // Success - no need to start new process
       }
 
-      console.log('[ToolVaultServer] No existing server found - starting new instance');
       pythonInterpreter = await this.detectPythonInterpreter();
       this.log(`Using Python interpreter: ${pythonInterpreter}`);
 
@@ -138,7 +135,6 @@ export class ToolVaultServerService {
       // Handle process events
       this.process.on('error', (error) => {
         this.log(`Process error: ${error.message}`);
-        console.log('[ToolVaultServer] Process error - clearing config');
         this.process = null;
         this.config = null; // Clear config when process fails
       });
@@ -149,10 +145,7 @@ export class ToolVaultServerService {
         // Only clear config on non-zero exit codes (failures)
         // Some servers exit gracefully after starting (daemon pattern)
         if (code !== 0) {
-          console.log('[ToolVaultServer] Process failed with code', code, '- clearing config');
           this.config = null;
-        } else {
-          console.log('[ToolVaultServer] Process exited gracefully with code', code, '- keeping config');
         }
       });
 
