@@ -79,6 +79,10 @@
       {
         "command": "debrief.toggleDevelopmentMode",
         "title": "Debrief: Toggle Development Mode"
+      },
+      {
+        "command": "debrief.toolVaultStatus",
+        "title": "Debrief: Tool Vault Server Status"
       }
     ],
     "viewsContainers": {

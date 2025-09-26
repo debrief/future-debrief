@@ -85,7 +85,7 @@ export function activate(context: vscode.ExtensionContext) {
 
                 // Load tool index and show success notification
                 const toolIndex = await toolVaultServer!.getToolIndex();
-                const toolCount = (toolIndex as any)?.tools?.length ?? 'unknown number of';
+                const toolCount = (toolIndex as {tools?: unknown[]})?.tools?.length ?? 'unknown number of';
                 vscode.window.showInformationMessage(
                     `Tool Vault server started successfully with ${toolCount} tools available.`
                 );
@@ -228,7 +228,7 @@ export function activate(context: vscode.ExtensionContext) {
                 if (toolVaultServer) {
                     await toolVaultServer.restartServer();
                     const toolIndex = await toolVaultServer.getToolIndex();
-                    const toolCount = (toolIndex as any)?.tools?.length ?? 'unknown number of';
+                    const toolCount = (toolIndex as {tools?: unknown[]})?.tools?.length ?? 'unknown number of';
                     vscode.window.showInformationMessage(
                         `Tool Vault server restarted successfully with ${toolCount} tools available.`
                     );
@@ -243,6 +243,80 @@ export function activate(context: vscode.ExtensionContext) {
         }
     );
     context.subscriptions.push(restartToolVaultCommand);
+
+    // Register development mode toggle command
+    const toggleDevelopmentModeCommand = vscode.commands.registerCommand(
+        'debrief.toggleDevelopmentMode',
+        async () => {
+            const config = vscode.workspace.getConfiguration('debrief.development');
+            const currentMode = config.get<boolean>('mode', false);
+            await config.update('mode', !currentMode, vscode.ConfigurationTarget.Workspace);
+
+            const newMode = !currentMode ? 'enabled' : 'disabled';
+            vscode.window.showInformationMessage(
+                `Development mode ${newMode}. ${!currentMode ? 'Non-essential views are now hidden.' : 'All views are now visible.'} ` +
+                'Reload the window to apply changes.',
+                'Reload Window'
+            ).then(selection => {
+                if (selection === 'Reload Window') {
+                    vscode.commands.executeCommand('workbench.action.reloadWindow');
+                }
+            });
+        }
+    );
+    context.subscriptions.push(toggleDevelopmentModeCommand);
+
+    // Register Tool Vault status command
+    const toolVaultStatusCommand = vscode.commands.registerCommand(
+        'debrief.toolVaultStatus',
+        async () => {
+            try {
+                if (!toolVaultServer) {
+                    vscode.window.showWarningMessage('Tool Vault server service is not initialized.');
+                    return;
+                }
+
+                const isRunning = toolVaultServer.isRunning();
+                const config = ToolVaultConfigService.getInstance().getConfiguration();
+
+                let statusMessage = `**Tool Vault Server Status**\n\n`;
+                statusMessage += `• **Running**: ${isRunning ? '✅ Yes' : '❌ No'}\n`;
+                statusMessage += `• **Auto-start**: ${config.autoStart ? '✅ Enabled' : '❌ Disabled'}\n`;
+                statusMessage += `• **Server Path**: ${config.serverPath || '❌ Not configured'}\n`;
+                statusMessage += `• **Host**: ${config.host}\n`;
+                statusMessage += `• **Port**: ${config.port}\n`;
+
+                if (isRunning) {
+                    try {
+                        const healthCheck = await toolVaultServer.healthCheck();
+                        statusMessage += `• **Health Check**: ${healthCheck ? '✅ Healthy' : '❌ Unhealthy'}\n`;
+
+                        if (healthCheck) {
+                            const toolIndex = await toolVaultServer.getToolIndex();
+                            const toolCount = (toolIndex as {tools?: unknown[]})?.tools?.length ?? 0;
+                            statusMessage += `• **Tools Available**: ${toolCount}\n`;
+                        }
+                    } catch (error) {
+                        statusMessage += `• **Health Check**: ❌ Failed (${error instanceof Error ? error.message : String(error)})\n`;
+                    }
+                }
+
+                // Show detailed status in a modal
+                vscode.window.showInformationMessage(statusMessage, { modal: true }, 'Restart Server', 'Configure Settings').then(selection => {
+                    if (selection === 'Restart Server') {
+                        vscode.commands.executeCommand('debrief.restartToolVault');
+                    } else if (selection === 'Configure Settings') {
+                        vscode.commands.executeCommand('workbench.action.openSettings', 'debrief.toolVault');
+                    }
+                });
+            } catch (error) {
+                const errorMessage = `Failed to get Tool Vault server status: ${error instanceof Error ? error.message : String(error)}`;
+                console.error(errorMessage);
+                vscode.window.showErrorMessage(errorMessage);
+            }
+        }
+    );
+    context.subscriptions.push(toolVaultStatusCommand);
 
     // Multi-select is now handled internally by the OutlineView webview component
 
