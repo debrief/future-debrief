@@ -456,8 +456,8 @@ export class ToolVaultServerService {
    * Wait for the server to be ready by polling the health endpoint
    */
   private async waitForServerReady(): Promise<void> {
-    const maxAttempts = 10;
-    const delays = [500, 500, 500, 500, 1000, 1000, 1000, 1000, 2000, 2000]; // More generous timing
+    const maxAttempts = 15;
+    const delays = [100, 200, 300, 500, 500, 750, 750, 1000, 1000, 1000, 1500, 1500, 2000, 2000, 2000]; // More responsive early checks
     const totalTime = delays.reduce((a, b) => a + b, 0);
 
     this.log(`Waiting for server to be ready (max ${totalTime/1000}s)...`);
