@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import { GlobalController } from '../../core/globalController';
 import { SelectionState, DebriefFeatureCollection } from '@debrief/shared-types';
-import type { ToolListResponse } from '@debrief/shared-types/src/types/tools/tool_list_response';
 
 export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'debrief.outline';
@@ -31,10 +29,10 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  private _update() {
+  private async _update() {
     if (!this._view) return;
     const outlineData = this._getOutlineData();
-    const html = this._renderOutlineView(outlineData);
+    const html = await this._renderOutlineView(outlineData);
     this._view.webview.html = html;
   }
 
@@ -65,11 +63,11 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
     };
   }
 
-  private _renderOutlineView(data: {
+  private async _renderOutlineView(data: {
     featureCollection: DebriefFeatureCollection | null;
     selectedFeatureIds: string[];
     currentEditorId?: string;
-  }): string {
+  }): Promise<string> {
     const nonce = this._getNonce();
     if (!this._view) {
       return '<div>Error: View not initialized</div>';
@@ -106,7 +104,7 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
       vscode.Uri.joinPath(extensionUri, 'media', 'web-components.css')
     );
 
-    const toolList = this._getDefaultToolList();
+    const toolList = await this._globalController.getToolIndex();
 
     return `<!DOCTYPE html>
       <html lang="en">
@@ -234,9 +232,9 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
 
   private _setupMessageHandlers(): void {
     if (!this._view) return;
-    
+
     this._view.webview.onDidReceiveMessage(
-      message => {
+      async message => {
         const currentEditorId = this._globalController.activeEditorId || this._globalController.getEditorIds()[0];
         if (!currentEditorId) return;
 
@@ -292,8 +290,7 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
             break;
 
           case 'executeCommand':
-            console.log('[DebriefOutlineProvider] Execute command requested:', message.command);
-            console.log('[DebriefOutlineProvider] Selected features:', message.selectedFeatures);
+            await this._executeToolCommand(message.command, message.selectedFeatures);
             break;
         }
       },
@@ -321,8 +318,8 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
       this._updateWebviewData();
     });
     
-    const activeEditorSubscription = this._globalController.on('activeEditorChanged', () => {
-      this._update(); // Full refresh when editor changes
+    const activeEditorSubscription = this._globalController.on('activeEditorChanged', async () => {
+      await this._update(); // Full refresh when editor changes
     });
 
     // Store disposables for cleanup
@@ -345,39 +342,36 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
     this._subscriptions = [];
   }
 
-  private _getDefaultToolList(): ToolListResponse {
-    const resourceToolList = this._loadToolListFromResources();
-    if (resourceToolList) {
-      return resourceToolList;
-    }
 
-    return {
-      version: '1.0.0',
-      description: 'VS Code tool catalogue placeholder',
-      tools: []
-    };
-  }
 
-  private _loadToolListFromResources(): ToolListResponse | undefined {
+  /**
+   * Execute a tool command through the GlobalController
+   */
+  private async _executeToolCommand(commandName: string, selectedFeatures: unknown[]): Promise<void> {
     try {
-      const extension = vscode.extensions.getExtension('ian.vs-code');
-      if (!extension) {
-        return undefined;
+      console.warn(`[DebriefOutlineProvider] Executing tool: ${commandName} with ${selectedFeatures.length} selected features`);
+
+      // Execute tool through GlobalController
+      const result = await this._globalController.executeTool(commandName, {
+        features: selectedFeatures
+      });
+
+      if (!result.success) {
+        const errorMessage = `Tool execution failed: ${result.error || 'Unknown error'}`;
+        console.error('[DebriefOutlineProvider] Tool execution error:', result.error);
+        vscode.window.showErrorMessage(errorMessage);
+        return;
       }
 
-      const toolIndexUri = vscode.Uri.joinPath(extension.extensionUri, 'resources', 'tool-index.json');
-      const toolIndexPath = toolIndexUri.fsPath;
+      // Show success notification
+      const successMessage = `Tool "${commandName}" executed successfully`;
+      console.warn('[DebriefOutlineProvider] Tool execution success:', result.result);
+      vscode.window.showInformationMessage(successMessage);
 
-      if (!fs.existsSync(toolIndexPath)) {
-        return undefined;
-      }
-
-      const fileContents = fs.readFileSync(toolIndexPath, 'utf8');
-      const parsed = JSON.parse(fileContents) as ToolListResponse;
-      return parsed;
     } catch (error) {
-      console.error('[DebriefOutlineProvider] Failed to load tool-index.json', error);
-      return undefined;
+      const errorMessage = `Failed to execute tool "${commandName}": ${error instanceof Error ? error.message : String(error)}`;
+      console.error('[DebriefOutlineProvider] Tool execution error:', error);
+      vscode.window.showErrorMessage(errorMessage);
     }
   }
 
