@@ -285,16 +285,20 @@ export class ToolVaultServerService {
     }
 
     try {
-      const response = await fetch(`http://${this.config.host}:${this.config.port}/tools/list`);
+      const url = `http://${this.config.host}:${this.config.port}/tools/list`;
+      this.log(`Fetching tool index from: ${url}`);
+
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
+      this.log(`Tool index retrieved successfully: ${JSON.stringify(data).slice(0, 100)}...`);
       return data;
     } catch (error) {
       const message = `Failed to get tool index: ${error instanceof Error ? error.message : String(error)}`;
-      this.log(message);
+      this.log(`Tool index fetch error: ${message}`);
       throw new Error(message);
     }
   }
