@@ -4,7 +4,7 @@ import * as L from 'leaflet';
 import { DebriefFeatures } from './DebriefFeatures';
 import { isFeatureVisible } from './utils/featureUtils';
 import { calculateFeatureBounds } from './utils/boundsUtils';
-import { TimeState } from '@debrief/shared-types';
+import { TimeState } from '@debrief/shared-types/src/types/states/time_state';
 import './MapComponent.css';
 // Note: Consumer applications need to import 'leaflet/dist/leaflet.css' separately
 

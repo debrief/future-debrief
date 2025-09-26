@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import { GlobalController, EditorState } from './globalController';
 import { EditorIdManager } from './editorIdManager';
-import { TimeState, ViewportState } from '@debrief/shared-types';
+import { TimeState } from '@debrief/shared-types/src/types/states/time_state';
+import { ViewportState } from '@debrief/shared-types/src/types/states/viewport_state';
 import { calculateTimeRange } from '../common/time-helpers';
 // Note: SelectionState imported in case needed for future enhancements
 // import { SelectionState } from '@debrief/shared-types';

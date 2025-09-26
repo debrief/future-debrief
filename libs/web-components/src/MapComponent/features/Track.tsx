@@ -3,7 +3,7 @@ import { Polyline, Marker } from 'react-leaflet';
 import * as L from 'leaflet';
 import { GeoJSONFeature } from '../MapComponent';
 import { getFeatureColor, getFeatureStyle } from '../utils/featureUtils';
-import { TimeState } from '@debrief/shared-types';
+import { TimeState } from '@debrief/shared-types/src/types/states/time_state';
 import '../MapComponent.css';
 
 interface TrackProps {
@@ -53,7 +53,7 @@ export const Track: React.FC<TrackProps> = (props) => {
   let markerPosition: [number, number] | null = null;
   if (timeState?.current && feature.properties?.times && Array.isArray(feature.properties.times)) {
     const timestamps = feature.properties.times as string[];
-    const closestIndex = findClosestTimeIndex(timeState.current, timestamps);
+    const closestIndex = findClosestTimeIndex(String(timeState.current), timestamps);
     if (closestIndex !== -1) {
       if (feature.geometry.type === 'LineString') {
         const coordinates = feature.geometry.coordinates as number[][];

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
 import type { ToolListResponse, Tool } from '@debrief/shared-types/src/types/tools/tool_list_response';
-import type { DebriefFeature } from '@debrief/shared-types';
+import type { DebriefFeature } from '@debrief/shared-types/src/types/features/debrief_feature_collection';
 import { ToolFilterService } from '../services/ToolFilterService';
 import './ToolExecuteButton.css';
 

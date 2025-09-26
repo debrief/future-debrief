@@ -6,7 +6,7 @@ import {
   VscodeToolbarButton,
   VscodeIcon
 } from '@vscode-elements/react-elements'
-import type { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types'
+import type { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types/src/types/features/debrief_feature_collection'
 import { VscTreeSelectEvent } from '@vscode-elements/elements/dist/vscode-tree/vscode-tree'
 
 export interface OutlineViewProps {
