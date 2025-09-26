@@ -41,6 +41,14 @@ interface ToolParameterMetadata {
 /**
  * Enhanced validation result for a tool against features
  */
+function getString(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function getLower(value: unknown): string {
+  return typeof value === 'string' ? value.toLowerCase() : '';
+}
+
 interface ToolValidationResult {
   isValid: boolean;
   warnings: string[];
@@ -219,7 +227,7 @@ export class ToolFilterService {
 
       for (const paramName of required) {
         const paramSchema = properties[paramName] as JSONSchemaProperty;
-        const description = paramSchema?.description || '';
+        const description = getString(paramSchema?.description);
         const expectsArray = paramSchema?.type === 'array';
         lastExpectsArray = expectsArray;
 
@@ -317,7 +325,7 @@ export class ToolFilterService {
           if (!required.includes(paramName)) {
             // This is an optional parameter
             const paramSchema = properties[paramName] as JSONSchemaProperty;
-            const description = paramSchema?.description || '';
+            const description = getString(paramSchema?.description);
 
             // Check if this is a state parameter that will be provided by parent code
             const stateDetection = this.detectStateParameter(paramName, paramSchema);
@@ -512,7 +520,7 @@ export class ToolFilterService {
   detectStateParameter(paramName: string, paramSchema: JSONSchemaProperty):
     { isStateParam: boolean; stateType?: 'TimeState' | 'ViewportState' | 'SelectionState' | 'EditorState'; note?: string } {
 
-    const description = paramSchema?.description?.toLowerCase() || '';
+    const description = getLower(paramSchema?.description);
     const paramNameLower = paramName.toLowerCase();
 
     // Check for TimeState parameters
