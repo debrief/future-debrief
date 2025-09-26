@@ -152,7 +152,6 @@ export class ToolVaultServerService {
       // Wait for server to be ready
       await this.waitForServerReady();
       this.log('Tool Vault server started successfully');
-      console.log('[ToolVaultServer] Server startup completed successfully');
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -172,7 +171,6 @@ export class ToolVaultServerService {
       this.log(`Diagnostics:\n${diagnostics.join('\n')}`);
 
       // Clear config on startup failure
-      console.log('[ToolVaultServer] Startup failure - clearing config');
       this.config = null;
       await this.stopServer();
       throw new Error(`Tool Vault server startup failed.\n${diagnostics.join('\n')}`);
@@ -197,7 +195,6 @@ export class ToolVaultServerService {
         }
       }
       // Clear config after attempting shutdown
-      console.log('[ToolVaultServer] Explicit stop - clearing config');
       this.config = null;
       return;
     }
@@ -205,7 +202,6 @@ export class ToolVaultServerService {
     this.log('Stopping Tool Vault server...');
 
     // Clear config immediately when explicitly stopping
-    console.log('[ToolVaultServer] Process-based stop - clearing config');
     this.config = null;
 
     return new Promise<void>((resolve) => {
@@ -254,13 +250,10 @@ export class ToolVaultServerService {
     // and either the process is still running OR a health check would pass
     // The process might exit after successful startup (daemon pattern)
     const hasConfig = this.config !== null;
-    const hasProcess = this.process !== null;
 
-    console.log('[ToolVaultServer] isRunning() check - hasConfig:', hasConfig, 'hasProcess:', hasProcess);
-    if (hasConfig) {
-      console.log('[ToolVaultServer] Config present - host:', this.config?.host, 'port:', this.config?.port);
-    } else {
-      console.log('[ToolVaultServer] No config found - server not considered running');
+    // Debug logging for troubleshooting
+    if (!hasConfig) {
+      this.log('Server not running - no configuration found');
     }
 
     return hasConfig;
