@@ -4,6 +4,13 @@
 .search-box {
   padding: 8px;
   border-bottom: 1px solid var(--vscode-menu-border, #454545);
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.search-input-container {
+  flex: 1 1 auto;
 }
 
 .search-input {
@@ -41,6 +48,64 @@
 
   .search-input::placeholder {
     color: var(--vscode-input-placeholderForeground, #666666);
+  }
+}
+
+.toggle-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0 0 150px;
+}
+
+.toggle-button {
+  padding: 6px 8px;
+  border: 1px solid var(--vscode-button-border, #0066cc);
+  background: transparent;
+  color: var(--vscode-button-foreground, #ffffff);
+  border-radius: 3px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+  text-align: left;
+}
+
+.toggle-button:hover,
+.toggle-button:focus {
+  border-color: var(--vscode-focusBorder, #007acc);
+  outline: none;
+}
+
+.toggle-button.active {
+  background: var(--vscode-button-background, #0066cc);
+  color: var(--vscode-button-foreground, #ffffff);
+}
+
+@media (prefers-color-scheme: light) {
+  .toggle-button {
+    color: var(--vscode-button-secondaryForeground, #333333);
+    border-color: var(--vscode-button-border, #007acc);
+  }
+
+  .toggle-button.active {
+    background: var(--vscode-button-background, #007acc);
+    color: var(--vscode-button-foreground, #ffffff);
+  }
+}
+
+@media (max-width: 520px) {
+  .search-box {
+    flex-direction: column;
+  }
+
+  .toggle-controls {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .toggle-button {
+    flex: 1 1 calc(50% - 8px);
   }
 }
 .tool-execute-button-container {

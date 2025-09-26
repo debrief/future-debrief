@@ -35,11 +35,22 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [filterWarnings, setFilterWarnings] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAllState, setShowAllState] = useState(showAll);
+  const [showDescriptionsState, setShowDescriptionsState] = useState(showDescriptions);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const toolFilterService = useMemo(() => new ToolFilterService(), []);
+
+  // Keep internal toggle state aligned with prop updates for backward compatibility
+  React.useEffect(() => {
+    setShowAllState(showAll);
+  }, [showAll]);
+
+  React.useEffect(() => {
+    setShowDescriptionsState(showDescriptions);
+  }, [showDescriptions]);
 
   // Get applicable tools from filter service and track which tools are available
   const { availableTools, applicableToolNames, warnings } = useMemo(() => {
@@ -56,11 +67,11 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
       const result = toolFilterService.getApplicableTools(selectedFeatures, toolsData);
       const applicableNames = new Set(result.tools.map(tool => tool.name));
 
-      // Return filtered tools or all tools based on showAll prop
-      const tools = showAll ? toolList.tools || [] : result.tools;
+      // Return filtered tools or all tools based on showAll toggle state
+      const tools = showAllState ? toolList.tools || [] : result.tools;
 
       // Determine warnings based on filtering state
-      const warnings = !showAll ? result.warnings : [];
+      const warnings = !showAllState ? result.warnings : [];
 
       return { availableTools: tools, applicableToolNames: applicableNames, warnings };
     } catch (error) {
@@ -73,7 +84,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
         warnings: ['Error filtering tools - showing all available tools']
       };
     }
-  }, [toolList.tools, selectedFeatures, enableSmartFiltering, showAll, toolFilterService]);
+  }, [toolList.tools, selectedFeatures, enableSmartFiltering, showAllState, toolFilterService]);
 
   // Update filter warnings based on computed results
   React.useEffect(() => {
@@ -92,6 +103,14 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
       (tool.description && tool.description.toLowerCase().includes(query))
     );
   }, [availableTools, searchQuery]);
+
+  const handleToggleShowAll = useCallback(() => {
+    setShowAllState(prev => !prev);
+  }, []);
+
+  const handleToggleShowDescriptions = useCallback(() => {
+    setShowDescriptionsState(prev => !prev);
+  }, []);
 
   const handleButtonClick = useCallback(() => {
     setIsMenuOpen(prev => !prev);
@@ -155,18 +174,38 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
         <div ref={menuRef} className={menuClassName} role="menu">
           {/* Search box at the top */}
           <div className="search-box">
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search tools..."
-              className="search-input"
-            />
+            <div className="search-input-container">
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search tools..."
+                className="search-input"
+              />
+            </div>
+            <div className="toggle-controls" role="group" aria-label="Tool display options">
+              <button
+                type="button"
+                className={`toggle-button ${showAllState ? 'active' : ''}`}
+                onClick={handleToggleShowAll}
+                aria-pressed={showAllState}
+              >
+                Show all tools
+              </button>
+              <button
+                type="button"
+                className={`toggle-button ${showDescriptionsState ? 'active' : ''}`}
+                onClick={handleToggleShowDescriptions}
+                aria-pressed={showDescriptionsState}
+              >
+                Show descriptions
+              </button>
+            </div>
           </div>
 
           {/* Only show warnings when showAll is true - when filtering is disabled, warnings about filtered tools are not relevant */}
-          {filterWarnings.length > 0 && showAll && (
+          {filterWarnings.length > 0 && showAllState && (
             <div className="filter-warnings">
               {filterWarnings.map((warning, index) => (
                 <div key={index} className="filter-warning">
@@ -193,7 +232,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
             <div className="tools-list">
               {searchFilteredTools.map((tool) => {
                 const isApplicable = applicableToolNames.has(tool.name);
-                const isDisabled = enableSmartFiltering && showAll && !isApplicable;
+                const isDisabled = enableSmartFiltering && showAllState && !isApplicable;
 
                 return (
                   <button
@@ -205,7 +244,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
                     aria-disabled={isDisabled}
                   >
                     <div className="tool-name">{tool.name}</div>
-                    {showDescriptions && (
+                    {showDescriptionsState && (
                       <div className="tool-description">{tool.description}</div>
                     )}
                   </button>
@@ -215,7 +254,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
           )}
 
           {/* Only show the smart filtering note when showAll is true */}
-          {enableSmartFiltering && selectedFeatures.length === 0 && showAll && (
+          {enableSmartFiltering && selectedFeatures.length === 0 && showAllState && (
             <div className="smart-filtering-note">
               Select features to see filtered tools
             </div>

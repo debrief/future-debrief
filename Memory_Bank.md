@@ -68,6 +68,34 @@
   - Pydantic: `{"text": {"type": "string", "description": "The input text block to count words from", "examples": [...], "minLength": 0, "required": true}}`
 - **Success Metrics**: Rich JSON Schema generation, runtime parameter validation, VS Code client compatibility, CLI execution working
 
+### ExecuteToolButton Toggle Controls - Issue #159 ✅
+- **References**: GitHub issue *Add toggles for Show all and Show descriptions at top of ExecuteToolButton #159* and APM task assignment "Add Toggle Buttons for Tool Display Options in ExecuteToolButton".
+- **Enhancement**: Added interactive toggle buttons adjacent to the search input so users can immediately adjust tool visibility (show all vs. filtered) and description display without closing the dropdown.
+- **Implementation Snippet**:
+  ```tsx
+  <div className="toggle-controls" role="group" aria-label="Tool display options">
+    <button
+      type="button"
+      className={`toggle-button ${showAllState ? 'active' : ''}`}
+      onClick={handleToggleShowAll}
+      aria-pressed={showAllState}
+    >
+      Show all tools
+    </button>
+    <button
+      type="button"
+      className={`toggle-button ${showDescriptionsState ? 'active' : ''}`}
+      onClick={handleToggleShowDescriptions}
+      aria-pressed={showDescriptionsState}
+    >
+      Show descriptions
+    </button>
+  </div>
+  ```
+- **Styling Notes**: Introduced `.toggle-controls` flex column layout with responsive wrap at narrow widths and `.toggle-button` states that mirror VS Code theming tokens, ensuring accessible hover/focus feedback and active-state highlighting.
+- **State Management**: Converted `showAll` and `showDescriptions` props into internal state synced via `useEffect` to preserve backward compatibility with existing consumers.
+- **Testing**: Manually verified dropdown stays open while toggling options and that filtering/description visibility updates instantly; existing functionality preserved.
+
 ### PropertiesView Web Component Integration - Issue #45 ✅
 **Decision**: Replace custom HTML properties viewer with standardized PropertiesView React component
 - **Problem**: Custom HTML template in `propertiesViewProvider.ts` was difficult to maintain and inconsistent with other components
