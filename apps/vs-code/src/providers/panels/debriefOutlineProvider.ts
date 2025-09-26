@@ -336,11 +336,11 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
     const fcSubscription = this._globalController.on('fcChanged', () => {
       this._updateWebviewData();
     });
-    
+
     const selectionSubscription = this._globalController.on('selectionChanged', () => {
       this._updateWebviewData();
     });
-    
+
     const activeEditorSubscription = this._globalController.on('activeEditorChanged', async (data) => {
       console.warn('[DebriefOutlineProvider] activeEditorChanged event received:', {
         previousEditorId: data.previousEditorId,
@@ -350,8 +350,14 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
       await this._update(); // Full refresh when editor changes
     });
 
+    // Subscribe to Tool Vault server ready events to refresh tools
+    const toolVaultReadySubscription = this._globalController.on('toolVaultReady', async () => {
+      console.warn('[DebriefOutlineProvider] Tool Vault server ready - refreshing outline');
+      await this._update(); // Full refresh when server becomes ready
+    });
+
     // Store disposables for cleanup
-    this._subscriptions.push(fcSubscription, selectionSubscription, activeEditorSubscription);
+    this._subscriptions.push(fcSubscription, selectionSubscription, activeEditorSubscription, toolVaultReadySubscription);
   }
 
   private _updateWebviewData(): void {

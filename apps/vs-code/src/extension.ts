@@ -327,6 +327,17 @@ export function activate(context: vscode.ExtensionContext) {
     // Initialize Tool Vault Server integration in GlobalController
     if (toolVaultServer) {
         globalController.initializeToolVaultServer(toolVaultServer);
+
+        // Set up callback to notify GlobalController when server is ready
+        toolVaultServer.setOnServerReadyCallback(() => {
+            console.warn('[Extension] Tool Vault server ready callback triggered');
+            if (globalController) {
+                console.warn('[Extension] Calling globalController.notifyToolVaultReady()');
+                globalController.notifyToolVaultReady();
+            } else {
+                console.error('[Extension] GlobalController is null when server ready callback triggered');
+            }
+        });
     }
     
     // Initialize Editor Activation Handler

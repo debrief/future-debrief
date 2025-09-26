@@ -7,7 +7,7 @@ export { EditorState };
 
 
 // Event types for the GlobalController
-export type StateEventType = 'fcChanged' | 'timeChanged' | 'viewportChanged' | 'selectionChanged' | 'activeEditorChanged';
+export type StateEventType = 'fcChanged' | 'timeChanged' | 'viewportChanged' | 'selectionChanged' | 'activeEditorChanged' | 'toolVaultReady';
 
 export type StateSliceType = 'featureCollection' | 'timeState' | 'viewportState' | 'selectionState';
 
@@ -68,7 +68,7 @@ export class GlobalController {
      * Initialize event handler storage
      */
     private initializeEventHandlers(): void {
-        const eventTypes: StateEventType[] = ['fcChanged', 'timeChanged', 'viewportChanged', 'selectionChanged', 'activeEditorChanged'];
+        const eventTypes: StateEventType[] = ['fcChanged', 'timeChanged', 'viewportChanged', 'selectionChanged', 'activeEditorChanged', 'toolVaultReady'];
         eventTypes.forEach(eventType => {
             this.eventHandlers.set(eventType, new Set<StateEventHandler | ActiveEditorChangedHandler>());
         });
@@ -326,6 +326,25 @@ export class GlobalController {
         console.log('[GlobalController] Initializing Tool Vault server:', !!toolVaultServer);
         this.toolVaultServer = toolVaultServer;
         console.log('[GlobalController] Tool Vault server initialized successfully');
+    }
+
+    /**
+     * Notify that the Tool Vault server is ready and available
+     */
+    public notifyToolVaultReady(): void {
+        console.log('[GlobalController] Tool Vault server ready - notifying subscribers');
+        const handlers = this.eventHandlers.get('toolVaultReady');
+        console.log('[GlobalController] Found', handlers?.size || 0, 'toolVaultReady handlers');
+        if (handlers) {
+            handlers.forEach(handler => {
+                try {
+                    console.log('[GlobalController] Calling toolVaultReady handler');
+                    (handler as () => void)();
+                } catch (error) {
+                    console.error('[GlobalController] Error in toolVaultReady handler:', error);
+                }
+            });
+        }
     }
 
     /**

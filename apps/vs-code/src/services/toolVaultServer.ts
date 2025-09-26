@@ -34,6 +34,7 @@ export class ToolVaultServerService {
   private configService: ToolVaultConfigService;
   private isStarting = false;
   private startPromise: Promise<void> | null = null;
+  private onServerReadyCallback?: () => void;
 
   private constructor() {
     this.outputChannel = vscode.window.createOutputChannel('Debrief Tools');
@@ -45,6 +46,13 @@ export class ToolVaultServerService {
       ToolVaultServerService.instance = new ToolVaultServerService();
     }
     return ToolVaultServerService.instance;
+  }
+
+  /**
+   * Set callback to be called when server becomes ready
+   */
+  setOnServerReadyCallback(callback: () => void): void {
+    this.onServerReadyCallback = callback;
   }
 
   /**
@@ -84,6 +92,11 @@ export class ToolVaultServerService {
       const existingServerCheck = await this.healthCheck();
       if (existingServerCheck) {
         this.log('Connected to existing Tool Vault server on ' + this.config.host + ':' + this.config.port);
+        // Notify that server is ready
+        this.log('Triggering server ready callback for existing server');
+        if (this.onServerReadyCallback) {
+          this.onServerReadyCallback();
+        }
         return; // Success - no need to start new process
       }
 
@@ -152,6 +165,12 @@ export class ToolVaultServerService {
       // Wait for server to be ready
       await this.waitForServerReady();
       this.log('Tool Vault server started successfully');
+
+      // Notify that server is ready
+      this.log('Triggering server ready callback for new server');
+      if (this.onServerReadyCallback) {
+        this.onServerReadyCallback();
+      }
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
