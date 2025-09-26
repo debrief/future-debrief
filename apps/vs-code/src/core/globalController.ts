@@ -323,17 +323,23 @@ export class GlobalController {
      * Initialize Tool Vault Server integration
      */
     public initializeToolVaultServer(toolVaultServer: ToolVaultServerService): void {
+        console.log('[GlobalController] Initializing Tool Vault server:', !!toolVaultServer);
         this.toolVaultServer = toolVaultServer;
+        console.log('[GlobalController] Tool Vault server initialized successfully');
     }
 
     /**
      * Get the tool index from the Tool Vault Server
      */
     public async getToolIndex(): Promise<unknown> {
+        console.log('[GlobalController] getToolIndex called - toolVaultServer present:', !!this.toolVaultServer);
+
         if (!this.toolVaultServer) {
+            console.error('[GlobalController] Tool Vault server is not initialized');
             throw new Error('Tool Vault server is not initialized');
         }
 
+        console.log('[GlobalController] Calling toolVaultServer.getToolIndex()');
         return this.toolVaultServer.getToolIndex();
     }
 
@@ -341,13 +347,17 @@ export class GlobalController {
      * Execute a tool command with the given parameters
      */
     public async executeTool(toolName: string, parameters: Record<string, unknown>): Promise<{ success: boolean; result?: unknown; error?: string }> {
+        console.log('[GlobalController] executeTool called - toolVaultServer present:', !!this.toolVaultServer);
+
         if (!this.toolVaultServer) {
+            console.error('[GlobalController] Tool Vault server is not initialized in executeTool');
             return {
                 success: false,
                 error: 'Tool Vault server is not initialized'
             };
         }
 
+        console.log('[GlobalController] Calling toolVaultServer.executeToolCommand for:', toolName);
         return this.toolVaultServer.executeToolCommand(toolName, parameters);
     }
 
