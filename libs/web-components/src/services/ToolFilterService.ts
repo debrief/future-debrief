@@ -205,6 +205,7 @@ export class ToolFilterService {
         return result;
       }
 
+
       const required = tool.inputSchema.required || [];
 
       // If no required parameters, tool is compatible, but still process optional parameters for validation display
@@ -272,7 +273,8 @@ export class ToolFilterService {
             matchingFeatureCount = features.filter(f => f.properties?.dataType === 'point').length;
             canSatisfy = matchingFeatureCount > 0;
             hasFeatureParameters = true;
-          } else if ((paramName.includes('zone') || paramName.includes('polygon')) || description.toLowerCase().includes('zone feature')) {
+          } else if ((paramName.includes('zone') || paramName.includes('polygon') || paramName.includes('annotation')) ||
+                     (description.toLowerCase().includes('zone feature') || description.toLowerCase().includes('annotation feature'))) {
             matchingFeatureCount = features.filter(f => f.properties?.dataType === 'annotation').length;
             canSatisfy = matchingFeatureCount > 0;
             hasFeatureParameters = true;
@@ -592,6 +594,8 @@ export class ToolFilterService {
                 requirements.push('LineString');
               } else if (desc.includes('polygon')) {
                 requirements.push('Polygon');
+              } else if (desc.includes('annotation')) {
+                requirements.push('annotation');
               }
             }
           }

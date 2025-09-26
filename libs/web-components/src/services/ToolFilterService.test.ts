@@ -1,5 +1,9 @@
 import { ToolFilterService } from './ToolFilterService';
-import type { DebriefFeature, TimeState, ViewportState, SelectionState, EditorState } from '@debrief/shared-types';
+import type { DebriefFeature } from '@debrief/shared-types/src/types/features/debrief_feature_collection';
+import type { TimeState } from '@debrief/shared-types/src/types/states/time_state';
+import type { ViewportState } from '@debrief/shared-types/src/types/states/viewport_state';
+import type { SelectionState } from '@debrief/shared-types/src/types/states/selection_state';
+import type { EditorState } from '@debrief/shared-types/src/types/states/editor_state';
 import type { ToolIndexModel } from '@debrief/shared-types/src/types/tools/tool_index';
 import type { Tool } from '@debrief/shared-types/src/types/tools/tool';
 
@@ -41,7 +45,7 @@ describe('ToolFilterService', () => {
       coordinates: [-1.0, 52.0]
     },
     properties: {
-      dataType: 'reference-point',
+      dataType: 'point',
       name: 'Test Point',
       time: '2024-01-01T00:00:00Z'
     }
@@ -61,7 +65,7 @@ describe('ToolFilterService', () => {
       ]]
     },
     properties: {
-      dataType: 'zone',
+      dataType: 'annotation',
       name: 'Test Annotation',
       color: '#FF0000',
       annotationType: 'area'
@@ -193,7 +197,7 @@ describe('ToolFilterService', () => {
 
     it('should return warning when no tools match selected features', () => {
       const pointFeature = createMockPointFeature();
-      const toolsData = { tools: [createMockTool('polygon-only-tool', ['zone'])] };
+      const toolsData = { tools: [createMockTool('polygon-only-tool', ['annotation'])] };
 
       const result = toolFilterService.getApplicableTools([pointFeature], toolsData);
 
@@ -381,7 +385,7 @@ describe('ToolFilterService', () => {
       const compatible = (toolFilterService as any).isFeatureCompatibleWithParameter(trackFeature, 'track');
       expect(compatible).toBe(true);
 
-      const notCompatible = (toolFilterService as any).isFeatureCompatibleWithParameter(trackFeature, 'reference-point');
+      const notCompatible = (toolFilterService as any).isFeatureCompatibleWithParameter(trackFeature, 'point');
       expect(notCompatible).toBe(false);
     });
   });
