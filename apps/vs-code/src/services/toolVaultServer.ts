@@ -215,7 +215,9 @@ export class ToolVaultServerService {
    * Check if the server is currently running
    */
   isRunning(): boolean {
-    return this.process !== null && !this.process.killed;
+    // For now, just check if we have a config - we'll rely on health checks for actual status
+    // The process might exit after starting the server, so process status isn't reliable
+    return this.config !== null;
   }
 
   /**
@@ -279,7 +281,7 @@ export class ToolVaultServerService {
         arguments: argumentsArray
       };
 
-      this.log(`Sending payload: ${JSON.stringify(payload, null, 2)}`);
+      this.log(`Executing tool: ${payload.name}`);
 
       const response = await fetch(`http://${this.config.host}:${this.config.port}/tools/call`, {
         method: 'POST',
@@ -290,6 +292,11 @@ export class ToolVaultServerService {
       });
 
       const data = await response.json();
+
+      // For non-200 responses, log the error details
+      if (!response.ok && data.error) {
+        this.log(`Tool execution failed: ${data.error}`);
+      }
 
       if (!response.ok) {
         return {
@@ -303,6 +310,7 @@ export class ToolVaultServerService {
       return { result: data };
     } catch (error) {
       const message = `Failed to execute command: ${error instanceof Error ? error.message : String(error)}`;
+      console.warn('[ToolVaultServer] executeCommand caught error:', error);
       this.log(message);
       return {
         error: {
