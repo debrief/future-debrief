@@ -36,10 +36,9 @@ function addMissingTypes(filePath) {
     }
   }
 
-  // Find insertion point (after header comment)
+  // Find insertion point (after header comment and leading imports)
   let insertIndex = -1;
 
-  // Look for the closing comment */ or the start of actual code
   for (let i = 0; i < lines.length; i++) {
     if (lines[i].includes('*/') && i > 0 && lines[i - 1].includes('DO NOT MODIFY')) {
       insertIndex = i + 1;
@@ -47,7 +46,6 @@ function addMissingTypes(filePath) {
     }
   }
 
-  // If not found, try to find just after any header comment
   if (insertIndex === -1) {
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].trim() === '*/' || lines[i].startsWith('export ') || lines[i].startsWith('//')) {
@@ -57,8 +55,25 @@ function addMissingTypes(filePath) {
     }
   }
 
-  // Final fallback
   if (insertIndex === -1) insertIndex = 6;
+
+  // Ensure we add definitions after any leading imports or post-processing markers
+  while (insertIndex < lines.length) {
+    const trimmedLine = lines[insertIndex].trim();
+    if (trimmedLine === '') {
+      insertIndex++;
+      continue;
+    }
+    if (trimmedLine.startsWith('// Post-processed by post_process_typescript.js')) {
+      insertIndex++;
+      continue;
+    }
+    if (trimmedLine.startsWith('import')) {
+      insertIndex++;
+      continue;
+    }
+    break;
+  }
 
   imports.push('// Enhanced post-processed - missing type definitions added');
 
