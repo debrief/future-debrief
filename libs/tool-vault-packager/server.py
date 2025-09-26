@@ -236,6 +236,7 @@ class ToolVaultServer:
                     "call": "/tools/call",
                     "ui": "/ui/",
                     "health": "/health",
+                    "shutdown": "/shutdown",
                 },
             }
 
@@ -460,6 +461,35 @@ class ToolVaultServer:
         async def health():
             """Health check endpoint."""
             return {"status": "healthy", "tools_loaded": len(self.tools)}
+
+        @self.app.post("/shutdown")
+        async def shutdown():
+            """Shutdown endpoint for graceful server termination."""
+            import os
+            import signal
+            import asyncio
+            from threading import Timer
+
+            def delayed_shutdown():
+                """Shutdown the server after a brief delay."""
+                try:
+                    # Get the current process ID
+                    pid = os.getpid()
+                    # Send SIGTERM to self for graceful shutdown
+                    os.kill(pid, signal.SIGTERM)
+                except Exception as e:
+                    print(f"Error during shutdown: {e}")
+                    # Fallback to SIGKILL if SIGTERM fails
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                    except:
+                        pass
+
+            # Schedule shutdown after 100ms to allow response to be sent
+            timer = Timer(0.1, delayed_shutdown)
+            timer.start()
+
+            return {"status": "shutting_down", "message": "Server shutdown initiated"}
 
 
 def create_app(tools_path: Optional[str] = None) -> "FastAPI":
