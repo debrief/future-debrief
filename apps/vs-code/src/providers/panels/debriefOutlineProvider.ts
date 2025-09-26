@@ -113,7 +113,13 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
       vscode.Uri.joinPath(extensionUri, 'media', 'web-components.css')
     );
 
-    const toolList = await this._globalController.getToolIndex();
+    let toolList;
+    try {
+      toolList = await this._globalController.getToolIndex();
+    } catch (error) {
+      console.warn('[DebriefOutlineProvider] Failed to get tool index:', error);
+      toolList = []; // Pass empty tool list on error
+    }
 
     return `<!DOCTYPE html>
       <html lang="en">
