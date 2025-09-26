@@ -4,31 +4,20 @@ import {
   VscodeTreeItem,
   VscodeToolbarContainer,
   VscodeToolbarButton,
-  VscodeSingleSelect,
-  VscodeOption,
   VscodeIcon
 } from '@vscode-elements/react-elements'
 import type { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types'
 import { VscTreeSelectEvent } from '@vscode-elements/elements/dist/vscode-tree/vscode-tree'
 
-// Tool interface for future implementation
-export interface ToolIndex {
-  id: string
-  name: string
-  description?: string
-}
-
-// Enhanced props interface matching issue requirements
 export interface OutlineViewProps {
   featureCollection: DebriefFeatureCollection
   selectedFeatureIds: string[]
-  toolIndex?: ToolIndex[] // Optional for future implementation
   onSelectionChange: (ids: string[]) => void
   onFeatureVisibilityChange?: (id: string, visible: boolean) => void
-  onExecuteTool?: (toolId: string, featureIds: string[]) => void
   onViewFeature?: (featureId: string) => void
   onDeleteFeatures?: (ids: string[]) => void
   onCollapseAll?: () => void
+  toolbarItems?: React.ReactNode[]
 }
 
 // Group features by their dataType
@@ -53,13 +42,12 @@ enum VisibilityState {
 export const OutlineView: React.FC<OutlineViewProps> = ({
   featureCollection,
   selectedFeatureIds,
-  toolIndex = [],
-  onSelectionChange: _onSelectionChange,
+  onSelectionChange,
   onFeatureVisibilityChange,
-  onExecuteTool,
   onViewFeature,
   onDeleteFeatures,
   onCollapseAll,
+  toolbarItems = [],
 }) => {
   const features = featureCollection.features as DebriefFeature[]
   const groupedFeatures = groupFeaturesByType(features)
@@ -113,19 +101,77 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
   }
 
   const handleSelection = (event: VscTreeSelectEvent) => {
-    // For simplicity, this is a placeholder.
-    // A real implementation would need to inspect the event details
-    // to determine which items are selected.
-    const selectedItems = event.detail as unknown as Array<{id: string | null}>
-    const selectedIds = selectedItems.map(item => item.id).filter(id => id) as string[]
-    _onSelectionChange(selectedIds)
+    const selectedItems = extractSelectedItems(event.detail as unknown)
+    const selectedIds = Array.from(new Set(selectedItems
+      .map(extractIdFromItem)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0)))
+
+    onSelectionChange(selectedIds)
+  }
+
+  // TODO: we should use proper typing to handle the array selection.  It _Should_
+  // be the same in storybook and vs-extension.
+  const extractSelectedItems = (detail: unknown): unknown[] => {
+    if (!detail) {
+      return []
+    }
+
+    if (Array.isArray(detail)) {
+      return detail
+    }
+
+    if (typeof detail === 'object') {
+      const maybeSelectedItems = (detail as { selectedItems?: unknown }).selectedItems
+      if (Array.isArray(maybeSelectedItems)) {
+        return maybeSelectedItems
+      }
+    }
+
+    return []
+  }
+
+  const extractIdFromItem = (item: unknown): string | null => {
+    if (!item) {
+      return null
+    }
+
+    if (typeof item === 'object') {
+      const candidate = item as { id?: string | number | null; value?: string | number | null; dataset?: Record<string, unknown>; getAttribute?: (name: string) => string | null }
+
+      if (candidate.id !== undefined && candidate.id !== null) {
+        return String(candidate.id)
+      }
+
+      if (candidate.value !== undefined && candidate.value !== null) {
+        return String(candidate.value)
+      }
+
+      if (typeof candidate.dataset === 'object') {
+        const datasetId = candidate.dataset?.id
+        if (typeof datasetId === 'string' && datasetId.length > 0) {
+          return datasetId
+        }
+      }
+
+      if (typeof candidate.getAttribute === 'function') {
+        const attrId = candidate.getAttribute('id') || candidate.getAttribute('data-id')
+        if (attrId) {
+          return attrId
+        }
+      }
+    }
+
+    return null
   }
 
   function featureIsVisible(feature: DebriefFeature): boolean {
     return feature.properties?.visible !== false
   }
 
-  return (<div style={{ border: '1px solid var(--vscode-editorWidget-border)', borderRadius: '4px', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' }}>
+  return (<div
+    data-testid="outline-view"
+    style={{ border: '1px solid var(--vscode-editorWidget-border)', borderRadius: '4px', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' }}
+  >
       <VscodeToolbarContainer>
         <VscodeToolbarButton 
           onClick={handleVisibilityToggle}
@@ -134,26 +180,6 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
           <VscodeIcon name={getVisibilityIcon()} />
           Hide/Reveal
         </VscodeToolbarButton>
-        
-        {/* Conditional Execute dropdown - currently deferred */}
-        {toolIndex && toolIndex.length > 0 && (
-          <VscodeSingleSelect 
-            style={{ opacity: selectedFeatureIds.length === 0 ? 0.5 : 1, pointerEvents: selectedFeatureIds.length === 0 ? 'none' : 'auto' }}
-            onChange={(event) => {
-              const toolId = (event.target as HTMLSelectElement).value
-              if (toolId && onExecuteTool && selectedFeatureIds.length > 0) {
-                onExecuteTool(toolId, selectedFeatureIds)
-              }
-            }}
-          >
-            <VscodeOption value="">Execute...</VscodeOption>
-            {toolIndex.map(tool => (
-              <VscodeOption key={tool.id} value={tool.id}>
-                {tool.name}
-              </VscodeOption>
-            ))}
-          </VscodeSingleSelect>
-        )}
         
         {onDeleteFeatures && (
           <VscodeToolbarButton 
@@ -171,21 +197,33 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
             Collapse
           </VscodeToolbarButton>
         )}
+
+        {toolbarItems.length > 0 && (
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {toolbarItems.map((item, index) => (
+              <React.Fragment key={index}>{item}</React.Fragment>
+            ))}
+          </div>
+        )}
       </VscodeToolbarContainer>
-      <VscodeTree multiSelect onVscTreeSelect={handleSelection} >
+      <VscodeTree data-testid="outline-view-tree" multiSelect onVscTreeSelect={handleSelection} >
         {(Object.entries(groupedFeatures) as [string, DebriefFeature[]][]).map(([type, featureList]) => (
           <VscodeTreeItem key={type}>
             <span>{type}</span>
             {featureList.map((feature: DebriefFeature) => (
-              <VscodeTreeItem key={String(feature.id)} id={String(feature.id)}>
+              <VscodeTreeItem
+                key={String(feature.id)}
+                id={String(feature.id)}
+                selected={selectedFeatureIds.includes(String(feature.id))}
+              >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                   <VscodeIcon name={featureIsVisible(feature) ? "eye" : "eye-closed"} />
                   <span style={{ opacity: featureIsVisible(feature) ? 1 : 0.5 }}>
                     {feature.properties?.name || 'Unnamed'}
                   </span>
                   {onViewFeature && (
-                    <VscodeToolbarButton 
-                      onChange={(event) => {
+                    <VscodeToolbarButton
+                      onClick={(event) => {
                         event.stopPropagation() // Prevent tree item selection
                         onViewFeature(String(feature.id))
                       }}
