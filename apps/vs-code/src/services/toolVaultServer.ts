@@ -294,8 +294,18 @@ export class ToolVaultServerService {
       const data = await response.json();
 
       // For non-200 responses, log the error details
-      if (!response.ok && data.error) {
-        this.log(`Tool execution failed: ${data.error}`);
+      if (!response.ok) {
+        console.warn('[ToolVaultServer] HTTP Error Response:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorMessage: data.error,
+          errorDetail: data.detail,
+          dataKeys: Object.keys(data || {})
+        });
+
+        if (data.error) {
+          this.log(`Tool execution failed: ${data.error}`);
+        }
       }
 
       if (!response.ok) {
