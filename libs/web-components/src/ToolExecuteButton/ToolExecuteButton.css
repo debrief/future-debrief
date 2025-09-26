@@ -4,10 +4,13 @@
 .search-box {
   padding: 8px;
   border-bottom: 1px solid var(--vscode-menu-border, #454545);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 .search-input {
-  width: 100%;
+  flex: 1;
   padding: 6px 8px;
   border: 1px solid var(--vscode-input-border, #3c3c3c);
   background: var(--vscode-input-background, #1e1e1e);
@@ -31,6 +34,59 @@
   opacity: 1; /* Ensure placeholder is fully visible */
 }
 
+/* Toggle buttons styling */
+.toggle-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-self: stretch;
+  justify-content: center;
+}
+
+.toggle-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 15px;
+  border: 1px solid var(--vscode-button-border, #0066cc);
+  background: var(--vscode-button-secondaryBackground, #5a5a5a);
+  color: var(--vscode-button-secondaryForeground, #ffffff);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  font-size: 9px;
+  line-height: 1;
+}
+
+.toggle-button:hover {
+  background: var(--vscode-button-hoverBackground, #005ba1);
+  border-color: var(--vscode-button-hoverBackground, #005ba1);
+}
+
+.toggle-button:focus {
+  outline: 1px solid var(--vscode-focusBorder, #007acc);
+  outline-offset: 1px;
+}
+
+.toggle-button.active {
+  background: var(--vscode-button-background, #0066cc);
+  border-color: var(--vscode-button-background, #0066cc);
+  color: var(--vscode-button-foreground, #ffffff);
+}
+
+.toggle-button.active:hover {
+  background: var(--vscode-button-hoverBackground, #005ba1);
+  border-color: var(--vscode-button-hoverBackground, #005ba1);
+}
+
+.toggle-icon {
+  display: block;
+  font-size: 8px;
+  line-height: 1;
+}
+
 /* Ensure good visibility in light themes */
 @media (prefers-color-scheme: light) {
   .search-input {
@@ -41,6 +97,21 @@
 
   .search-input::placeholder {
     color: var(--vscode-input-placeholderForeground, #666666);
+  }
+
+  .toggle-button {
+    background: var(--vscode-button-secondaryBackground, #e0e0e0);
+    color: var(--vscode-button-secondaryForeground, #333333);
+    border-color: var(--vscode-button-border, #cccccc);
+  }
+
+  .toggle-button:hover {
+    background: var(--vscode-button-hoverBackground, #d0d0d0);
+  }
+
+  .toggle-button.active {
+    background: var(--vscode-button-background, #0066cc);
+    color: var(--vscode-button-foreground, #ffffff);
   }
 }
 .tool-execute-button-container {
@@ -220,7 +291,8 @@
 @media (prefers-reduced-motion: reduce) {
   .dropdown-arrow,
   .tool-execute-button,
-  .tool-menu-item {
+  .tool-menu-item,
+  .toggle-button {
     transition: none;
   }
 }
@@ -239,5 +311,14 @@
   .tool-menu-item:focus {
     border: 1px solid var(--vscode-focusBorder, #0066cc);
     margin: 1px;
+  }
+
+  .toggle-button {
+    border: 2px solid;
+  }
+
+  .toggle-button:focus {
+    outline: 2px solid var(--vscode-focusBorder, #0066cc);
+    outline-offset: 2px;
   }
 }

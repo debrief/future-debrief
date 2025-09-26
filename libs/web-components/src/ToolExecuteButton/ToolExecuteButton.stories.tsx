@@ -26,14 +26,6 @@ const meta: Meta<typeof ToolExecuteButton> = {
     enableSmartFiltering: {
       control: 'boolean',
     },
-    showAll: {
-      control: 'boolean',
-      description: 'When true, shows all tools regardless of filtering. When false, shows only applicable tools.',
-    },
-    showDescriptions: {
-      control: 'boolean',
-      description: 'When true, shows tool descriptions in dropdown. When false, shows only names.',
-    },
     onCommandExecute: { action: 'command-execute' },
   },
 };
@@ -224,8 +216,6 @@ const mockFeatures: DebriefFeature[] = [
 // Interaction Demo with Phase 2 Logic
 export const InteractionDemo = () => {
   const [enableSmartFiltering, setEnableSmartFiltering] = React.useState(true);
-  const [showAll, setShowAll] = React.useState(false);
-  const [showDescriptions, setShowDescriptions] = React.useState(true);
   const [selectedFeatureIds, setSelectedFeatureIds] = React.useState<string[]>(['track-001']); // Start with one feature selected
 
   // Get selected features based on IDs
@@ -300,23 +290,6 @@ export const InteractionDemo = () => {
               />
               Enable Smart Filtering
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
-              <input
-                type="checkbox"
-                checked={showAll}
-                onChange={(e) => setShowAll(e.target.checked)}
-                disabled={!enableSmartFiltering}
-              />
-              Show all
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
-              <input
-                type="checkbox"
-                checked={showDescriptions}
-                onChange={(e) => setShowDescriptions(e.target.checked)}
-              />
-              Show descriptions
-            </label>
           </div>
 
           <ToolExecuteButton
@@ -324,8 +297,6 @@ export const InteractionDemo = () => {
             selectedFeatures={selectedFeatures}
             onCommandExecute={(command) => console.warn('Command executed:', command)}
             enableSmartFiltering={enableSmartFiltering}
-            showAll={showAll}
-            showDescriptions={showDescriptions}
             buttonText="Execute Tools"
           />
         </div>
@@ -340,10 +311,9 @@ export const InteractionDemo = () => {
           <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
             <li><strong>Feature Selection:</strong> Check/uncheck features to see filtering effects</li>
             <li><strong>Smart Filtering:</strong> Toggle Phase 1 vs Phase 2 behavior</li>
-            <li><strong>Show All Toggle:</strong> When smart filtering is enabled, toggle between filtered and all tools</li>
-            <li><strong>Show Descriptions:</strong> Hide/show tool descriptions in dropdown</li>
+            <li><strong>Internal Toggle Buttons:</strong> Use the 🔍 and 📝 icons in the dropdown to control filtering and descriptions</li>
             <li><strong>Search Box:</strong> Filter tools by name or description (appears when dropdown opens)</li>
-            <li><strong>Dynamic Count:</strong> Button text shows actual available tool count</li>
+            <li><strong>Live Updates:</strong> Toggle buttons update the dropdown immediately without closing it</li>
           </ul>
         </div>
       </div>
@@ -356,8 +326,6 @@ export const InteractiveWithOutlineView = () => {
   const [plotData, setPlotData] = React.useState<DebriefFeatureCollection | null>(null);
   const [toolData, setToolData] = React.useState<ToolListResponse | null>(null);
   const [selectedFeatureIds, setSelectedFeatureIds] = React.useState<string[]>([]);
-  const [showAll, setShowAll] = React.useState(false); // Start with filtered view
-  const [showDescriptions, setShowDescriptions] = React.useState(true); // Start with descriptions shown
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -402,25 +370,9 @@ export const InteractiveWithOutlineView = () => {
   }, [plotData, selectedFeatureIds]);
 
   // Get tool counts for display
-  const { availableToolCount, totalToolCount } = React.useMemo(() => {
-    if (!toolData) return { availableToolCount: 0, totalToolCount: 0 };
-
-    const total = toolData.tools?.length || 0;
-
-    try {
-      const toolFilterService = new ToolFilterService();
-      const toolsData = { tools: toolData.tools };
-      // Always call the filter service, even with empty selectedFeatures
-      // Some tools (like fit-to-selection) are applicable with no selection
-      const result = toolFilterService.getApplicableTools(selectedFeatures, toolsData);
-      return {
-        availableToolCount: result.tools.length, // Filtered count - tools applicable to current selection
-        totalToolCount: total // All tools
-      };
-    } catch {
-      return { availableToolCount: 0, totalToolCount: total }; // On error, no tools are applicable
-    }
-  }, [toolData, selectedFeatures]);
+  const totalToolCount = React.useMemo(() => {
+    return toolData?.tools?.length || 0;
+  }, [toolData]);
 
   if (loading) {
     return (
@@ -498,30 +450,11 @@ export const InteractiveWithOutlineView = () => {
           )}
         </div>
 
-        {/* Toggle and tool execution */}
+        {/* Tool execution */}
         <div style={{ marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px', flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
-              <input
-                type="checkbox"
-                checked={showAll}
-                onChange={(e) => setShowAll(e.target.checked)}
-              />
-              Show all
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
-              <input
-                type="checkbox"
-                checked={showDescriptions}
-                onChange={(e) => setShowDescriptions(e.target.checked)}
-              />
-              Show descriptions
-            </label>
             <span style={{ fontSize: '12px', color: '#666' }}>
-              {showAll
-                ? `Showing all ${totalToolCount} tools`
-                : `Showing ${availableToolCount} applicable tools`
-              }
+              {totalToolCount} tools available (use toggle buttons in dropdown to control display)
             </span>
           </div>
           <ToolExecuteButton
@@ -529,9 +462,7 @@ export const InteractiveWithOutlineView = () => {
             selectedFeatures={selectedFeatures}
             onCommandExecute={(command) => console.warn('Command executed:', command)}
             enableSmartFiltering={true}
-            showAll={showAll}
-            showDescriptions={showDescriptions}
-            buttonText={`Execute Tools (${showAll ? totalToolCount : availableToolCount} available)`}
+            buttonText={`Execute Tools (${totalToolCount} available)`}
           />
         </div>
 
@@ -545,10 +476,10 @@ export const InteractiveWithOutlineView = () => {
           <strong>Instructions:</strong>
           <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
             <li>Select/deselect features in the OutlineView</li>
-            <li>Toggle &quot;Show all&quot; to switch between all tools vs applicable tools</li>
-            <li>Toggle &quot;Show descriptions&quot; to hide/show tool descriptions in dropdown</li>
+            <li>Click the ToolExecuteButton to open the dropdown</li>
+            <li>Use the 🔍 toggle button to switch between all tools vs applicable tools</li>
+            <li>Use the 📝 toggle button to hide/show tool descriptions</li>
             <li>Use the search box in the dropdown to filter tools by name or description</li>
-            <li>Watch the button update its available tool count dynamically</li>
             <li>Try selecting different combinations (tracks vs points vs zones)</li>
             <li>Check the browser console to see command execution</li>
           </ul>

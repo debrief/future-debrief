@@ -33,8 +33,6 @@ type Story = StoryObj<typeof OutlineViewParent>;
 interface OutlineViewParentDemoProps {
   initialSelection?: string[];
   initialSmartFiltering?: boolean;
-  initialShowAllTools?: boolean;
-  initialShowDescriptions?: boolean;
 }
 
 interface SampleDataState {
@@ -108,15 +106,11 @@ const useSampleData = (): SampleDataState => {
 
 const OutlineViewParentDemo: React.FC<OutlineViewParentDemoProps> = ({
   initialSelection = [],
-  initialSmartFiltering = true,
-  initialShowAllTools = false,
-  initialShowDescriptions = true
+  initialSmartFiltering = true
 }) => {
   const { featureCollection, toolList, loading, error } = useSampleData();
   const [selection, setSelection] = React.useState<string[]>(initialSelection);
   const [enableSmartFiltering, setEnableSmartFiltering] = React.useState(initialSmartFiltering);
-  const [showAllTools, setShowAllTools] = React.useState(initialShowAllTools);
-  const [showDescriptions, setShowDescriptions] = React.useState(initialShowDescriptions);
   const [lastCommandSummary, setLastCommandSummary] = React.useState<string | null>(null);
 
   const selectedFeatureDetails = React.useMemo(() => {
@@ -194,8 +188,6 @@ const OutlineViewParentDemo: React.FC<OutlineViewParentDemoProps> = ({
           onSelectionChange={setSelection}
           onCommandExecute={handleCommandExecute}
           enableSmartFiltering={enableSmartFiltering}
-          showAllTools={showAllTools}
-          showToolDescriptions={showDescriptions}
           additionalToolbarContent={
             <span style={{ fontSize: '12px', opacity: 0.9 }}>
               {selection.length} selected
@@ -261,22 +253,9 @@ const OutlineViewParentDemo: React.FC<OutlineViewParentDemoProps> = ({
               />{' '}
               Enable smart filtering
             </label>
-            <label>
-              <input
-                type="checkbox"
-                checked={showAllTools}
-                onChange={(event) => setShowAllTools(event.target.checked)}
-              />{' '}
-              Show all tools
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                checked={showDescriptions}
-                onChange={(event) => setShowDescriptions(event.target.checked)}
-              />{' '}
-              Show tool descriptions
-            </label>
+            <p style={{ color: '#666', fontSize: '12px', margin: '8px 0' }}>
+              Show All and Show Descriptions controls are now internal toggle buttons in the dropdown (🔍 and 📝)
+            </p>
           </div>
         </section>
 
@@ -314,7 +293,6 @@ export const SingleToolScenario: Story = {
   render: () => (
     <OutlineViewParentDemo
       initialSmartFiltering={false}
-      initialShowDescriptions={false}
     />
   )
 };
@@ -323,7 +301,6 @@ export const ConditionalAvailability: Story = {
   render: () => (
     <OutlineViewParentDemo
       initialSelection={[]}
-      initialShowAllTools={false}
     />
   )
 };
