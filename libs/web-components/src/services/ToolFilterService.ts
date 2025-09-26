@@ -1,4 +1,4 @@
-import type { DebriefFeature } from '@debrief/shared-types';
+import type { DebriefFeature } from '@debrief/shared-types/src/types/features/debrief_feature_collection';
 import type { ToolIndexModel } from '@debrief/shared-types/src/types/tools/tool_index';
 import type { Tool, JSONSchemaProperty } from '@debrief/shared-types/src/types/tools/tool';
 
@@ -41,6 +41,14 @@ interface ToolParameterMetadata {
 /**
  * Enhanced validation result for a tool against features
  */
+function getString(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function getLower(value: unknown): string {
+  return typeof value === 'string' ? value.toLowerCase() : '';
+}
+
 interface ToolValidationResult {
   isValid: boolean;
   warnings: string[];
@@ -197,6 +205,7 @@ export class ToolFilterService {
         return result;
       }
 
+
       const required = tool.inputSchema.required || [];
 
       // If no required parameters, tool is compatible, but still process optional parameters for validation display
@@ -219,7 +228,7 @@ export class ToolFilterService {
 
       for (const paramName of required) {
         const paramSchema = properties[paramName] as JSONSchemaProperty;
-        const description = paramSchema?.description || '';
+        const description = getString(paramSchema?.description);
         const expectsArray = paramSchema?.type === 'array';
         lastExpectsArray = expectsArray;
 
@@ -261,11 +270,12 @@ export class ToolFilterService {
             canSatisfy = matchingFeatureCount > 0;
             hasFeatureParameters = true;
           } else if ((paramName.includes('point') && !paramName.includes('_')) || description.toLowerCase().includes('point feature')) {
-            matchingFeatureCount = features.filter(f => f.properties?.dataType === 'reference-point').length;
+            matchingFeatureCount = features.filter(f => f.properties?.dataType === 'point').length;
             canSatisfy = matchingFeatureCount > 0;
             hasFeatureParameters = true;
-          } else if ((paramName.includes('zone') || paramName.includes('polygon')) || description.toLowerCase().includes('zone feature')) {
-            matchingFeatureCount = features.filter(f => f.properties?.dataType === 'zone').length;
+          } else if ((paramName.includes('zone') || paramName.includes('polygon') || paramName.includes('annotation')) ||
+                     (description.toLowerCase().includes('zone feature') || description.toLowerCase().includes('annotation feature'))) {
+            matchingFeatureCount = features.filter(f => f.properties?.dataType === 'annotation').length;
             canSatisfy = matchingFeatureCount > 0;
             hasFeatureParameters = true;
           } else if (paramName.includes('feature') || description.toLowerCase().includes('features') ||
@@ -317,7 +327,7 @@ export class ToolFilterService {
           if (!required.includes(paramName)) {
             // This is an optional parameter
             const paramSchema = properties[paramName] as JSONSchemaProperty;
-            const description = paramSchema?.description || '';
+            const description = getString(paramSchema?.description);
 
             // Check if this is a state parameter that will be provided by parent code
             const stateDetection = this.detectStateParameter(paramName, paramSchema);
@@ -347,10 +357,10 @@ export class ToolFilterService {
                 matchingFeatureCount = features.filter(f => f.properties?.dataType === 'track').length;
                 canSatisfy = matchingFeatureCount > 0;
               } else if ((paramName.includes('point') && !paramName.includes('_')) || description.toLowerCase().includes('point feature')) {
-                matchingFeatureCount = features.filter(f => f.properties?.dataType === 'reference-point').length;
+                matchingFeatureCount = features.filter(f => f.properties?.dataType === 'point').length;
                 canSatisfy = matchingFeatureCount > 0;
               } else if ((paramName.includes('zone') || paramName.includes('polygon')) || description.toLowerCase().includes('zone feature')) {
-                matchingFeatureCount = features.filter(f => f.properties?.dataType === 'zone').length;
+                matchingFeatureCount = features.filter(f => f.properties?.dataType === 'annotation').length;
                 canSatisfy = matchingFeatureCount > 0;
               } else if (paramName.includes('feature') || description.toLowerCase().includes('features') ||
                          (description.toLowerCase().includes('feature') && !description.toLowerCase().includes('grid points'))) {
@@ -512,7 +522,7 @@ export class ToolFilterService {
   detectStateParameter(paramName: string, paramSchema: JSONSchemaProperty):
     { isStateParam: boolean; stateType?: 'TimeState' | 'ViewportState' | 'SelectionState' | 'EditorState'; note?: string } {
 
-    const description = paramSchema?.description?.toLowerCase() || '';
+    const description = getLower(paramSchema?.description);
     const paramNameLower = paramName.toLowerCase();
 
     // Check for TimeState parameters
@@ -584,6 +594,8 @@ export class ToolFilterService {
                 requirements.push('LineString');
               } else if (desc.includes('polygon')) {
                 requirements.push('Polygon');
+              } else if (desc.includes('annotation')) {
+                requirements.push('annotation');
               }
             }
           }

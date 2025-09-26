@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import { GlobalController, EditorState } from './globalController';
 import { EditorIdManager } from './editorIdManager';
-import { TimeState, ViewportState } from '@debrief/shared-types';
+import { TimeState } from '@debrief/shared-types/src/types/states/time_state';
+import { ViewportState } from '@debrief/shared-types/src/types/states/viewport_state';
 import { calculateTimeRange } from '../common/time-helpers';
 // Note: SelectionState imported in case needed for future enhancements
 // import { SelectionState } from '@debrief/shared-types';
@@ -127,7 +128,7 @@ export class StatePersistence {
             const { metadataFeatures, dataFeatures } = this.separateFeatures(geoJson.features);
             
             // Parse metadata features into state objects
-            let extractedState = this.extractMetadataState(metadataFeatures);
+            const extractedState = this.extractMetadataState(metadataFeatures);
             
             // If no timeState from metadata, try to generate one from data features
             if (!extractedState.timeState && dataFeatures.length > 0) {
@@ -138,7 +139,6 @@ export class StatePersistence {
                         start: timeRange[0],
                         end: timeRange[1]
                     };
-                } else {
                 }
             }
             
@@ -187,7 +187,7 @@ export class StatePersistence {
             
             // Combine data features with metadata features
             const allFeatures = [
-                ...(currentState.featureCollection.features as GeoJSONFeature[]),
+                ...(currentState.featureCollection.features as unknown as GeoJSONFeature[]),
                 ...metadataFeatures
             ];
             

@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { TimeController } from './TimeController';
-import { TimeState } from '@debrief/shared-types';
+import { TimeState } from '@debrief/shared-types/src/types/states/time_state';
 
 describe('TimeController', () => {
   const mockTimeState: TimeState = {

@@ -11,9 +11,9 @@ interface SidebarProps {
 export function Sidebar({ tools, selectedTool, onToolSelect, loading }: SidebarProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredTools = tools.filter(tool => 
+  const filteredTools = tools.filter(tool =>
     tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tool.description.toLowerCase().includes(searchTerm.toLowerCase())
+    (tool.description && tool.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (

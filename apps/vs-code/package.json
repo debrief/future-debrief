@@ -15,7 +15,7 @@
     "copy-schemas": "mkdir -p schemas && cp -r ../../libs/shared-types/derived/json-schema/* schemas/",
     "bundle-python-wheel": "echo 'Skipping Python wheel bundle - migrated to Pydantic-first architecture'",
     "compile": "pnpm esbuild-base --sourcemap && pnpm copy-webcomponents && pnpm copy-schemas && pnpm bundle-python-wheel",
-    "build": "pnpm vscode:prepublish && vsce package --no-dependencies",
+    "build": "pnpm vscode:prepublish && vsce package --no-dependencies --allow-package-all-secrets --allow-package-env-file",
     "watch": "pnpm esbuild-base --sourcemap --watch",
     "dev": "pnpm copy-webcomponents && pnpm watch",
     "vscode:prepublish": "pnpm esbuild-base --minify && pnpm copy-webcomponents && pnpm copy-schemas && pnpm bundle-python-wheel",

@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { OutlineViewParent } from './OutlineViewParent';
-import type { DebriefFeatureCollection } from '@debrief/shared-types';
+import type { DebriefFeatureCollection } from '@debrief/shared-types/src/types/features/debrief_feature_collection';
 import type { ToolListResponse } from '@debrief/shared-types/src/types/tools/tool_list_response';
 
 const featureCollection: DebriefFeatureCollection = {
@@ -32,7 +32,7 @@ const featureCollection: DebriefFeatureCollection = {
         coordinates: [0.5, 0.5]
       },
       properties: {
-        dataType: 'reference-point',
+        dataType: 'point',
         name: 'Observation A'
       }
     }

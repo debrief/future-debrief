@@ -13,6 +13,10 @@ from pydantic import BaseModel, Field, field_validator
 
 class PointProperties(BaseModel):
     """Properties for reference point features."""
+    model_config = {
+        "extra": "forbid"
+    }
+
     dataType: Literal["reference-point"] = Field(
         "reference-point",
         description="Discriminator to identify this as a reference point feature"
@@ -37,13 +41,17 @@ class PointProperties(BaseModel):
         None,
         description="Additional description or notes for this point"
     )
-
-    class Config:
-        extra = "allow"  # Allow additional properties
+    visible: bool = Field(
+        True,
+        description="Whether this point is visible on the map"
+    )
 
 
 class DebriefPointFeature(Feature[Point, PointProperties]):
     """A GeoJSON Feature representing a point with time properties."""
+
+    # Override to make properties required (not Optional)
+    properties: PointProperties
 
     @field_validator('geometry')
     @classmethod

@@ -1,7 +1,7 @@
 
 import * as vscode from 'vscode';
 import { GlobalController } from '../../core/globalController';
-import { CurrentState } from '@debrief/shared-types';
+import { CurrentState } from '@debrief/shared-types/src/types/states/current_state';
 
 export class CurrentStateProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'debrief.currentState';

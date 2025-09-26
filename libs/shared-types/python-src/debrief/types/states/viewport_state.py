@@ -22,7 +22,9 @@ class ViewportState(BaseModel):
         return v
 
     model_config = {
+        "extra": "forbid",
         "json_schema_extra": {
+            "$id": "https://schemas.debrief.com/states/viewport-state.schema.json",
             "examples": [
                 {
                     "bounds": [-10.0, 50.0, 2.0, 58.0]

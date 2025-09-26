@@ -1,23 +1,75 @@
-// Import types from generated shared-types
+// Import types from base-types (stable interface)
 import type {
   JSONSchema,
-  JSONSchemaProperty,
-} from '@debrief/shared-types/src/types/tools/json_schema';
-import type { Tool } from '@debrief/shared-types/src/types/tools/tool';
-import type { ToolListResponse } from '@debrief/shared-types/src/types/tools/tool_list_response';
-import type { ToolCallRequest } from '@debrief/shared-types/src/types/tools/tool_call_request';
-import type { ToolCallResponse } from '@debrief/shared-types/src/types/tools/tool_call_response';
-import type { GlobalToolIndexModel } from '@debrief/shared-types/src/types/tools/global_tool_index';
-import type { ToolIndexModel } from '@debrief/shared-types/src/types/tools/tool_index';
-import type { ToolFileReference } from '@debrief/shared-types/src/types/tools/tool_file_reference';
-import type { SampleInputReference } from '@debrief/shared-types/src/types/tools/sample_input_reference';
-import type { GitHistoryEntry } from '@debrief/shared-types/src/types/tools/git_history_entry';
-import type { GitHistory } from '@debrief/shared-types/src/types/tools/git_history';
+  ToolFileReference,
+  ToolStatsModel,
+  ToolFilesCollection
+} from '@debrief/shared-types/src/types/base-types';
+
+// Define missing types locally until generation is fixed
+export interface JSONSchemaProperty {
+  type: string;
+  description?: string;
+  [key: string]: any;
+}
+
+export interface Tool {
+  name: string;
+  description: string;
+  inputSchema: JSONSchema;
+  outputSchema?: JSONSchema;
+}
+
+export interface ToolListResponse {
+  tools: Tool[];
+  version: string;
+  description?: string;
+}
+
+export interface ToolCallRequest {
+  name: string;
+  arguments: any;
+}
+
+export interface ToolCallResponse {
+  result: any;
+  isError: boolean;
+}
+
+export interface GlobalToolIndexModel {
+  tools: any;
+  version: string;
+  description?: string;
+  packageInfo: any;
+}
+
+export interface ToolIndexModel {
+  tool_name: string;
+  description: string;
+  files: ToolFilesCollection;
+  stats: ToolStatsModel;
+}
+
+export interface SampleInputReference {
+  path: string;
+  description?: string;
+  name: string;
+}
+
+export interface GitHistoryEntry {
+  hash: string;
+  author: string;
+  date: string;
+  message: string;
+}
+
+export interface GitHistory {
+  commits: GitHistoryEntry[];
+}
 
 // Export shared-types directly
-export type { JSONSchema, JSONSchemaProperty };
-export type { Tool, ToolListResponse, ToolCallRequest, ToolCallResponse };
-export type { GlobalToolIndexModel, ToolIndexModel, ToolFileReference, SampleInputReference, GitHistoryEntry, GitHistory };
+export type { JSONSchema };
+export type { ToolFileReference };
 
 export interface ToolVaultRootResponse {
   name: string;

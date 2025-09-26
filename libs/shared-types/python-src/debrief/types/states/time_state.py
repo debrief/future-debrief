@@ -22,7 +22,9 @@ class TimeState(BaseModel):
     )
 
     model_config = {
+        "extra": "forbid",
         "json_schema_extra": {
+            "$id": "https://schemas.debrief.com/states/time-state.schema.json",
             "examples": [
                 {
                     "current": "2025-09-03T12:00:00Z",

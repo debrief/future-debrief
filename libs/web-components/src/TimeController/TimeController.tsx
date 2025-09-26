@@ -1,5 +1,5 @@
 import React from 'react';
-import { TimeState } from '@debrief/shared-types';
+import { TimeState } from '@debrief/shared-types/src/types/states/time_state';
 import { VscodeButton, VscodeLabel } from '@vscode-elements/react-elements';
 import './TimeController.css';
 

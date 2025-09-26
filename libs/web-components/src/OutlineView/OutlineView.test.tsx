@@ -2,7 +2,7 @@ import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { OutlineView } from './OutlineView';
-import type { DebriefFeatureCollection } from '@debrief/shared-types';
+import type { DebriefFeatureCollection } from '@debrief/shared-types/src/types/features/debrief_feature_collection';
 
 const sampleFeatureCollection: DebriefFeatureCollection = {
   type: 'FeatureCollection',
@@ -15,7 +15,7 @@ const sampleFeatureCollection: DebriefFeatureCollection = {
         coordinates: [0, 0]
       },
       properties: {
-        dataType: 'reference-point',
+        dataType: 'point',
         name: 'Feature One'
       }
     }

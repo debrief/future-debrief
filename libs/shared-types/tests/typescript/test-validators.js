@@ -86,7 +86,10 @@ function testValidatorContent(filename, filePath) {
   }
   
   // Check that it imports from generated types (either derived or copied to src)
-  if (filename !== 'index.ts' && !content.includes('../../derived/typescript/') && !content.includes('../types/')) {
+  if (filename !== 'index.ts'
+    && !content.includes('../../derived/typescript/')
+    && !content.includes('../types/')
+    && !content.includes('../index')) {
     throw new Error(`Validator ${filename} should import from generated types`);
   }
   

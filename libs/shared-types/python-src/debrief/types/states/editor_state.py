@@ -29,5 +29,9 @@ class EditorState(BaseModel):
         description="Current feature selection state"
     )
 
-    class Config:
-        extra = "forbid"  # No additional properties
+    model_config = {
+        "extra": "forbid",
+        "json_schema_extra": {
+            "$id": "https://schemas.debrief.com/states/editor-state.schema.json"
+        }
+    }

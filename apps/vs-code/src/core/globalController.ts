@@ -1,6 +1,10 @@
 
 import * as vscode from 'vscode';
-import { TimeState, ViewportState, SelectionState, DebriefFeatureCollection, EditorState } from '@debrief/shared-types';
+import { TimeState } from '@debrief/shared-types/src/types/states/time_state';
+import { ViewportState } from '@debrief/shared-types/src/types/states/viewport_state';
+import { SelectionState } from '@debrief/shared-types/src/types/states/selection_state';
+import { DebriefFeatureCollection } from '@debrief/shared-types/src/types/features/debrief_feature_collection';
+import { EditorState } from '@debrief/shared-types/src/types/states/editor_state';
 
 export { EditorState };
 

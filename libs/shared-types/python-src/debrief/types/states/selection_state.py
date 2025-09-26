@@ -21,7 +21,9 @@ class SelectionState(BaseModel):
         return v
 
     model_config = {
+        "extra": "forbid",
         "json_schema_extra": {
+            "$id": "https://schemas.debrief.com/states/selection-state.schema.json",
             "examples": [
                 {
                     "selectedIds": ["id-123", "id-456"]

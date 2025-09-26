@@ -31,6 +31,10 @@ class AnnotationType(str, Enum):
 
 class AnnotationProperties(BaseModel):
     """Properties for annotation features."""
+    model_config = {
+        "extra": "forbid"
+    }
+
     dataType: Literal["zone"] = Field(
         "zone",
         description="Discriminator to identify this as a zone feature"
@@ -60,10 +64,14 @@ class AnnotationProperties(BaseModel):
         None,
         description="Additional description or notes about this annotation"
     )
-
-    class Config:
-        extra = "allow"  # Allow additional properties
+    visible: bool = Field(
+        True,
+        description="Whether this annotation is visible on the map"
+    )
 
 
 class DebriefAnnotationFeature(Feature[Union[Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon], AnnotationProperties]):
     """A GeoJSON Feature representing an annotation with any geometry type."""
+
+    # Override to make properties required (not Optional)
+    properties: AnnotationProperties

@@ -3,7 +3,7 @@
  * These validators work with the generated types and provide additional validation logic
  */
 
-import { DebriefTrackFeature } from '../types/features/debrief_feature_collection';
+import type { DebriefTrackFeature } from '../index';
 
 /**
  * Type-safe helper to check if a value is a non-null object
@@ -29,15 +29,16 @@ export function validateTimestampsLength(feature: DebriefTrackFeature): boolean 
   }
 
   if (!feature.geometry) return false;
-  const coordinates = feature.geometry.coordinates;
-  
+
   // Handle LineString geometry
   if (feature.geometry.type === "LineString") {
+    const coordinates = (feature.geometry as any).coordinates;
     return feature.properties.timestamps.length === coordinates.length;
   }
-  
+
   // Handle MultiLineString geometry
   if (feature.geometry.type === "MultiLineString") {
+    const coordinates = (feature.geometry as any).coordinates;
     // Calculate total points across all LineStrings
     const totalPoints = (coordinates as Array<Array<number[]>>)
       .reduce((sum, lineString) => sum + lineString.length, 0);

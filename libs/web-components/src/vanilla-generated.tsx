@@ -9,7 +9,7 @@ import { PropertiesView, PropertiesViewProps } from './PropertiesView/Properties
 import { OutlineView, OutlineViewProps } from './OutlineView/OutlineView';
 import { OutlineViewParent, OutlineViewParentProps } from './OutlineViewParent/OutlineViewParent';
 import { CurrentStateTable, StateFieldRow } from './CurrentStateTable/CurrentStateTable';
-import { CurrentState } from '@debrief/shared-types';
+import { CurrentState } from '@debrief/shared-types/src/types/states/current_state';
 import './vanilla.css';
 
 // Re-export types for compatibility

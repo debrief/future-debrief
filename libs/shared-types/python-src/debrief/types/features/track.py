@@ -13,6 +13,10 @@ from pydantic import BaseModel, Field, field_validator
 
 class TrackProperties(BaseModel):
     """Properties for track features."""
+    model_config = {
+        "extra": "forbid"
+    }
+
     dataType: Literal["track"] = Field(
         "track",
         description="Discriminator to identify this as a track feature"
@@ -29,13 +33,17 @@ class TrackProperties(BaseModel):
         None,
         description="Additional description or notes about this track"
     )
-
-    class Config:
-        extra = "allow"  # Allow additional properties
+    visible: bool = Field(
+        True,
+        description="Whether this track is visible on the map"
+    )
 
 
 class DebriefTrackFeature(Feature[Union[LineString, MultiLineString], TrackProperties]):
     """A GeoJSON Feature representing a track with LineString or MultiLineString geometry."""
+
+    # Override to make properties required (not Optional)
+    properties: TrackProperties
 
     @field_validator('geometry')
     @classmethod

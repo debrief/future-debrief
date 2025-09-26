@@ -1,5 +1,5 @@
 import React from 'react';
-import type { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types';
+import type { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types/src/types/features/debrief_feature_collection';
 import type { ToolListResponse } from '@debrief/shared-types/src/types/tools/tool_list_response';
 import { OutlineView, type OutlineViewProps } from '../OutlineView/OutlineView';
 import { ToolExecuteButton, type SelectedCommand } from '../ToolExecuteButton/ToolExecuteButton';

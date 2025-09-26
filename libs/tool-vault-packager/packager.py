@@ -392,6 +392,15 @@ def package_toolvault(
             else:
                 print("Warning: SPA dist directory not found after build")
 
+        # Copy schema documentation if available
+        docs_dir = Path(__file__).parent / "shared-types" / "derived" / "docs"
+        if docs_dir.exists():
+            docs_dest = package_dir / "static" / "schemas"
+            shutil.copytree(docs_dir, docs_dest)
+            print("Schema documentation copied to package")
+        else:
+            print("Note: Schema documentation not found - may need to run shared-types docs generation")
+
         # Generate and save index.json
         index_path = package_dir / "index.json"
         with open(index_path, "w") as f:

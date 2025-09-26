@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
 import './CurrentStateTable.css';
-import { CurrentState } from '@debrief/shared-types';
+import { CurrentState } from '@debrief/shared-types/src/types/states/current_state';
 import { VscodeTable, VscodeTableHeader, VscodeTableHeaderCell, VscodeTableBody, VscodeTableRow, VscodeTableCell } from '@vscode-elements/react-elements';
 
 export interface StateFieldRow {
@@ -25,16 +25,16 @@ const convertCurrentStateToRows = (currentState: CurrentState): StateFieldRow[] 
 	];
 
 	if (currentState.editorState.timeState) {
-		rows.push({ field: 'Time State', value: currentState.editorState.timeState.current });
+		rows.push({ field: 'Time State', value: String(currentState.editorState.timeState.current || '') });
 	}
 
-	if (currentState.editorState.viewportState) {
+	if (currentState.editorState.viewportState && currentState.editorState.viewportState.bounds) {
 		const bounds = currentState.editorState.viewportState.bounds;
 		const formattedBounds = bounds.map((num: number) => num.toFixed(3)).join(', ');
 		rows.push({ field: 'Viewport State', value: `[${formattedBounds}]` });
 	}
 
-	if (currentState.editorState.selectionState) {
+	if (currentState.editorState.selectionState && currentState.editorState.selectionState.selectedIds) {
 		const selectedIds = currentState.editorState.selectionState.selectedIds;
 		rows.push({ field: 'Selected IDs', value: selectedIds.join(', ') });
 	}

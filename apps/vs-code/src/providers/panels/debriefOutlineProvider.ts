@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import { GlobalController } from '../../core/globalController';
-import { SelectionState, DebriefFeatureCollection } from '@debrief/shared-types';
+import { SelectionState } from '@debrief/shared-types/src/types/states/selection_state';
+import { DebriefFeatureCollection } from '@debrief/shared-types/src/types/features/debrief_feature_collection';
 import type { ToolListResponse } from '@debrief/shared-types/src/types/tools/tool_list_response';
 
 export class DebriefOutlineProvider implements vscode.WebviewViewProvider {

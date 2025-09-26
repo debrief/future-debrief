@@ -29,7 +29,7 @@ class JSONSchemaProperty(BaseModel):
     default: Optional[Any] = None
 
     class Config:
-        extra = "allow"  # Allow additional properties
+        extra = "forbid"  # Prevent additional properties
 
 
 class JSONSchema(BaseModel):
@@ -41,7 +41,7 @@ class JSONSchema(BaseModel):
     description: Optional[str] = None
 
     class Config:
-        extra = "allow"  # Allow additional properties
+        extra = "forbid"  # Prevent additional properties
 
 
 # Update forward references
