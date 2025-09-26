@@ -27,6 +27,9 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
     webviewView.onDidDispose(() => {
       this._cleanup();
     });
+
+    // Check if Tool Vault server is already ready (handles race condition)
+    this._checkInitialToolVaultState();
   }
 
   private async _update() {
@@ -304,9 +307,9 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
             // Handle collapse all
             break;
 
-          case 'executeCommand':
+          case 'executeCommand': {
             // Extract tool name from the command object
-            let toolName: string = 'unknown-tool';
+            let toolName = 'unknown-tool';
             if (typeof message.command === 'string') {
               toolName = message.command;
             } else if (message.command && typeof message.command === 'object') {
@@ -315,6 +318,7 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
             }
             await this._executeToolCommand(toolName, message.selectedFeatures);
             break;
+          }
         }
       },
       undefined,
@@ -376,6 +380,25 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
     this._subscriptions = [];
   }
 
+  /**
+   * Check if Tool Vault server is already ready when outline initializes
+   * This handles the race condition where server starts before outline subscribes to events
+   */
+  private async _checkInitialToolVaultState(): Promise<void> {
+    try {
+      console.warn('[DebriefOutlineProvider] Checking initial Tool Vault server state');
+      // Try to get tool index - if this succeeds, server is ready
+      const toolIndex = await this._globalController.getToolIndex();
+      if (toolIndex) {
+        console.warn('[DebriefOutlineProvider] Tool Vault server already ready - refreshing outline');
+        await this._update();
+      }
+    } catch (error) {
+      console.warn('[DebriefOutlineProvider] Tool Vault server not ready yet:', error instanceof Error ? error.message : String(error));
+      // Server not ready yet, will be notified via event when it becomes ready
+    }
+  }
+
 
 
   /**
@@ -385,21 +408,53 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
     try {
 
       // Execute tool through GlobalController
-      // Note: Different tools expect different parameter names
-      // For track_speed_filter_fast, it expects 'track_feature' parameter
+      // Note: Different tools expect different parameter names and additional state parameters
       let parameters: Record<string, unknown>;
-      if (commandName === 'track_speed_filter_fast') {
-        parameters = { track_feature: selectedFeatures[0] }; // This tool expects a single feature
+
+      // Get current editor state for tools that need it
+      const currentEditorId = this._globalController.activeEditorId || this._globalController.getEditorIds()[0];
+      const timeState = currentEditorId ? this._globalController.getStateSlice(currentEditorId, 'timeState') : null;
+      const viewportState = currentEditorId ? this._globalController.getStateSlice(currentEditorId, 'viewportState') : null;
+      const editorState = currentEditorId ? this._globalController.getEditorState(currentEditorId) : null;
+
+      if (commandName === 'track_speed_filter_fast' || commandName === 'track_speed_filter') {
+        // These tools expect a single track feature
+        parameters = { track_feature: selectedFeatures[0] };
+      } else if (commandName === 'select_feature_start_time') {
+        // This tool needs features and current time state
+        parameters = {
+          features: selectedFeatures,
+          current_time_state: timeState || { current: null, start: null, end: null }
+        };
+      } else if (commandName === 'select_all_visible') {
+        // This tool needs editor state with viewport and features
+        parameters = {
+          editor_state: editorState || {}
+        };
+      } else if (commandName === 'viewport_grid_generator') {
+        // This tool needs viewport state and grid parameters
+        parameters = {
+          viewport_state: viewportState || { bounds: [-180, -90, 180, 90] },
+          lat_interval: 0.1,
+          lon_interval: 0.1
+        };
       } else {
-        parameters = { features: selectedFeatures }; // Default parameter name
+        // Default parameter name for most tools
+        parameters = { features: selectedFeatures };
       }
 
       const result = await this._globalController.executeTool(commandName, parameters);
 
       if (!result.success) {
-        const errorMessage = `Tool execution failed: ${result.error || 'Unknown error'}`;
-        console.error('[DebriefOutlineProvider] Tool execution error:', result.error);
-        vscode.window.showErrorMessage(errorMessage);
+        console.error('[DebriefOutlineProvider] Tool execution error:', {
+          tool: commandName,
+          parameters: parameters,
+          error: result.error
+        });
+
+        // Show detailed error with suggestion for missing parameters
+        const detailedMessage = `Tool "${commandName}" failed with error:\n\n${result.error}\n\nParameters provided: ${JSON.stringify(parameters, null, 2)}`;
+        vscode.window.showErrorMessage(detailedMessage, { modal: true });
         return;
       }
 
