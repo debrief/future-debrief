@@ -5,7 +5,7 @@
   "main": "cli.py",
   "scripts": {
     "clean": "rm -rf dist && rm -rf tmp_package_contents",
-    "build": "mkdir -p dist && python packager.py tools --output dist/toolvault.pyz",
+    "build": "mkdir -p dist && python packager.py tools --output dist/toolvault.pyz && mkdir -p ../../apps/vs-code/tool-vault && cp dist/toolvault.pyz ../../apps/vs-code/tool-vault/",
     "build:spa": "cd spa && npm install && npm run verify-deps && npm run build",
     "prebuild": "npm run clean && npm run build:spa",
     "serve": "python cli.py serve",
