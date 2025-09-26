@@ -17,8 +17,6 @@ export interface ToolExecuteButtonProps {
   buttonText?: string;
   menuPosition?: 'bottom' | 'top';
   enableSmartFiltering?: boolean;
-  showAll?: boolean; // When true, shows all tools regardless of filtering. When false, shows only applicable tools
-  showDescriptions?: boolean; // When true, shows tool descriptions in dropdown. When false, shows only names
 }
 
 export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
@@ -29,12 +27,12 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
   buttonText = 'Execute Tools',
   menuPosition = 'bottom',
   enableSmartFiltering = false,
-  showAll = true, // Default to showing all tools for backward compatibility
-  showDescriptions = true, // Default to showing descriptions for backward compatibility
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [filterWarnings, setFilterWarnings] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showAllState, setShowAllState] = useState(true); // Default to showing all tools
+  const [showDescriptionsState, setShowDescriptionsState] = useState(true); // Default to showing descriptions
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -56,11 +54,11 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
       const result = toolFilterService.getApplicableTools(selectedFeatures, toolsData);
       const applicableNames = new Set(result.tools.map(tool => tool.name));
 
-      // Return filtered tools or all tools based on showAll prop
-      const tools = showAll ? toolList.tools || [] : result.tools;
+      // Return filtered tools or all tools based on showAllState
+      const tools = showAllState ? toolList.tools || [] : result.tools;
 
       // Determine warnings based on filtering state
-      const warnings = !showAll ? result.warnings : [];
+      const warnings = !showAllState ? result.warnings : [];
 
       return { availableTools: tools, applicableToolNames: applicableNames, warnings };
     } catch (error) {
@@ -73,7 +71,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
         warnings: ['Error filtering tools - showing all available tools']
       };
     }
-  }, [toolList.tools, selectedFeatures, enableSmartFiltering, showAll, toolFilterService]);
+  }, [toolList.tools, selectedFeatures, enableSmartFiltering, showAllState, toolFilterService]);
 
   // Update filter warnings based on computed results
   React.useEffect(() => {
@@ -163,10 +161,30 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
               placeholder="Search tools..."
               className="search-input"
             />
+            <div className="toggle-buttons">
+              <button
+                className={`toggle-button ${showAllState ? 'active' : ''}`}
+                onClick={() => setShowAllState(!showAllState)}
+                title="Show all tools"
+                aria-label="Toggle show all tools"
+                type="button"
+              >
+                <span className="toggle-icon">🔍</span>
+              </button>
+              <button
+                className={`toggle-button ${showDescriptionsState ? 'active' : ''}`}
+                onClick={() => setShowDescriptionsState(!showDescriptionsState)}
+                title="Show descriptions"
+                aria-label="Toggle show descriptions"
+                type="button"
+              >
+                <span className="toggle-icon">📝</span>
+              </button>
+            </div>
           </div>
 
-          {/* Only show warnings when showAll is true - when filtering is disabled, warnings about filtered tools are not relevant */}
-          {filterWarnings.length > 0 && showAll && (
+          {/* Only show warnings when showAllState is true - when filtering is disabled, warnings about filtered tools are not relevant */}
+          {filterWarnings.length > 0 && showAllState && (
             <div className="filter-warnings">
               {filterWarnings.map((warning, index) => (
                 <div key={index} className="filter-warning">
@@ -193,7 +211,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
             <div className="tools-list">
               {searchFilteredTools.map((tool) => {
                 const isApplicable = applicableToolNames.has(tool.name);
-                const isDisabled = enableSmartFiltering && showAll && !isApplicable;
+                const isDisabled = enableSmartFiltering && showAllState && !isApplicable;
 
                 return (
                   <button
@@ -205,7 +223,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
                     aria-disabled={isDisabled}
                   >
                     <div className="tool-name">{tool.name}</div>
-                    {showDescriptions && (
+                    {showDescriptionsState && (
                       <div className="tool-description">{tool.description}</div>
                     )}
                   </button>
@@ -214,8 +232,8 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
             </div>
           )}
 
-          {/* Only show the smart filtering note when showAll is true */}
-          {enableSmartFiltering && selectedFeatures.length === 0 && showAll && (
+          {/* Only show the smart filtering note when showAllState is true */}
+          {enableSmartFiltering && selectedFeatures.length === 0 && showAllState && (
             <div className="smart-filtering-note">
               Select features to see filtered tools
             </div>

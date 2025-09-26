@@ -13,8 +13,6 @@ export interface OutlineViewParentProps
   onSelectionChange?: (ids: string[]) => void;
   onCommandExecute?: (command: SelectedCommand, selectedFeatures: DebriefFeature[]) => void;
   enableSmartFiltering?: boolean;
-  showAllTools?: boolean;
-  showToolDescriptions?: boolean;
   buttonText?: string;
   menuPosition?: 'bottom' | 'top';
   additionalToolbarContent?: React.ReactNode;
@@ -28,8 +26,6 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
   onSelectionChange,
   onCommandExecute,
   enableSmartFiltering = true,
-  showAllTools = false,
-  showToolDescriptions = true,
   buttonText = 'Execute Tools',
   menuPosition = 'bottom',
   additionalToolbarContent,
@@ -101,8 +97,6 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
         buttonText={effectiveButtonText}
         menuPosition={menuPosition}
         enableSmartFiltering={enableSmartFiltering}
-        showAll={showAllTools}
-        showDescriptions={showToolDescriptions}
       />
     ];
 
@@ -120,8 +114,6 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
     isExecuteDisabled,
     menuPosition,
     selectedFeatures,
-    showAllTools,
-    showToolDescriptions,
     toolCount,
     toolList
   ]);
