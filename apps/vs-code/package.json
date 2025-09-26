@@ -71,6 +71,10 @@
       {
         "command": "debrief.redo",
         "title": "Debrief: Redo"
+      },
+      {
+        "command": "debrief.restartToolVault",
+        "title": "Restart Tool Vault Server"
       }
     ],
     "viewsContainers": {
@@ -140,7 +144,35 @@
         "fileMatch": "*.plot.json",
         "url": "./schemas/features/FeatureCollection.schema.json"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Debrief",
+      "properties": {
+        "debrief.toolVault.serverPath": {
+          "type": "string",
+          "description": "Path to the Tool Vault .pyz file",
+          "scope": "resource"
+        },
+        "debrief.toolVault.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start the Tool Vault server on extension activation",
+          "scope": "resource"
+        },
+        "debrief.toolVault.port": {
+          "type": "number",
+          "default": 60124,
+          "description": "Port for the Tool Vault server",
+          "scope": "resource"
+        },
+        "debrief.toolVault.host": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "Host address for the Tool Vault server",
+          "scope": "resource"
+        }
+      }
+    }
   },
   "devDependencies": {
     "@debrief/shared-types": "workspace:^1.0.0",

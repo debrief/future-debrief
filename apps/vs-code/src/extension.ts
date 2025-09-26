@@ -18,6 +18,7 @@ import { CustomOutlineTreeProvider } from './providers/outlines/customOutlineTre
 // External services
 import { DebriefWebSocketServer } from './services/debriefWebSocketServer';
 import { PythonWheelInstaller } from './services/pythonWheelInstaller';
+import { ToolVaultServerService } from './services/toolVaultServer';
 
 
 class HelloWorldProvider implements vscode.TreeDataProvider<string> {
@@ -41,6 +42,7 @@ let globalController: GlobalController | null = null;
 let activationHandler: EditorActivationHandler | null = null;
 let statePersistence: StatePersistence | null = null;
 let historyManager: HistoryManager | null = null;
+let toolVaultServer: ToolVaultServerService | null = null;
 
 // Store references to the Debrief activity panel providers
 let timeControllerProvider: TimeControllerProvider | null = null;
@@ -66,13 +68,71 @@ export function activate(context: vscode.ExtensionContext) {
         console.error('Python wheel installation failed:', error);
         // Non-blocking error - extension continues to work without Python integration
     });
-    
+
+    // Initialize Tool Vault server
+    toolVaultServer = ToolVaultServerService.getInstance();
+
+    // Try to start Tool Vault server if auto-start is enabled
+    const startToolVaultServer = async () => {
+        try {
+            // Read configuration first (this handles validation and configuration loading)
+            let config;
+
+            try {
+                // Try to start the server directly, which will handle configuration loading
+                config = {
+                    serverPath: process.env.DEBRIEF_TOOL_VAULT_PATH || vscode.workspace.getConfiguration('debrief.toolVault').get<string>('serverPath') || null,
+                    autoStart: vscode.workspace.getConfiguration('debrief.toolVault').get<boolean>('autoStart', true),
+                    port: vscode.workspace.getConfiguration('debrief.toolVault').get<number>('port', 60124),
+                    host: vscode.workspace.getConfiguration('debrief.toolVault').get<string>('host', '127.0.0.1')
+                };
+            } catch {
+                // Fallback: directly get config from VS Code settings
+                const vsconfig = vscode.workspace.getConfiguration('debrief.toolVault');
+                config = {
+                    serverPath: process.env.DEBRIEF_TOOL_VAULT_PATH || vsconfig.get<string>('serverPath') || null,
+                    autoStart: vsconfig.get<boolean>('autoStart', true),
+                    port: vsconfig.get<number>('port', 60124),
+                    host: vsconfig.get<string>('host', '127.0.0.1')
+                };
+            }
+
+            if (config && config.autoStart && config.serverPath) {
+                await toolVaultServer!.startServer();
+
+                // Load tool index and show success notification
+                const tools = await toolVaultServer!.getToolIndex();
+                vscode.window.showInformationMessage(
+                    `Tool Vault server started successfully with ${tools.length} tools available.`
+                );
+            } else if (config && config.autoStart && !config.serverPath) {
+                vscode.window.showInformationMessage(
+                    'Tool Vault server auto-start is enabled but no server path is configured. Configure debrief.toolVault.serverPath in VS Code settings.'
+                );
+            }
+        } catch (error) {
+            const errorMessage = `Failed to start Tool Vault server: ${error instanceof Error ? error.message : String(error)}`;
+            console.error(errorMessage);
+            vscode.window.showWarningMessage(
+                errorMessage + ' Tools will not be available until server is manually started.'
+            );
+        }
+    };
+
+    // Start Tool Vault server asynchronously (non-blocking)
+    startToolVaultServer();
+
     // Add cleanup to subscriptions
     context.subscriptions.push({
         dispose: () => {
             if (webSocketServer) {
                 webSocketServer.stop().catch(error => {
                     console.error('Error stopping WebSocket server during cleanup:', error);
+                });
+            }
+            if (toolVaultServer) {
+                toolVaultServer.stopServer().catch(error => {
+                    console.error('Error stopping Tool Vault server during cleanup:', error);
                 });
             }
         }
@@ -160,6 +220,29 @@ export function activate(context: vscode.ExtensionContext) {
     );
     context.subscriptions.push(selectFeatureCommand);
 
+    // Register Tool Vault server restart command
+    const restartToolVaultCommand = vscode.commands.registerCommand(
+        'debrief.restartToolVault',
+        async () => {
+            try {
+                if (toolVaultServer) {
+                    await toolVaultServer.restartServer();
+                    const tools = await toolVaultServer.getToolIndex();
+                    vscode.window.showInformationMessage(
+                        `Tool Vault server restarted successfully with ${tools.length} tools available.`
+                    );
+                } else {
+                    vscode.window.showErrorMessage('Tool Vault server service is not initialized.');
+                }
+            } catch (error) {
+                const errorMessage = `Failed to restart Tool Vault server: ${error instanceof Error ? error.message : String(error)}`;
+                console.error(errorMessage);
+                vscode.window.showErrorMessage(errorMessage);
+            }
+        }
+    );
+    context.subscriptions.push(restartToolVaultCommand);
+
     // Multi-select is now handled internally by the OutlineView webview component
 
     // Initialize Global Controller (new centralized state management)
@@ -226,6 +309,14 @@ export function deactivate() {
         webSocketServer = null;
     }
 
+    // Stop Tool Vault server
+    if (toolVaultServer) {
+        toolVaultServer.stopServer().catch(error => {
+            console.error('Error stopping Tool Vault server:', error);
+        });
+        toolVaultServer = null;
+    }
+
 
     // Cleanup panel providers
     if (timeControllerProvider) {
@@ -271,4 +362,5 @@ export function deactivate() {
     timeControllerProvider = null;
     debriefOutlineProvider = null;
     propertiesViewProvider = null;
+    toolVaultServer = null;
 }
