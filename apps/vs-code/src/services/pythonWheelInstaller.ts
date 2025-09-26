@@ -34,6 +34,14 @@ export class PythonWheelInstaller {
             // Check if bundled wheel exists
             if (!this.bundledWheelPath || !fs.existsSync(this.bundledWheelPath)) {
                 console.warn('Bundled debrief-types wheel not found. Python integration will not be available.');
+                vscode.window.showWarningMessage(
+                    'Debrief Python types wheel not found. Python integration features will not be available.',
+                    'Show Build Instructions'
+                ).then(selection => {
+                    if (selection === 'Show Build Instructions') {
+                        this.showWheelBuildInstructions();
+                    }
+                });
                 return;
             }
 
@@ -340,5 +348,28 @@ The package provides maritime GeoJSON types and validators for Python.
         `.trim();
 
         vscode.window.showInformationMessage(instructions);
+    }
+
+    /**
+     * Show build instructions for creating the Python wheel.
+     */
+    private showWheelBuildInstructions(): void {
+        const instructions = `
+To build the missing Python wheel:
+
+1. Navigate to the project root in terminal
+2. Run: pnpm build:shared-types
+3. This will create the debrief_types wheel in libs/shared-types/dist/python/
+4. Reload the VS Code extension (Developer: Reload Window)
+
+The Python wheel provides type definitions and validators for Debrief data structures.
+        `.trim();
+
+        vscode.window.showInformationMessage(instructions, 'Copy Build Command').then(selection => {
+            if (selection === 'Copy Build Command') {
+                vscode.env.clipboard.writeText('pnpm build:shared-types');
+                vscode.window.showInformationMessage('Build command copied to clipboard');
+            }
+        });
     }
 }
