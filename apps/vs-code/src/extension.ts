@@ -19,6 +19,7 @@ import { CustomOutlineTreeProvider } from './providers/outlines/customOutlineTre
 import { DebriefWebSocketServer } from './services/debriefWebSocketServer';
 import { PythonWheelInstaller } from './services/pythonWheelInstaller';
 import { ToolVaultServerService } from './services/toolVaultServer';
+import { ToolVaultConfigService } from './services/toolVaultConfig';
 
 
 class HelloWorldProvider implements vscode.TreeDataProvider<string> {
@@ -75,27 +76,9 @@ export function activate(context: vscode.ExtensionContext) {
     // Try to start Tool Vault server if auto-start is enabled
     const startToolVaultServer = async () => {
         try {
-            // Read configuration first (this handles validation and configuration loading)
-            let config;
-
-            try {
-                // Try to start the server directly, which will handle configuration loading
-                config = {
-                    serverPath: process.env.DEBRIEF_TOOL_VAULT_PATH || vscode.workspace.getConfiguration('debrief.toolVault').get<string>('serverPath') || null,
-                    autoStart: vscode.workspace.getConfiguration('debrief.toolVault').get<boolean>('autoStart', true),
-                    port: vscode.workspace.getConfiguration('debrief.toolVault').get<number>('port', 60124),
-                    host: vscode.workspace.getConfiguration('debrief.toolVault').get<string>('host', '127.0.0.1')
-                };
-            } catch {
-                // Fallback: directly get config from VS Code settings
-                const vsconfig = vscode.workspace.getConfiguration('debrief.toolVault');
-                config = {
-                    serverPath: process.env.DEBRIEF_TOOL_VAULT_PATH || vsconfig.get<string>('serverPath') || null,
-                    autoStart: vsconfig.get<boolean>('autoStart', true),
-                    port: vsconfig.get<number>('port', 60124),
-                    host: vsconfig.get<string>('host', '127.0.0.1')
-                };
-            }
+            // Get configuration from ToolVaultConfigService (handles auto-detection)
+            const configService = ToolVaultConfigService.getInstance();
+            const config = configService.getConfiguration();
 
             if (config && config.autoStart && config.serverPath) {
                 await toolVaultServer!.startServer();
@@ -114,9 +97,25 @@ export function activate(context: vscode.ExtensionContext) {
         } catch (error) {
             const errorMessage = `Failed to start Tool Vault server: ${error instanceof Error ? error.message : String(error)}`;
             console.error(errorMessage);
+
+            // Show enhanced error message with action buttons
             vscode.window.showWarningMessage(
-                errorMessage + ' Tools will not be available until server is manually started.'
-            );
+                errorMessage + ' Tools will not be available until server is manually started.',
+                'Show Logs',
+                'Manual Setup Guide'
+            ).then(selection => {
+                if (selection === 'Show Logs') {
+                    toolVaultServer?.getOutputChannel().show();
+                } else if (selection === 'Manual Setup Guide') {
+                    vscode.window.showInformationMessage(
+                        'Tool Vault Server Setup:\n\n' +
+                        '1. Check the "Debrief Tools" output channel for detailed logs\n' +
+                        '2. Ensure Python is installed and accessible\n' +
+                        '3. Verify the .pyz file exists and is executable\n' +
+                        '4. Try restarting with: "Debrief: Restart Tool Vault Server" command'
+                    );
+                }
+            });
         }
     };
 

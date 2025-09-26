@@ -66,28 +66,33 @@ export class ToolVaultConfigService {
   private detectDefaultServerPath(): string | null {
     // Common development paths relative to VS Code extension
     const workspaceFolders = vscode.workspace.workspaceFolders;
-    if (!workspaceFolders || workspaceFolders.length === 0) {
-      return null;
+
+    const candidatePaths: string[] = [];
+
+    // Priority 1: Bundled .pyz in extension directory (for production/packaged extension)
+    const extensionPath = vscode.extensions.getExtension('ian.vs-code')?.extensionPath;
+    if (extensionPath) {
+      candidatePaths.push(path.join(extensionPath, 'tool-vault', 'toolvault.pyz'));
     }
 
-    const workspaceRoot = workspaceFolders[0].uri.fsPath;
-
-    // Look for tool-vault-packager in monorepo structure
-    const candidatePaths = [
-      // In monorepo: libs/tool-vault-packager/dist/toolvault.pyz
-      path.join(workspaceRoot, 'libs', 'tool-vault-packager', 'dist', 'toolvault.pyz'),
-      // Alternative: tool-vault-packager/dist/toolvault.pyz
-      path.join(workspaceRoot, 'tool-vault-packager', 'dist', 'toolvault.pyz'),
-      // Direct in workspace: toolvault.pyz
-      path.join(workspaceRoot, 'toolvault.pyz')
-    ];
+    // Priority 2-4: Development paths in workspace
+    if (workspaceFolders && workspaceFolders.length > 0) {
+      const workspaceRoot = workspaceFolders[0].uri.fsPath;
+      candidatePaths.push(
+        // In monorepo: libs/tool-vault-packager/dist/toolvault.pyz
+        path.join(workspaceRoot, 'libs', 'tool-vault-packager', 'dist', 'toolvault.pyz'),
+        // Alternative: tool-vault-packager/dist/toolvault.pyz
+        path.join(workspaceRoot, 'tool-vault-packager', 'dist', 'toolvault.pyz'),
+        // Direct in workspace: toolvault.pyz
+        path.join(workspaceRoot, 'toolvault.pyz')
+      );
+    }
 
     for (const candidatePath of candidatePaths) {
       if (fs.existsSync(candidatePath)) {
         return candidatePath;
       }
     }
-
     return null;
   }
 

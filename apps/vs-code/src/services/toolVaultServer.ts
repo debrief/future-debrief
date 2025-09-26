@@ -108,13 +108,18 @@ export class ToolVaultServerService {
       // Handle process output
       if (this.process.stdout) {
         this.process.stdout.on('data', (data) => {
-          this.log(`[stdout] ${data.toString()}`);
+          this.log(`[stdout] ${data.toString().trim()}`);
         });
       }
 
       if (this.process.stderr) {
         this.process.stderr.on('data', (data) => {
-          this.log(`[stderr] ${data.toString()}`);
+          const stderr = data.toString().trim();
+          this.log(`[stderr] ${stderr}`);
+          // Show critical startup errors immediately
+          if (stderr.includes('Error') || stderr.includes('Exception') || stderr.includes('Failed')) {
+            console.error(`[ToolVault Critical] ${stderr}`);
+          }
         });
       }
 
@@ -134,9 +139,24 @@ export class ToolVaultServerService {
       this.log('Tool Vault server started successfully');
 
     } catch (error) {
-      this.log(`Failed to start Tool Vault server: ${error instanceof Error ? error.message : String(error)}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.log(`Failed to start Tool Vault server: ${errorMessage}`);
+
+      // Provide enhanced diagnostics
+      const diagnostics = [
+        `Error: ${errorMessage}`,
+        `Server Path: ${this.config?.serverPath}`,
+        `Python Interpreter: ${pythonInterpreter}`,
+        `Host: ${this.config?.host}:${this.config?.port}`,
+        `Process Status: ${this.process ? 'Created' : 'Not Created'}`,
+        `Port Available: ${await this.checkPortAvailable(this.config?.port || 60124) ? 'Yes' : 'No'}`
+      ];
+
+      console.error(`[ToolVault Diagnostics]\n${diagnostics.join('\n')}`);
+      this.log(`Diagnostics:\n${diagnostics.join('\n')}`);
+
       await this.stopServer();
-      throw error;
+      throw new Error(`Tool Vault server startup failed.\n${diagnostics.join('\n')}`);
     }
   }
 
@@ -340,18 +360,33 @@ export class ToolVaultServerService {
    * Wait for the server to be ready by polling the health endpoint
    */
   private async waitForServerReady(): Promise<void> {
-    const maxAttempts = 5;
-    const delays = [100, 200, 400, 800, 1600]; // Exponential backoff
+    const maxAttempts = 10;
+    const delays = [500, 500, 500, 500, 1000, 1000, 1000, 1000, 2000, 2000]; // More generous timing
+    const totalTime = delays.reduce((a, b) => a + b, 0);
+
+    this.log(`Waiting for server to be ready (max ${totalTime/1000}s)...`);
 
     for (let i = 0; i < maxAttempts; i++) {
       await new Promise(resolve => setTimeout(resolve, delays[i]));
 
+      this.log(`Health check attempt ${i + 1}/${maxAttempts}...`);
       if (await this.healthCheck()) {
+        this.log('Server health check passed!');
         return;
       }
     }
 
-    throw new Error('Tool Vault server failed to start within 5 seconds');
+    // Provide additional diagnostics for timeout
+    const processStatus = this.process ? (this.process.killed ? 'Killed' : 'Running') : 'Not Created';
+    const diagnostics = [
+      `Timeout: Server failed to start within ${totalTime/1000} seconds`,
+      `Process Status: ${processStatus}`,
+      `Process PID: ${this.process?.pid || 'N/A'}`,
+      `Health Endpoint: http://${this.config?.host}:${this.config?.port}/health`,
+      'Check the "Debrief Tools" output channel for server logs'
+    ];
+
+    throw new Error(`Tool Vault server startup timeout.\n${diagnostics.join('\n')}`);
   }
 
   /**
