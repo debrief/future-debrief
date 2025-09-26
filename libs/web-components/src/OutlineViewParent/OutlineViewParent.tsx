@@ -66,6 +66,7 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
   }, [effectiveSelectedIds, featureMap]);
 
   const hasTools = Boolean(toolList.tools?.length);
+  const toolCount = toolList.tools?.length || 0;
   const isExecuteDisabled = !hasTools || selectedFeatures.length === 0;
 
   const handleSelectionChange = React.useCallback(
@@ -87,6 +88,9 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
   );
 
   const toolbarItems = React.useMemo(() => {
+    // Show tool count in button text when disabled due to no tools
+    const effectiveButtonText = !hasTools ? `${toolCount} tools present` : buttonText;
+
     const items: React.ReactNode[] = [
       <ToolExecuteButton
         key="tool-execute"
@@ -94,7 +98,7 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
         selectedFeatures={selectedFeatures}
         onCommandExecute={handleCommandExecute}
         disabled={isExecuteDisabled}
-        buttonText={buttonText}
+        buttonText={effectiveButtonText}
         menuPosition={menuPosition}
         enableSmartFiltering={enableSmartFiltering}
         showAll={showAllTools}
@@ -112,11 +116,13 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
     buttonText,
     enableSmartFiltering,
     handleCommandExecute,
+    hasTools,
     isExecuteDisabled,
     menuPosition,
     selectedFeatures,
     showAllTools,
     showToolDescriptions,
+    toolCount,
     toolList
   ]);
 

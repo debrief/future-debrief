@@ -1,8 +1,6 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
 import { GlobalController } from '../../core/globalController';
 import { SelectionState, DebriefFeatureCollection } from '@debrief/shared-types';
-import type { ToolListResponse } from '@debrief/shared-types/src/types/tools/tool_list_response';
 
 export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'debrief.outline';
@@ -29,12 +27,15 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
     webviewView.onDidDispose(() => {
       this._cleanup();
     });
+
+    // Check if Tool Vault server is already ready (handles race condition)
+    this._checkInitialToolVaultState();
   }
 
-  private _update() {
+  private async _update() {
     if (!this._view) return;
     const outlineData = this._getOutlineData();
-    const html = this._renderOutlineView(outlineData);
+    const html = await this._renderOutlineView(outlineData);
     this._view.webview.html = html;
   }
 
@@ -43,9 +44,18 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
     selectedFeatureIds: string[];
     currentEditorId?: string;
   } {
-    const currentEditorId = this._globalController.activeEditorId || this._globalController.getEditorIds()[0];
-    
+    const activeEditorId = this._globalController.activeEditorId;
+    const allEditorIds = this._globalController.getEditorIds();
+    const currentEditorId = activeEditorId || allEditorIds[0];
+
+    console.warn('[DebriefOutlineProvider] Debug info:', {
+      activeEditorId,
+      allEditorIds,
+      currentEditorId
+    });
+
     if (!currentEditorId) {
+      console.warn('[DebriefOutlineProvider] No current editor ID found');
       return {
         featureCollection: { type: 'FeatureCollection', features: [] },
         selectedFeatureIds: [],
@@ -65,11 +75,11 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
     };
   }
 
-  private _renderOutlineView(data: {
+  private async _renderOutlineView(data: {
     featureCollection: DebriefFeatureCollection | null;
     selectedFeatureIds: string[];
     currentEditorId?: string;
-  }): string {
+  }): Promise<string> {
     const nonce = this._getNonce();
     if (!this._view) {
       return '<div>Error: View not initialized</div>';
@@ -106,7 +116,13 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
       vscode.Uri.joinPath(extensionUri, 'media', 'web-components.css')
     );
 
-    const toolList = this._getDefaultToolList();
+    let toolList;
+    try {
+      toolList = await this._globalController.getToolIndex();
+    } catch (error) {
+      console.warn('[DebriefOutlineProvider] Failed to get tool index:', error);
+      toolList = []; // Pass empty tool list on error
+    }
 
     return `<!DOCTYPE html>
       <html lang="en">
@@ -234,9 +250,9 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
 
   private _setupMessageHandlers(): void {
     if (!this._view) return;
-    
+
     this._view.webview.onDidReceiveMessage(
-      message => {
+      async message => {
         const currentEditorId = this._globalController.activeEditorId || this._globalController.getEditorIds()[0];
         if (!currentEditorId) return;
 
@@ -291,10 +307,18 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
             // Handle collapse all
             break;
 
-          case 'executeCommand':
-            console.log('[DebriefOutlineProvider] Execute command requested:', message.command);
-            console.log('[DebriefOutlineProvider] Selected features:', message.selectedFeatures);
+          case 'executeCommand': {
+            // Extract tool name from the command object
+            let toolName = 'unknown-tool';
+            if (typeof message.command === 'string') {
+              toolName = message.command;
+            } else if (message.command && typeof message.command === 'object') {
+              const cmd = message.command as { name?: string; tool?: { name?: string } };
+              toolName = cmd.name || (cmd.tool && cmd.tool.name) || 'unknown-tool';
+            }
+            await this._executeToolCommand(toolName, message.selectedFeatures);
             break;
+          }
         }
       },
       undefined,
@@ -316,17 +340,28 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
     const fcSubscription = this._globalController.on('fcChanged', () => {
       this._updateWebviewData();
     });
-    
+
     const selectionSubscription = this._globalController.on('selectionChanged', () => {
       this._updateWebviewData();
     });
-    
-    const activeEditorSubscription = this._globalController.on('activeEditorChanged', () => {
-      this._update(); // Full refresh when editor changes
+
+    const activeEditorSubscription = this._globalController.on('activeEditorChanged', async (data) => {
+      console.warn('[DebriefOutlineProvider] activeEditorChanged event received:', {
+        previousEditorId: data.previousEditorId,
+        currentEditorId: data.currentEditorId,
+        globalControllerActiveId: this._globalController.activeEditorId
+      });
+      await this._update(); // Full refresh when editor changes
+    });
+
+    // Subscribe to Tool Vault server ready events to refresh tools
+    const toolVaultReadySubscription = this._globalController.on('toolVaultReady', async () => {
+      console.warn('[DebriefOutlineProvider] Tool Vault server ready - refreshing outline');
+      await this._update(); // Full refresh when server becomes ready
     });
 
     // Store disposables for cleanup
-    this._subscriptions.push(fcSubscription, selectionSubscription, activeEditorSubscription);
+    this._subscriptions.push(fcSubscription, selectionSubscription, activeEditorSubscription, toolVaultReadySubscription);
   }
 
   private _updateWebviewData(): void {
@@ -345,39 +380,146 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
     this._subscriptions = [];
   }
 
-  private _getDefaultToolList(): ToolListResponse {
-    const resourceToolList = this._loadToolListFromResources();
-    if (resourceToolList) {
-      return resourceToolList;
+  /**
+   * Check if Tool Vault server is already ready when outline initializes
+   * This handles the race condition where server starts before outline subscribes to events
+   */
+  private async _checkInitialToolVaultState(): Promise<void> {
+    try {
+      console.warn('[DebriefOutlineProvider] Checking initial Tool Vault server state');
+      // Try to get tool index - if this succeeds, server is ready
+      const toolIndex = await this._globalController.getToolIndex();
+      if (toolIndex) {
+        console.warn('[DebriefOutlineProvider] Tool Vault server already ready - refreshing outline');
+        await this._update();
+      }
+    } catch (error) {
+      console.warn('[DebriefOutlineProvider] Tool Vault server not ready yet:', error instanceof Error ? error.message : String(error));
+      // Server not ready yet, will be notified via event when it becomes ready
     }
-
-    return {
-      version: '1.0.0',
-      description: 'VS Code tool catalogue placeholder',
-      tools: []
-    };
   }
 
-  private _loadToolListFromResources(): ToolListResponse | undefined {
+
+
+  /**
+   * Execute a tool command through the GlobalController
+   */
+  private async _executeToolCommand(commandName: string, selectedFeatures: unknown[]): Promise<void> {
     try {
-      const extension = vscode.extensions.getExtension('ian.vs-code');
-      if (!extension) {
-        return undefined;
+
+      // Execute tool through GlobalController
+      // Note: Different tools expect different parameter names and additional state parameters
+      let parameters: Record<string, unknown>;
+
+      // Get current editor state for tools that need it
+      const currentEditorId = this._globalController.activeEditorId || this._globalController.getEditorIds()[0];
+      const timeState = currentEditorId ? this._globalController.getStateSlice(currentEditorId, 'timeState') : null;
+      const viewportState = currentEditorId ? this._globalController.getStateSlice(currentEditorId, 'viewportState') : null;
+      const editorState = currentEditorId ? this._globalController.getEditorState(currentEditorId) : null;
+
+      if (commandName === 'track_speed_filter_fast' || commandName === 'track_speed_filter') {
+        // These tools expect a single track feature
+        parameters = { track_feature: selectedFeatures[0] };
+      } else if (commandName === 'select_feature_start_time') {
+        // This tool needs features and current time state
+        parameters = {
+          features: selectedFeatures,
+          current_time_state: timeState || { current: null, start: null, end: null }
+        };
+      } else if (commandName === 'select_all_visible') {
+        // This tool needs editor state with viewport and features
+        parameters = {
+          editor_state: editorState || {}
+        };
+      } else if (commandName === 'viewport_grid_generator') {
+        // This tool needs viewport state and grid parameters
+        parameters = {
+          viewport_state: viewportState || { bounds: [-180, -90, 180, 90] },
+          lat_interval: 0.1,
+          lon_interval: 0.1
+        };
+      } else {
+        // Default parameter name for most tools
+        parameters = { features: selectedFeatures };
       }
 
-      const toolIndexUri = vscode.Uri.joinPath(extension.extensionUri, 'resources', 'tool-index.json');
-      const toolIndexPath = toolIndexUri.fsPath;
+      const result = await this._globalController.executeTool(commandName, parameters);
 
-      if (!fs.existsSync(toolIndexPath)) {
-        return undefined;
+      if (!result.success) {
+        console.error('[DebriefOutlineProvider] Tool execution error:', {
+          tool: commandName,
+          parameters: parameters,
+          error: result.error
+        });
+
+        // Show detailed error with suggestion for missing parameters
+        const detailedMessage = `Tool "${commandName}" failed with error:\n\n${result.error}\n\nParameters provided: ${JSON.stringify(parameters, null, 2)}`;
+        vscode.window.showErrorMessage(detailedMessage, { modal: true });
+        return;
       }
 
-      const fileContents = fs.readFileSync(toolIndexPath, 'utf8');
-      const parsed = JSON.parse(fileContents) as ToolListResponse;
-      return parsed;
+      // Show success notification with option to view results
+      const successMessage = `Tool "${commandName}" executed successfully`;
+      console.warn('[DebriefOutlineProvider] Tool execution success:', result.result);
+
+      vscode.window.showInformationMessage(
+        successMessage,
+        'View Results',
+        'Copy Results'
+      ).then(selection => {
+        if (selection === 'View Results') {
+          this._showToolResults(commandName, result.result);
+        } else if (selection === 'Copy Results') {
+          this._copyToolResults(result.result);
+        }
+      });
+
     } catch (error) {
-      console.error('[DebriefOutlineProvider] Failed to load tool-index.json', error);
-      return undefined;
+      const errorMessage = `Failed to execute tool "${commandName}": ${error instanceof Error ? error.message : String(error)}`;
+      console.error('[DebriefOutlineProvider] Tool execution error:', error);
+      vscode.window.showErrorMessage(errorMessage);
+    }
+  }
+
+  /**
+   * Show tool results in a new document window
+   */
+  private async _showToolResults(toolName: string, results: unknown): Promise<void> {
+    try {
+      // Format results as pretty JSON
+      const formattedResults = JSON.stringify(results, null, 2);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const fileName = `tool-results-${toolName}-${timestamp}.json`;
+
+      // Create new untitled document with results
+      const document = await vscode.workspace.openTextDocument({
+        content: formattedResults,
+        language: 'json'
+      });
+
+      // Show the document
+      await vscode.window.showTextDocument(document);
+
+      vscode.window.showInformationMessage(
+        `Tool results opened in new document. Save as "${fileName}" if needed.`
+      );
+    } catch (error) {
+      console.error('[DebriefOutlineProvider] Error showing tool results:', error);
+      vscode.window.showErrorMessage(`Failed to show tool results: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Copy tool results to clipboard
+   */
+  private async _copyToolResults(results: unknown): Promise<void> {
+    try {
+      const formattedResults = JSON.stringify(results, null, 2);
+      await vscode.env.clipboard.writeText(formattedResults);
+      vscode.window.showInformationMessage('Tool results copied to clipboard');
+    } catch (error) {
+      console.error('[DebriefOutlineProvider] Error copying tool results:', error);
+      vscode.window.showErrorMessage(`Failed to copy tool results: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

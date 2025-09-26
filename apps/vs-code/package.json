@@ -9,11 +9,11 @@
     "url": "https://github.com/debrief/future-debrief/apps/vs-code.git"
   },
   "scripts": {
-    "clean": "rm -rf dist/* media/web-components.js media/web-components.css python/ schemas/",
+    "clean": "rm -rf dist/* media/web-components.js media/web-components.css python/ schemas/ tool-vault/",
     "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node",
     "copy-webcomponents": "cp ../../libs/web-components/dist/vanilla/index.js media/web-components.js && cp ../../libs/web-components/dist/vanilla/index.css media/web-components.css",
     "copy-schemas": "mkdir -p schemas && cp -r ../../libs/shared-types/derived/json-schema/* schemas/",
-    "bundle-python-wheel": "echo 'Skipping Python wheel bundle - migrated to Pydantic-first architecture'",
+    "bundle-python-wheel": "mkdir -p python && cp ../../libs/shared-types/dist/python/*.whl python/ 2>/dev/null || echo 'No Python wheel found - run pnpm build:shared-types first'",
     "compile": "pnpm esbuild-base --sourcemap && pnpm copy-webcomponents && pnpm copy-schemas && pnpm bundle-python-wheel",
     "build": "pnpm vscode:prepublish && vsce package --no-dependencies",
     "watch": "pnpm esbuild-base --sourcemap --watch",
@@ -71,6 +71,18 @@
       {
         "command": "debrief.redo",
         "title": "Debrief: Redo"
+      },
+      {
+        "command": "debrief.restartToolVault",
+        "title": "Restart Tool Vault Server"
+      },
+      {
+        "command": "debrief.toggleDevelopmentMode",
+        "title": "Debrief: Toggle Development Mode"
+      },
+      {
+        "command": "debrief.toolVaultStatus",
+        "title": "Debrief: Tool Vault Server Status"
       }
     ],
     "viewsContainers": {
@@ -87,7 +99,7 @@
         {
           "id": "vs-code.helloView",
           "name": "Hello World",
-          "when": "true"
+          "when": "!config.debrief.development.mode"
         },
         {
           "id": "customGeoJsonOutline",
@@ -100,7 +112,7 @@
           "id": "debrief.timeController",
           "name": "Time Controller",
           "type": "webview",
-          "when": "true"
+          "when": "!config.debrief.development.mode"
         },
         {
           "id": "debrief.outline",
@@ -112,13 +124,13 @@
           "id": "debrief.propertiesView",
           "name": "Properties View",
           "type": "webview",
-          "when": "true"
+          "when": "!config.debrief.development.mode"
         },
         {
           "id": "debrief.currentState",
           "name": "Current State",
           "type": "webview",
-          "when": "true"
+          "when": "!config.debrief.development.mode"
         }
       ]
     },
@@ -140,7 +152,41 @@
         "fileMatch": "*.plot.json",
         "url": "./schemas/features/FeatureCollection.schema.json"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Debrief",
+      "properties": {
+        "debrief.toolVault.serverPath": {
+          "type": "string",
+          "description": "Path to the Tool Vault .pyz file",
+          "scope": "resource"
+        },
+        "debrief.toolVault.autoStart": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically start the Tool Vault server on extension activation",
+          "scope": "resource"
+        },
+        "debrief.toolVault.port": {
+          "type": "number",
+          "default": 60124,
+          "description": "Port for the Tool Vault server",
+          "scope": "resource"
+        },
+        "debrief.toolVault.host": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "Host address for the Tool Vault server",
+          "scope": "resource"
+        },
+        "debrief.development.mode": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable development mode to reduce UI clutter and show only essential views",
+          "scope": "resource"
+        }
+      }
+    }
   },
   "devDependencies": {
     "@debrief/shared-types": "workspace:^1.0.0",

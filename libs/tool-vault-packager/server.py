@@ -87,16 +87,36 @@ class ToolVaultServer:
             allow_headers=["*"],
         )
 
+        # Detect runtime context first
+        self._running_from_archive = hasattr(sys, "_MEIPASS") or str(sys.argv[0]).endswith(".pyz")
+
         # Discover tools
         try:
             self.tools = discover_tools(tools_path)
-            self.index_data = generate_index_json(self.tools)
             self.tools_by_name = {tool.name: tool for tool in self.tools}
+
+            if self._running_from_archive:
+                # Running from .pyz package - load pre-built index instead of generating
+                import zipfile
+
+                # Get the path to the current .pyz file
+                pyz_path = sys.argv[0] if str(sys.argv[0]).endswith(".pyz") else None
+                if pyz_path:
+                    with zipfile.ZipFile(pyz_path, 'r') as archive:
+                        index_content = archive.read('index.json').decode('utf-8')
+                        self.index_data = json.loads(index_content)
+                        print(f"Loaded pre-built index with {len(self.index_data.get('tools', []))} tools from package")
+                else:
+                    # Fallback for other archive modes
+                    with open('index.json', 'r') as f:
+                        self.index_data = json.load(f)
+                        print(f"Loaded pre-built index with {len(self.index_data.get('tools', []))} tools")
+            else:
+                # Development mode - generate index metadata
+                self.index_data = generate_index_json(self.tools)
+                print(f"Generated index for {len(self.tools)} tools")
         except Exception as e:
             raise RuntimeError(f"Failed to initialize tools: {e}")
-
-        # Detect runtime context
-        self._running_from_archive = hasattr(sys, "_MEIPASS") or str(sys.argv[0]).endswith(".pyz")
 
         # Pre-compute sample lookups when serving from the filesystem
         self.samples_by_tool: dict[str, dict[str, Path]] = {}
@@ -236,6 +256,7 @@ class ToolVaultServer:
                     "call": "/tools/call",
                     "ui": "/ui/",
                     "health": "/health",
+                    "shutdown": "/shutdown",
                 },
             }
 
@@ -460,6 +481,34 @@ class ToolVaultServer:
         async def health():
             """Health check endpoint."""
             return {"status": "healthy", "tools_loaded": len(self.tools)}
+
+        @self.app.post("/shutdown")
+        async def shutdown():
+            """Shutdown endpoint for graceful server termination."""
+            import os
+            import signal
+            from threading import Timer
+
+            def delayed_shutdown():
+                """Shutdown the server after a brief delay."""
+                try:
+                    # Get the current process ID
+                    pid = os.getpid()
+                    # Send SIGTERM to self for graceful shutdown
+                    os.kill(pid, signal.SIGTERM)
+                except Exception as e:
+                    print(f"Error during shutdown: {e}")
+                    # Fallback to SIGKILL if SIGTERM fails
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                    except Exception:
+                        pass
+
+            # Schedule shutdown after 100ms to allow response to be sent
+            timer = Timer(0.1, delayed_shutdown)
+            timer.start()
+
+            return {"status": "shutting_down", "message": "Server shutdown initiated"}
 
 
 def create_app(tools_path: Optional[str] = None) -> "FastAPI":

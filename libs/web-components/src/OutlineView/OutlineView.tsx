@@ -180,22 +180,7 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
           Hide/Reveal
         </VscodeToolbarButton>
         
-        {onDeleteFeatures && (
-          <VscodeToolbarButton 
-            onClick={() => selectedFeatureIds.length > 0 && onDeleteFeatures(selectedFeatureIds)}
-            style={{ opacity: selectedFeatureIds.length === 0 ? 0.5 : 1 }}
-          >
-            <VscodeIcon name="trash" />
-            Delete
-          </VscodeToolbarButton>
-        )}
-        
-        {onCollapseAll && (
-          <VscodeToolbarButton onClick={onCollapseAll}>
-            <VscodeIcon name="collapse-all" />
-            Collapse
-          </VscodeToolbarButton>
-        )}
+        {/* Removed Delete and Collapse buttons to save space for ExecuteToolButton */}
 
         {toolbarItems.length > 0 && (
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>

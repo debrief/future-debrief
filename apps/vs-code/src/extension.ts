@@ -18,6 +18,8 @@ import { CustomOutlineTreeProvider } from './providers/outlines/customOutlineTre
 // External services
 import { DebriefWebSocketServer } from './services/debriefWebSocketServer';
 import { PythonWheelInstaller } from './services/pythonWheelInstaller';
+import { ToolVaultServerService } from './services/toolVaultServer';
+import { ToolVaultConfigService } from './services/toolVaultConfig';
 
 
 class HelloWorldProvider implements vscode.TreeDataProvider<string> {
@@ -41,6 +43,7 @@ let globalController: GlobalController | null = null;
 let activationHandler: EditorActivationHandler | null = null;
 let statePersistence: StatePersistence | null = null;
 let historyManager: HistoryManager | null = null;
+let toolVaultServer: ToolVaultServerService | null = null;
 
 // Store references to the Debrief activity panel providers
 let timeControllerProvider: TimeControllerProvider | null = null;
@@ -66,13 +69,70 @@ export function activate(context: vscode.ExtensionContext) {
         console.error('Python wheel installation failed:', error);
         // Non-blocking error - extension continues to work without Python integration
     });
-    
+
+    // Initialize Tool Vault server
+    toolVaultServer = ToolVaultServerService.getInstance();
+
+    // Try to start Tool Vault server if auto-start is enabled
+    const startToolVaultServer = async () => {
+        try {
+            // Get configuration from ToolVaultConfigService (handles auto-detection)
+            const configService = ToolVaultConfigService.getInstance();
+            const config = configService.getConfiguration();
+
+            if (config && config.autoStart && config.serverPath) {
+                await toolVaultServer!.startServer();
+
+                // Load tool index and show success notification
+                const toolIndex = await toolVaultServer!.getToolIndex();
+                const toolCount = (toolIndex as {tools?: unknown[]})?.tools?.length ?? 'unknown number of';
+                vscode.window.showInformationMessage(
+                    `Tool Vault server started successfully with ${toolCount} tools available.`
+                );
+            } else if (config && config.autoStart && !config.serverPath) {
+                vscode.window.showInformationMessage(
+                    'Tool Vault server auto-start is enabled but no server path is configured. Configure debrief.toolVault.serverPath in VS Code settings.'
+                );
+            }
+        } catch (error) {
+            const errorMessage = `Failed to start Tool Vault server: ${error instanceof Error ? error.message : String(error)}`;
+            console.error(errorMessage);
+
+            // Show enhanced error message with action buttons
+            vscode.window.showWarningMessage(
+                errorMessage + ' Tools will not be available until server is manually started.',
+                'Show Logs',
+                'Manual Setup Guide'
+            ).then(selection => {
+                if (selection === 'Show Logs') {
+                    toolVaultServer?.getOutputChannel().show();
+                } else if (selection === 'Manual Setup Guide') {
+                    vscode.window.showInformationMessage(
+                        'Tool Vault Server Setup:\n\n' +
+                        '1. Check the "Debrief Tools" output channel for detailed logs\n' +
+                        '2. Ensure Python is installed and accessible\n' +
+                        '3. Verify the .pyz file exists and is executable\n' +
+                        '4. Try restarting with: "Debrief: Restart Tool Vault Server" command'
+                    );
+                }
+            });
+        }
+    };
+
+    // Start Tool Vault server asynchronously (non-blocking)
+    startToolVaultServer();
+
     // Add cleanup to subscriptions
     context.subscriptions.push({
         dispose: () => {
             if (webSocketServer) {
                 webSocketServer.stop().catch(error => {
                     console.error('Error stopping WebSocket server during cleanup:', error);
+                });
+            }
+            if (toolVaultServer) {
+                toolVaultServer.stopServer().catch(error => {
+                    console.error('Error stopping Tool Vault server during cleanup:', error);
                 });
             }
         }
@@ -160,11 +220,125 @@ export function activate(context: vscode.ExtensionContext) {
     );
     context.subscriptions.push(selectFeatureCommand);
 
+    // Register Tool Vault server restart command
+    const restartToolVaultCommand = vscode.commands.registerCommand(
+        'debrief.restartToolVault',
+        async () => {
+            try {
+                if (toolVaultServer) {
+                    await toolVaultServer.restartServer();
+                    const toolIndex = await toolVaultServer.getToolIndex();
+                    const toolCount = (toolIndex as {tools?: unknown[]})?.tools?.length ?? 'unknown number of';
+                    vscode.window.showInformationMessage(
+                        `Tool Vault server restarted successfully with ${toolCount} tools available.`
+                    );
+                } else {
+                    vscode.window.showErrorMessage('Tool Vault server service is not initialized.');
+                }
+            } catch (error) {
+                const errorMessage = `Failed to restart Tool Vault server: ${error instanceof Error ? error.message : String(error)}`;
+                console.error(errorMessage);
+                vscode.window.showErrorMessage(errorMessage);
+            }
+        }
+    );
+    context.subscriptions.push(restartToolVaultCommand);
+
+    // Register development mode toggle command
+    const toggleDevelopmentModeCommand = vscode.commands.registerCommand(
+        'debrief.toggleDevelopmentMode',
+        async () => {
+            const config = vscode.workspace.getConfiguration('debrief.development');
+            const currentMode = config.get<boolean>('mode', false);
+            await config.update('mode', !currentMode, vscode.ConfigurationTarget.Workspace);
+
+            const newMode = !currentMode ? 'enabled' : 'disabled';
+            vscode.window.showInformationMessage(
+                `Development mode ${newMode}. ${!currentMode ? 'Non-essential views are now hidden.' : 'All views are now visible.'} ` +
+                'Reload the window to apply changes.',
+                'Reload Window'
+            ).then(selection => {
+                if (selection === 'Reload Window') {
+                    vscode.commands.executeCommand('workbench.action.reloadWindow');
+                }
+            });
+        }
+    );
+    context.subscriptions.push(toggleDevelopmentModeCommand);
+
+    // Register Tool Vault status command
+    const toolVaultStatusCommand = vscode.commands.registerCommand(
+        'debrief.toolVaultStatus',
+        async () => {
+            try {
+                if (!toolVaultServer) {
+                    vscode.window.showWarningMessage('Tool Vault server service is not initialized.');
+                    return;
+                }
+
+                const isRunning = toolVaultServer.isRunning();
+                const config = ToolVaultConfigService.getInstance().getConfiguration();
+
+                let statusMessage = `**Tool Vault Server Status**\n\n`;
+                statusMessage += `• **Running**: ${isRunning ? '✅ Yes' : '❌ No'}\n`;
+                statusMessage += `• **Auto-start**: ${config.autoStart ? '✅ Enabled' : '❌ Disabled'}\n`;
+                statusMessage += `• **Server Path**: ${config.serverPath || '❌ Not configured'}\n`;
+                statusMessage += `• **Host**: ${config.host}\n`;
+                statusMessage += `• **Port**: ${config.port}\n`;
+
+                if (isRunning) {
+                    try {
+                        const healthCheck = await toolVaultServer.healthCheck();
+                        statusMessage += `• **Health Check**: ${healthCheck ? '✅ Healthy' : '❌ Unhealthy'}\n`;
+
+                        if (healthCheck) {
+                            const toolIndex = await toolVaultServer.getToolIndex();
+                            const toolCount = (toolIndex as {tools?: unknown[]})?.tools?.length ?? 0;
+                            statusMessage += `• **Tools Available**: ${toolCount}\n`;
+                        }
+                    } catch (error) {
+                        statusMessage += `• **Health Check**: ❌ Failed (${error instanceof Error ? error.message : String(error)})\n`;
+                    }
+                }
+
+                // Show detailed status in a modal
+                vscode.window.showInformationMessage(statusMessage, { modal: true }, 'Restart Server', 'Configure Settings').then(selection => {
+                    if (selection === 'Restart Server') {
+                        vscode.commands.executeCommand('debrief.restartToolVault');
+                    } else if (selection === 'Configure Settings') {
+                        vscode.commands.executeCommand('workbench.action.openSettings', 'debrief.toolVault');
+                    }
+                });
+            } catch (error) {
+                const errorMessage = `Failed to get Tool Vault server status: ${error instanceof Error ? error.message : String(error)}`;
+                console.error(errorMessage);
+                vscode.window.showErrorMessage(errorMessage);
+            }
+        }
+    );
+    context.subscriptions.push(toolVaultStatusCommand);
+
     // Multi-select is now handled internally by the OutlineView webview component
 
     // Initialize Global Controller (new centralized state management)
     globalController = GlobalController.getInstance();
     context.subscriptions.push(globalController);
+
+    // Initialize Tool Vault Server integration in GlobalController
+    if (toolVaultServer) {
+        globalController.initializeToolVaultServer(toolVaultServer);
+
+        // Set up callback to notify GlobalController when server is ready
+        toolVaultServer.setOnServerReadyCallback(() => {
+            console.warn('[Extension] Tool Vault server ready callback triggered');
+            if (globalController) {
+                console.warn('[Extension] Calling globalController.notifyToolVaultReady()');
+                globalController.notifyToolVaultReady();
+            } else {
+                console.error('[Extension] GlobalController is null when server ready callback triggered');
+            }
+        });
+    }
     
     // Initialize Editor Activation Handler
     activationHandler = new EditorActivationHandler(globalController);
@@ -226,6 +400,14 @@ export function deactivate() {
         webSocketServer = null;
     }
 
+    // Stop Tool Vault server
+    if (toolVaultServer) {
+        toolVaultServer.stopServer().catch(error => {
+            console.error('Error stopping Tool Vault server:', error);
+        });
+        toolVaultServer = null;
+    }
+
 
     // Cleanup panel providers
     if (timeControllerProvider) {
@@ -271,4 +453,5 @@ export function deactivate() {
     timeControllerProvider = null;
     debriefOutlineProvider = null;
     propertiesViewProvider = null;
+    toolVaultServer = null;
 }

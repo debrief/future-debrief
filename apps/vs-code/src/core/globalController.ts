@@ -1,12 +1,13 @@
 
 import * as vscode from 'vscode';
 import { TimeState, ViewportState, SelectionState, DebriefFeatureCollection, EditorState } from '@debrief/shared-types';
+import { ToolVaultServerService } from '../services/toolVaultServer';
 
 export { EditorState };
 
 
 // Event types for the GlobalController
-export type StateEventType = 'fcChanged' | 'timeChanged' | 'viewportChanged' | 'selectionChanged' | 'activeEditorChanged';
+export type StateEventType = 'fcChanged' | 'timeChanged' | 'viewportChanged' | 'selectionChanged' | 'activeEditorChanged' | 'toolVaultReady';
 
 export type StateSliceType = 'featureCollection' | 'timeState' | 'viewportState' | 'selectionState';
 
@@ -32,19 +33,22 @@ export interface StateUpdatePayload {
  */
 export class GlobalController {
     private static _instance: GlobalController;
-    
+
     // State storage: editorId → EditorState
     private editorStates = new Map<string, EditorState>();
-    
+
     // Track the currently active editor
     private _activeEditorId?: string;
-    
+
     // Event system
     private eventHandlers = new Map<StateEventType, Set<StateEventHandler | ActiveEditorChangedHandler>>();
-    
+
     // VS Code event emitter for integration
     private _onDidChangeState = new vscode.EventEmitter<{ editorId: string; eventType: StateEventType; state: EditorState }>();
     public readonly onDidChangeState = this._onDidChangeState.event;
+
+    // Tool Vault Server integration
+    private toolVaultServer?: ToolVaultServerService;
     
     private constructor() {
         this.initializeEventHandlers();
@@ -64,7 +68,7 @@ export class GlobalController {
      * Initialize event handler storage
      */
     private initializeEventHandlers(): void {
-        const eventTypes: StateEventType[] = ['fcChanged', 'timeChanged', 'viewportChanged', 'selectionChanged', 'activeEditorChanged'];
+        const eventTypes: StateEventType[] = ['fcChanged', 'timeChanged', 'viewportChanged', 'selectionChanged', 'activeEditorChanged', 'toolVaultReady'];
         eventTypes.forEach(eventType => {
             this.eventHandlers.set(eventType, new Set<StateEventHandler | ActiveEditorChangedHandler>());
         });
@@ -316,6 +320,68 @@ export class GlobalController {
     }
     
     /**
+     * Initialize Tool Vault Server integration
+     */
+    public initializeToolVaultServer(toolVaultServer: ToolVaultServerService): void {
+        console.warn('[GlobalController] Initializing Tool Vault server:', !!toolVaultServer);
+        this.toolVaultServer = toolVaultServer;
+        console.warn('[GlobalController] Tool Vault server initialized successfully');
+    }
+
+    /**
+     * Notify that the Tool Vault server is ready and available
+     */
+    public notifyToolVaultReady(): void {
+        console.warn('[GlobalController] Tool Vault server ready - notifying subscribers');
+        const handlers = this.eventHandlers.get('toolVaultReady');
+        console.warn('[GlobalController] Found', handlers?.size || 0, 'toolVaultReady handlers');
+        if (handlers) {
+            handlers.forEach(handler => {
+                try {
+                    console.warn('[GlobalController] Calling toolVaultReady handler');
+                    (handler as () => void)();
+                } catch (error) {
+                    console.error('[GlobalController] Error in toolVaultReady handler:', error);
+                }
+            });
+        }
+    }
+
+    /**
+     * Get the tool index from the Tool Vault Server
+     */
+    public async getToolIndex(): Promise<unknown> {
+        console.warn('[GlobalController] getToolIndex called - toolVaultServer present:', !!this.toolVaultServer);
+
+        if (!this.toolVaultServer) {
+            console.error('[GlobalController] Tool Vault server is not initialized');
+            throw new Error('Tool Vault server is not initialized');
+        }
+
+        console.warn('[GlobalController] Calling toolVaultServer.getToolIndex()');
+        return this.toolVaultServer.getToolIndex();
+    }
+
+    /**
+     * Execute a tool command with the given parameters
+     */
+    public async executeTool(toolName: string, parameters: Record<string, unknown>): Promise<{ success: boolean; result?: unknown; error?: string }> {
+        console.warn('[GlobalController] executeTool called - toolVaultServer present:', !!this.toolVaultServer);
+
+        if (!this.toolVaultServer) {
+            console.error('[GlobalController] Tool Vault server is not initialized in executeTool');
+            return {
+                success: false,
+                error: 'Tool Vault server is not initialized'
+            };
+        }
+
+        console.warn('[GlobalController] Calling toolVaultServer.executeToolCommand for:', toolName);
+        return this.toolVaultServer.executeToolCommand(toolName, parameters);
+    }
+
+
+    /**
      * Dispose of the GlobalController and clean up resources
      */
     public dispose(): void {
@@ -323,5 +389,6 @@ export class GlobalController {
         this.eventHandlers.clear();
         this.editorStates.clear();
         this._activeEditorId = undefined;
+        this.toolVaultServer = undefined;
     }
 }
