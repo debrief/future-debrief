@@ -182,7 +182,8 @@
       "Bash(git merge:*)",
       "WebFetch(domain:jy95.github.io)",
       "WebFetch(domain:apitools.dev)",
-      "Bash(generate-schema-doc:*)"
+      "Bash(generate-schema-doc:*)",
+      "Bash(open http://localhost:8080)"
     ]
   }
 }
