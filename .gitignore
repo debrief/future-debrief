@@ -149,3 +149,4 @@ libs/tool-vault-packager/test-results
 # Python build artifacts
 
 apps/vs-code/python/
+apps/vs-code/tool-vault/toolvault.pyz
