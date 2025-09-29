@@ -2,7 +2,8 @@ import React from 'react';
 import type { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types';
 import type { ToolListResponse } from '@debrief/shared-types/src/types/tools/tool_list_response';
 import { OutlineView, type OutlineViewProps } from '../OutlineView/OutlineView';
-import { ToolExecuteButton, type SelectedCommand } from '../ToolExecuteButton/ToolExecuteButton';
+import { ToolExecuteButton } from '../ToolExecuteButton/ToolExecuteButton';
+import type { Tool } from '@debrief/shared-types/src/types/tools/tool';
 
 export interface OutlineViewParentProps
   extends Omit<OutlineViewProps, 'selectedFeatureIds' | 'onSelectionChange' | 'toolbarItems'> {
@@ -11,7 +12,7 @@ export interface OutlineViewParentProps
   selectedFeatureIds?: string[];
   defaultSelectedFeatureIds?: string[];
   onSelectionChange?: (ids: string[]) => void;
-  onCommandExecute?: (command: SelectedCommand, selectedFeatures: DebriefFeature[]) => void;
+  onCommandExecute?: (tool: Tool, selectedFeatures: DebriefFeature[]) => void;
   enableSmartFiltering?: boolean;
   buttonText?: string;
   menuPosition?: 'bottom' | 'top';
@@ -76,9 +77,9 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
   );
 
   const handleCommandExecute = React.useCallback(
-    (command: SelectedCommand) => {
-      console.log('[OutlineViewParent] Executing tool command:', command, 'Selected features:', selectedFeatures);
-      onCommandExecute?.(command, selectedFeatures);
+    (tool: Tool) => {
+      console.log('[OutlineViewParent] Executing tool command:', tool, 'Selected features:', selectedFeatures);
+      onCommandExecute?.(tool, selectedFeatures);
     },
     [onCommandExecute, selectedFeatures]
   );

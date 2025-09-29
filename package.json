@@ -4,6 +4,7 @@
   "private": true,
   "packageManager": "pnpm@10.14.0",
   "scripts": {
+    "get-ready": "pnpm install && pnpm build && cd libs/tool-vault-packager && npm install && pip install -r requirements.txt && npm run build && cd ../../",
     "clean": "rm -rf .turbo && turbo run clean",
     "build:shared-types": "pnpm --filter @debrief/shared-types build",
     "build:web-components": "pnpm --filter @debrief/web-components build",

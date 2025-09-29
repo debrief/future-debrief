@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { GlobalController } from '../../core/globalController';
-import { SelectionState, DebriefFeatureCollection } from '@debrief/shared-types';
+import { SelectionState, DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types';
+import { ToolSchema } from '@debrief/web-components/services';
 
 export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'debrief.outline';
@@ -184,11 +185,11 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
                   selectedIds: ids
                 });
               },
-              onCommandExecute: (command, selectedFeatures) => {
+              onCommandExecute: (tool, selectedFeatures) => {
                 window.vscode.postMessage({
                   type: 'executeCommand',
-                  command,
-                  selectedFeatures
+                  command: tool,
+                  selectedFeatures: selectedFeatures
                 });
               },
               enableSmartFiltering: true,
@@ -402,83 +403,111 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
 
 
   /**
-   * Execute a tool command through the GlobalController
+   * Execute a tool command through the GlobalController with automatic parameter injection
    */
   private async _executeToolCommand(commandName: string, selectedFeatures: unknown[]): Promise<void> {
     try {
-
-      // Execute tool through GlobalController
-      // Note: Different tools expect different parameter names and additional state parameters
-      let parameters: Record<string, unknown>;
-
-      // Get current editor state for tools that need it
-      const currentEditorId = this._globalController.activeEditorId || this._globalController.getEditorIds()[0];
-      const timeState = currentEditorId ? this._globalController.getStateSlice(currentEditorId, 'timeState') : null;
-      const viewportState = currentEditorId ? this._globalController.getStateSlice(currentEditorId, 'viewportState') : null;
-      const editorState = currentEditorId ? this._globalController.getEditorState(currentEditorId) : null;
-
-      if (commandName === 'track_speed_filter_fast' || commandName === 'track_speed_filter') {
-        // These tools expect a single track feature
-        parameters = { track_feature: selectedFeatures[0] };
-      } else if (commandName === 'select_feature_start_time') {
-        // This tool needs features and current time state
-        parameters = {
-          features: selectedFeatures,
-          current_time_state: timeState || { current: null, start: null, end: null }
-        };
-      } else if (commandName === 'select_all_visible') {
-        // This tool needs editor state with viewport and features
-        parameters = {
-          editor_state: editorState || {}
-        };
-      } else if (commandName === 'viewport_grid_generator') {
-        // This tool needs viewport state and grid parameters
-        parameters = {
-          viewport_state: viewportState || { bounds: [-180, -90, 180, 90] },
-          lat_interval: 0.1,
-          lon_interval: 0.1
-        };
-      } else {
-        // Default parameter name for most tools
-        parameters = { features: selectedFeatures };
+      // Get tool index to find the schema for this tool
+      const toolIndex = await this._globalController.getToolIndex() as any;
+      if (!toolIndex || !Array.isArray(toolIndex.tools)) {
+        throw new Error('Tool index not available');
       }
 
-      const result = await this._globalController.executeTool(commandName, parameters);
-
-      if (!result.success) {
-        console.error('[DebriefOutlineProvider] Tool execution error:', {
-          tool: commandName,
-          parameters: parameters,
-          error: result.error
-        });
-
-        // Show detailed error with suggestion for missing parameters
-        const detailedMessage = `Tool "${commandName}" failed with error:\n\n${result.error}\n\nParameters provided: ${JSON.stringify(parameters, null, 2)}`;
-        vscode.window.showErrorMessage(detailedMessage, { modal: true });
-        return;
+      // Find the tool schema
+      const toolSchema = toolIndex.tools.find((tool: any) => tool.name === commandName) as ToolSchema | undefined;
+      if (!toolSchema) {
+        throw new Error(`Tool schema not found for "${commandName}"`);
       }
 
-      // Show success notification with option to view results
-      const successMessage = `Tool "${commandName}" executed successfully`;
-      console.warn('[DebriefOutlineProvider] Tool execution success:', result.result);
+      // Cast selected features to proper type
+      const typedSelectedFeatures = selectedFeatures as DebriefFeature[];
 
-      vscode.window.showInformationMessage(
-        successMessage,
-        'View Results',
-        'Copy Results'
-      ).then(selection => {
-        if (selection === 'View Results') {
-          this._showToolResults(commandName, result.result);
-        } else if (selection === 'Copy Results') {
-          this._copyToolResults(result.result);
+      // Check if tool requires user input
+      if (this._globalController.toolRequiresUserInput(toolSchema)) {
+        const userParams = this._globalController.getUserInputParameters(toolSchema);
+
+        // For now, use hardcoded values for commonly used parameters
+        // TODO: In the future, this could show a dynamic UI form
+        const userInputValues: Record<string, unknown> = {};
+
+        for (const param of userParams) {
+          if (param.parameterName === 'lat_interval') {
+            userInputValues.lat_interval = 0.1;
+          } else if (param.parameterName === 'lon_interval') {
+            userInputValues.lon_interval = 0.1;
+          } else if (param.parameterName === 'min_speed' && param.defaultValue !== undefined) {
+            // Use default value if available
+            userInputValues.min_speed = param.defaultValue;
+          }
+          // Add more parameter mappings as needed
         }
-      });
+
+        // Execute with automatic parameter injection
+        const result = await this._globalController.executeToolWithInjection(
+          toolSchema,
+          typedSelectedFeatures,
+          userInputValues
+        );
+
+        if (!result.success) {
+          this._handleToolExecutionError(commandName, result.error);
+          return;
+        }
+
+        this._handleToolExecutionSuccess(commandName, result.result);
+      } else {
+        // Tool can be fully auto-injected
+        const result = await this._globalController.executeToolWithInjection(
+          toolSchema,
+          typedSelectedFeatures
+        );
+
+        if (!result.success) {
+          this._handleToolExecutionError(commandName, result.error);
+          return;
+        }
+
+        this._handleToolExecutionSuccess(commandName, result.result);
+      }
 
     } catch (error) {
       const errorMessage = `Failed to execute tool "${commandName}": ${error instanceof Error ? error.message : String(error)}`;
       console.error('[DebriefOutlineProvider] Tool execution error:', error);
       vscode.window.showErrorMessage(errorMessage);
     }
+  }
+
+  /**
+   * Handle tool execution errors with detailed messaging
+   */
+  private _handleToolExecutionError(commandName: string, error?: string): void {
+    console.error('[DebriefOutlineProvider] Tool execution error:', {
+      tool: commandName,
+      error: error
+    });
+
+    const detailedMessage = `Tool "${commandName}" failed with error:\n\n${error || 'Unknown error'}`;
+    vscode.window.showErrorMessage(detailedMessage, { modal: true });
+  }
+
+  /**
+   * Handle successful tool execution with result options
+   */
+  private _handleToolExecutionSuccess(commandName: string, result: unknown): void {
+    const successMessage = `Tool "${commandName}" executed successfully`;
+    console.warn('[DebriefOutlineProvider] Tool execution success:', result);
+
+    vscode.window.showInformationMessage(
+      successMessage,
+      'View Results',
+      'Copy Results'
+    ).then(selection => {
+      if (selection === 'View Results') {
+        this._showToolResults(commandName, result);
+      } else if (selection === 'Copy Results') {
+        this._copyToolResults(result);
+      }
+    });
   }
 
   /**

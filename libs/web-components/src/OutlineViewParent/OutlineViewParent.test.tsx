@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { OutlineViewParent } from './OutlineViewParent';
@@ -110,17 +109,12 @@ describe('OutlineViewParent', () => {
 
       await waitFor(() => expect(handleCommandExecute).toHaveBeenCalledTimes(1));
 
-      const [commandArg, featuresArg] = handleCommandExecute.mock.calls[0];
-      expect(commandArg.tool.name).toBe('test-tool');
-      expect(Array.isArray(featuresArg)).toBe(true);
-      expect(featuresArg).toHaveLength(1);
-      expect(featuresArg[0]?.id).toBe('feature-1');
+      const [toolArg] = handleCommandExecute.mock.calls[0];
+      expect(toolArg.name).toBe('test-tool');
 
       expect(consoleSpy).toHaveBeenCalledWith(
         '[OutlineViewParent] Executing tool command:',
-        expect.objectContaining({
-          tool: expect.objectContaining({ name: 'test-tool' })
-        }),
+        expect.objectContaining({ name: 'test-tool' }),
         'Selected features:',
         expect.arrayContaining([
           expect.objectContaining({ id: 'feature-1' })

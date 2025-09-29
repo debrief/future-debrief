@@ -1,7 +1,12 @@
 
 import * as vscode from 'vscode';
-import { TimeState, ViewportState, SelectionState, DebriefFeatureCollection, EditorState } from '@debrief/shared-types';
+import { TimeState, ViewportState, SelectionState, DebriefFeatureCollection, EditorState, DebriefFeature } from '@debrief/shared-types';
 import { ToolVaultServerService } from '../services/toolVaultServer';
+import {
+  ToolParameterService,
+  StateProvider,
+  ToolSchema
+} from '@debrief/web-components/services';
 
 export { EditorState };
 
@@ -24,14 +29,15 @@ export interface StateUpdatePayload {
 
 /**
  * GlobalController - Singleton class for managing centralized state across all Debrief editors
- * 
+ *
  * This class provides:
  * - Central state storage per editor instance (editorId → EditorState mapping)
  * - Event-driven updates with subscription system
  * - API for getting/updating specific state slices
  * - Active editor tracking and lifecycle management
+ * - Tool parameter injection and execution
  */
-export class GlobalController {
+export class GlobalController implements StateProvider {
     private static _instance: GlobalController;
 
     // State storage: editorId → EditorState
@@ -49,9 +55,13 @@ export class GlobalController {
 
     // Tool Vault Server integration
     private toolVaultServer?: ToolVaultServerService;
+
+    // Tool Parameter Service for automatic parameter injection
+    private toolParameterService: ToolParameterService;
     
     private constructor() {
         this.initializeEventHandlers();
+        this.toolParameterService = new ToolParameterService(this);
     }
     
     /**
@@ -110,12 +120,6 @@ export class GlobalController {
         return state?.[sliceType];
     }
     
-    /**
-     * Get the complete state for an editor
-     */
-    public getEditorState(editorId: string): EditorState {
-        return this.editorStates.get(editorId) || {};
-    }
     
     /**
      * Update state for a specific editor and slice type
@@ -378,6 +382,137 @@ export class GlobalController {
 
         console.warn('[GlobalController] Calling toolVaultServer.executeToolCommand for:', toolName);
         return this.toolVaultServer.executeToolCommand(toolName, parameters);
+    }
+
+    /**
+     * Execute a tool with automatic parameter injection
+     */
+    public async executeToolWithInjection(
+        toolSchema: ToolSchema,
+        selectedFeatures: DebriefFeature[] = [],
+        userParameters: Record<string, unknown> = {}
+    ): Promise<{ success: boolean; result?: unknown; error?: string }> {
+        console.warn('[GlobalController] executeToolWithInjection called for tool:', toolSchema.name);
+
+        // Validate that all parameters can be satisfied
+        const validation = this.toolParameterService.validateParameterSatisfaction(
+            toolSchema,
+            selectedFeatures,
+            userParameters
+        );
+
+        if (!validation.canExecute) {
+            const error = `Cannot execute tool "${toolSchema.name}": missing required parameters: ${validation.missingParams.join(', ')}`;
+            console.error('[GlobalController]', error);
+            return {
+                success: false,
+                error
+            };
+        }
+
+        // Inject auto-injectable parameters
+        const injectedParameters = this.toolParameterService.injectParameters(
+            toolSchema,
+            selectedFeatures,
+            userParameters
+        );
+
+        console.warn('[GlobalController] Injected parameters:', Object.keys(injectedParameters));
+
+        // Execute the tool with the complete parameter set
+        return this.executeTool(toolSchema.name, injectedParameters);
+    }
+
+    /**
+     * Analyze a tool schema to understand parameter requirements
+     */
+    public analyzeToolParameters(toolSchema: ToolSchema) {
+        return this.toolParameterService.analyzeToolParameters(toolSchema);
+    }
+
+    /**
+     * Check if a tool requires user input
+     */
+    public toolRequiresUserInput(toolSchema: ToolSchema): boolean {
+        return this.toolParameterService.requiresUserInput(toolSchema);
+    }
+
+    /**
+     * Get parameters that require user input for a tool
+     */
+    public getUserInputParameters(toolSchema: ToolSchema) {
+        return this.toolParameterService.getUserInputParameters(toolSchema);
+    }
+
+    // StateProvider interface implementation
+
+    /**
+     * Get the current time state for the active editor
+     */
+    public getTimeState(): TimeState | null {
+        const editorId = this._activeEditorId;
+        if (!editorId) return null;
+        return this.getStateSlice(editorId, 'timeState') || null;
+    }
+
+    /**
+     * Get the current viewport state for the active editor
+     */
+    public getViewportState(): ViewportState | null {
+        const editorId = this._activeEditorId;
+        if (!editorId) return null;
+        return this.getStateSlice(editorId, 'viewportState') || null;
+    }
+
+    /**
+     * Get the current selection state for the active editor
+     */
+    public getSelectionState(): SelectionState | null {
+        const editorId = this._activeEditorId;
+        if (!editorId) return null;
+        return this.getStateSlice(editorId, 'selectionState') || null;
+    }
+
+    /**
+     * Get the complete state for an editor
+     */
+    public getEditorState(editorId: string): EditorState {
+        return this.editorStates.get(editorId) || {};
+    }
+
+    /**
+     * Get editor state for StateProvider interface (can return null)
+     */
+    public getEditorStateForProvider(editorId?: string): EditorState | null {
+        const targetEditorId = editorId || this._activeEditorId;
+        if (!targetEditorId) return null;
+        return this.editorStates.get(targetEditorId) || null;
+    }
+
+    /**
+     * Get the current feature collection for the active editor
+     */
+    public getFeatureCollection(): DebriefFeatureCollection | null {
+        const editorId = this._activeEditorId;
+        if (!editorId) return null;
+        return this.getStateSlice(editorId, 'featureCollection') || null;
+    }
+
+    /**
+     * Get selected features based on current selection state and feature collection
+     */
+    public getSelectedFeatures(): DebriefFeature[] {
+        const selectionState = this.getSelectionState();
+        const featureCollection = this.getFeatureCollection();
+
+        if (!selectionState?.selectedIds || !featureCollection?.features) {
+            return [];
+        }
+
+        const selectedIds = new Set(selectionState.selectedIds.map(id => String(id)));
+        return featureCollection.features.filter(feature =>
+            feature.id && selectedIds.has(String(feature.id))
+        );
     }
 
 
