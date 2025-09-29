@@ -269,37 +269,37 @@ const ToolVaultCommandHandlerDemo: React.FC = () => {
 
   // Mock StateSetter that captures state changes
   const stateSetter: StateSetter = useMemo(() => ({
-    setViewportState: (state) => {
+    setViewportState: (state: unknown) => {
       setStateChanges((prev: Record<string, unknown>) => ({ ...prev, viewport: state }));
     },
-    setSelectionState: (state) => {
+    setSelectionState: (state: unknown) => {
       setStateChanges((prev: Record<string, unknown>) => ({ ...prev, selection: state }));
     },
-    setTimeState: (state) => {
+    setTimeState: (state: unknown) => {
       setStateChanges((prev: Record<string, unknown>) => ({ ...prev, time: state }));
     },
-    setEditorState: (state) => {
+    setEditorState: (state: unknown) => {
       setStateChanges((prev: Record<string, unknown>) => ({ ...prev, editor: state }));
     },
-    showText: (message) => {
+    showText: (message: string) => {
       setStateChanges((prev: Record<string, unknown>) => ({
         ...prev,
         textDisplays: [...((prev.textDisplays as string[]) || []), message]
       }));
     },
-    showData: (data) => {
+    showData: (data: unknown) => {
       setStateChanges((prev: Record<string, unknown>) => ({
         ...prev,
         dataDisplays: [...((prev.dataDisplays as unknown[]) || []), data]
       }));
     },
-    showImage: (imageData) => {
+    showImage: (imageData: unknown) => {
       setStateChanges((prev: Record<string, unknown>) => ({
         ...prev,
         images: [...((prev.images as unknown[]) || []), imageData]
       }));
     },
-    logMessage: (message, level = 'info') => {
+    logMessage: (message: string, level = 'info') => {
       setStateChanges((prev: Record<string, unknown>) => ({
         ...prev,
         logs: [...((prev.logs as unknown[]) || []), { message, level, timestamp: new Date().toISOString() }]
@@ -450,21 +450,21 @@ const ToolVaultCommandHandlerDemo: React.FC = () => {
         <div style={{ marginBottom: '20px' }}>
           <h3>Command Result</h3>
           <div style={{
-            backgroundColor: result.success ? '#e8f5e8' : '#ffe8e8',
+            backgroundColor: (result as Record<string, unknown>).success ? '#e8f5e8' : '#ffe8e8',
             padding: '10px',
-            border: `1px solid ${result.success ? '#4caf50' : '#f44336'}`,
+            border: `1px solid ${(result as Record<string, unknown>).success ? '#4caf50' : '#f44336'}`,
             borderRadius: '4px',
           }}>
-            <h4>Status: {result.success ? '✅ Success' : '❌ Failed'}</h4>
-            {result.error && <p style={{ color: '#f44336' }}>Error: {result.error}</p>}
-            {result.metadata && (
+            <h4>Status: {(result as Record<string, unknown>).success ? '✅ Success' : '❌ Failed'}</h4>
+            {(result as Record<string, unknown>).error && <p style={{ color: '#f44336' }}>Error: {(result as Record<string, unknown>).error as string}</p>}
+            {(result as Record<string, unknown>).metadata && (
               <div>
-                <p><strong>Operation Type:</strong> {result.metadata.operationType}</p>
-                {result.metadata.featuresAffected !== undefined && (
-                  <p><strong>Features Affected:</strong> {result.metadata.featuresAffected}</p>
+                <p><strong>Operation Type:</strong> {((result as Record<string, unknown>).metadata as Record<string, unknown>).operationType as string}</p>
+                {((result as Record<string, unknown>).metadata as Record<string, unknown>).featuresAffected !== undefined && (
+                  <p><strong>Features Affected:</strong> {((result as Record<string, unknown>).metadata as Record<string, unknown>).featuresAffected as number}</p>
                 )}
-                {result.metadata.commandsProcessed !== undefined && (
-                  <p><strong>Commands Processed:</strong> {result.metadata.commandsProcessed}</p>
+                {((result as Record<string, unknown>).metadata as Record<string, unknown>).commandsProcessed !== undefined && (
+                  <p><strong>Commands Processed:</strong> {((result as Record<string, unknown>).metadata as Record<string, unknown>).commandsProcessed as number}</p>
                 )}
               </div>
             )}
@@ -494,13 +494,13 @@ const ToolVaultCommandHandlerDemo: React.FC = () => {
               <li>Annotations: {featureCollection.features.filter(f => f.properties?.dataType === 'zone').length}</li>
             </ul>
 
-            {result && result.metadata && (
+            {result && (result as Record<string, unknown>).metadata && (
               <p style={{
-                color: result.success ? '#4caf50' : '#f44336',
+                color: (result as Record<string, unknown>).success ? '#4caf50' : '#f44336',
                 fontWeight: 'bold',
                 marginTop: '10px',
               }}>
-                Change Summary: {result.metadata.featuresAffected || 0} features affected
+                Change Summary: {((result as Record<string, unknown>).metadata as Record<string, unknown>).featuresAffected as number || 0} features affected
               </p>
             )}
           </div>
