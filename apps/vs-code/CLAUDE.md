@@ -10,6 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm vscode:prepublish` - Prepare for publishing (minified esbuild bundle + schemas)
 - `pnpm copy-schemas` - Copy JSON schemas from libs/shared-types to extension
 - `pnpm typecheck` - Type check TypeScript without compilation
+- `pnpm lint` - Run ESLint for code quality and TypeScript patterns
+- `pnpm eslint` - Run ESLint only (no TypeScript check)
 
 ### Build System
 
@@ -21,6 +23,192 @@ The extension uses **esbuild** for fast bundling and includes JSON schema integr
 - **Schema copying**: JSON schemas from `libs/shared-types` are copied to `schemas/` directory
 - **Language configuration**: Plot JSON files inherit JSON language server features
 - Build time: ~20ms for TypeScript + schema copying
+
+## TypeScript Patterns and Code Quality
+
+This VS Code extension follows strict TypeScript patterns enforced by ESLint. **All code must pass linting before being committed.**
+
+### Required TypeScript Patterns
+
+#### 1. **No Explicit `any` Types** (Error Level)
+```typescript
+// ❌ FORBIDDEN - Will cause build to fail
+const result = data as any;
+const toolIndex = await getToolIndex() as any;
+
+// ✅ REQUIRED - Use proper types
+const result = data as { success: boolean; error?: string };
+const toolIndex = await getToolIndex() as { tools: unknown[] };
+
+// ✅ PREFERRED - Use Record<string, unknown> for objects
+const commandObj = obj as Record<string, unknown>;
+```
+
+#### 2. **Console Logging Restrictions** (Warning Level)
+```typescript
+// ❌ FORBIDDEN - Will show warnings
+console.log('Debug message');
+console.debug('Debug info');
+console.info('Information');
+
+// ✅ ALLOWED - Only these console methods
+console.error('Error occurred');
+console.warn('Warning message');
+console.warn('[Service] Debug info'); // Use warn with prefix for debug
+```
+
+#### 3. **Variable Declaration Patterns**
+```typescript
+// ❌ FORBIDDEN
+let result = getData(); // Never reassigned
+var oldStyle = 'bad';
+
+// ✅ REQUIRED
+const result = getData(); // Use const when not reassigned
+let counter = 0; // Use let only when reassigning
+```
+
+#### 4. **Unused Variables** (Error Level)
+```typescript
+// ❌ FORBIDDEN - Will cause build to fail
+function processData(data, unusedParam) {
+  return data.process();
+}
+
+// ✅ REQUIRED - Prefix unused parameters with underscore
+function processData(data: unknown, _unusedParam: string) {
+  return data.process();
+}
+```
+
+### Type Safety Patterns
+
+#### Working with Unknown Types
+```typescript
+// ✅ PATTERN: Type guards for runtime checking
+function isToolVaultCommand(obj: unknown): obj is ToolVaultCommand {
+  return (
+    typeof obj === 'object' &&
+    obj !== null &&
+    'command' in obj &&
+    'payload' in obj &&
+    typeof (obj as Record<string, unknown>).command === 'string'
+  );
+}
+
+// ✅ PATTERN: Safe type assertions with proper interfaces
+interface ToolIndex {
+  tools: Array<{ name: string; [key: string]: unknown }>;
+}
+const toolIndex = await getToolIndex() as ToolIndex;
+```
+
+#### API Response Handling
+```typescript
+// ✅ PATTERN: Define response interfaces
+interface ToolExecutionResult {
+  success: boolean;
+  result?: unknown;
+  error?: string;
+}
+
+// ✅ PATTERN: Handle unknown API responses safely
+function extractToolVaultCommands(result: unknown): SpecificCommand[] {
+  if (!result || typeof result !== 'object') {
+    return [];
+  }
+
+  // Safe array checking
+  if (Array.isArray(result)) {
+    return result.filter(isToolVaultCommand);
+  }
+
+  // Safe property access
+  if ('commands' in result && Array.isArray((result as Record<string, unknown>).commands)) {
+    return ((result as Record<string, unknown>).commands as unknown[])
+      .filter(isToolVaultCommand);
+  }
+
+  return [];
+}
+```
+
+### ESLint Configuration
+
+The project uses `eslint.config.js` with these key rules:
+
+```javascript
+{
+  '@typescript-eslint/no-explicit-any': 'error',           // No any types
+  '@typescript-eslint/no-unused-vars': ['error', {        // No unused vars
+    argsIgnorePattern: '^_'                                // Allow _param
+  }],
+  'no-console': ['warn', { allow: ['error', 'warn'] }],   // Limited console
+  'prefer-const': 'error',                                 // Use const when possible
+  'no-var': 'error',                                       // No var declarations
+}
+```
+
+### Code Quality Checks
+
+Run these commands before committing:
+
+```bash
+# Type checking (must pass)
+pnpm typecheck
+
+# Linting (must pass - no errors allowed)
+pnpm lint
+
+# Full compilation (must pass)
+pnpm compile
+```
+
+**Important**: The build pipeline will fail if any linting errors are present. Warnings are acceptable but should be minimized.
+
+### Integration with ToolVaultCommandHandler
+
+When integrating with the ToolVaultCommandHandler service from `@debrief/web-components`:
+
+```typescript
+// ✅ CORRECT: Import proper types
+import {
+  ToolVaultCommandHandler,
+  StateSetter,
+  SpecificCommand
+} from '@debrief/web-components/services';
+
+// ✅ CORRECT: Implement StateSetter with proper typing
+const stateSetter: StateSetter = {
+  setViewportState: (state: ViewportState) => {
+    if (this.activeEditorId) {
+      this.updateState(this.activeEditorId, 'viewportState', state);
+    }
+  },
+  // ... other methods
+};
+
+// ✅ CORRECT: Process commands with proper error handling
+async processToolVaultCommands(result: unknown): Promise<void> {
+  try {
+    const commands = this.extractToolVaultCommands(result);
+    if (commands.length === 0) {
+      console.warn('[Controller] No ToolVaultCommands found');
+      return;
+    }
+
+    const results = await this.toolVaultCommandHandler.processCommands(
+      commands,
+      currentFeatureCollection
+    );
+
+    // Process results...
+  } catch (error) {
+    console.error('[Controller] Error processing commands:', error);
+    // Don't re-throw - log and continue
+  }
+}
+```
 
 ## Testing
 
