@@ -228,8 +228,31 @@ export class ToolParameterService {
       case 'EditorState':
         return this.stateProvider.getEditorStateForProvider();
 
-      case 'DebriefFeatureCollection':
+      case 'DebriefFeatureCollection': {
+        // If we have selected features, create a collection with only those
+        if (selectedFeatures.length > 0) {
+          const baseCollection = this.stateProvider.getFeatureCollection();
+          const result = {
+            type: 'FeatureCollection' as const,
+            features: selectedFeatures,
+            ...({} as Record<string, unknown>)
+          };
+
+          // Preserve any collection-level metadata if it exists
+          if (baseCollection && typeof baseCollection === 'object') {
+            for (const [key, value] of Object.entries(baseCollection)) {
+              if (key !== 'features' && key !== 'type') {
+                (result as Record<string, unknown>)[key] = value;
+              }
+            }
+          }
+
+          return result;
+        }
+
+        // Fallback to full collection if no selection
         return this.stateProvider.getFeatureCollection();
+      }
 
       case 'DebriefTrackFeature': {
         // Return the first selected track feature, or first track in collection
