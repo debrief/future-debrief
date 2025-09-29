@@ -10,6 +10,7 @@ export { OutlineViewParent } from './OutlineViewParent/OutlineViewParent';
 
 // Service exports
 export { ToolParameterService } from './services/toolParameterService';
+export { ToolVaultCommandHandler } from './services/ToolVaultCommandHandler';
 
 // Type exports
 export type { TimeControllerProps } from './TimeController/TimeController';
@@ -28,3 +29,12 @@ export type {
   InjectedParameters,
   JSONSchemaProperty
 } from './services/toolParameterService';
+
+export type {
+  StateSetter,
+  CommandHandlerResult,
+  CommandProcessor,
+  CommandHandlerOptions
+} from './services/types';
+
+export type { SpecificCommand } from './services/ToolVaultCommandHandler';

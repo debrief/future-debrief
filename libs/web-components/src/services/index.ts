@@ -5,6 +5,7 @@
 
 // Service exports
 export { ToolParameterService } from './toolParameterService';
+export { ToolVaultCommandHandler } from './ToolVaultCommandHandler';
 
 // Service type exports
 export type {
@@ -15,3 +16,12 @@ export type {
   InjectedParameters,
   JSONSchemaProperty
 } from './toolParameterService';
+
+export type {
+  StateSetter,
+  CommandHandlerResult,
+  CommandProcessor,
+  CommandHandlerOptions
+} from './types';
+
+export type { SpecificCommand } from './ToolVaultCommandHandler';
