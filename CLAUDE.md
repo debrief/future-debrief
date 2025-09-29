@@ -189,9 +189,17 @@ cd libs/tool-vault-packager && npm run test:playwright
 
 ### Dependency Management
 - Use `pnpm add` at the root for workspace dependencies
-- Use `pnpm add --filter <package>` for package-specific dependencies  
+- Use `pnpm add --filter <package>` for package-specific dependencies
 - **Exception**: Tool Vault Packager uses `npm install` due to Docker constraints
 - Never add dependencies between apps (apps → apps forbidden)
+
+### Fly.io Cost Management
+- **Cleanup Script**: Use `./scripts/cleanup-flyio-apps.sh` to check for orphaned PR apps (safe default)
+- **Cost Prevention**: PR preview apps can accumulate significant fly.io costs if not cleaned up
+- **Automated Cleanup**: GitHub workflows handle cleanup when PRs close, but manual cleanup may be needed
+- **Safe Operation**: Script only targets PR apps (`pr-{NUMBER}-futuredebrief`, `toolvault-pr-{NUMBER}`)
+- **Quick Cleanup**: Use `./scripts/cleanup-flyio-apps.sh --destroy` to immediately remove all orphaned apps
+- **Documentation**: Full details in `apps/vs-code/docs/flyio-setup.md#cleanup-management`
 
 ## Key Integration Points
 
