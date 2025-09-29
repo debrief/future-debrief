@@ -4,15 +4,10 @@ import type { DebriefFeature } from '@debrief/shared-types';
 import { ToolFilterService } from '../services/ToolFilterService';
 import './ToolExecuteButton.css';
 
-export interface SelectedCommand {
-  tool: Tool;
-  parameters?: Record<string, unknown>;
-}
-
 export interface ToolExecuteButtonProps {
   toolList: ToolListResponse;
   selectedFeatures: DebriefFeature[];
-  onCommandExecute: (command: SelectedCommand) => void;
+  onCommandExecute: (tool: Tool) => void;
   disabled?: boolean;
   buttonText?: string;
   menuPosition?: 'bottom' | 'top';
@@ -101,12 +96,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
       return;
     }
 
-    const command: SelectedCommand = {
-      tool,
-      parameters: {} // Could be extended later for parameter collection
-    };
-
-    onCommandExecute(command);
+    onCommandExecute(tool);
     setIsMenuOpen(false);
   }, [onCommandExecute]);
 

@@ -185,11 +185,11 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
                   selectedIds: ids
                 });
               },
-              onCommandExecute: (command, selectedFeatures) => {
+              onCommandExecute: (tool) => {
                 window.vscode.postMessage({
                   type: 'executeCommand',
-                  command,
-                  selectedFeatures
+                  command: tool,
+                  selectedFeatures: outlineData.selectedFeatures
                 });
               },
               enableSmartFiltering: true,

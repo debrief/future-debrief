@@ -16,7 +16,7 @@ export type { TimeControllerProps } from './TimeController/TimeController';
 export type { PropertiesViewProps } from './PropertiesView/PropertiesView';
 export type { MapComponentProps, GeoJSONFeature, GeoJSONFeatureCollection, MapState } from './MapComponent/MapComponent';
 export type { OutlineViewProps } from './OutlineView/OutlineView';
-export type { ToolExecuteButtonProps, SelectedCommand } from './ToolExecuteButton/ToolExecuteButton';
+export type { ToolExecuteButtonProps } from './ToolExecuteButton/ToolExecuteButton';
 export type { OutlineViewParentProps } from './OutlineViewParent/OutlineViewParent';
 
 // Service type exports
