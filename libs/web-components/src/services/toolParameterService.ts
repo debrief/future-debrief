@@ -307,15 +307,23 @@ export class ToolParameterService {
 
     for (const param of analysis.parameters) {
       if (schema.inputSchema.required?.includes(param.parameterName)) {
-        // Check if parameter can be auto-injected
+        // Check if user provided a value for this parameter
+        const hasUserProvidedValue = param.parameterName in userParams;
+
+        // If user provided a value, parameter is satisfied regardless of injection capability
+        if (hasUserProvidedValue) {
+          continue;
+        }
+
+        // If no user value, check if parameter can be auto-injected
         if (param.isAutoInjectable && param.injectionType) {
           const injectedValue = this.getInjectedValue(param.injectionType, selectedFeatures);
           if (injectedValue === null) {
             missingParams.push(param.parameterName);
           }
         }
-        // Check if user provided required parameter
-        else if (param.requiresUserInput && !(param.parameterName in userParams)) {
+        // If no user value and not auto-injectable, parameter is missing
+        else {
           missingParams.push(param.parameterName);
         }
       }

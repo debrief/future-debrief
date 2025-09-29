@@ -388,6 +388,44 @@ describe('ToolParameterService', () => {
       expect(validation.canExecute).toBe(true);
       expect(validation.missingParams).toHaveLength(0);
     });
+
+    it('should accept user-provided values for auto-injectable parameters when state is unavailable', () => {
+      // Test the PR feedback scenario: user provides explicit values for auto-injectable params
+      const emptyStateProvider = new MockStateProvider(null, null, null, null, null, []); // No state available
+      const emptyService = new ToolParameterService(emptyStateProvider);
+
+      // User provides explicit viewport_state even though it's normally auto-injectable
+      const userProvidedViewport = { bounds: [-180, -90, 180, 90] };
+      const validation = emptyService.validateParameterSatisfaction(
+        viewportGridSchema,
+        [],
+        {
+          viewport_state: userProvidedViewport,
+          lat_interval: 0.1,
+          lon_interval: 0.1
+        }
+      );
+
+      expect(validation.canExecute).toBe(true);
+      expect(validation.missingParams).toHaveLength(0);
+    });
+
+    it('should prioritize user-provided values over auto-injection', () => {
+      // User provides a viewport_state that differs from what would be auto-injected
+      const userProvidedViewport = { bounds: [-180, -90, 180, 90] };
+      const validation = service.validateParameterSatisfaction(
+        viewportGridSchema,
+        [],
+        {
+          viewport_state: userProvidedViewport, // User override
+          lat_interval: 0.1,
+          lon_interval: 0.1
+        }
+      );
+
+      expect(validation.canExecute).toBe(true);
+      expect(validation.missingParams).toHaveLength(0);
+    });
   });
 
   describe('edge cases', () => {
