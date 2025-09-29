@@ -434,14 +434,8 @@ export class GlobalController implements StateProvider {
         console.warn('[GlobalController] Injected parameters:', Object.keys(injectedParameters));
 
         // Execute the tool with the complete parameter set
-        const result = await this.executeTool(toolSchema.name, injectedParameters);
-
-        // If the tool returned ToolVaultCommands, process them
-        if (result.success && result.result) {
-            await this.processToolVaultCommands(result.result);
-        }
-
-        return result;
+        // Note: executeTool already processes ToolVaultCommands, so no additional processing needed
+        return this.executeTool(toolSchema.name, injectedParameters);
     }
 
     /**
