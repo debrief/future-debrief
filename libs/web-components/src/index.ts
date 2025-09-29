@@ -8,6 +8,9 @@ export { OutlineView } from './OutlineView/OutlineView';
 export { ToolExecuteButton } from './ToolExecuteButton/ToolExecuteButton';
 export { OutlineViewParent } from './OutlineViewParent/OutlineViewParent';
 
+// Service exports
+export { ToolParameterService } from './services/toolParameterService';
+
 // Type exports
 export type { TimeControllerProps } from './TimeController/TimeController';
 export type { PropertiesViewProps } from './PropertiesView/PropertiesView';
@@ -15,3 +18,13 @@ export type { MapComponentProps, GeoJSONFeature, GeoJSONFeatureCollection, MapSt
 export type { OutlineViewProps } from './OutlineView/OutlineView';
 export type { ToolExecuteButtonProps, SelectedCommand } from './ToolExecuteButton/ToolExecuteButton';
 export type { OutlineViewParentProps } from './OutlineViewParent/OutlineViewParent';
+
+// Service type exports
+export type {
+  StateProvider,
+  ToolSchema,
+  ParameterAnalysis,
+  ToolParameterAnalysis,
+  InjectedParameters,
+  JSONSchemaProperty
+} from './services/toolParameterService';
