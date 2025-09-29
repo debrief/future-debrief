@@ -154,6 +154,41 @@ fly logs --app pr-123-futuredebrief
 fly machine list --app pr-123-futuredebrief
 ```
 
+## Cleanup Management
+
+### Automated Cleanup
+The GitHub Actions workflows handle automatic cleanup of PR apps when PRs are closed:
+
+- **vs-pr-cleanup.yml** - Destroys VS Code preview apps (`pr-{NUMBER}-futuredebrief`)
+- **toolvault-pr-cleanup.yml** - Destroys Tool Vault preview apps (`toolvault-pr-{NUMBER}`)
+
+### Manual Cleanup Script
+For managing orphaned apps or performing bulk cleanup, use the script in `scripts/`:
+
+```bash
+# Safe: List orphaned PR apps (default behavior)
+./scripts/cleanup-flyio-apps.sh
+
+# Save money: Destroy all orphaned apps immediately
+./scripts/cleanup-flyio-apps.sh --destroy
+
+# Interactive: Ask before destroying each app
+./scripts/cleanup-flyio-apps.sh --interactive
+
+# Help: Show all options
+./scripts/cleanup-flyio-apps.sh --help
+```
+
+### Cost Management
+**⚠️ Important**: Orphaned PR apps can accumulate significant costs on fly.io. The cleanup scripts help identify and remove:
+
+- **Tool Vault apps**: `toolvault-pr-{NUMBER}`
+- **VS Code apps**: `pr-{NUMBER}-futuredebrief`
+
+Run `./scripts/cleanup-flyio-apps.sh` periodically to check for orphaned apps. Each orphaned app represents ongoing monthly costs that can be eliminated.
+
+**Safety**: The cleanup scripts only target apps matching PR naming patterns. Production apps (`main-futuredebrief`, `toolvault-main`) are never affected.
+
 ## Security Considerations
 
 - **Public Access**: Apps are publicly accessible without authentication
