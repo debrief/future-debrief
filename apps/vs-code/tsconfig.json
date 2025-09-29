@@ -8,11 +8,14 @@
       "DOM"
     ],
     "sourceMap": true,
-    "rootDir": "src",
     "strict": true,
     "noImplicitAny": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "types": ["node", "vscode", "jest"]
+    "types": ["node", "vscode", "jest"],
+    "baseUrl": ".",
+    "paths": {
+      "@debrief/web-components/services": ["../../libs/web-components/src/services"]
+    }
   }
 }
