@@ -181,7 +181,8 @@
       "Bash(mypy:*)",
       "Bash(git merge:*)",
       "Bash(git remote get-url:*)",
-      "Bash(gh pr diff:*)"
+      "Bash(gh pr diff:*)",
+      "Bash(flyctl apps:*)"
     ]
   }
 }
