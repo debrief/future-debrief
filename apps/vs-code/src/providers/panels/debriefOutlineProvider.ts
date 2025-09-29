@@ -408,13 +408,13 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
   private async _executeToolCommand(commandName: string, selectedFeatures: unknown[]): Promise<void> {
     try {
       // Get tool index to find the schema for this tool
-      const toolIndex = await this._globalController.getToolIndex() as any;
+      const toolIndex = await this._globalController.getToolIndex() as { tools: unknown[] };
       if (!toolIndex || !Array.isArray(toolIndex.tools)) {
         throw new Error('Tool index not available');
       }
 
       // Find the tool schema
-      const toolSchema = toolIndex.tools.find((tool: any) => tool.name === commandName) as ToolSchema | undefined;
+      const toolSchema = toolIndex.tools.find((tool: unknown) => (tool as { name: string }).name === commandName) as ToolSchema | undefined;
       if (!toolSchema) {
         throw new Error(`Tool schema not found for "${commandName}"`);
       }
@@ -494,20 +494,30 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
    * Handle successful tool execution with result options
    */
   private _handleToolExecutionSuccess(commandName: string, result: unknown): void {
-    const successMessage = `Tool "${commandName}" executed successfully`;
     console.warn('[DebriefOutlineProvider] Tool execution success:', result);
 
-    vscode.window.showInformationMessage(
-      successMessage,
-      'View Results',
-      'Copy Results'
-    ).then(selection => {
-      if (selection === 'View Results') {
-        this._showToolResults(commandName, result);
-      } else if (selection === 'Copy Results') {
-        this._copyToolResults(result);
-      }
-    });
+    // Check if the result contains ToolVaultCommands
+    const hasToolVaultCommands = this._containsToolVaultCommands(result);
+
+    if (hasToolVaultCommands) {
+      // If tool returned commands, those were processed by GlobalController
+      const successMessage = `Tool "${commandName}" executed successfully and plot updated`;
+      vscode.window.showInformationMessage(successMessage);
+    } else {
+      // Traditional result handling for tools that return data
+      const successMessage = `Tool "${commandName}" executed successfully`;
+      vscode.window.showInformationMessage(
+        successMessage,
+        'View Results',
+        'Copy Results'
+      ).then(selection => {
+        if (selection === 'View Results') {
+          this._showToolResults(commandName, result);
+        } else if (selection === 'Copy Results') {
+          this._copyToolResults(result);
+        }
+      });
+    }
   }
 
   /**
@@ -550,6 +560,45 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
       console.error('[DebriefOutlineProvider] Error copying tool results:', error);
       vscode.window.showErrorMessage(`Failed to copy tool results: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  /**
+   * Check if result contains ToolVaultCommands
+   */
+  private _containsToolVaultCommands(result: unknown): boolean {
+    if (!result || typeof result !== 'object') {
+      return false;
+    }
+
+    // Check if it's a single ToolVaultCommand
+    if (this._isToolVaultCommand(result)) {
+      return true;
+    }
+
+    // Check if it's an array of ToolVaultCommands
+    if (Array.isArray(result)) {
+      return result.some(item => this._isToolVaultCommand(item));
+    }
+
+    // Check if it's an object containing a commands array
+    if ('commands' in result && Array.isArray((result as Record<string, unknown>).commands)) {
+      return ((result as Record<string, unknown>).commands as unknown[]).some(item => this._isToolVaultCommand(item));
+    }
+
+    return false;
+  }
+
+  /**
+   * Type guard to check if an object is a ToolVaultCommand
+   */
+  private _isToolVaultCommand(obj: unknown): boolean {
+    return (
+      typeof obj === 'object' &&
+      obj !== null &&
+      'command' in obj &&
+      'payload' in obj &&
+      typeof (obj as Record<string, unknown>).command === 'string'
+    );
   }
 
   /**

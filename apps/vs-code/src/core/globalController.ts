@@ -4,8 +4,11 @@ import { TimeState, ViewportState, SelectionState, DebriefFeatureCollection, Edi
 import { ToolVaultServerService } from '../services/toolVaultServer';
 import {
   ToolParameterService,
+  ToolVaultCommandHandler,
+  StateSetter,
   StateProvider,
-  ToolSchema
+  ToolSchema,
+  SpecificCommand
 } from '@debrief/web-components/services';
 
 export { EditorState };
@@ -58,10 +61,14 @@ export class GlobalController implements StateProvider {
 
     // Tool Parameter Service for automatic parameter injection
     private toolParameterService: ToolParameterService;
+
+    // Tool Vault Command Handler for processing tool results
+    private toolVaultCommandHandler: ToolVaultCommandHandler;
     
     private constructor() {
         this.initializeEventHandlers();
         this.toolParameterService = new ToolParameterService(this);
+        this.toolVaultCommandHandler = new ToolVaultCommandHandler(this.createStateSetter());
     }
     
     /**
@@ -381,7 +388,14 @@ export class GlobalController implements StateProvider {
         }
 
         console.warn('[GlobalController] Calling toolVaultServer.executeToolCommand for:', toolName);
-        return this.toolVaultServer.executeToolCommand(toolName, parameters);
+        const result = await this.toolVaultServer.executeToolCommand(toolName, parameters);
+
+        // If the tool returned ToolVaultCommands, process them
+        if (result.success && result.result) {
+            await this.processToolVaultCommands(result.result);
+        }
+
+        return result;
     }
 
     /**
@@ -420,7 +434,14 @@ export class GlobalController implements StateProvider {
         console.warn('[GlobalController] Injected parameters:', Object.keys(injectedParameters));
 
         // Execute the tool with the complete parameter set
-        return this.executeTool(toolSchema.name, injectedParameters);
+        const result = await this.executeTool(toolSchema.name, injectedParameters);
+
+        // If the tool returned ToolVaultCommands, process them
+        if (result.success && result.result) {
+            await this.processToolVaultCommands(result.result);
+        }
+
+        return result;
     }
 
     /**
@@ -515,6 +536,154 @@ export class GlobalController implements StateProvider {
         );
     }
 
+    /**
+     * Process ToolVaultCommands returned from tool execution
+     */
+    public async processToolVaultCommands(result: unknown): Promise<void> {
+        try {
+            // Handle both single commands and arrays of commands
+            const commands = this.extractToolVaultCommands(result);
+            if (commands.length === 0) {
+                console.warn('[GlobalController] No ToolVaultCommands found in result');
+                return;
+            }
+
+            console.warn('[GlobalController] Processing', commands.length, 'ToolVaultCommand(s)');
+
+            // Get the current feature collection for the active editor
+            const activeEditorId = this._activeEditorId;
+            if (!activeEditorId) {
+                console.error('[GlobalController] No active editor for ToolVaultCommand processing');
+                return;
+            }
+
+            const currentFeatureCollection = this.getFeatureCollection() || {
+                type: 'FeatureCollection' as const,
+                features: []
+            };
+
+            // Process commands sequentially
+            const results = await this.toolVaultCommandHandler.processCommands(commands, currentFeatureCollection);
+
+            // Log results
+            results.forEach((result, index) => {
+                if (result.success) {
+                    console.warn(`[GlobalController] Command ${index + 1} processed successfully:`, result.metadata);
+                } else {
+                    console.error(`[GlobalController] Command ${index + 1} failed:`, result.error);
+                }
+            });
+
+            // Update feature collection if any command modified it
+            const finalResult = results[results.length - 1];
+            if (finalResult?.success && finalResult.featureCollection) {
+                this.updateState(activeEditorId, 'featureCollection', finalResult.featureCollection);
+                console.warn('[GlobalController] Feature collection updated from ToolVaultCommand results');
+            }
+
+        } catch (error) {
+            console.error('[GlobalController] Error processing ToolVaultCommands:', error);
+            // Don't throw - we don't want to break the tool execution flow
+        }
+    }
+
+    /**
+     * Extract ToolVaultCommands from tool result
+     */
+    private extractToolVaultCommands(result: unknown): SpecificCommand[] {
+        if (!result || typeof result !== 'object') {
+            return [];
+        }
+
+        // Handle array of commands
+        if (Array.isArray(result)) {
+            return result.filter(this.isToolVaultCommand);
+        }
+
+        // Handle single command
+        if (this.isToolVaultCommand(result)) {
+            return [result];
+        }
+
+        // Handle result object that might contain commands
+        if ('commands' in result && Array.isArray((result as Record<string, unknown>).commands)) {
+            return ((result as Record<string, unknown>).commands as unknown[]).filter(this.isToolVaultCommand);
+        }
+
+        return [];
+    }
+
+    /**
+     * Type guard to check if an object is a ToolVaultCommand
+     */
+    private isToolVaultCommand(obj: unknown): obj is SpecificCommand {
+        return (
+            typeof obj === 'object' &&
+            obj !== null &&
+            'command' in obj &&
+            'payload' in obj &&
+            typeof (obj as Record<string, unknown>).command === 'string'
+        );
+    }
+
+    /**
+     * Create StateSetter implementation for ToolVaultCommandHandler
+     */
+    private createStateSetter(): StateSetter {
+        return {
+            setViewportState: (state) => {
+                if (this._activeEditorId) {
+                    this.updateState(this._activeEditorId, 'viewportState', state);
+                }
+            },
+            setSelectionState: (state) => {
+                if (this._activeEditorId) {
+                    this.updateState(this._activeEditorId, 'selectionState', state);
+                }
+            },
+            setTimeState: (state) => {
+                if (this._activeEditorId) {
+                    this.updateState(this._activeEditorId, 'timeState', state);
+                }
+            },
+            setEditorState: (state) => {
+                // For now, we don't have a direct way to set the full editor state
+                // This could be extended to handle full state updates
+                console.warn('[GlobalController] setEditorState called but not fully implemented:', state);
+            },
+            showText: (message) => {
+                vscode.window.showInformationMessage(message);
+            },
+            showData: (data) => {
+                // Show data in a new document
+                const formatted = JSON.stringify(data, null, 2);
+                vscode.workspace.openTextDocument({ content: formatted, language: 'json' })
+                    .then(doc => vscode.window.showTextDocument(doc));
+            },
+            showImage: (imageData) => {
+                // For now, show a message about image display
+                // In the future, this could open an image viewer webview
+                vscode.window.showInformationMessage(
+                    `Image: ${imageData.title || 'Untitled'} (${imageData.mediaType})`
+                );
+            },
+            logMessage: (message, level = 'info') => {
+                switch (level) {
+                    case 'error':
+                        console.error('[ToolVault]', message);
+                        break;
+                    case 'warn':
+                        console.warn('[ToolVault]', message);
+                        break;
+                    case 'debug':
+                        console.warn('[ToolVault] DEBUG:', message);
+                        break;
+                    default:
+                        console.warn('[ToolVault]', message);
+                }
+            }
+        };
+    }
 
     /**
      * Dispose of the GlobalController and clean up resources
