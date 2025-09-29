@@ -9,7 +9,9 @@ on:
 jobs:
   pr-cleanup:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true
+    # Cleanup on any PR closure (merged or abandoned) to prevent orphaned apps
+    # Only for PRs from the same repository (not forks)
+    if: github.event.pull_request.head.repo.full_name == github.repository
     
     steps:
     - name: Setup Fly CLI
@@ -47,7 +49,7 @@ jobs:
           
           let statusMessage = '';
           if (cleanupStatus === 'success') {
-            statusMessage = `The preview Fly.io app \`toolvault-pr-${prNumber}\` has been cleaned up after PR merge.`;
+            statusMessage = `The preview Fly.io app \`toolvault-pr-${prNumber}\` has been cleaned up after PR closure.`;
           } else if (cleanupStatus === 'not_found') {
             statusMessage = `No preview app found for \`toolvault-pr-${prNumber}\` - nothing to cleanup.`;
           } else if (cleanupStatus === 'skipped') {
