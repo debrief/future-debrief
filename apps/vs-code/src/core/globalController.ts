@@ -559,19 +559,23 @@ export class GlobalController implements StateProvider {
             // Process commands sequentially
             const results = await this.toolVaultCommandHandler.processCommands(commands, currentFeatureCollection);
 
-            // Log results
+            // Log results and find the most recent successful result with a feature collection
+            let latestFeatureCollection: DebriefFeatureCollection | undefined;
             results.forEach((result, index) => {
                 if (result.success) {
                     console.warn(`[GlobalController] Command ${index + 1} processed successfully:`, result.metadata);
+                    // Track the most recent successful feature collection update
+                    if (result.featureCollection) {
+                        latestFeatureCollection = result.featureCollection;
+                    }
                 } else {
                     console.error(`[GlobalController] Command ${index + 1} failed:`, result.error);
                 }
             });
 
             // Update feature collection if any command modified it
-            const finalResult = results[results.length - 1];
-            if (finalResult?.success && finalResult.featureCollection) {
-                this.updateState(activeEditorId, 'featureCollection', finalResult.featureCollection);
+            if (latestFeatureCollection) {
+                this.updateState(activeEditorId, 'featureCollection', latestFeatureCollection);
                 console.warn('[GlobalController] Feature collection updated from ToolVaultCommand results');
             }
 
