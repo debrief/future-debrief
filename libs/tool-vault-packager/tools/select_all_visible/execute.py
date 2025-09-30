@@ -1,9 +1,8 @@
 """Select all features that are visible within the current viewport bounds."""
 
-from typing import List, Union
+from typing import Any, Dict, List, Union
 
 # Use hierarchical imports from shared-types
-from debrief.types.states.editor_state import EditorState
 from debrief.types.states.selection_state import SelectionState
 from debrief.types.tools import SetSelectionCommand, ShowTextCommand, ToolVaultCommand
 from pydantic import BaseModel, Field
@@ -12,7 +11,8 @@ from pydantic import BaseModel, Field
 class SelectAllVisibleParameters(BaseModel):
     """Parameters for select-all-visible tool."""
 
-    editor_state: EditorState = Field(
+    # Use flexible Dict type instead of strict EditorState to handle custom dataTypes
+    editor_state: Dict[str, Any] = Field(
         description="Current editor state containing viewport bounds and features",
         examples=[
             {
@@ -53,17 +53,19 @@ def select_all_visible(params: SelectAllVisibleParameters) -> ToolVaultCommand:
     try:
         editor_state = params.editor_state
 
-        # Check if we have viewport state and feature collection
-        if not editor_state.viewportState or not editor_state.viewportState.bounds:
+        # Check if we have viewport state and feature collection (dict access)
+        viewport_state = editor_state.get("viewportState")
+        if not viewport_state or not viewport_state.get("bounds"):
             return ShowTextCommand(
                 payload="No viewport bounds available in editor state",
             )
 
-        if not editor_state.featureCollection or not editor_state.featureCollection.features:
+        feature_collection = editor_state.get("featureCollection")
+        if not feature_collection or not feature_collection.get("features"):
             return ShowTextCommand(payload="No features available in editor state")
 
         # Extract viewport bounds [west, south, east, north]
-        viewport_bounds = editor_state.viewportState.bounds
+        viewport_bounds = viewport_state["bounds"]
         west, south, east, north = viewport_bounds
 
         # Find features that are visible (intersect with viewport)
@@ -102,12 +104,13 @@ def select_all_visible(params: SelectAllVisibleParameters) -> ToolVaultCommand:
             process_coords(coordinates)
             return min_lng, min_lat, max_lng, max_lat
 
-        # Check each feature for visibility
-        for feature in editor_state.featureCollection.features:
-            if not feature.geometry or not hasattr(feature.geometry, "coordinates"):
+        # Check each feature for visibility (dict access)
+        for feature in feature_collection["features"]:
+            geometry = feature.get("geometry")
+            if not geometry or "coordinates" not in geometry:
                 continue
 
-            coordinates = feature.geometry.coordinates
+            coordinates = geometry["coordinates"]
             if not coordinates:
                 continue
 
@@ -121,8 +124,8 @@ def select_all_visible(params: SelectAllVisibleParameters) -> ToolVaultCommand:
                 if bounds_intersect(feature_west, feature_south, feature_east, feature_north):
                     # Feature is visible - add its ID
                     feature_id = (
-                        feature.id
-                        if hasattr(feature, "id") and feature.id is not None
+                        feature.get("id")
+                        if feature.get("id") is not None
                         else f"feature_{len(visible_feature_ids)}"
                     )
                     visible_feature_ids.append(feature_id)
