@@ -54,7 +54,34 @@ runs:
     - name: Build VS Code extension and dependencies
       shell: bash
       run: pnpm build:vs-code
-    
+
+    - name: Build Tool Vault Package
+      shell: bash
+      run: |
+        echo "🔧 Building Tool Vault package..."
+        cd libs/tool-vault-packager
+
+        # Install dependencies (uses npm, not pnpm)
+        echo "📦 Installing Tool Vault dependencies..."
+        npm install
+
+        # Install SPA dependencies
+        echo "📦 Installing SPA dependencies..."
+        cd spa && npm install && cd ..
+
+        # Build the toolvault.pyz package
+        echo "🏗️ Building toolvault.pyz..."
+        npm run build
+
+        # Verify package was created
+        if [ -f dist/toolvault.pyz ]; then
+          echo "✅ toolvault.pyz created successfully"
+          ls -lh dist/toolvault.pyz
+        else
+          echo "❌ toolvault.pyz build failed"
+          exit 1
+        fi
+
     - name: Install vsce
       shell: bash
       working-directory: apps/vs-code

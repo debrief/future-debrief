@@ -637,7 +637,10 @@ def main():
 
     try:
         package_toolvault(
-            tools_path=args.tools_path, output_path=args.output, python_executable=args.python
+            tools_path=args.tools_path,
+            output_path=args.output,
+            python_executable=args.python,
+            run_tests=True,
         )
     except PackagerError as e:
         print(f"Error: {e}", file=sys.stderr)
