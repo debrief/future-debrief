@@ -3,18 +3,19 @@
 from typing import Any, Dict, List, Union
 
 # Use hierarchical imports from shared-types
+from debrief.types.features import DebriefFeatureCollection
 from debrief.types.states.selection_state import SelectionState
 from debrief.types.states.viewport_state import ViewportState
 from debrief.types.tools import SetSelectionCommand, ShowTextCommand, ToolVaultCommand
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 
 class SelectAllVisibleParameters(BaseModel):
     """Parameters for select-all-visible tool."""
 
-    # Explicit parameters for better automatic injection
-    # Use Dict for feature_collection to handle custom dataType values flexibly
-    feature_collection: Dict[str, Any] = Field(
+    # Use DebriefFeatureCollection type for auto-injection, but accept unvalidated data
+    # The validator converts it to a plain dict to handle custom dataTypes
+    feature_collection: DebriefFeatureCollection = Field(
         description="GeoJSON FeatureCollection containing features to check for visibility",
         examples=[
             {
@@ -34,11 +35,26 @@ class SelectAllVisibleParameters(BaseModel):
         ],
     )
 
-    # Use proper Pydantic model for viewport_state
     viewport_state: ViewportState = Field(
         description="Current viewport state with bounds [west, south, east, north]",
         examples=[{"bounds": [-2.0, 51.0, 0.0, 53.0]}],
     )
+
+    @field_validator('feature_collection', mode='before')
+    @classmethod
+    def accept_unvalidated_fc(cls, v: Any) -> Any:
+        """Accept feature collection as-is without strict validation.
+
+        This allows custom dataType values that aren't in the strict union.
+        We return the raw dict instead of a validated Pydantic model.
+        """
+        # If it's already a dict or DebriefFeatureCollection, pass it through
+        if isinstance(v, (dict, DebriefFeatureCollection)):
+            # Convert to dict if it's a Pydantic model
+            if isinstance(v, DebriefFeatureCollection):
+                return v.model_dump()
+            return v
+        return v
 
 
 def select_all_visible(params: SelectAllVisibleParameters) -> ToolVaultCommand:
@@ -62,8 +78,11 @@ def select_all_visible(params: SelectAllVisibleParameters) -> ToolVaultCommand:
                 payload="No viewport bounds available",
             )
 
+        # feature_collection is a dict (from validator), access as dict
+        fc_dict = params.feature_collection if isinstance(params.feature_collection, dict) else params.feature_collection.model_dump()
+
         # Check if we have features (Dict access)
-        if not params.feature_collection or not params.feature_collection.get("features"):
+        if not fc_dict or not fc_dict.get("features"):
             return ShowTextCommand(payload="No features available")
 
         # Extract viewport bounds [west, south, east, north] (Pydantic model access)
@@ -107,7 +126,7 @@ def select_all_visible(params: SelectAllVisibleParameters) -> ToolVaultCommand:
             return min_lng, min_lat, max_lng, max_lat
 
         # Check each feature for visibility (dict access)
-        for feature in params.feature_collection["features"]:
+        for feature in fc_dict["features"]:
             geometry = feature.get("geometry")
             if not geometry or "coordinates" not in geometry:
                 continue
