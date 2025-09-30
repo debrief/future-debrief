@@ -584,6 +584,9 @@ export class GlobalController implements StateProvider {
                 console.warn('[GlobalController] Updating state with new FC containing', latestFeatureCollection.features.length, 'features (was', currentFeatureCollection.features.length, ')');
                 this.updateState(activeEditorId, 'featureCollection', latestFeatureCollection);
                 console.warn('[GlobalController] Feature collection updated from ToolVaultCommand results');
+
+                // Trigger document update to mark it as dirty and persist changes
+                this.triggerDocumentUpdate(activeEditorId);
             } else {
                 console.warn('[GlobalController] No feature collection to update - commands did not modify features');
             }
@@ -700,6 +703,37 @@ export class GlobalController implements StateProvider {
                 }
             }
         };
+    }
+
+    /**
+     * Trigger a document update to persist feature collection changes
+     * This marks the document as dirty and updates its content
+     */
+    private async triggerDocumentUpdate(editorId: string): Promise<void> {
+        try {
+            const document = (await import('./editorIdManager')).EditorIdManager.getDocument(editorId);
+            if (!document) {
+                console.error('[GlobalController] Cannot trigger document update - document not found for editorId:', editorId);
+                return;
+            }
+
+            const currentState = this.getEditorState(editorId);
+            if (!currentState.featureCollection) {
+                console.warn('[GlobalController] No feature collection to persist for editorId:', editorId);
+                return;
+            }
+
+            // Import StatePersistence dynamically to avoid circular dependencies
+            const { StatePersistence } = await import('./statePersistence');
+            const statePersistence = new StatePersistence(this);
+
+            // Apply the changes to the document
+            statePersistence.saveStateToDocument(document);
+
+            console.warn('[GlobalController] Document updated and marked as dirty for editorId:', editorId);
+        } catch (error) {
+            console.error('[GlobalController] Error triggering document update:', error);
+        }
     }
 
     /**
