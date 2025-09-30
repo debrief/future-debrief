@@ -22942,6 +22942,58 @@
         "coordinates": []
       },
       "id": "back-2"
+    },
+    {
+      "type": "Feature",
+      "id": "debrief-time-metadata",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          []
+        ]
+      },
+      "properties": {
+        "dataType": "metadata",
+        "metadataType": "time",
+        "current": "2024-11-14T16:16:53.661Z",
+        "start": "2024-11-14T16:16:53.661Z",
+        "end": "2024-11-15T10:17:00.000Z"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "debrief-viewport-metadata",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -5.072319522993518,
+              35.21962172377267
+            ],
+            [
+              -2.259819522993518,
+              35.21962172377267
+            ],
+            [
+              -2.259819522993518,
+              36.62587172377267
+            ],
+            [
+              -5.072319522993518,
+              36.62587172377267
+            ],
+            [
+              -5.072319522993518,
+              35.21962172377267
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "dataType": "metadata",
+        "metadataType": "viewport"
+      }
     }
   ],
   "bbox": [

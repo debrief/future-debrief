@@ -28,9 +28,14 @@ export const DebriefFeatures: React.FC<DebriefFeaturesProps> = ({
   onSelectionChange,
   timeState
 }) => {
+  // Filter out metadata features (viewport, time, selection state) - these should not be rendered on the map
+  const renderableFeatures = geoJsonData.features.filter(
+    feature => feature.properties?.dataType !== 'metadata'
+  );
+
   return (
     <>
-      {geoJsonData.features.map((feature, index) => {
+      {renderableFeatures.map((feature, index) => {
         const dataType = feature.properties?.dataType;
         const commonProps = {
           feature,
@@ -44,15 +49,15 @@ export const DebriefFeatures: React.FC<DebriefFeaturesProps> = ({
         if (dataType === 'track' && (feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString')) {
           return <Track key={key} {...commonProps} />;
         }
-        
+
         if (dataType === 'reference-point' && (feature.geometry.type === 'Point' || feature.geometry.type === 'MultiPoint')) {
           return <Point key={key} {...commonProps} />;
         }
-        
+
         if (dataType === 'zone') {
           return <Zone key={key} {...commonProps} />;
         }
-        
+
         // Fallback to standard GeoJSON rendering for unrecognized types
         return <StandardGeoJSON key={key} {...commonProps} />;
       })}
