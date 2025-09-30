@@ -185,7 +185,13 @@
       "Bash(flyctl apps:*)",
       "Bash(jq:*)",
       "Bash(git rev-parse:*)",
-      "Bash(ruff check:*)"
+      "Bash(ruff check:*)",
+      "Bash(docker build:*)",
+      "Bash(docker rm:*)",
+      "Bash(docker run:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker stop:*)"
     ]
   }
 }
