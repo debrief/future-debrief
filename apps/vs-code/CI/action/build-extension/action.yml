@@ -55,6 +55,12 @@ runs:
       shell: bash
       run: pnpm build:vs-code
 
+    - name: Install shared-types Python wheel
+      shell: bash
+      run: |
+        echo "🐍 Installing shared-types Python wheel for Tool Vault..."
+        pip install libs/shared-types/dist/*.whl
+
     - name: Build Tool Vault Package
       shell: bash
       run: |
