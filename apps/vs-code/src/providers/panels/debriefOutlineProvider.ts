@@ -480,14 +480,27 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
   /**
    * Handle tool execution errors with detailed messaging
    */
-  private _handleToolExecutionError(commandName: string, error?: string): void {
+  private async _handleToolExecutionError(commandName: string, error?: string): Promise<void> {
     console.error('[DebriefOutlineProvider] Tool execution error:', {
       tool: commandName,
       error: error
     });
 
-    const detailedMessage = `Tool "${commandName}" failed with error:\n\n${error || 'Unknown error'}`;
-    vscode.window.showErrorMessage(detailedMessage, { modal: true });
+    const errorMessage = error || 'Unknown error';
+    const shortMessage = `Tool "${commandName}" failed`;
+
+    // Show a user-friendly notification with a button to view details
+    const action = await vscode.window.showErrorMessage(
+      shortMessage,
+      'View Details',
+      'Dismiss'
+    );
+
+    if (action === 'View Details') {
+      // Show the full error in a modal dialog
+      const detailedMessage = `Tool "${commandName}" failed with error:\n\n${errorMessage}`;
+      vscode.window.showErrorMessage(detailedMessage, { modal: true });
+    }
   }
 
   /**
