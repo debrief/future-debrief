@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Union
 
 # Use hierarchical imports from shared-types
 from debrief.types.states.selection_state import SelectionState
+from debrief.types.states.viewport_state import ViewportState
 from debrief.types.tools import SetSelectionCommand, ShowTextCommand, ToolVaultCommand
 from pydantic import BaseModel, Field
 
@@ -11,28 +12,32 @@ from pydantic import BaseModel, Field
 class SelectAllVisibleParameters(BaseModel):
     """Parameters for select-all-visible tool."""
 
-    # Use flexible Dict type instead of strict EditorState to handle custom dataTypes
-    editor_state: Dict[str, Any] = Field(
-        description="Current editor state containing viewport bounds and features",
+    # Explicit parameters for better automatic injection
+    # Use Dict for feature_collection to handle custom dataType values flexibly
+    feature_collection: Dict[str, Any] = Field(
+        description="GeoJSON FeatureCollection containing features to check for visibility",
         examples=[
             {
-                "featureCollection": {
-                    "type": "FeatureCollection",
-                    "features": [
-                        {
-                            "type": "Feature",
-                            "id": "track-001",
-                            "geometry": {
-                                "type": "LineString",
-                                "coordinates": [[-1.0, 52.0], [-1.1, 52.1]],
-                            },
-                            "properties": {"dataType": "track", "name": "Track 1"},
-                        }
-                    ],
-                },
-                "viewportState": {"bounds": [-2.0, 51.0, 0.0, 53.0]},
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "id": "track-001",
+                        "geometry": {
+                            "type": "LineString",
+                            "coordinates": [[-1.0, 52.0], [-1.1, 52.1]],
+                        },
+                        "properties": {"dataType": "track", "name": "Track 1"},
+                    }
+                ],
             }
         ],
+    )
+
+    # Use proper Pydantic model for viewport_state
+    viewport_state: ViewportState = Field(
+        description="Current viewport state with bounds [west, south, east, north]",
+        examples=[{"bounds": [-2.0, 51.0, 0.0, 53.0]}],
     )
 
 
@@ -45,27 +50,24 @@ def select_all_visible(params: SelectAllVisibleParameters) -> ToolVaultCommand:
     Returns a setSelection command with the IDs of all visible features.
 
     Args:
-        params: Editor state containing viewport bounds and feature collection
+        params: Parameters containing feature_collection and viewport_state
 
     Returns:
         SetSelectionCommand to update the selection with visible feature IDs
     """
     try:
-        editor_state = params.editor_state
-
-        # Check if we have viewport state and feature collection (dict access)
-        viewport_state = editor_state.get("viewportState")
-        if not viewport_state or not viewport_state.get("bounds"):
+        # Check if we have viewport bounds (Pydantic model access)
+        if not params.viewport_state or not params.viewport_state.bounds:
             return ShowTextCommand(
-                payload="No viewport bounds available in editor state",
+                payload="No viewport bounds available",
             )
 
-        feature_collection = editor_state.get("featureCollection")
-        if not feature_collection or not feature_collection.get("features"):
-            return ShowTextCommand(payload="No features available in editor state")
+        # Check if we have features (Dict access)
+        if not params.feature_collection or not params.feature_collection.get("features"):
+            return ShowTextCommand(payload="No features available")
 
-        # Extract viewport bounds [west, south, east, north]
-        viewport_bounds = viewport_state["bounds"]
+        # Extract viewport bounds [west, south, east, north] (Pydantic model access)
+        viewport_bounds = params.viewport_state.bounds
         west, south, east, north = viewport_bounds
 
         # Find features that are visible (intersect with viewport)
@@ -105,7 +107,7 @@ def select_all_visible(params: SelectAllVisibleParameters) -> ToolVaultCommand:
             return min_lng, min_lat, max_lng, max_lat
 
         # Check each feature for visibility (dict access)
-        for feature in feature_collection["features"]:
+        for feature in params.feature_collection["features"]:
             geometry = feature.get("geometry")
             if not geometry or "coordinates" not in geometry:
                 continue
