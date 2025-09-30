@@ -187,6 +187,9 @@ cd libs/tool-vault-packager && npm run test:playwright
 3. Update dependent packages that use the modified types
 4. Verify TypeScript compilation across all packages with `pnpm typecheck`
 
+### Strict typing during development 
+We are not yet in production, so we are in full control of our data. We should use our TS interfaces from libs/shared-types/src/types whenever possible. We should not be forgiving when handling data - if it's not in the expected format, fail-fast and we can fix it.  Otherwise we defer issue for downstream resolution - which can be much more challenging. 
+
 ### Dependency Management
 - Use `pnpm add` at the root for workspace dependencies
 - Use `pnpm add --filter <package>` for package-specific dependencies
