@@ -230,6 +230,19 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         });
         stateSubscriptions.push(timeSubscription);
 
+        // Subscribe to feature collection changes
+        const featureCollectionSubscription = globalController.on('fcChanged', (data) => {
+            if (data.editorId === editorId && webviewPanel.visible) {
+                console.warn('[PlotJsonEditor] Feature collection changed, updating webview');
+                // Update the webview with the new feature collection
+                webviewPanel.webview.postMessage({
+                    type: 'update',
+                    text: JSON.stringify(data.state.featureCollection, null, 2)
+                });
+            }
+        });
+        stateSubscriptions.push(featureCollectionSubscription);
+
         // Listen for when this webview panel becomes visible (tab switching)
         webviewPanel.onDidChangeViewState(() => {
             const editorId = EditorIdManager.getEditorId(document);
