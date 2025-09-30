@@ -183,7 +183,9 @@
       "Bash(git remote get-url:*)",
       "Bash(gh pr diff:*)",
       "Bash(flyctl apps:*)",
-      "Bash(jq:*)"
+      "Bash(jq:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(ruff check:*)"
     ]
   }
 }

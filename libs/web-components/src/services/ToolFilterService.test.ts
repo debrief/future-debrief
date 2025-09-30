@@ -62,9 +62,9 @@ describe('ToolFilterService', () => {
     },
     properties: {
       dataType: 'zone',
-      name: 'Test Annotation',
-      color: '#FF0000',
-      annotationType: 'area'
+      name: 'Test Zone',
+      fill: '#FF0000',
+      stroke: '#000000'
     }
   });
 

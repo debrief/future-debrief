@@ -122,9 +122,9 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Too
 
         # Just return the feature dict directly in the UpdateFeaturesCommand
         # The command will handle validation
+        from debrief.types.features.annotation import DebriefAnnotationFeature
         from debrief.types.features.point import DebriefPointFeature
         from debrief.types.features.track import DebriefTrackFeature
-        from debrief.types.features.annotation import DebriefAnnotationFeature
 
         # Validate using the specific feature type
         if data_type == "reference-point":
