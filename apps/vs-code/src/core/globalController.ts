@@ -556,6 +556,9 @@ export class GlobalController implements StateProvider {
                 features: []
             };
 
+            console.warn('[GlobalController] Current feature count:', currentFeatureCollection.features.length);
+            console.warn('[GlobalController] Commands to process:', JSON.stringify(commands, null, 2));
+
             // Process commands sequentially
             const results = await this.toolVaultCommandHandler.processCommands(commands, currentFeatureCollection);
 
@@ -567,6 +570,9 @@ export class GlobalController implements StateProvider {
                     // Track the most recent successful feature collection update
                     if (result.featureCollection) {
                         latestFeatureCollection = result.featureCollection;
+                        console.warn(`[GlobalController] Command ${index + 1} returned FC with ${result.featureCollection.features.length} features`);
+                    } else {
+                        console.warn(`[GlobalController] Command ${index + 1} did not return a feature collection`);
                     }
                 } else {
                     console.error(`[GlobalController] Command ${index + 1} failed:`, result.error);
@@ -575,8 +581,11 @@ export class GlobalController implements StateProvider {
 
             // Update feature collection if any command modified it
             if (latestFeatureCollection) {
+                console.warn('[GlobalController] Updating state with new FC containing', latestFeatureCollection.features.length, 'features (was', currentFeatureCollection.features.length, ')');
                 this.updateState(activeEditorId, 'featureCollection', latestFeatureCollection);
                 console.warn('[GlobalController] Feature collection updated from ToolVaultCommand results');
+            } else {
+                console.warn('[GlobalController] No feature collection to update - commands did not modify features');
             }
 
         } catch (error) {
@@ -591,6 +600,16 @@ export class GlobalController implements StateProvider {
     private extractToolVaultCommands(result: unknown): SpecificCommand[] {
         if (!result || typeof result !== 'object') {
             return [];
+        }
+
+        // Unwrap server response format: {result: {...}, isError: false}
+        // Fail-fast if structure is unexpected
+        if ('result' in result && !('command' in result)) {
+            const unwrapped = (result as Record<string, unknown>).result;
+            if (!unwrapped) {
+                throw new Error('Server response has "result" field but it is null/undefined');
+            }
+            return this.extractToolVaultCommands(unwrapped);
         }
 
         // Handle array of commands
