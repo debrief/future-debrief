@@ -33,6 +33,14 @@ class TrackProperties(BaseModel):
         True,
         description="Whether this track is visible"
     )
+    speeds: Optional[List[float]] = Field(
+        None,
+        description="Optional array of speed values corresponding to each coordinate point (m/sec)"
+    )
+    courses: Optional[List[float]] = Field(
+        None,
+        description="Optional array of course values corresponding to each coordinate point (degrees)"
+    )
 
     class Config:
         extra = "forbid"  # Strict validation - no additional properties
