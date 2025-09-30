@@ -7,9 +7,21 @@ from typing import List, Literal, Optional, Union
 from .track import DebriefTrackFeature
 from .point import DebriefPointFeature
 from .annotation import DebriefAnnotationFeature
+from .metadata import MetadataFeature
+from .zone import DebriefZoneFeature
+from .buoyfield import DebriefBuoyfieldFeature
+from .backdrop import DebriefBackdropFeature
 
 # Define DebriefFeature as a union of all Debrief feature types
-DebriefFeature = Union[DebriefTrackFeature, DebriefPointFeature, DebriefAnnotationFeature]
+DebriefFeature = Union[
+    DebriefTrackFeature,
+    DebriefPointFeature,
+    DebriefAnnotationFeature,
+    MetadataFeature,
+    DebriefZoneFeature,
+    DebriefBuoyfieldFeature,
+    DebriefBackdropFeature
+]
 
 
 class FeatureCollectionProperties(BaseModel):

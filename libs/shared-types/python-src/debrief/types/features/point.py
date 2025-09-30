@@ -21,10 +21,6 @@ class PointProperties(BaseModel):
         None,
         description="Single timestamp for this point"
     )
-    timeStart: Optional[datetime] = Field(
-        None,
-        description="Start time for a time range"
-    )
     timeEnd: Optional[datetime] = Field(
         None,
         description="End time for a time range"
@@ -33,13 +29,13 @@ class PointProperties(BaseModel):
         None,
         description="Human readable name for this point"
     )
-    description: Optional[str] = Field(
-        None,
-        description="Additional description or notes for this point"
+    visible: Optional[bool] = Field(
+        True,
+        description="Whether this point is visible"
     )
 
     class Config:
-        extra = "allow"  # Allow additional properties
+        extra = "allow"  # Allow additional properties like marker-color
 
 
 class DebriefPointFeature(Feature[Point, PointProperties]):

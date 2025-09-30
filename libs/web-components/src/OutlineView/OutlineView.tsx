@@ -6,8 +6,11 @@ import {
   VscodeToolbarButton,
   VscodeIcon
 } from '@vscode-elements/react-elements'
-import type { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types'
+import type { DebriefFeatureCollection, Features } from '@debrief/shared-types'
 import { VscTreeSelectEvent } from '@vscode-elements/elements/dist/vscode-tree/vscode-tree'
+
+// Type alias for convenience
+type DebriefFeature = Features[number]
 
 export interface OutlineViewProps {
   featureCollection: DebriefFeatureCollection
@@ -21,7 +24,7 @@ export interface OutlineViewProps {
 }
 
 // Group features by their dataType
-const groupFeaturesByType = (features: DebriefFeature[]) => {
+const groupFeaturesByType = (features: Features) => {
   return features.reduce((acc, feature) => {
     const type = feature.properties?.dataType || 'unknown'
     if (!acc[type]) {
