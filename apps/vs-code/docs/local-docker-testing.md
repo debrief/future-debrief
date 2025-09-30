@@ -41,7 +41,7 @@ For those familiar with the codebase, here's the fastest path to a running conta
 pnpm install
 pnpm --filter @debrief/shared-types build
 pnpm --filter @debrief/web-components build
-cd apps/vs-code && npx @vscode/vsce package --no-dependencies && cd ../..
+cd apps/vs-code && npx @vscode/vsce package --no-dependencies && cp vs-code-0.0.1.vsix ../../ && cd ../..
 docker build -t debrief-vscode-local --build-arg GITHUB_SHA=local --build-arg PR_NUMBER=dev -f apps/vs-code/Dockerfile .
 docker run -p 8080:8080 debrief-vscode-local
 ```
@@ -93,12 +93,22 @@ Navigate to the VS Code extension directory and create the VSIX package:
 ```bash
 cd apps/vs-code
 npx @vscode/vsce package --no-dependencies
-cd ../..
 ```
 
 **Important:** Use the `--no-dependencies` flag because this is a pnpm monorepo. The vsce tool will try to use npm by default, which causes errors with pnpm workspaces.
 
-**Expected output:** `apps/vs-code/vs-code-0.0.1.vsix`
+**Output location:** `apps/vs-code/vs-code-0.0.1.vsix`
+
+### Step 4.5: Copy VSIX to Repository Root
+
+The Dockerfile expects the VSIX at the repository root. Copy it there:
+
+```bash
+cp vs-code-0.0.1.vsix ../../
+cd ../..
+```
+
+Now the VSIX is at `./vs-code-0.0.1.vsix` (repository root), which the Docker build will find.
 
 ### Step 5: Build the Docker Image
 
@@ -298,12 +308,15 @@ debrief-types    1.0.0
 
 **Problem:** `Error: Pre-built vs-code-0.0.1.vsix missing`
 
-**Solution:** Build the VSIX before building the Docker image:
+**Solution:** Build the VSIX and copy it to the repository root before building the Docker image:
 ```bash
 cd apps/vs-code
 npx @vscode/vsce package --no-dependencies
+cp vs-code-0.0.1.vsix ../../
 cd ../..
 ```
+
+The Dockerfile expects the VSIX at the repository root, not in `apps/vs-code/`.
 
 ---
 
@@ -385,8 +398,8 @@ docker run -p 8888:8080 debrief-vscode-local
 pnpm --filter @debrief/shared-types build
 pnpm --filter @debrief/web-components build
 
-# Rebuild VSIX
-cd apps/vs-code && npx @vscode/vsce package --no-dependencies && cd ../..
+# Rebuild VSIX and copy to repository root
+cd apps/vs-code && npx @vscode/vsce package --no-dependencies && cp vs-code-0.0.1.vsix ../../ && cd ../..
 
 # Rebuild Docker image
 docker build -t debrief-vscode-local --build-arg GITHUB_SHA=local --build-arg PR_NUMBER=dev -f apps/vs-code/Dockerfile .

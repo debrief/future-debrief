@@ -53,8 +53,8 @@ Test the extension in a complete Docker environment before deploying to fly.io:
    pnpm --filter @debrief/shared-types build
    pnpm --filter @debrief/web-components build
 
-   # Package extension
-   cd apps/vs-code && npx @vscode/vsce package --no-dependencies && cd ../..
+   # Package extension and copy to repository root
+   cd apps/vs-code && npx @vscode/vsce package --no-dependencies && cp vs-code-0.0.1.vsix ../../ && cd ../..
 
    # Build Docker image
    docker build -t debrief-vscode-local --build-arg GITHUB_SHA=local --build-arg PR_NUMBER=dev -f apps/vs-code/Dockerfile .
