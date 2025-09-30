@@ -29,6 +29,10 @@ class TrackProperties(BaseModel):
         None,
         description="Short name or abbreviation for this track"
     )
+    description: Optional[str] = Field(
+        None,
+        description="Additional description or notes about this track"
+    )
     visible: Optional[bool] = Field(
         True,
         description="Whether this track is visible"
