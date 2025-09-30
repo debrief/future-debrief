@@ -18,6 +18,7 @@ const config: StorybookConfig = {
     disableTelemetry: true,
   },
   features: {
+    storyStoreV7: true,
     buildStoriesJson: true,
   },
 };
