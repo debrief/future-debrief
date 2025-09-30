@@ -1877,3 +1877,53 @@ const outlineComponent = window.DebriefWebComponents.createOutlineViewParent(con
 *Total Sections Compressed: 27 major implementations*  
 
 *Focus: Key decisions, file locations, and navigation for future developers*
+
+---
+
+**Agent:** Claude Implementation Agent  
+**Task Reference:** Issue #168 – Implement delete-features Tool for Tool Vault
+
+**Summary:**
+Created a new Python tool `delete_features` in the Tool Vault Packager that extracts feature IDs from selected features and returns a `DeleteFeaturesCommand` for the VS Code extension to execute. Fixed critical bugs in both CLI serialization and VS Code command extraction.
+
+**Details:**
+- Implemented tool at `libs/tool-vault-packager/tools/delete_features/execute.py` following established patterns
+- Created `DeleteFeaturesParameters` Pydantic model with typed `features` field accepting `List[DebriefFeature]`
+- Implemented `delete_features()` function that extracts feature IDs and returns properly typed `DeleteFeaturesCommand`
+- Fixed type compatibility: converted IDs to strings (`str(f.id)`) since GeoJSON IDs can be `StrictInt | StrictStr` but command expects `List[str]`
+- Created two sample files with correct `dataType` values (`track`, `reference-point`)
+- Added comprehensive Playwright test suite with 3 test cases (all passing)
+
+**Critical Bug Fixes:**
+
+1. **CLI JSON Serialization Bug** (`libs/tool-vault-packager/cli.py:130-142`)
+   - **Problem**: CLI used `default=str` in `json.dumps()`, converting Pydantic models to string representation instead of proper JSON
+   - **Before**: `{"result": "command='deleteFeatures' payload=['test-1']", "isError": false}`
+   - **After**: `{"result": {"command": "deleteFeatures", "payload": ["test-1"]}, "isError": false}`
+   - **Fix**: Added Pydantic model detection and conversion to dict before serialization
+
+2. **VS Code Result Unwrapping Bug** (`apps/vs-code/src/core/globalController.ts:596-602`)
+   - **Problem**: Server response was double-wrapped, causing command extraction to fail
+   - **Before**: `{result: {result: {command: "deleteFeatures", ...}, isError: false}}`
+   - **After**: Command properly extracted from `result.result`
+   - **Fix**: Added unwrapping logic in `extractToolVaultCommands()` to handle server response format
+
+**Output/Result:**
+```python
+# libs/tool-vault-packager/tools/delete_features/execute.py
+def delete_features(params: DeleteFeaturesParameters) -> DeleteFeaturesCommand:
+    """Delete selected features from the current plot."""
+    # Extract feature IDs and convert to strings for type safety
+    feature_ids = [str(f.id) for f in params.features if f.id is not None]
+    return DeleteFeaturesCommand(payload=feature_ids)
+```
+
+**Test Results:**
+- CLI tests: Empty and multi-feature scenarios validated
+- Playwright tests: 3/3 passing (tool visibility, empty selection, multiple features)
+- Package build: All 18 tool tests passing, 209.8 KB package created
+
+**Status:** Implementation complete, bug fixes applied  
+**Issues/Blockers:** Tool execution integration tested - features should be removed from map and outline when tool executes  
+**Next Steps (Optional):** Verify delete functionality works end-to-end in VS Code extension
+
