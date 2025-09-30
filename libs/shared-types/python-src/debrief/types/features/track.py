@@ -29,13 +29,20 @@ class TrackProperties(BaseModel):
         None,
         description="Additional description or notes about this track"
     )
+    visible: Optional[bool] = Field(
+        True,
+        description="Whether this track is visible"
+    )
 
     class Config:
-        extra = "allow"  # Allow additional properties
+        extra = "forbid"  # Strict validation - no additional properties
 
 
 class DebriefTrackFeature(Feature[Union[LineString, MultiLineString], TrackProperties]):
     """A GeoJSON Feature representing a track with LineString or MultiLineString geometry."""
+
+    class Config:
+        extra = "forbid"  # Strict validation - no additional properties
 
     @field_validator('geometry')
     @classmethod

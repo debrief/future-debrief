@@ -34,7 +34,7 @@ class BackdropProperties(BaseModel):
     )
 
     class Config:
-        extra = "allow"  # Allow additional properties
+        extra = "forbid"  # Strict validation - no additional properties
 
 
 class DebriefBackdropFeature(Feature[MultiPoint, BackdropProperties]):
@@ -42,6 +42,9 @@ class DebriefBackdropFeature(Feature[MultiPoint, BackdropProperties]):
 
     Note: Uses MultiPoint with empty coordinates as it's not a geographic feature to render.
     """
+
+    class Config:
+        extra = "forbid"  # Strict validation - no additional properties
 
     @field_validator('geometry')
     @classmethod

@@ -19,7 +19,7 @@ class SystemMetadataProperties(BaseModel):
     )
 
     class Config:
-        extra = "allow"  # Allow additional properties
+        extra = "forbid"  # Strict validation - no additional properties
 
 
 class ViewportMetadataProperties(SystemMetadataProperties):
@@ -65,6 +65,9 @@ class SelectionMetadataProperties(SystemMetadataProperties):
 class ViewportMetadataFeature(Feature[Polygon, ViewportMetadataProperties]):
     """A GeoJSON Feature representing viewport bounds stored as polygon geometry."""
 
+    class Config:
+        extra = "forbid"  # Strict validation - no additional properties
+
     @field_validator('geometry')
     @classmethod
     def validate_viewport_geometry(cls, v):
@@ -77,6 +80,9 @@ class ViewportMetadataFeature(Feature[Polygon, ViewportMetadataProperties]):
 class TimeMetadataFeature(Feature[Polygon, TimeMetadataProperties]):
     """A GeoJSON Feature representing time state metadata."""
 
+    class Config:
+        extra = "forbid"  # Strict validation - no additional properties
+
     @field_validator('geometry')
     @classmethod
     def validate_time_geometry(cls, v):
@@ -88,6 +94,9 @@ class TimeMetadataFeature(Feature[Polygon, TimeMetadataProperties]):
 
 class SelectionMetadataFeature(Feature[Polygon, SelectionMetadataProperties]):
     """A GeoJSON Feature representing selection state metadata."""
+
+    class Config:
+        extra = "forbid"  # Strict validation - no additional properties
 
     @field_validator('geometry')
     @classmethod

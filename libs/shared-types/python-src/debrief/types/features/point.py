@@ -33,13 +33,22 @@ class PointProperties(BaseModel):
         True,
         description="Whether this point is visible"
     )
+    marker_color: Optional[str] = Field(
+        None,
+        alias="marker-color",
+        description="Marker color (hex color code)"
+    )
 
     class Config:
-        extra = "allow"  # Allow additional properties like marker-color
+        extra = "forbid"  # Strict validation - no additional properties
+        populate_by_name = True  # Allow both marker_color and marker-color
 
 
 class DebriefPointFeature(Feature[Point, PointProperties]):
     """A GeoJSON Feature representing a point with time properties."""
+
+    class Config:
+        extra = "forbid"  # Strict validation - no additional properties
 
     @field_validator('geometry')
     @classmethod

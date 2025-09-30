@@ -46,6 +46,11 @@ class ZoneProperties(BaseModel):
         None,
         description="Fill color (hex color code)"
     )
+    fill_opacity: Optional[float] = Field(
+        None,
+        alias="fill-opacity",
+        description="Fill opacity (0.0 to 1.0)"
+    )
     visible: Optional[bool] = Field(
         True,
         description="Whether this zone is visible"
@@ -64,11 +69,15 @@ class ZoneProperties(BaseModel):
     )
 
     class Config:
-        extra = "allow"  # Allow additional properties
+        extra = "forbid"  # Strict validation - no additional properties
+        populate_by_name = True  # Allow both fill_opacity and fill-opacity
 
 
 class DebriefZoneFeature(Feature[Polygon, ZoneProperties]):
     """A GeoJSON Feature representing a maritime zone with polygon geometry."""
+
+    class Config:
+        extra = "forbid"  # Strict validation - no additional properties
 
     @field_validator('geometry')
     @classmethod
