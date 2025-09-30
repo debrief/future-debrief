@@ -31,9 +31,9 @@ class AnnotationType(str, Enum):
 
 class AnnotationProperties(BaseModel):
     """Properties for annotation features."""
-    dataType: Literal["zone"] = Field(
-        "zone",
-        description="Discriminator to identify this as a zone feature"
+    dataType: Literal["annotation"] = Field(
+        "annotation",
+        description="Discriminator to identify this as an annotation feature"
     )
     annotationType: Optional[AnnotationType] = Field(
         None,
