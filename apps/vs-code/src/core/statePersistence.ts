@@ -53,15 +53,17 @@ export class StatePersistence {
         context.subscriptions.push(
             vscode.workspace.onDidOpenTextDocument(this.handleDocumentOpen.bind(this))
         );
-        
+
         context.subscriptions.push(
             vscode.workspace.onDidChangeTextDocument(this.handleDocumentChange.bind(this))
         );
-        
+
+        // Use onWillSaveTextDocument instead of onDidSaveTextDocument
+        // This allows us to modify the document BEFORE it's saved, preventing it from staying dirty
         context.subscriptions.push(
-            vscode.workspace.onDidSaveTextDocument(this.handleDocumentSave.bind(this))
+            vscode.workspace.onWillSaveTextDocument(this.handleDocumentWillSave.bind(this))
         );
-        
+
         // Initialize existing open documents
         vscode.workspace.textDocuments.forEach(doc => {
             if (EditorIdManager.isDebriefPlotFile(doc)) {
@@ -90,12 +92,54 @@ export class StatePersistence {
     }
     
     /**
-     * Handle document saving
+     * Handle document will save - inject metadata before save happens
      */
-    private handleDocumentSave(document: vscode.TextDocument): void {
-        if (EditorIdManager.isDebriefPlotFile(document)) {
-            // Inject current state back into document before save
-            this.saveStateToDocument(document);
+    private handleDocumentWillSave(event: vscode.TextDocumentWillSaveEvent): void {
+        if (!EditorIdManager.isDebriefPlotFile(event.document)) {
+            return;
+        }
+
+        const editorId = EditorIdManager.getEditorId(event.document);
+        const currentState = this.globalController.getEditorState(editorId);
+
+        if (!currentState.featureCollection) {
+            return; // Nothing to save
+        }
+
+        try {
+            // Create metadata features from current state
+            const metadataFeatures = this.createMetadataFeatures(currentState);
+
+            // Combine data features with metadata features
+            const allFeatures = [
+                ...(currentState.featureCollection.features as GeoJSONFeature[]),
+                ...metadataFeatures
+            ];
+
+            // Create final FeatureCollection
+            const finalFeatureCollection: GeoJSONFeatureCollection = {
+                ...currentState.featureCollection,
+                type: "FeatureCollection",
+                features: allFeatures,
+                bbox: currentState.featureCollection.bbox || undefined
+            };
+
+            // Update document content
+            const jsonContent = JSON.stringify(finalFeatureCollection, null, 2);
+
+            // Create edit to replace entire document
+            const fullRange = new vscode.Range(
+                event.document.positionAt(0),
+                event.document.positionAt(event.document.getText().length)
+            );
+
+            // Queue the edit to be applied before save
+            event.waitUntil(
+                Promise.resolve([vscode.TextEdit.replace(fullRange, jsonContent)])
+            );
+
+        } catch (error) {
+            console.error(`Error preparing document save for ${event.document.fileName}:`, error);
         }
     }
     
@@ -125,20 +169,19 @@ export class StatePersistence {
             
             // Extract metadata features and regular features
             const { metadataFeatures, dataFeatures } = this.separateFeatures(geoJson.features);
-            
+
             // Parse metadata features into state objects
-            let extractedState = this.extractMetadataState(metadataFeatures);
-            
+            const extractedState = this.extractMetadataState(metadataFeatures);
+
             // If no timeState from metadata, try to generate one from data features
             if (!extractedState.timeState && dataFeatures.length > 0) {
-                const timeRange = calculateTimeRange(dataFeatures as any);
+                const timeRange = calculateTimeRange(dataFeatures as GeoJSONFeature[]);
                 if (timeRange) {
                     extractedState.timeState = {
                         current: timeRange[0], // Start at beginning of time range
                         start: timeRange[0],
                         end: timeRange[1]
                     };
-                } else {
                 }
             }
             

@@ -1,39 +1,60 @@
 """Select all features that are visible within the current viewport bounds."""
 
-from typing import List, Union
+from typing import Any, List, Union
 
 # Use hierarchical imports from shared-types
-from debrief.types.states.editor_state import EditorState
+from debrief.types.features import DebriefFeatureCollection
 from debrief.types.states.selection_state import SelectionState
+from debrief.types.states.viewport_state import ViewportState
 from debrief.types.tools import SetSelectionCommand, ShowTextCommand, ToolVaultCommand
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class SelectAllVisibleParameters(BaseModel):
     """Parameters for select-all-visible tool."""
 
-    editor_state: EditorState = Field(
-        description="Current editor state containing viewport bounds and features",
+    # Use DebriefFeatureCollection type for auto-injection, but accept unvalidated data
+    # The validator converts it to a plain dict to handle custom dataTypes
+    feature_collection: DebriefFeatureCollection = Field(
+        description="GeoJSON FeatureCollection containing features to check for visibility",
         examples=[
             {
-                "featureCollection": {
-                    "type": "FeatureCollection",
-                    "features": [
-                        {
-                            "type": "Feature",
-                            "id": "track-001",
-                            "geometry": {
-                                "type": "LineString",
-                                "coordinates": [[-1.0, 52.0], [-1.1, 52.1]],
-                            },
-                            "properties": {"dataType": "track", "name": "Track 1"},
-                        }
-                    ],
-                },
-                "viewportState": {"bounds": [-2.0, 51.0, 0.0, 53.0]},
+                "type": "FeatureCollection",
+                "features": [
+                    {
+                        "type": "Feature",
+                        "id": "track-001",
+                        "geometry": {
+                            "type": "LineString",
+                            "coordinates": [[-1.0, 52.0], [-1.1, 52.1]],
+                        },
+                        "properties": {"dataType": "track", "name": "Track 1"},
+                    }
+                ],
             }
         ],
     )
+
+    viewport_state: ViewportState = Field(
+        description="Current viewport state with bounds [west, south, east, north]",
+        examples=[{"bounds": [-2.0, 51.0, 0.0, 53.0]}],
+    )
+
+    @field_validator("feature_collection", mode="before")
+    @classmethod
+    def accept_unvalidated_fc(cls, v: Any) -> Any:
+        """Accept feature collection as-is without strict validation.
+
+        This allows custom dataType values that aren't in the strict union.
+        We return the raw dict instead of a validated Pydantic model.
+        """
+        # If it's already a dict or DebriefFeatureCollection, pass it through
+        if isinstance(v, (dict, DebriefFeatureCollection)):
+            # Convert to dict if it's a Pydantic model
+            if isinstance(v, DebriefFeatureCollection):
+                return v.model_dump()
+            return v
+        return v
 
 
 def select_all_visible(params: SelectAllVisibleParameters) -> ToolVaultCommand:
@@ -45,25 +66,31 @@ def select_all_visible(params: SelectAllVisibleParameters) -> ToolVaultCommand:
     Returns a setSelection command with the IDs of all visible features.
 
     Args:
-        params: Editor state containing viewport bounds and feature collection
+        params: Parameters containing feature_collection and viewport_state
 
     Returns:
         SetSelectionCommand to update the selection with visible feature IDs
     """
     try:
-        editor_state = params.editor_state
-
-        # Check if we have viewport state and feature collection
-        if not editor_state.viewportState or not editor_state.viewportState.bounds:
+        # Check if we have viewport bounds (Pydantic model access)
+        if not params.viewport_state or not params.viewport_state.bounds:
             return ShowTextCommand(
-                payload="No viewport bounds available in editor state",
+                payload="No viewport bounds available",
             )
 
-        if not editor_state.featureCollection or not editor_state.featureCollection.features:
-            return ShowTextCommand(payload="No features available in editor state")
+        # feature_collection is a dict (from validator), access as dict
+        fc_dict = (
+            params.feature_collection
+            if isinstance(params.feature_collection, dict)
+            else params.feature_collection.model_dump()
+        )
 
-        # Extract viewport bounds [west, south, east, north]
-        viewport_bounds = editor_state.viewportState.bounds
+        # Check if we have features (Dict access)
+        if not fc_dict or not fc_dict.get("features"):
+            return ShowTextCommand(payload="No features available")
+
+        # Extract viewport bounds [west, south, east, north] (Pydantic model access)
+        viewport_bounds = params.viewport_state.bounds
         west, south, east, north = viewport_bounds
 
         # Find features that are visible (intersect with viewport)
@@ -102,12 +129,13 @@ def select_all_visible(params: SelectAllVisibleParameters) -> ToolVaultCommand:
             process_coords(coordinates)
             return min_lng, min_lat, max_lng, max_lat
 
-        # Check each feature for visibility
-        for feature in editor_state.featureCollection.features:
-            if not feature.geometry or not hasattr(feature.geometry, "coordinates"):
+        # Check each feature for visibility (dict access)
+        for feature in fc_dict["features"]:
+            geometry = feature.get("geometry")
+            if not geometry or "coordinates" not in geometry:
                 continue
 
-            coordinates = feature.geometry.coordinates
+            coordinates = geometry["coordinates"]
             if not coordinates:
                 continue
 
@@ -121,8 +149,8 @@ def select_all_visible(params: SelectAllVisibleParameters) -> ToolVaultCommand:
                 if bounds_intersect(feature_west, feature_south, feature_east, feature_north):
                     # Feature is visible - add its ID
                     feature_id = (
-                        feature.id
-                        if hasattr(feature, "id") and feature.id is not None
+                        feature.get("id")
+                        if feature.get("id") is not None
                         else f"feature_{len(visible_feature_ids)}"
                     )
                     visible_feature_ids.append(feature_id)

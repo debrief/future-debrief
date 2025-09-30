@@ -102,15 +102,19 @@ class ToolVaultServer:
                 # Get the path to the current .pyz file
                 pyz_path = sys.argv[0] if str(sys.argv[0]).endswith(".pyz") else None
                 if pyz_path:
-                    with zipfile.ZipFile(pyz_path, 'r') as archive:
-                        index_content = archive.read('index.json').decode('utf-8')
+                    with zipfile.ZipFile(pyz_path, "r") as archive:
+                        index_content = archive.read("index.json").decode("utf-8")
                         self.index_data = json.loads(index_content)
-                        print(f"Loaded pre-built index with {len(self.index_data.get('tools', []))} tools from package")
+                        print(
+                            f"Loaded pre-built index with {len(self.index_data.get('tools', []))} tools from package"
+                        )
                 else:
                     # Fallback for other archive modes
-                    with open('index.json', 'r') as f:
+                    with open("index.json", "r") as f:
                         self.index_data = json.load(f)
-                        print(f"Loaded pre-built index with {len(self.index_data.get('tools', []))} tools")
+                        print(
+                            f"Loaded pre-built index with {len(self.index_data.get('tools', []))} tools"
+                        )
             else:
                 # Development mode - generate index metadata
                 self.index_data = generate_index_json(self.tools)
@@ -463,11 +467,15 @@ class ToolVaultServer:
                             raise
                         # Try next tool
                         continue
-                raise HTTPException(status_code=404, detail=f"Sample file '{sample_file}' not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Sample file '{sample_file}' not found"
+                )
 
             file_path = self.samples_by_name.get(sample_file)
             if file_path is None or not file_path.exists():
-                raise HTTPException(status_code=404, detail=f"Sample file '{sample_file}' not found")
+                raise HTTPException(
+                    status_code=404, detail=f"Sample file '{sample_file}' not found"
+                )
 
             try:
                 content = file_path.read_text(encoding="utf-8")

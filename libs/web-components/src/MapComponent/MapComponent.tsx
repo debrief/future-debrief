@@ -144,6 +144,17 @@ export const MapComponent: React.FC<MapComponentProps> = ({
   }, [geoJsonData, parseGeoJsonData]);
 
 
+  // Apply initialMapState when it changes (for view restoration)
+  useEffect(() => {
+    if (initialMapState && mapRef.current) {
+      mapRef.current.setView(
+        initialMapState.center,
+        initialMapState.zoom,
+        { animate: false }
+      );
+    }
+  }, [initialMapState]);
+
   // Auto fit bounds when no initial viewport and data is loaded
   useEffect(() => {
     if (!initialMapState && currentData && currentData.features.length > 0 && mapRef.current) {

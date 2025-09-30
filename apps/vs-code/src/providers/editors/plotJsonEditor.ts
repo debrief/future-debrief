@@ -230,6 +230,19 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         });
         stateSubscriptions.push(timeSubscription);
 
+        // Subscribe to feature collection changes
+        const featureCollectionSubscription = globalController.on('fcChanged', (data) => {
+            if (data.editorId === editorId && webviewPanel.visible) {
+                console.warn('[PlotJsonEditor] Feature collection changed, updating webview');
+                // Update the webview with the new feature collection
+                webviewPanel.webview.postMessage({
+                    type: 'update',
+                    text: JSON.stringify(data.state.featureCollection, null, 2)
+                });
+            }
+        });
+        stateSubscriptions.push(featureCollectionSubscription);
+
         // Listen for when this webview panel becomes visible (tab switching)
         webviewPanel.onDidChangeViewState(() => {
             const editorId = EditorIdManager.getEditorId(document);
@@ -721,7 +734,15 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
     private syncWebviewWithGlobalState(webviewPanel: vscode.WebviewPanel, editorId: string): void {
         const globalController = GlobalController.getInstance();
         const state = globalController.getEditorState(editorId);
-        
+
+        // Sync feature collection (most important - must come first)
+        if (state.featureCollection) {
+            webviewPanel.webview.postMessage({
+                type: 'update',
+                text: JSON.stringify(state.featureCollection, null, 2)
+            });
+        }
+
         // Sync selection
         if (state.selectionState?.selectedIds) {
             webviewPanel.webview.postMessage({
@@ -729,7 +750,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
                 featureIds: state.selectionState.selectedIds
             });
         }
-        
+
         // Sync viewport
         if (state.viewportState?.bounds) {
             const mapState = PlotJsonEditorProvider.convertBoundsToMapState(state.viewportState.bounds);

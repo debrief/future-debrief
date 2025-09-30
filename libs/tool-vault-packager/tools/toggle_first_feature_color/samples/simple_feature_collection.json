@@ -21,32 +21,27 @@
     }
   },
   "expectedOutput": {
-    "command": "setFeatureCollection",
-    "payload": {
-      "type": "FeatureCollection",
-      "features": [
-        {
-          "type": "Feature",
-          "geometry": {
-            "type": "Point",
-            "coordinates": [
-              0.0,
-              0.0
-            ]
-          },
-          "properties": {
-            "dataType": "reference-point",
-            "time": null,
-            "timeStart": null,
-            "timeEnd": null,
-            "name": "Test Point",
-            "description": null,
-            "color": "blue"
-          }
+    "command": "updateFeatures",
+    "payload": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            0.0,
+            0.0
+          ]
+        },
+        "properties": {
+          "dataType": "reference-point",
+          "time": null,
+          "timeStart": null,
+          "timeEnd": null,
+          "name": "Test Point",
+          "description": null,
+          "color": "#0000FF"
         }
-      ],
-      "bbox": null,
-      "properties": null
-    }
+      }
+    ]
   }
 }

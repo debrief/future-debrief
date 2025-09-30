@@ -418,6 +418,7 @@ export class GlobalController implements StateProvider {
         if (!validation.canExecute) {
             const error = `Cannot execute tool "${toolSchema.name}": missing required parameters: ${validation.missingParams.join(', ')}`;
             console.error('[GlobalController]', error);
+            this.showToolExecutionError(toolSchema.name, error);
             return {
                 success: false,
                 error
@@ -434,8 +435,14 @@ export class GlobalController implements StateProvider {
         console.warn('[GlobalController] Injected parameters:', Object.keys(injectedParameters));
 
         // Execute the tool with the complete parameter set
-        // Note: executeTool already processes ToolVaultCommands, so no additional processing needed
-        return this.executeTool(toolSchema.name, injectedParameters);
+        const result = await this.executeTool(toolSchema.name, injectedParameters);
+
+        // Show error notification if execution failed
+        if (!result.success && result.error) {
+            this.showToolExecutionError(toolSchema.name, result.error);
+        }
+
+        return result;
     }
 
     /**
@@ -556,6 +563,9 @@ export class GlobalController implements StateProvider {
                 features: []
             };
 
+            console.warn('[GlobalController] Current feature count:', currentFeatureCollection.features.length);
+            console.warn('[GlobalController] Commands to process:', JSON.stringify(commands, null, 2));
+
             // Process commands sequentially
             const results = await this.toolVaultCommandHandler.processCommands(commands, currentFeatureCollection);
 
@@ -567,6 +577,9 @@ export class GlobalController implements StateProvider {
                     // Track the most recent successful feature collection update
                     if (result.featureCollection) {
                         latestFeatureCollection = result.featureCollection;
+                        console.warn(`[GlobalController] Command ${index + 1} returned FC with ${result.featureCollection.features.length} features`);
+                    } else {
+                        console.warn(`[GlobalController] Command ${index + 1} did not return a feature collection`);
                     }
                 } else {
                     console.error(`[GlobalController] Command ${index + 1} failed:`, result.error);
@@ -575,8 +588,14 @@ export class GlobalController implements StateProvider {
 
             // Update feature collection if any command modified it
             if (latestFeatureCollection) {
+                console.warn('[GlobalController] Updating state with new FC containing', latestFeatureCollection.features.length, 'features (was', currentFeatureCollection.features.length, ')');
                 this.updateState(activeEditorId, 'featureCollection', latestFeatureCollection);
                 console.warn('[GlobalController] Feature collection updated from ToolVaultCommand results');
+
+                // Trigger document update to mark it as dirty and persist changes
+                this.triggerDocumentUpdate(activeEditorId);
+            } else {
+                console.warn('[GlobalController] No feature collection to update - commands did not modify features');
             }
 
         } catch (error) {
@@ -591,6 +610,16 @@ export class GlobalController implements StateProvider {
     private extractToolVaultCommands(result: unknown): SpecificCommand[] {
         if (!result || typeof result !== 'object') {
             return [];
+        }
+
+        // Unwrap server response format: {result: {...}, isError: false}
+        // Fail-fast if structure is unexpected
+        if ('result' in result && !('command' in result)) {
+            const unwrapped = (result as Record<string, unknown>).result;
+            if (!unwrapped) {
+                throw new Error('Server response has "result" field but it is null/undefined');
+            }
+            return this.extractToolVaultCommands(unwrapped);
         }
 
         // Handle array of commands
@@ -681,6 +710,68 @@ export class GlobalController implements StateProvider {
                 }
             }
         };
+    }
+
+    /**
+     * Show a user-friendly error notification for tool execution failures
+     */
+    private async showToolExecutionError(toolName: string, error: string): Promise<void> {
+        const shortMessage = `Tool "${toolName}" failed`;
+
+        // Show a user-friendly notification with a button to view details
+        const action = await vscode.window.showErrorMessage(
+            shortMessage,
+            'View Details',
+            'Dismiss'
+        );
+
+        if (action === 'View Details') {
+            // Show the full error in a new document tab
+            const detailedMessage = `Tool Execution Error
+============================
+Tool: ${toolName}
+Time: ${new Date().toISOString()}
+
+Error Details:
+${error}`;
+
+            const doc = await vscode.workspace.openTextDocument({
+                content: detailedMessage,
+                language: 'plaintext'
+            });
+            await vscode.window.showTextDocument(doc, { preview: false });
+        }
+    }
+
+    /**
+     * Trigger a document update to persist feature collection changes
+     * This marks the document as dirty and updates its content
+     */
+    private async triggerDocumentUpdate(editorId: string): Promise<void> {
+        try {
+            const document = (await import('./editorIdManager')).EditorIdManager.getDocument(editorId);
+            if (!document) {
+                console.error('[GlobalController] Cannot trigger document update - document not found for editorId:', editorId);
+                return;
+            }
+
+            const currentState = this.getEditorState(editorId);
+            if (!currentState.featureCollection) {
+                console.warn('[GlobalController] No feature collection to persist for editorId:', editorId);
+                return;
+            }
+
+            // Import StatePersistence dynamically to avoid circular dependencies
+            const { StatePersistence } = await import('./statePersistence');
+            const statePersistence = new StatePersistence(this);
+
+            // Apply the changes to the document
+            statePersistence.saveStateToDocument(document);
+
+            console.warn('[GlobalController] Document updated and marked as dirty for editorId:', editorId);
+        } catch (error) {
+            console.error('[GlobalController] Error triggering document update:', error);
+        }
     }
 
     /**

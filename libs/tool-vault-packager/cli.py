@@ -127,8 +127,18 @@ def call_tool_command(tools_path: str, tool_name: str, arguments: Dict[str, Any]
         # Execute the tool with Pydantic support
         result = call_tool_with_pydantic_support(tool, arguments)
 
-        # Print result as JSON
-        output = {"result": result, "isError": False}
+        # Convert Pydantic models to dictionaries for proper JSON serialization
+        if hasattr(result, "model_dump"):
+            # Pydantic v2 - use mode='json' to handle datetime serialization
+            result_data = result.model_dump(mode='json')
+        elif hasattr(result, "dict"):
+            # Pydantic v1
+            result_data = result.dict()
+        else:
+            result_data = result
+
+        # Print result as JSON with fallback for non-serializable types
+        output = {"result": result_data, "isError": False}
         print(json.dumps(output, indent=2, default=str))
 
     except TypeError as e:

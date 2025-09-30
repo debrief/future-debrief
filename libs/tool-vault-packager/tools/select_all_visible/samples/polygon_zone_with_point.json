@@ -1,47 +1,42 @@
 {
   "input": {
-    "editor_state": {
-      "featureCollection": {
-        "type": "FeatureCollection",
-        "features": [
-          {
-            "type": "Feature",
-            "id": "zone-001",
-            "geometry": {
-              "type": "Polygon",
-              "coordinates": [[
-                [-1.5, 51.5],
-                [-0.5, 51.5],
-                [-0.5, 52.5],
-                [-1.5, 52.5],
-                [-1.5, 51.5]
-              ]]
-            },
-            "properties": {
-              "dataType": "zone",
-              "name": "Zone Partially In Viewport"
-            }
+    "feature_collection": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "id": "zone-001",
+          "geometry": {
+            "type": "Polygon",
+            "coordinates": [[
+              [-1.5, 51.5],
+              [-0.5, 51.5],
+              [-0.5, 52.5],
+              [-1.5, 52.5],
+              [-1.5, 51.5]
+            ]]
           },
-          {
-            "type": "Feature",
-            "id": "annotation-001",
-            "geometry": {
-              "type": "Point",
-              "coordinates": [-1.0, 52.0]
-            },
-            "properties": {
-              "dataType": "reference-point",
-              "name": "Point At Center"
-            }
+          "properties": {
+            "dataType": "zone",
+            "name": "Zone Partially In Viewport"
           }
-        ]
-      },
-      "viewportState": {
-        "bounds": [-1.5, 51.8, -0.5, 52.8]
-      },
-      "selectionState": {
-        "selectedIds": ["zone-001"]
-      }
+        },
+        {
+          "type": "Feature",
+          "id": "annotation-001",
+          "geometry": {
+            "type": "Point",
+            "coordinates": [-1.0, 52.0]
+          },
+          "properties": {
+            "dataType": "reference-point",
+            "name": "Point At Center"
+          }
+        }
+      ]
+    },
+    "viewport_state": {
+      "bounds": [-1.5, 51.8, -0.5, 52.8]
     }
   },
   "expectedOutput": {

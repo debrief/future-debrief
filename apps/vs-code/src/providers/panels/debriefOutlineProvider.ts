@@ -443,31 +443,27 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
         }
 
         // Execute with automatic parameter injection
+        // GlobalController will handle error display
         const result = await this._globalController.executeToolWithInjection(
           toolSchema,
           typedSelectedFeatures,
           userInputValues
         );
 
-        if (!result.success) {
-          this._handleToolExecutionError(commandName, result.error);
-          return;
+        if (result.success) {
+          this._handleToolExecutionSuccess(commandName, result.result);
         }
-
-        this._handleToolExecutionSuccess(commandName, result.result);
       } else {
         // Tool can be fully auto-injected
+        // GlobalController will handle error display
         const result = await this._globalController.executeToolWithInjection(
           toolSchema,
           typedSelectedFeatures
         );
 
-        if (!result.success) {
-          this._handleToolExecutionError(commandName, result.error);
-          return;
+        if (result.success) {
+          this._handleToolExecutionSuccess(commandName, result.result);
         }
-
-        this._handleToolExecutionSuccess(commandName, result.result);
       }
 
     } catch (error) {
@@ -475,19 +471,6 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
       console.error('[DebriefOutlineProvider] Tool execution error:', error);
       vscode.window.showErrorMessage(errorMessage);
     }
-  }
-
-  /**
-   * Handle tool execution errors with detailed messaging
-   */
-  private _handleToolExecutionError(commandName: string, error?: string): void {
-    console.error('[DebriefOutlineProvider] Tool execution error:', {
-      tool: commandName,
-      error: error
-    });
-
-    const detailedMessage = `Tool "${commandName}" failed with error:\n\n${error || 'Unknown error'}`;
-    vscode.window.showErrorMessage(detailedMessage, { modal: true });
   }
 
   /**
