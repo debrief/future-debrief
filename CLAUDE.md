@@ -182,8 +182,8 @@ cd libs/tool-vault-packager && npm run test:playwright
 4. **Test integration** across the full stack
 
 ### Making Changes to Shared Types
-1. Update JSON schemas in `libs/shared-types/schemas/features/` or `schemas/states/`
-2. Run `pnpm --filter @debrief/shared-types build` to regenerate types
+1. Update Pydantic models in `libs/shared-types/python-src/debrief/types/` (these are the master schemas)
+2. Run `pnpm --filter @debrief/shared-types build` to regenerate JSON schemas and TypeScript types
 3. Update dependent packages that use the modified types
 4. Verify TypeScript compilation across all packages with `pnpm typecheck`
 
