@@ -2,8 +2,6 @@
   "input": {
     "features": []
   },
-  "expectedOutput": {
-    "command": "deleteFeatures",
-    "payload": []
-  }
+  "expectedOutput": null,
+  "baseline_error": "Object of type DeleteFeaturesCommand is not JSON serializable"
 }

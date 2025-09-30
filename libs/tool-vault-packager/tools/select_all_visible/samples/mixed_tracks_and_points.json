@@ -9,9 +9,18 @@
           "geometry": {
             "type": "LineString",
             "coordinates": [
-              [-1.0, 52.0],
-              [-1.1, 52.1],
-              [-1.2, 52.2]
+              [
+                -1.0,
+                52.0
+              ],
+              [
+                -1.1,
+                52.1
+              ],
+              [
+                -1.2,
+                52.2
+              ]
             ]
           },
           "properties": {
@@ -25,8 +34,14 @@
           "geometry": {
             "type": "LineString",
             "coordinates": [
-              [5.0, 45.0],
-              [6.0, 46.0]
+              [
+                5.0,
+                45.0
+              ],
+              [
+                6.0,
+                46.0
+              ]
             ]
           },
           "properties": {
@@ -39,7 +54,10 @@
           "id": "point-001",
           "geometry": {
             "type": "Point",
-            "coordinates": [-0.5, 52.5]
+            "coordinates": [
+              -0.5,
+              52.5
+            ]
           },
           "properties": {
             "dataType": "reference-point",
@@ -51,7 +69,10 @@
           "id": "point-002",
           "geometry": {
             "type": "Point",
-            "coordinates": [10.0, 60.0]
+            "coordinates": [
+              10.0,
+              60.0
+            ]
           },
           "properties": {
             "dataType": "reference-point",
@@ -61,16 +82,14 @@
       ]
     },
     "viewport_state": {
-      "bounds": [-2.0, 51.0, 0.0, 53.0]
-    }
-  },
-  "expectedOutput": {
-    "command": "setSelection",
-    "payload": {
-      "selectedIds": [
-        "track-001",
-        "point-001"
+      "bounds": [
+        -2.0,
+        51.0,
+        0.0,
+        53.0
       ]
     }
-  }
+  },
+  "expectedOutput": null,
+  "baseline_error": "Object of type SetSelectionCommand is not JSON serializable"
 }

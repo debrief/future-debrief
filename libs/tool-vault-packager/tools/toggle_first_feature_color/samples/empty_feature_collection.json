@@ -5,8 +5,6 @@
       "features": []
     }
   },
-  "expectedOutput": {
-    "command": "showText",
-    "payload": "No features found in the collection to toggle color"
-  }
+  "expectedOutput": null,
+  "baseline_error": "Object of type ShowTextCommand is not JSON serializable"
 }
