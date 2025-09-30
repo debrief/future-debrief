@@ -114,7 +114,7 @@ def viewport_grid_generator(params: ViewportGridGeneratorParameters) -> ToolVaul
             "id": "generated_grid",
             "geometry": {"type": "MultiPoint", "coordinates": grid_points},
             "properties": {
-                "dataType": "zone",
+                "dataType": "annotation",
                 "annotationType": "boundary",
                 "name": "Generated Grid",
                 "description": f"Grid with {len(grid_points)} points at {lat_interval}° lat × {lon_interval}° lon intervals",
