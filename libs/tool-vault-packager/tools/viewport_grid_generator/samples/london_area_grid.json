@@ -162,13 +162,14 @@
           ]
         },
         "properties": {
-          "dataType": "zone",
+          "dataType": "annotation",
           "annotationType": "boundary",
           "text": null,
           "color": "#0066CC",
           "time": null,
           "name": "Generated Grid",
-          "description": "Grid with 35 points at 0.05\u00b0 lat \u00d7 0.05\u00b0 lon intervals"
+          "description": "Grid with 35 points at 0.05\u00b0 lat \u00d7 0.05\u00b0 lon intervals",
+          "visible": true
         },
         "id": "generated_grid"
       }

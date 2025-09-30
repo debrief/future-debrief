@@ -6,7 +6,8 @@
         {
           "type": "Feature",
           "properties": {
-            "color": "blue",
+            "dataType": "reference-point",
+            "marker-color": "blue",
             "name": "First Feature"
           },
           "geometry": {
@@ -20,7 +21,8 @@
         {
           "type": "Feature",
           "properties": {
-            "color": "green",
+            "dataType": "reference-point",
+            "marker-color": "green",
             "name": "Second Feature"
           },
           "geometry": {
@@ -49,11 +51,10 @@
         "properties": {
           "dataType": "reference-point",
           "time": null,
-          "timeStart": null,
           "timeEnd": null,
           "name": "First Feature",
-          "description": null,
-          "color": "#FF0000"
+          "visible": true,
+          "marker-color": "#FF0000"
         }
       }
     ]
