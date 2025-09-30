@@ -1,0 +1,9 @@
+{
+  "input": {
+    "features": []
+  },
+  "expectedOutput": {
+    "command": "deleteFeatures",
+    "payload": []
+  }
+}
