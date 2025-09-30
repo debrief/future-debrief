@@ -2,9 +2,9 @@
 
 from debrief.types.features import DebriefFeatureCollection
 from debrief.types.tools import (
-    UpdateFeaturesCommand,
     ShowTextCommand,
     ToolVaultCommand,
+    UpdateFeaturesCommand,
 )
 from pydantic import BaseModel, Field, ValidationError
 
@@ -110,10 +110,9 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Too
 
         # Re-validate using the feature collection model to handle the union type properly
         # This ensures the feature is validated as the correct subtype
-        updated_collection = DebriefFeatureCollection.model_validate({
-            "type": "FeatureCollection",
-            "features": [feature_dict]
-        })
+        updated_collection = DebriefFeatureCollection.model_validate(
+            {"type": "FeatureCollection", "features": [feature_dict]}
+        )
 
         # Extract the validated feature and return UpdateFeaturesCommand
         return UpdateFeaturesCommand(payload=[updated_collection.features[0]])

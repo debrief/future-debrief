@@ -1,13 +1,13 @@
 """Select all features that are visible within the current viewport bounds."""
 
-from typing import Any, Dict, List, Union
+from typing import Any, List, Union
 
 # Use hierarchical imports from shared-types
 from debrief.types.features import DebriefFeatureCollection
 from debrief.types.states.selection_state import SelectionState
 from debrief.types.states.viewport_state import ViewportState
 from debrief.types.tools import SetSelectionCommand, ShowTextCommand, ToolVaultCommand
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class SelectAllVisibleParameters(BaseModel):
@@ -40,7 +40,7 @@ class SelectAllVisibleParameters(BaseModel):
         examples=[{"bounds": [-2.0, 51.0, 0.0, 53.0]}],
     )
 
-    @field_validator('feature_collection', mode='before')
+    @field_validator("feature_collection", mode="before")
     @classmethod
     def accept_unvalidated_fc(cls, v: Any) -> Any:
         """Accept feature collection as-is without strict validation.
@@ -79,7 +79,11 @@ def select_all_visible(params: SelectAllVisibleParameters) -> ToolVaultCommand:
             )
 
         # feature_collection is a dict (from validator), access as dict
-        fc_dict = params.feature_collection if isinstance(params.feature_collection, dict) else params.feature_collection.model_dump()
+        fc_dict = (
+            params.feature_collection
+            if isinstance(params.feature_collection, dict)
+            else params.feature_collection.model_dump()
+        )
 
         # Check if we have features (Dict access)
         if not fc_dict or not fc_dict.get("features"):
