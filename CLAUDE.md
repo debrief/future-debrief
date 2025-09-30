@@ -196,6 +196,13 @@ We are not yet in production, so we are in full control of our data. We should u
 - **Exception**: Tool Vault Packager uses `npm install` due to Docker constraints
 - Never add dependencies between apps (apps → apps forbidden)
 
+### Docker Local Testing
+- **Local Docker Testing**: Test VS Code extension in Docker before deploying to fly.io
+- **Documentation**: Complete guide at `apps/vs-code/docs/local-docker-testing.md`
+- **Benefits**: Faster iteration, no deployment costs, easier debugging
+- **Same Environment**: Uses the exact same Dockerfile as fly.io deployment
+- **Quick Start**: `docker build -t debrief-vscode-local --build-arg GITHUB_SHA=local --build-arg PR_NUMBER=dev -f apps/vs-code/Dockerfile .`
+
 ### Fly.io Cost Management
 - **Cleanup Script**: Use `./scripts/cleanup-flyio-apps.sh` to check for orphaned PR apps (safe default)
 - **Cost Prevention**: PR preview apps can accumulate significant fly.io costs if not cleaned up

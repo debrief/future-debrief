@@ -6,6 +6,14 @@ This document outlines the complete Fly.io infrastructure setup for deploying co
 
 The Fly.io setup enables dynamic creation and destruction of preview environments for each pull request. Each environment is accessible at `https://pr-<pr_number>-futuredebrief.fly.dev` and provides a browser-based VS Code experience with the Debrief extension pre-installed.
 
+## Local Testing First
+
+Before deploying to fly.io, consider testing locally with Docker to save time and costs:
+
+- **Local Docker Testing Guide**: [docs/local-docker-testing.md](local-docker-testing.md)
+- **Why Test Locally**: Faster iteration, no deployment costs, easier debugging
+- **Same Environment**: Uses the exact same Dockerfile as fly.io deployment
+
 ## Prerequisites
 
 1. **Fly CLI Installation**: The Fly CLI has been installed locally at `/Users/ian/.fly/bin/flyctl`

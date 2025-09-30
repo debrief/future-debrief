@@ -35,6 +35,11 @@ module.exports = [
       'node_modules/**',
       '**/*.js.map',
       'eslint.config.js', // Ignore ESLint config file itself
+      'media/**', // Ignore generated web components
+      'schemas/**', // Ignore generated JSON schemas
+      'scripts/**', // Ignore validation scripts
+      'jest.config.cjs', // Ignore Jest config
+      '**/*.vsix', // Ignore VSIX packages
     ],
   },
 ];
