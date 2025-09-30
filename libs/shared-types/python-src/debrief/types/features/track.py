@@ -25,17 +25,21 @@ class TrackProperties(BaseModel):
         None,
         description="Human readable name for this track"
     )
-    description: Optional[str] = Field(
+    shortName: Optional[str] = Field(
         None,
-        description="Additional description or notes about this track"
+        description="Short name or abbreviation for this track"
     )
     visible: Optional[bool] = Field(
         True,
         description="Whether this track is visible"
     )
+    stroke: Optional[str] = Field(
+        None,
+        description="Stroke color (hex color code)"
+    )
     speeds: Optional[List[float]] = Field(
         None,
-        description="Optional array of speed values corresponding to each coordinate point (m/sec)"
+        description="Optional array of speed values corresponding to each coordinate point"
     )
     courses: Optional[List[float]] = Field(
         None,

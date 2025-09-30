@@ -30,12 +30,12 @@ export function validateTimestampsLength(feature: DebriefTrackFeature): boolean 
 
   if (!feature.geometry) return false;
   const coordinates = feature.geometry.coordinates;
-  
+
   // Handle LineString geometry
   if (feature.geometry.type === "LineString") {
     return feature.properties.timestamps.length === coordinates.length;
   }
-  
+
   // Handle MultiLineString geometry
   if (feature.geometry.type === "MultiLineString") {
     // Calculate total points across all LineStrings
@@ -43,7 +43,7 @@ export function validateTimestampsLength(feature: DebriefTrackFeature): boolean 
       .reduce((sum, lineString) => sum + lineString.length, 0);
     return feature.properties.timestamps.length === totalPoints;
   }
-  
+
   return false;
 }
 
@@ -92,14 +92,14 @@ export function validateTrackFeature(feature: unknown): feature is DebriefTrackF
   if (getObjectProperty(properties, 'dataType') !== 'track') {
     return false;
   }
-  
+
   // Validate timestamps if present
   const timestamps = getObjectProperty(properties, 'timestamps');
   if (timestamps !== undefined) {
     if (!Array.isArray(timestamps)) {
       return false;
     }
-    
+
     // Check each timestamp is a valid date string or Date object
     for (const timestamp of timestamps) {
       if (typeof timestamp === 'string') {
@@ -110,13 +110,13 @@ export function validateTrackFeature(feature: unknown): feature is DebriefTrackF
         return false;
       }
     }
-    
+
     // Apply timestamps length validation
     if (!validateTimestampsLength(feature as unknown as DebriefTrackFeature)) {
       return false;
     }
   }
-  
+
   return true;
 }
 
