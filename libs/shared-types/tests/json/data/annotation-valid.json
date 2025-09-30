@@ -12,10 +12,11 @@
     ]]
   },
   "properties": {
-    "dataType": "zone",
+    "dataType": "annotation",
     "annotationType": "area",
     "name": "Test Area",
     "color": "#FF0000",
-    "text": "Test annotation"
+    "text": "Test annotation",
+    "visible": true
   }
 }
