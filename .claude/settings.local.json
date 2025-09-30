@@ -182,7 +182,8 @@
       "Bash(git merge:*)",
       "Bash(git remote get-url:*)",
       "Bash(gh pr diff:*)",
-      "Bash(flyctl apps:*)"
+      "Bash(flyctl apps:*)",
+      "Bash(jq:*)"
     ]
   }
 }
