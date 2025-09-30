@@ -13,10 +13,21 @@ from .buoyfield import DebriefBuoyfieldFeature
 from .backdrop import DebriefBackdropFeature
 
 
-def get_feature_discriminator(v: dict) -> str:
-    """Extract dataType from feature properties for discriminated union."""
+def get_feature_discriminator(v) -> str:
+    """Extract dataType from feature properties for discriminated union.
+
+    Handles both plain dicts (during JSON parsing) and BaseModel instances
+    (when constructing collections from already-validated models).
+    """
+    # Handle plain dictionaries (JSON input)
     if isinstance(v, dict) and "properties" in v and isinstance(v["properties"], dict):
         return v["properties"].get("dataType", "unknown")
+
+    # Handle BaseModel instances (already-validated Pydantic models)
+    if isinstance(v, BaseModel) and hasattr(v, "properties") and v.properties is not None:
+        if hasattr(v.properties, "dataType"):
+            return v.properties.dataType
+
     return "unknown"
 
 
