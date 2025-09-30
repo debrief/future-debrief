@@ -175,11 +175,27 @@ npm run test:schemas    # Test JSON Schema validation
 
 ### Schema Validation
 
-All schemas are validated using AJV and tested with sample data:
+JSON schemas are validated using **AJV** (Another JSON Schema Validator), not ESLint. ESLint is a JavaScript/TypeScript linter and is not appropriate for validating JSON files.
+
+**Why AJV, not ESLint?**
+- JSON schemas are data files (`.json`), not JavaScript code
+- AJV validates JSON structure and schema compliance
+- AJV tests that schemas compile correctly and can validate sample data
+- ESLint would only catch syntax errors, not schema-specific issues
+
+**Validation tests include:**
+- Schema structure validation (proper JSON Schema format)
+- Schema compilation (schemas are valid and can be used)
+- Sample data validation (valid data passes, invalid data is rejected)
 
 ```bash
-npm run test:schemas    # Validate schemas and test data
+npm run test:schemas    # Validate all JSON schemas with AJV
 ```
+
+**Integration with consuming packages:**
+- Generated schemas are copied to `apps/vs-code/schemas/` for VS Code IntelliSense
+- Schemas are validated at source (this package), not at copy locations
+- Principle: **Validate at the source, not at build artifacts**
 
 ## Package Structure
 

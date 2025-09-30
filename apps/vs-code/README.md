@@ -40,6 +40,32 @@ This extension provides comprehensive maritime analysis capabilities:
    - Press `F5` in VS Code
    - Or run "Debug: Start Debugging" from Command Palette
 
+### Docker Local Testing
+
+Test the extension in a complete Docker environment before deploying to fly.io:
+
+1. **Quick Start**: See [Local Docker Testing Guide](docs/local-docker-testing.md) for complete instructions
+2. **Prerequisites**: Docker Desktop, Node.js (from `.nvmrc`), pnpm 10.14.0
+3. **Build and Run**:
+   ```bash
+   # Build prerequisites
+   pnpm install
+   pnpm --filter @debrief/shared-types build
+   pnpm --filter @debrief/web-components build
+
+   # Package extension and copy to repository root
+   cd apps/vs-code && npx @vscode/vsce package --no-dependencies && cp vs-code-0.0.1.vsix ../../ && cd ../..
+
+   # Build Docker image
+   docker build -t debrief-vscode-local --build-arg GITHUB_SHA=local --build-arg PR_NUMBER=dev -f apps/vs-code/Dockerfile .
+
+   # Run container
+   docker run -p 8080:8080 debrief-vscode-local
+   ```
+4. **Access**: Open `http://localhost:8080` in your browser
+
+For detailed instructions, troubleshooting, and testing procedures, see [docs/local-docker-testing.md](docs/local-docker-testing.md).
+
 ### GitHub Codespaces Development
 
 1. **From Repository**: Click "Code" → "Create codespace on main"
