@@ -734,7 +734,15 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
     private syncWebviewWithGlobalState(webviewPanel: vscode.WebviewPanel, editorId: string): void {
         const globalController = GlobalController.getInstance();
         const state = globalController.getEditorState(editorId);
-        
+
+        // Sync feature collection (most important - must come first)
+        if (state.featureCollection) {
+            webviewPanel.webview.postMessage({
+                type: 'update',
+                text: JSON.stringify(state.featureCollection, null, 2)
+            });
+        }
+
         // Sync selection
         if (state.selectionState?.selectedIds) {
             webviewPanel.webview.postMessage({
@@ -742,7 +750,7 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
                 featureIds: state.selectionState.selectedIds
             });
         }
-        
+
         // Sync viewport
         if (state.viewportState?.bounds) {
             const mapState = PlotJsonEditorProvider.convertBoundsToMapState(state.viewportState.bounds);
