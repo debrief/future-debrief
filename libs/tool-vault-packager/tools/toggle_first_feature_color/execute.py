@@ -2,7 +2,7 @@
 
 from debrief.types.features import DebriefFeatureCollection
 from debrief.types.tools import (
-    SetFeatureCollectionCommand,
+    UpdateFeaturesCommand,
     ShowTextCommand,
     ToolVaultCommand,
 )
@@ -38,14 +38,13 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Too
     toggling its color property between 'red' and 'blue'. If the first feature
     doesn't have a color property, it will be set to 'red'. If the collection
     is empty, it returns an appropriate message. Returns a ToolVault command to
-    update the features.
+    update only the modified feature.
 
     Args:
         params: ToggleFirstFeatureColorParameters containing feature_collection
 
     Returns:
-        Dict[str, Any]: ToolVault command object containing the modified FeatureCollection
-                       or appropriate message
+        ToolVaultCommand: Command to update the modified feature (not replace entire collection)
 
     Examples:
         >>> from pydantic import ValidationError
@@ -54,14 +53,15 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Too
         ...         "type": "FeatureCollection",
         ...         "features": [{
         ...             "type": "Feature",
+        ...             "id": "feature1",
         ...             "properties": {"color": "red", "dataType": "point"},
         ...             "geometry": {"type": "Point", "coordinates": [0, 0]}
         ...         }]
         ...     }
         ... )
         >>> result = toggle_first_feature_color(params)
-        >>> result["command"]
-        'setFeatureCollection'
+        >>> result.command
+        'updateFeatures'
     """
     try:
         # Work with the validated DebriefFeatureCollection directly
@@ -73,25 +73,50 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Too
                 payload="No features found in the collection to toggle color",
             )
 
-        # Convert to dict for modification (since we need to return a dict)
-        result = feature_collection.model_dump()
-        first_feature = result["features"][0]
+        # Get the first feature (already validated as a DebriefFeature)
+        first_feature = feature_collection.features[0]
+
+        # Convert to dict for modification
+        feature_dict = first_feature.model_dump()
 
         # Ensure the feature has properties (it should due to pydantic validation)
-        if "properties" not in first_feature:
-            first_feature["properties"] = {}
+        if "properties" not in feature_dict:
+            feature_dict["properties"] = {}
+
+        # Determine the feature type and appropriate color property
+        data_type = feature_dict["properties"].get("dataType", "")
+
+        # Define color property based on feature type and CSS color codes
+        if data_type == "point":
+            color_property = "marker-color"
+            red_color = "#FF0000"
+            blue_color = "#0000FF"
+        elif data_type == "track":
+            color_property = "stroke"
+            red_color = "#FF0000"
+            blue_color = "#0000FF"
+        else:
+            # Default to generic color property for other types
+            color_property = "color"
+            red_color = "#FF0000"
+            blue_color = "#0000FF"
 
         # Toggle the color property
-        current_color = first_feature["properties"].get("color", "blue")
-        if current_color == "red":
-            first_feature["properties"]["color"] = "blue"
+        current_color = feature_dict["properties"].get(color_property, blue_color)
+        if current_color == red_color or current_color == "red" or current_color == "#FF0000":
+            feature_dict["properties"][color_property] = blue_color
         else:
-            first_feature["properties"]["color"] = "red"
+            feature_dict["properties"][color_property] = red_color
 
-        # Return ToolVault command to update the feature collection
-        updated_collection = DebriefFeatureCollection.model_validate(result)
+        # Re-validate using the feature collection model to handle the union type properly
+        # This ensures the feature is validated as the correct subtype
+        updated_collection = DebriefFeatureCollection.model_validate({
+            "type": "FeatureCollection",
+            "features": [feature_dict]
+        })
 
-        return SetFeatureCollectionCommand(payload=updated_collection)
+        # Extract the validated feature and return UpdateFeaturesCommand
+        return UpdateFeaturesCommand(payload=[updated_collection.features[0]])
 
     except ValidationError as e:
         return ShowTextCommand(
