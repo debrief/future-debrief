@@ -19,6 +19,7 @@
     "generate:typescript": "make generate-typescript",
     "generate:types": "make generate",
     "build": "make build",
+    "build:ci": "make build",
     "dev": "make dev",
     "test": "node tests/typescript/test-generated-files.js && python3 tests/python/test_generated_files.py && node tests/typescript/test-validators.js && python3 tests/python/test_validators.py && node tests/json/test-schemas.js",
     "eslint": "eslint . --ext .ts",

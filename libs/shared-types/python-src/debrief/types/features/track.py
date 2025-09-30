@@ -25,17 +25,40 @@ class TrackProperties(BaseModel):
         None,
         description="Human readable name for this track"
     )
+    shortName: Optional[str] = Field(
+        None,
+        description="Short name or abbreviation for this track"
+    )
     description: Optional[str] = Field(
         None,
         description="Additional description or notes about this track"
     )
+    visible: Optional[bool] = Field(
+        True,
+        description="Whether this track is visible"
+    )
+    stroke: Optional[str] = Field(
+        None,
+        description="Stroke color (hex color code)"
+    )
+    speeds: Optional[List[float]] = Field(
+        None,
+        description="Optional array of speed values corresponding to each coordinate point"
+    )
+    courses: Optional[List[float]] = Field(
+        None,
+        description="Optional array of course values corresponding to each coordinate point (degrees)"
+    )
 
     class Config:
-        extra = "allow"  # Allow additional properties
+        extra = "forbid"  # Strict validation - no additional properties
 
 
 class DebriefTrackFeature(Feature[Union[LineString, MultiLineString], TrackProperties]):
     """A GeoJSON Feature representing a track with LineString or MultiLineString geometry."""
+
+    class Config:
+        extra = "forbid"  # Strict validation - no additional properties
 
     @field_validator('geometry')
     @classmethod

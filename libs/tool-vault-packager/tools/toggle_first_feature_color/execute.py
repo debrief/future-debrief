@@ -76,8 +76,8 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Too
         # Get the first feature (already validated as a DebriefFeature)
         first_feature = feature_collection.features[0]
 
-        # Convert to dict for modification
-        feature_dict = first_feature.model_dump()
+        # Convert to dict for modification (use by_alias=True to get JSON keys like "marker-color")
+        feature_dict = first_feature.model_dump(by_alias=True)
 
         # Ensure the feature has properties (it should due to pydantic validation)
         if "properties" not in feature_dict:
@@ -87,7 +87,11 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Too
         data_type = feature_dict["properties"].get("dataType", "")
 
         # Define color property based on feature type and CSS color codes
-        if data_type == "point":
+        if data_type == "reference-point":
+            color_property = "marker-color"
+            red_color = "#FF0000"
+            blue_color = "#0000FF"
+        elif data_type == "buoyfield":
             color_property = "marker-color"
             red_color = "#FF0000"
             blue_color = "#0000FF"
@@ -95,8 +99,12 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Too
             color_property = "stroke"
             red_color = "#FF0000"
             blue_color = "#0000FF"
+        elif data_type == "zone":
+            color_property = "fill"
+            red_color = "#FF0000"
+            blue_color = "#0000FF"
         else:
-            # Default to generic color property for other types
+            # For annotation and other types, use color property
             color_property = "color"
             red_color = "#FF0000"
             blue_color = "#0000FF"
@@ -108,14 +116,38 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Too
         else:
             feature_dict["properties"][color_property] = red_color
 
-        # Re-validate using the feature collection model to handle the union type properly
-        # This ensures the feature is validated as the correct subtype
-        updated_collection = DebriefFeatureCollection.model_validate(
-            {"type": "FeatureCollection", "features": [feature_dict]}
-        )
+        # Re-validate the feature directly using the appropriate feature class
+        # Since we know the dataType, we can validate it directly without going through the union
+        data_type = feature_dict["properties"].get("dataType", "")
 
-        # Extract the validated feature and return UpdateFeaturesCommand
-        return UpdateFeaturesCommand(payload=[updated_collection.features[0]])
+        # Just return the feature dict directly in the UpdateFeaturesCommand
+        # The command will handle validation
+        from debrief.types.features.annotation import DebriefAnnotationFeature
+        from debrief.types.features.point import DebriefPointFeature
+        from debrief.types.features.track import DebriefTrackFeature
+
+        # Validate using the specific feature type
+        if data_type == "reference-point":
+            validated_feature = DebriefPointFeature.model_validate(feature_dict)
+        elif data_type == "track":
+            validated_feature = DebriefTrackFeature.model_validate(feature_dict)
+        elif data_type == "annotation":
+            validated_feature = DebriefAnnotationFeature.model_validate(feature_dict)
+        else:
+            # For other types, try validating through the collection
+            updated_collection = DebriefFeatureCollection.model_validate(
+                {"type": "FeatureCollection", "features": [feature_dict]}
+            )
+            validated_feature = updated_collection.features[0]
+
+        # Return UpdateFeaturesCommand with the validated feature
+        # We need to serialize with aliases and re-parse to get proper JSON keys
+        feature_json = validated_feature.model_dump(by_alias=True, mode='json')
+
+        return UpdateFeaturesCommand.model_construct(
+            command="updateFeatures",
+            payload=[feature_json]
+        )
 
     except ValidationError as e:
         return ShowTextCommand(

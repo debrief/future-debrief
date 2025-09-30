@@ -35,9 +35,10 @@ export class StatePersistence {
     private globalController: GlobalController;
     
     // Metadata feature types to recognize and extract
-    private static readonly METADATA_FEATURE_TYPES = {
-        TIME: 'debrief-time-state',
-        VIEWPORT: 'debrief-viewport-state'
+    private static readonly METADATA_TYPE = 'metadata';
+    private static readonly METADATA_SUBTYPES = {
+        TIME: 'time',
+        VIEWPORT: 'viewport'
         // Note: Selection is ephemeral and not persisted
     };
     
@@ -270,17 +271,17 @@ export class StatePersistence {
     } {
         const metadataFeatures: GeoJSONFeature[] = [];
         const dataFeatures: GeoJSONFeature[] = [];
-        
+
         features.forEach(feature => {
-            const featureType = feature.properties?.['debrief-feature-type'];
-            
-            if (Object.values(StatePersistence.METADATA_FEATURE_TYPES).includes(featureType as string)) {
+            const dataType = feature.properties?.['dataType'];
+
+            if (dataType === StatePersistence.METADATA_TYPE) {
                 metadataFeatures.push(feature);
             } else {
                 dataFeatures.push(feature);
             }
         });
-        
+
         return { metadataFeatures, dataFeatures };
     }
     
@@ -293,21 +294,21 @@ export class StatePersistence {
     } {
         let timeState: TimeState | undefined;
         let viewportState: ViewportState | undefined;
-        
+
         metadataFeatures.forEach(feature => {
-            const featureType = feature.properties?.['debrief-feature-type'];
-            
-            switch (featureType) {
-                case StatePersistence.METADATA_FEATURE_TYPES.TIME:
+            const metadataType = feature.properties?.['metadataType'];
+
+            switch (metadataType) {
+                case StatePersistence.METADATA_SUBTYPES.TIME:
                     timeState = this.extractTimeState(feature);
                     break;
-                    
-                case StatePersistence.METADATA_FEATURE_TYPES.VIEWPORT:
+
+                case StatePersistence.METADATA_SUBTYPES.VIEWPORT:
                     viewportState = this.extractViewportState(feature);
                     break;
             }
         });
-        
+
         return { timeState, viewportState };
     }
     
@@ -317,10 +318,11 @@ export class StatePersistence {
     private extractTimeState(feature: GeoJSONFeature): TimeState | undefined {
         try {
             const current = feature.properties?.['current'];
-            const range = feature.properties?.['range'];
+            const start = feature.properties?.['start'];
+            const end = feature.properties?.['end'];
 
-            if (typeof current === 'string' && Array.isArray(range) && range.length === 2) {
-                return { current, start: range[0], end: range[1] };
+            if (typeof current === 'string' && typeof start === 'string' && typeof end === 'string') {
+                return { current, start, end };
             }
         } catch (error) {
             console.error('Error extracting time state:', error);
@@ -330,12 +332,22 @@ export class StatePersistence {
     
     /**
      * Extract ViewportState from a metadata feature
+     * Viewport bounds are stored in the Polygon geometry
      */
     private extractViewportState(feature: GeoJSONFeature): ViewportState | undefined {
         try {
-            const bounds = feature.properties?.['bounds'];
-            if (Array.isArray(bounds) && bounds.length === 4) {
-                return { bounds: bounds as [number, number, number, number] };
+            if (feature.geometry?.type === 'Polygon' && Array.isArray(feature.geometry.coordinates)) {
+                const ring = feature.geometry.coordinates[0];
+                if (Array.isArray(ring) && ring.length >= 4) {
+                    // Extract bounding box from polygon coordinates
+                    // Polygon format: [[minLng, minLat], [maxLng, minLat], [maxLng, maxLat], [minLng, maxLat], [minLng, minLat]]
+                    const minLng = (ring[0] as number[])[0];
+                    const minLat = (ring[0] as number[])[1];
+                    const maxLng = (ring[2] as number[])[0];
+                    const maxLat = (ring[2] as number[])[1];
+
+                    return { bounds: [minLng, minLat, maxLng, maxLat] };
+                }
             }
         } catch (error) {
             console.error('Error extracting viewport state:', error);
@@ -348,43 +360,51 @@ export class StatePersistence {
      */
     private createMetadataFeatures(state: EditorState): GeoJSONFeature[] {
         const metadataFeatures: GeoJSONFeature[] = [];
-        
+
         // Create time metadata feature
         if (state.timeState) {
+            // Use empty polygon geometry for time metadata (no geographic representation)
             metadataFeatures.push({
                 type: 'Feature',
                 id: 'debrief-time-metadata',
                 geometry: {
-                    type: 'Point',
-                    coordinates: [-999.999, -999.999] // Use extreme coordinates that won't interfere with real data
+                    type: 'Polygon',
+                    coordinates: [[]] // Empty polygon
                 },
                 properties: {
-                    'debrief-feature-type': StatePersistence.METADATA_FEATURE_TYPES.TIME,
+                    'dataType': StatePersistence.METADATA_TYPE,
+                    'metadataType': StatePersistence.METADATA_SUBTYPES.TIME,
                     'current': state.timeState.current,
                     'start': state.timeState.start,
-                    'end': state.timeState.end,
-                    'visible': false // Hide metadata features from map display
+                    'end': state.timeState.end
                 }
             });
         }
-        
+
         // Create viewport metadata feature
         if (state.viewportState) {
+            const bounds = state.viewportState.bounds;
+            // Viewport bounds stored as polygon geometry: [[minLng, minLat], [maxLng, minLat], [maxLng, maxLat], [minLng, maxLat], [minLng, minLat]]
             metadataFeatures.push({
                 type: 'Feature',
                 id: 'debrief-viewport-metadata',
                 geometry: {
-                    type: 'Point',
-                    coordinates: [-999.999, -999.999] // Use extreme coordinates that won't interfere with real data
+                    type: 'Polygon',
+                    coordinates: [[
+                        [bounds[0], bounds[1]], // SW corner
+                        [bounds[2], bounds[1]], // SE corner
+                        [bounds[2], bounds[3]], // NE corner
+                        [bounds[0], bounds[3]], // NW corner
+                        [bounds[0], bounds[1]]  // Close the polygon
+                    ]]
                 },
                 properties: {
-                    'debrief-feature-type': StatePersistence.METADATA_FEATURE_TYPES.VIEWPORT,
-                    'bounds': state.viewportState.bounds,
-                    'visible': false
+                    'dataType': StatePersistence.METADATA_TYPE,
+                    'metadataType': StatePersistence.METADATA_SUBTYPES.VIEWPORT
                 }
             });
         }
-        
+
         return metadataFeatures;
     }
     

@@ -22,31 +22,26 @@ function getObjectProperty(obj: Record<string, unknown>, key: string): unknown {
 
 /**
  * Validates that point has valid time properties
- * Either single time OR time range (start/end) should be provided, not both
+ * time represents start time, timeEnd represents end time (if range)
  */
 export function validateTimeProperties(feature: DebriefPointFeature): boolean {
   if (!feature.properties) return false;
-  const { time, timeStart, timeEnd } = feature.properties;
-  
-  // Either single time OR time range (start/end) should be provided, not both
-  if (time && (timeStart || timeEnd)) {
-    return false; // Cannot have both single time and time range
+  const { time, timeEnd } = feature.properties;
+
+  // If timeEnd is provided, time should also be provided
+  if (timeEnd && !time) {
+    return false; // Time range requires both start (time) and end (timeEnd)
   }
-  
-  // If time range is provided, both start and end should be present
-  if ((timeStart && !timeEnd) || (!timeStart && timeEnd)) {
-    return false; // Time range requires both start and end
-  }
-  
-  // If timeStart and timeEnd are provided, start should be before end
-  if (timeStart && timeEnd) {
-    const start = new Date(timeStart);
+
+  // If both time and timeEnd are provided, time should be before timeEnd
+  if (time && timeEnd) {
+    const start = new Date(time);
     const end = new Date(timeEnd);
     if (start >= end) {
       return false; // Start time must be before end time
     }
   }
-  
+
   return true;
 }
 
@@ -179,12 +174,9 @@ export function validatePointFeatureComprehensive(feature: unknown): {
   
   // Individual date validation
   if (!validatedFeature.properties) return { isValid: false, errors: ['Properties are required'] };
-  const { time, timeStart, timeEnd } = validatedFeature.properties;
+  const { time, timeEnd } = validatedFeature.properties;
   if (time && !isValidDate(time)) {
     errors.push('Invalid time format');
-  }
-  if (timeStart && !isValidDate(timeStart)) {
-    errors.push('Invalid timeStart format');
   }
   if (timeEnd && !isValidDate(timeEnd)) {
     errors.push('Invalid timeEnd format');

@@ -31,9 +31,9 @@ class AnnotationType(str, Enum):
 
 class AnnotationProperties(BaseModel):
     """Properties for annotation features."""
-    dataType: Literal["zone"] = Field(
-        "zone",
-        description="Discriminator to identify this as a zone feature"
+    dataType: Literal["annotation"] = Field(
+        "annotation",
+        description="Discriminator to identify this as an annotation feature"
     )
     annotationType: Optional[AnnotationType] = Field(
         None,
@@ -60,10 +60,17 @@ class AnnotationProperties(BaseModel):
         None,
         description="Additional description or notes about this annotation"
     )
+    visible: Optional[bool] = Field(
+        True,
+        description="Whether this annotation is visible"
+    )
 
     class Config:
-        extra = "allow"  # Allow additional properties
+        extra = "forbid"  # Strict validation - no additional properties
 
 
 class DebriefAnnotationFeature(Feature[Union[Point, LineString, Polygon, MultiPoint, MultiLineString, MultiPolygon], AnnotationProperties]):
     """A GeoJSON Feature representing an annotation with any geometry type."""
+
+    class Config:
+        extra = "forbid"  # Strict validation - no additional properties

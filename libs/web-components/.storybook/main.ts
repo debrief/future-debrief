@@ -14,6 +14,13 @@ const config: StorybookConfig = {
     ${head}
     <link id="vscode-codicon-stylesheet" rel="stylesheet" href="/codicon.css">
   `,
+  core: {
+    disableTelemetry: true,
+  },
+  features: {
+    storyStoreV7: true,
+    buildStoriesJson: true,
+  },
 };
 
 export default config;

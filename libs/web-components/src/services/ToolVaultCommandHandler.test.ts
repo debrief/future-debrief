@@ -171,7 +171,7 @@ describe('ToolVaultCommandHandler', () => {
       const result = await handler.processCommand(command, testFeatureCollection);
 
       expect(result.success).toBe(true);
-      expect(result.featureCollection?.features[0].properties?.name).toBe('Updated Track Name');
+      expect((result.featureCollection?.features[0] as DebriefTrackFeature).properties?.name).toBe('Updated Track Name');
       expect(result.metadata?.featuresAffected).toBe(1);
     });
 

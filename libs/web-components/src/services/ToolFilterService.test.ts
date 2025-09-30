@@ -43,7 +43,7 @@ describe('ToolFilterService', () => {
     properties: {
       dataType: 'reference-point',
       name: 'Test Point',
-      timestamp: '2024-01-01T00:00:00Z'
+      time: '2024-01-01T00:00:00Z'
     }
   });
 
@@ -62,9 +62,9 @@ describe('ToolFilterService', () => {
     },
     properties: {
       dataType: 'zone',
-      name: 'Test Annotation',
-      color: '#FF0000',
-      annotationType: 'area'
+      name: 'Test Zone',
+      fill: '#FF0000',
+      stroke: '#000000'
     }
   });
 

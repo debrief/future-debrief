@@ -107,7 +107,7 @@ export function classifyFeature(feature: unknown): 'track' | 'point' | 'annotati
   
   // Skip validation for unsupported dataType values
   const dataType = getObjectProperty(propertiesObj, 'dataType');
-  if (dataType === 'buoyfield' || dataType === 'backdrop') {
+  if (dataType === 'buoyfield' || dataType === 'backdrop' || dataType === 'metadata') {
     return 'unknown';
   }
   

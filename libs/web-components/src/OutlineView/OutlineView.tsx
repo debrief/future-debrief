@@ -6,8 +6,11 @@ import {
   VscodeToolbarButton,
   VscodeIcon
 } from '@vscode-elements/react-elements'
-import type { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types'
+import type { DebriefFeatureCollection, Features } from '@debrief/shared-types'
 import { VscTreeSelectEvent } from '@vscode-elements/elements/dist/vscode-tree/vscode-tree'
+
+// Type alias for convenience
+type DebriefFeature = Features[number]
 
 export interface OutlineViewProps {
   featureCollection: DebriefFeatureCollection
@@ -21,7 +24,7 @@ export interface OutlineViewProps {
 }
 
 // Group features by their dataType
-const groupFeaturesByType = (features: DebriefFeature[]) => {
+const groupFeaturesByType = (features: Features) => {
   return features.reduce((acc, feature) => {
     const type = feature.properties?.dataType || 'unknown'
     if (!acc[type]) {
@@ -55,10 +58,12 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
   const getVisibilityState = (): VisibilityState => {
     if (selectedFeatureIds.length === 0) return VisibilityState.AllVisible
     
-    const selectedFeatures = featureCollection.features.filter(f => 
+    const selectedFeatures = featureCollection.features.filter(f =>
       selectedFeatureIds.includes(String(f.id))
     )
-    const hiddenCount = selectedFeatures.filter(f => f.properties?.visible === false).length
+    const hiddenCount = selectedFeatures.filter(f =>
+      f.properties && 'visible' in f.properties && f.properties.visible === false
+    ).length
     
     if (hiddenCount === 0) return VisibilityState.AllVisible
     if (hiddenCount === selectedFeatures.length) return VisibilityState.NoneVisible
@@ -164,7 +169,7 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
   }
 
   function featureIsVisible(feature: DebriefFeature): boolean {
-    return feature.properties?.visible !== false
+    return !feature.properties || !('visible' in feature.properties) || feature.properties.visible !== false
   }
 
   return (<div
@@ -203,7 +208,7 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                   <VscodeIcon name={featureIsVisible(feature) ? "eye" : "eye-closed"} />
                   <span style={{ opacity: featureIsVisible(feature) ? 1 : 0.5 }}>
-                    {feature.properties?.name || 'Unnamed'}
+                    {(feature.properties && 'name' in feature.properties && typeof feature.properties.name === 'string') ? feature.properties.name : 'Unnamed'}
                   </span>
                   {onViewFeature && (
                     <VscodeToolbarButton 

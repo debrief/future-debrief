@@ -79,10 +79,11 @@ Key directories:
 ### Key Design Principles
 
 1. **Pydantic-First**: Pydantic models are authoritative, all other artifacts are derived
-2. **Discriminated Unions**: TypeScript uses `json-schema-to-typescript` for proper union types with literal discriminators (e.g., `dataType: "track"`)
-3. **Cross-Field Validation**: Manual validators handle logic beyond schema capabilities (timestamp array length matching coordinates, geographic bounds, etc.)
-4. **Type Safety**: Pydantic provides runtime validation and type checking at the source
-5. **Build Dependencies**: Always run `pnpm generate:types` before TypeScript compilation
+2. **Strict Schema Strategy**: All Pydantic models use `extra = "forbid"` to disallow additional properties. This generates strict TypeScript interfaces without `[k: string]: unknown` index signatures, ensuring type safety and catching errors at compile time rather than runtime.
+3. **Discriminated Unions**: TypeScript uses `json-schema-to-typescript` for proper union types with literal discriminators (e.g., `dataType: "track"`)
+4. **Cross-Field Validation**: Manual validators handle logic beyond schema capabilities (timestamp array length matching coordinates, geographic bounds, etc.)
+5. **Type Safety**: Pydantic provides runtime validation and type checking at the source
+6. **Build Dependencies**: Always run `pnpm generate:types` before TypeScript compilation
 
 ### Type Generation Details
 
@@ -91,6 +92,8 @@ Key directories:
 - Support complex types, unions, and constraints
 - Provide automatic JSON schema generation
 - Enable type-safe Python development
+- **IMPORTANT**: All models must use `extra = "forbid"` in their Config class to ensure strict schema validation and generate TypeScript interfaces without index signatures
+- Use Field aliases (e.g., `alias="marker-color"`) with `populate_by_name = True` to support both kebab-case (JSON) and snake_case (Python) property names
 
 **Generated JSON Schema**:
 - Derived automatically from Pydantic models

@@ -46,8 +46,19 @@ export type {
   DebriefTrackFeature,
   DebriefPointFeature,
   DebriefAnnotationFeature,
-  DebriefFeatureCollection
+  DebriefFeatureCollection,
+  Features as DebriefFeaturesArray
 } from './types/features/debrief_feature_collection';
+
+// Re-export metadata types
+export type { ViewportMetadataFeature } from './types/features/metadata_viewport';
+export type { TimeMetadataFeature } from './types/features/metadata_time';
+export type { SelectionMetadataFeature } from './types/features/metadata_selection';
+
+// Re-export feature types
+export type { DebriefZoneFeature } from './types/features/zone';
+export type { DebriefBuoyfieldFeature } from './types/features/buoyfield';
+export type { DebriefBackdropFeature } from './types/features/backdrop';
 
 // Re-export state types
 export type { TimeState } from './types/states/time_state';
@@ -56,13 +67,8 @@ export type { SelectionState } from './types/states/selection_state';
 export type { EditorState } from './types/states/editor_state';
 export type { CurrentState } from './types/states/current_state';
 
-// Import types for union
-import type {
-  DebriefTrackFeature,
-  DebriefPointFeature,
-  DebriefAnnotationFeature
-} from './types/features/debrief_feature_collection';
-
-// Union type for any Debrief feature
-export type DebriefFeature = DebriefTrackFeature | DebriefPointFeature | DebriefAnnotationFeature;
+// Union type for any Debrief feature - extracted from the Features array type
+export type { Features } from './types/features/debrief_feature_collection';
+import type { Features as DebriefFeatures } from './types/features/debrief_feature_collection';
+export type DebriefFeature = DebriefFeatures[number];
 // Note: Input.ts and Output.ts export specific interfaces, not generic Input/Output types
