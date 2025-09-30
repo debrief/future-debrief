@@ -443,63 +443,33 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
         }
 
         // Execute with automatic parameter injection
+        // GlobalController will handle error display
         const result = await this._globalController.executeToolWithInjection(
           toolSchema,
           typedSelectedFeatures,
           userInputValues
         );
 
-        if (!result.success) {
-          this._handleToolExecutionError(commandName, result.error);
-          return;
+        if (result.success) {
+          this._handleToolExecutionSuccess(commandName, result.result);
         }
-
-        this._handleToolExecutionSuccess(commandName, result.result);
       } else {
         // Tool can be fully auto-injected
+        // GlobalController will handle error display
         const result = await this._globalController.executeToolWithInjection(
           toolSchema,
           typedSelectedFeatures
         );
 
-        if (!result.success) {
-          this._handleToolExecutionError(commandName, result.error);
-          return;
+        if (result.success) {
+          this._handleToolExecutionSuccess(commandName, result.result);
         }
-
-        this._handleToolExecutionSuccess(commandName, result.result);
       }
 
     } catch (error) {
       const errorMessage = `Failed to execute tool "${commandName}": ${error instanceof Error ? error.message : String(error)}`;
       console.error('[DebriefOutlineProvider] Tool execution error:', error);
       vscode.window.showErrorMessage(errorMessage);
-    }
-  }
-
-  /**
-   * Handle tool execution errors with detailed messaging
-   */
-  private async _handleToolExecutionError(commandName: string, error?: string): Promise<void> {
-    console.error('[DebriefOutlineProvider] Tool execution error:', {
-      tool: commandName,
-      error: error
-    });
-
-    const errorMessage = error || 'Unknown error';
-    const shortMessage = `Tool "${commandName}" failed`;
-
-    // Show a user-friendly notification with a button to view details
-    const action = await vscode.window.showErrorMessage(
-      shortMessage,
-      'View Details',
-      'Dismiss'
-    );
-
-    if (action === 'View Details') {
-      // Show the full error in a modal dialog
-      const detailedMessage = `Tool "${commandName}" failed with error:\n\n${errorMessage}`;
-      vscode.window.showErrorMessage(detailedMessage, { modal: true });
     }
   }
 

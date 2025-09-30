@@ -365,15 +365,31 @@ export class ToolVaultServerService {
           dataKeys: Object.keys(data || {})
         });
 
-        if (data.error) {
-          this.log(`Tool execution failed: ${data.error}`);
-        }
-      }
+        // Build comprehensive error message with all available details
+        const errorParts = [];
 
-      if (!response.ok) {
+        if (data.error) {
+          errorParts.push(`Error: ${data.error}`);
+        }
+
+        if (data.detail) {
+          errorParts.push(`Details: ${typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail, null, 2)}`);
+        }
+
+        if (data.message && data.message !== data.error) {
+          errorParts.push(`Message: ${data.message}`);
+        }
+
+        // If we have no specific error details, use the HTTP status
+        const fullErrorMessage = errorParts.length > 0
+          ? errorParts.join('\n\n')
+          : `HTTP ${response.status}: ${response.statusText}`;
+
+        this.log(`Tool execution failed: ${fullErrorMessage}`);
+
         return {
           error: {
-            message: data.message || `HTTP ${response.status}: ${response.statusText}`,
+            message: fullErrorMessage,
             code: response.status
           }
         };

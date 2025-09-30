@@ -418,6 +418,7 @@ export class GlobalController implements StateProvider {
         if (!validation.canExecute) {
             const error = `Cannot execute tool "${toolSchema.name}": missing required parameters: ${validation.missingParams.join(', ')}`;
             console.error('[GlobalController]', error);
+            this.showToolExecutionError(toolSchema.name, error);
             return {
                 success: false,
                 error
@@ -434,8 +435,14 @@ export class GlobalController implements StateProvider {
         console.warn('[GlobalController] Injected parameters:', Object.keys(injectedParameters));
 
         // Execute the tool with the complete parameter set
-        // Note: executeTool already processes ToolVaultCommands, so no additional processing needed
-        return this.executeTool(toolSchema.name, injectedParameters);
+        const result = await this.executeTool(toolSchema.name, injectedParameters);
+
+        // Show error notification if execution failed
+        if (!result.success && result.error) {
+            this.showToolExecutionError(toolSchema.name, result.error);
+        }
+
+        return result;
     }
 
     /**
@@ -703,6 +710,37 @@ export class GlobalController implements StateProvider {
                 }
             }
         };
+    }
+
+    /**
+     * Show a user-friendly error notification for tool execution failures
+     */
+    private async showToolExecutionError(toolName: string, error: string): Promise<void> {
+        const shortMessage = `Tool "${toolName}" failed`;
+
+        // Show a user-friendly notification with a button to view details
+        const action = await vscode.window.showErrorMessage(
+            shortMessage,
+            'View Details',
+            'Dismiss'
+        );
+
+        if (action === 'View Details') {
+            // Show the full error in a new document tab
+            const detailedMessage = `Tool Execution Error
+============================
+Tool: ${toolName}
+Time: ${new Date().toISOString()}
+
+Error Details:
+${error}`;
+
+            const doc = await vscode.workspace.openTextDocument({
+                content: detailedMessage,
+                language: 'plaintext'
+            });
+            await vscode.window.showTextDocument(doc, { preview: false });
+        }
     }
 
     /**
