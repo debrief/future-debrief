@@ -493,7 +493,18 @@ Automated end-to-end tests validate that the Docker deployment works correctly. 
 
 ### Quick Start
 
-Run the full test suite from the `apps/vs-code` directory:
+**Prerequisites:** Build dependencies first (one-time setup or when dependencies change):
+
+```bash
+# From repository root
+pnpm --filter @debrief/shared-types build
+pnpm --filter @debrief/web-components build
+cd apps/vs-code
+pnpm build                   # Creates VSIX
+cp vs-code-0.0.1.vsix ../..  # Copy to repo root (required by Dockerfile)
+```
+
+Then run the test suite:
 
 ```bash
 cd apps/vs-code
@@ -501,12 +512,14 @@ pnpm test:playwright
 ```
 
 **What happens:**
-1. Playwright automatically builds the Docker image (if not already built)
+1. Playwright builds the Docker image from existing VSIX and dependencies
 2. Starts a container with all required port mappings
 3. Runs all test scenarios against the running container
 4. Cleans up the container when tests complete
 
-**Test duration:** Approximately 3-5 minutes (includes Docker build time on first run)
+**Test duration:** Approximately 3-5 minutes (includes Docker build time)
+
+**Important:** Tests will fail fast if prerequisites are missing. This keeps the test cycle fast - only build dependencies when they actually change.
 
 ### Available Test Commands
 
@@ -575,13 +588,23 @@ Tests use a global setup/teardown pattern:
 
 ---
 
-**Problem:** Build failures in test setup
+**Problem:** Build failures - "Pre-built vs-code-0.0.1.vsix missing"
 
-**Solution:** Ensure dependencies are built first:
+**Solution:** Build the VSIX and copy to repo root:
 ```bash
-pnpm install
-pnpm build:shared-types
-pnpm build:web-components
+cd apps/vs-code
+pnpm build
+cp vs-code-0.0.1.vsix ../..
+```
+
+---
+
+**Problem:** Build failures - shared-types or web-components missing
+
+**Solution:** Build dependencies first:
+```bash
+pnpm --filter @debrief/shared-types build
+pnpm --filter @debrief/web-components build
 ```
 
 ---
