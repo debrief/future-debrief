@@ -23,6 +23,38 @@ RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: shared-type
     python -m build --wheel --outdir /tmp/wheels && \
     if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: shared-types wheel ready" "${STATUS_WEBHOOK}" || true; fi
 
+# Build Tool Vault package
+FROM node:20-slim AS tool-vault-builder
+ARG STATUS_WEBHOOK
+ARG PR_NUMBER
+
+ENV STATUS_WEBHOOK=${STATUS_WEBHOOK}
+ENV PR_NUMBER=${PR_NUMBER}
+
+WORKDIR /tmp/repo
+
+RUN apt-get update && apt-get install -y python3 python3-pip python3-venv curl && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Copy shared-types wheel from previous stage
+COPY --from=shared-types-builder /tmp/wheels/ /tmp/wheels/
+
+# Install shared-types wheel for Tool Vault packager
+RUN pip3 install --break-system-packages /tmp/wheels/*.whl
+
+# Copy Tool Vault packager source
+COPY libs/tool-vault-packager/ ./libs/tool-vault-packager/
+
+WORKDIR /tmp/repo/libs/tool-vault-packager
+
+# Install npm dependencies and build Tool Vault package
+RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: Tool Vault build starting" "${STATUS_WEBHOOK}" || true; fi && \
+    npm install && \
+    cd spa && npm install && cd .. && \
+    npm run build && \
+    if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: Tool Vault package ready" "${STATUS_WEBHOOK}" || true; fi
+
 # Use the official code-server image as the base
 FROM codercom/code-server:latest
 ARG GITHUB_SHA
@@ -39,18 +71,16 @@ ENV GITHUB_SHA=${GITHUB_SHA} \
 # Set the working directory
 WORKDIR /home/coder
 
-# Install Python (required for workspace testing)
+# Install Python (required for workspace testing and Tool Vault runtime)
 USER root
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-venv \
     curl \
+    && ln -s /usr/bin/python3 /usr/bin/python \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
-# Create symlink for python command
-RUN ln -s /usr/bin/python3 /usr/bin/python
 
 # Switch back to coder user
 USER coder
@@ -63,6 +93,23 @@ COPY --chown=coder:coder . /home/coder/project/
 
 # Copy the shared-types wheel produced in the builder stage
 COPY --chown=coder:coder --from=shared-types-builder /tmp/wheels/ /home/coder/project/python/
+
+# Install shared-types and Tool Vault dependencies system-wide for the .pyz runtime
+USER root
+RUN pip3 install --break-system-packages \
+    /home/coder/project/python/*.whl \
+    'fastapi>=0.104.0' \
+    'uvicorn>=0.24.0'
+USER coder
+
+# Copy Tool Vault package from builder stage
+# Tool Vault serves MCP-compatible endpoints on port 60124 for maritime analysis tools
+RUN mkdir -p /home/coder/tool-vault
+COPY --chown=coder:coder --from=tool-vault-builder /tmp/repo/libs/tool-vault-packager/dist/toolvault.pyz /home/coder/tool-vault/toolvault.pyz
+RUN chmod +x /home/coder/tool-vault/toolvault.pyz
+
+# Set Tool Vault configuration for VS Code extension
+ENV DEBRIEF_TOOL_VAULT_PATH=/home/coder/tool-vault/toolvault.pyz
 
 # Switch to project directory for extension installation
 WORKDIR /home/coder/project
@@ -106,8 +153,11 @@ RUN echo "# Debrief Extension Preview\n\nThis is a preview environment for the D
 # Set workspace as the default directory
 WORKDIR /home/coder/workspace
 
-# Expose the code-server port
-EXPOSE 8080
+# Expose ports:
+# - 8080: code-server web interface
+# - 60123: WebSocket bridge for Python-to-VS Code integration
+# - 60124: Tool Vault MCP-compatible REST endpoints
+EXPOSE 8080 60123 60124
 
 # Start code-server with no password authentication
 # (PASSWORD and SUDO_PASSWORD are not set to avoid security warnings)

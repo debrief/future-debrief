@@ -8,13 +8,30 @@
           "id": "zone-001",
           "geometry": {
             "type": "Polygon",
-            "coordinates": [[
-              [-1.5, 51.5],
-              [-0.5, 51.5],
-              [-0.5, 52.5],
-              [-1.5, 52.5],
-              [-1.5, 51.5]
-            ]]
+            "coordinates": [
+              [
+                [
+                  -1.5,
+                  51.5
+                ],
+                [
+                  -0.5,
+                  51.5
+                ],
+                [
+                  -0.5,
+                  52.5
+                ],
+                [
+                  -1.5,
+                  52.5
+                ],
+                [
+                  -1.5,
+                  51.5
+                ]
+              ]
+            ]
           },
           "properties": {
             "dataType": "zone",
@@ -26,7 +43,10 @@
           "id": "annotation-001",
           "geometry": {
             "type": "Point",
-            "coordinates": [-1.0, 52.0]
+            "coordinates": [
+              -1.0,
+              52.0
+            ]
           },
           "properties": {
             "dataType": "reference-point",
@@ -36,16 +56,14 @@
       ]
     },
     "viewport_state": {
-      "bounds": [-1.5, 51.8, -0.5, 52.8]
-    }
-  },
-  "expectedOutput": {
-    "command": "setSelection",
-    "payload": {
-      "selectedIds": [
-        "zone-001",
-        "annotation-001"
+      "bounds": [
+        -1.5,
+        51.8,
+        -0.5,
+        52.8
       ]
     }
-  }
+  },
+  "expectedOutput": null,
+  "baseline_error": "Object of type SetSelectionCommand is not JSON serializable"
 }

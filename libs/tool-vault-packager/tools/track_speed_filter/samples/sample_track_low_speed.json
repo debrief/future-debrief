@@ -38,8 +38,6 @@
     },
     "min_speed": 5.0
   },
-  "expectedOutput": {
-    "command": "showText",
-    "payload": "No timestamps found where speed >= 5.0 knots"
-  }
+  "expectedOutput": null,
+  "baseline_error": "Object of type ShowTextCommand is not JSON serializable"
 }

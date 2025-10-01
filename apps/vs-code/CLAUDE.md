@@ -386,3 +386,24 @@ The extension provides comprehensive JSON schema validation for `.plot.json` fil
 - `copy-schemas` script copies all schemas during compilation
 - Schemas are included in extension package (not in .gitignore)
 - Schema paths in `jsonValidation` contribution: `./schemas/features/FeatureCollection.schema.json`
+
+## Tool Vault Integration
+
+Tool Vault provides MCP-compatible REST endpoints on port 60124. It's packaged as a `.pyz` file but requires runtime dependencies.
+
+### Critical Architecture Constraint
+
+**Python `.pyz` files cannot bundle compiled extensions.** Packages like `pydantic` v2 have Rust components (`pydantic_core._pydantic_core.so`) that must be installed in the system Python environment, not bundled in the archive.
+
+**Solution:**
+- `.pyz` contains: tool code, FastAPI server, React SPA
+- Runtime installs: `debrief-types` wheel, `fastapi`, `uvicorn` (Dockerfile lines 101-104)
+- Build validates: `debrief` module importable (fail-fast in `packager.py:294-307`)
+
+**Key Dockerfile requirement:**
+```dockerfile
+# tool-vault-builder stage needs 'python' command for npm build
+RUN ln -s /usr/bin/python3 /usr/bin/python
+```
+
+See `docs/local-docker-testing.md` for testing instructions.

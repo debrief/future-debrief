@@ -39,14 +39,19 @@ For those familiar with the codebase, here's the fastest path to a running conta
 ```bash
 # From repository root
 pnpm install
-pnpm --filter @debrief/shared-types build
-pnpm --filter @debrief/web-components build
-cd apps/vs-code && npx @vscode/vsce package --no-dependencies && cp vs-code-0.0.1.vsix ../../ && cd ../..
-docker build -t debrief-vscode-local --build-arg GITHUB_SHA=local --build-arg PR_NUMBER=dev -f apps/vs-code/Dockerfile .
-docker run -p 8080:8080 debrief-vscode-local
+pnpm build:shared-types
+pnpm build:web-components
+
+# From apps/vs-code directory
+cd apps/vs-code
+pnpm build:docker
+pnpm docker:build
+pnpm docker:run
 ```
 
 Then open your browser to: `http://localhost:8080`
+
+**Bonus:** Use `pnpm docker:logs:follow` to watch container logs, and `pnpm docker:stop` to stop and remove the container.
 
 ## Build Instructions
 
@@ -156,13 +161,15 @@ The Dockerfile uses a multi-stage build:
 Start the container with port mapping:
 
 ```bash
-docker run -p 8080:8080 debrief-vscode-local
+docker run -p 8080:8080 -p 60123:60123 -p 60124:60124 debrief-vscode-local
 ```
 
 **Port Mapping:**
-- `-p 8080:8080` - Maps container port 8080 to host port 8080
-- Port 8080 is the code-server default web interface port
-- Port 60123 (WebSocket bridge) is internal to the container
+- `-p 8080:8080` - Maps container port 8080 to host port 8080 (code-server web interface)
+- `-p 60123:60123` - Maps WebSocket bridge port for Python-to-VS Code integration
+- `-p 60124:60124` - Maps Tool Vault MCP-compatible REST endpoints
+
+**Note:** If you only need the web interface, you can omit the `-p 60123:60123 -p 60124:60124` flags. These ports are only needed if you want to access the WebSocket bridge or Tool Vault API from outside the container.
 
 **Container Startup:**
 - The container runs `code-server` with no authentication
@@ -172,7 +179,7 @@ docker run -p 8080:8080 debrief-vscode-local
 **Optional: Run in Background**
 
 ```bash
-docker run -d -p 8080:8080 --name debrief-test debrief-vscode-local
+docker run -d -p 8080:8080 -p 60123:60123 -p 60124:60124 --name debrief-test debrief-vscode-local
 ```
 
 - `-d` - Detached mode (runs in background)
@@ -301,6 +308,47 @@ Verify the Python virtual environment is set up correctly:
 ```
 debrief-types    1.0.0
 ```
+
+### 7. Tool Vault Integration
+
+Verify the Tool Vault server configuration:
+
+1. **Check Tool Vault file exists:**
+   ```bash
+   ls -lh /home/coder/tool-vault/toolvault.pyz
+   ```
+   Expected: File should be approximately 213KB
+
+2. **Check environment variable:**
+   ```bash
+   echo $DEBRIEF_TOOL_VAULT_PATH
+   ```
+   Expected output: `/home/coder/tool-vault/toolvault.pyz`
+
+3. **Verify Tool Vault path in VS Code:**
+   - The VS Code extension will automatically detect the Tool Vault package via the `DEBRIEF_TOOL_VAULT_PATH` environment variable
+   - The Tool Vault server starts automatically when the extension activates
+   - Port 60124 is used for Tool Vault MCP-compatible REST endpoints
+
+**Tool Vault Ports:**
+- Port 60123: WebSocket bridge for Python-to-VS Code integration
+- Port 60124: Tool Vault MCP-compatible REST endpoints
+
+**Testing Tool Vault Functionality:**
+
+Once a `.plot.json` file is open and the extension is activated, the Tool Vault server should be running. You can verify this by checking:
+
+```bash
+# From inside the container terminal
+curl http://localhost:60124/health
+```
+
+Expected response: `{"status":"ok"}`
+
+**Note:** The Tool Vault server is started by the VS Code extension during activation. If the health check fails, ensure:
+- A `.plot.json` file is open in the editor
+- The Debrief extension has activated successfully
+- Check the extension host logs for any Tool Vault startup errors
 
 ## Troubleshooting
 

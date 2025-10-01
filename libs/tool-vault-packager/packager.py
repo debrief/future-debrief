@@ -1,5 +1,6 @@
 """Packaging system for creating ToolVault .pyz deployables."""
 
+import importlib.util
 import json
 import shutil
 import sys
@@ -291,6 +292,19 @@ def package_toolvault(
     if not tools_dir.exists():
         raise PackagerError(f"Tools directory does not exist: {tools_dir}")
 
+    # Validate that debrief module is available
+    if importlib.util.find_spec("debrief.types.tools") is None:
+        raise PackagerError(
+            "\n🚫 PACKAGING ABORTED: Required 'debrief' module not found\n"
+            "   Module 'debrief.types.tools' is not importable\n\n"
+            "🔧 REQUIRED ACTION:\n"
+            "   Install the debrief-types package before building:\n"
+            "   1. From repository root: cd libs/shared-types && pip install -e .\n"
+            "   2. Or install the wheel: pip install /path/to/debrief_types-*.whl\n"
+            "   3. Or in Docker: pip3 install --break-system-packages /tmp/wheels/*.whl\n\n"
+            "📍 The 'debrief' module provides critical type definitions used by the packager.\n"
+        )
+
     # Build SPA first
     spa_build_success = build_spa()
 
@@ -375,6 +389,12 @@ def package_toolvault(
             print(
                 "Warning: Testing directory not found - test commands may not work in packaged version"
             )
+
+        # Note: Dependencies like debrief, pydantic, geojson-pydantic must be installed
+        # in the runtime environment. They cannot be bundled in the .pyz due to
+        # compiled extensions (e.g., pydantic_core._pydantic_core.so).
+        # The validation check at the start of package_toolvault() ensures debrief
+        # is available at build time.
 
         # Copy tools directory with new structure
         tools_dest = package_dir / "tools"
@@ -637,7 +657,10 @@ def main():
 
     try:
         package_toolvault(
-            tools_path=args.tools_path, output_path=args.output, python_executable=args.python
+            tools_path=args.tools_path,
+            output_path=args.output,
+            python_executable=args.python,
+            run_tests=True,
         )
     except PackagerError as e:
         print(f"Error: {e}", file=sys.stderr)

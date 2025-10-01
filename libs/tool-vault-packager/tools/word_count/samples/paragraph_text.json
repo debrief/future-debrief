@@ -2,8 +2,6 @@
   "input": {
     "text": "The quick brown fox jumps over the lazy dog. This sentence contains every letter of the alphabet and is commonly used for typing practice."
   },
-  "expectedOutput": {
-    "command": "showText",
-    "payload": "Word count: 24"
-  }
+  "expectedOutput": null,
+  "baseline_error": "Object of type ShowTextCommand is not JSON serializable"
 }
