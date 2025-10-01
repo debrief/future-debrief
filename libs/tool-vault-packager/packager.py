@@ -1,5 +1,6 @@
 """Packaging system for creating ToolVault .pyz deployables."""
 
+import importlib.util
 import json
 import shutil
 import sys
@@ -292,12 +293,10 @@ def package_toolvault(
         raise PackagerError(f"Tools directory does not exist: {tools_dir}")
 
     # Validate that debrief module is available
-    try:
-        import debrief.types.tools
-    except ImportError as e:
+    if importlib.util.find_spec("debrief.types.tools") is None:
         raise PackagerError(
             f"\n🚫 PACKAGING ABORTED: Required 'debrief' module not found\n"
-            f"   Import error: {e}\n\n"
+            f"   Module 'debrief.types.tools' is not importable\n\n"
             f"🔧 REQUIRED ACTION:\n"
             f"   Install the debrief-types package before building:\n"
             f"   1. From repository root: cd libs/shared-types && pip install -e .\n"
