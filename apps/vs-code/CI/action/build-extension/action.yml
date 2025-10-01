@@ -59,7 +59,8 @@ runs:
       shell: bash
       run: |
         echo "🐍 Installing shared-types Python wheel for Tool Vault..."
-        pip install libs/shared-types/dist/*.whl
+        WHEEL_FILE=$(ls libs/shared-types/dist/*.whl)
+        pip install "$WHEEL_FILE"
 
     - name: Build Tool Vault Package
       shell: bash
