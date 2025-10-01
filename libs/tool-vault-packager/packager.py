@@ -295,14 +295,14 @@ def package_toolvault(
     # Validate that debrief module is available
     if importlib.util.find_spec("debrief.types.tools") is None:
         raise PackagerError(
-            f"\n🚫 PACKAGING ABORTED: Required 'debrief' module not found\n"
-            f"   Module 'debrief.types.tools' is not importable\n\n"
-            f"🔧 REQUIRED ACTION:\n"
-            f"   Install the debrief-types package before building:\n"
-            f"   1. From repository root: cd libs/shared-types && pip install -e .\n"
-            f"   2. Or install the wheel: pip install /path/to/debrief_types-*.whl\n"
-            f"   3. Or in Docker: pip3 install --break-system-packages /tmp/wheels/*.whl\n\n"
-            f"📍 The 'debrief' module provides critical type definitions used by the packager.\n"
+            "\n🚫 PACKAGING ABORTED: Required 'debrief' module not found\n"
+            "   Module 'debrief.types.tools' is not importable\n\n"
+            "🔧 REQUIRED ACTION:\n"
+            "   Install the debrief-types package before building:\n"
+            "   1. From repository root: cd libs/shared-types && pip install -e .\n"
+            "   2. Or install the wheel: pip install /path/to/debrief_types-*.whl\n"
+            "   3. Or in Docker: pip3 install --break-system-packages /tmp/wheels/*.whl\n\n"
+            "📍 The 'debrief' module provides critical type definitions used by the packager.\n"
         )
 
     # Build SPA first
