@@ -487,6 +487,131 @@ Understanding these differences helps when transitioning between local testing a
 - **WebSocket Protocol:** `apps/vs-code/docs/ADRs/0002-websocket-port-conflict-resolution.md` - Port 60123 integration details
 - **Sample Test Scripts:** `apps/vs-code/workspace/tests/` - Python examples for WebSocket integration
 
+## Playwright Testing
+
+Automated end-to-end tests validate that the Docker deployment works correctly. Tests cover extension startup, Tool Vault integration, and plot rendering functionality.
+
+### Quick Start
+
+Run the full test suite from the `apps/vs-code` directory:
+
+```bash
+cd apps/vs-code
+pnpm test:playwright
+```
+
+**What happens:**
+1. Playwright automatically builds the Docker image (if not already built)
+2. Starts a container with all required port mappings
+3. Runs all test scenarios against the running container
+4. Cleans up the container when tests complete
+
+**Test duration:** Approximately 3-5 minutes (includes Docker build time on first run)
+
+### Available Test Commands
+
+```bash
+# Standard test run (headless)
+pnpm test:playwright
+
+# Interactive UI mode (for test development)
+pnpm test:playwright:ui
+
+# Headed mode (see browser during tests)
+pnpm test:playwright:headed
+
+# Debug mode (step through tests)
+pnpm test:playwright:debug
+```
+
+### Test Coverage
+
+The test suite includes:
+
+1. **Docker Startup Tests** (`docker-startup.spec.ts`)
+   - Container starts successfully
+   - VS Code interface loads
+   - Debrief extension is installed and enabled
+
+2. **Tool Vault Integration Tests** (`tool-vault-integration.spec.ts`)
+   - Health endpoint responds with structured JSON
+   - WebSocket bridge is accessible on port 60123
+   - Bidirectional communication works correctly
+
+3. **Plot Rendering Tests** (`plot-rendering.spec.ts`)
+   - Plot JSON files open successfully
+   - Leaflet map renders with tiles and controls
+   - Outline view displays GeoJSON features
+   - UI elements are present and functional
+
+### Test Architecture
+
+Tests use a global setup/teardown pattern:
+
+- **Global Setup** (`tests/playwright/global-setup.ts`)
+  - Builds Docker image from repository root
+  - Starts container with port mappings (8080, 60123, 60124)
+  - Waits for VS Code interface to be ready
+  - Stores container ID for cleanup
+
+- **Global Teardown** (`tests/playwright/global-teardown.ts`)
+  - Stops the Docker container
+  - Removes the container
+  - Cleans up temporary files
+
+**Important:** Tests run sequentially (not in parallel) because they share a single Docker instance.
+
+### Troubleshooting Tests
+
+**Problem:** Docker daemon not running
+
+**Solution:** Start Docker Desktop and verify with `docker ps`
+
+---
+
+**Problem:** Port conflicts (8080, 60123, or 60124 already in use)
+
+**Solution:** Stop services using these ports or configure different ports in test setup
+
+---
+
+**Problem:** Build failures in test setup
+
+**Solution:** Ensure dependencies are built first:
+```bash
+pnpm install
+pnpm build:shared-types
+pnpm build:web-components
+```
+
+---
+
+**Problem:** Tests time out waiting for VS Code
+
+**Solution:**
+- Check Docker has sufficient resources (CPU/memory)
+- Check container logs: `docker logs debrief-playwright-test`
+- Increase timeout in `playwright.config.ts` if needed
+
+---
+
+**Problem:** Orphaned test containers
+
+**Solution:** Manually clean up with:
+```bash
+docker stop debrief-playwright-test
+docker rm debrief-playwright-test
+```
+
+### CI/CD Integration
+
+The Playwright test suite provides:
+- **Pre-deployment confidence** - Catch Docker-specific issues before fly.io deployment
+- **Fast local feedback** - Developers can validate changes quickly
+- **Automated regression testing** - Prevent breaking changes to core functionality
+
+Future enhancement (Phase 2): GitHub Actions integration for automated PR testing.
+
 ## Next Steps
 
 After successful local testing:
@@ -494,7 +619,8 @@ After successful local testing:
 1. **Make Changes:** Modify extension source code in `apps/vs-code/src/`
 2. **Rebuild:** Follow the build instructions above to rebuild the VSIX and Docker image
 3. **Test Again:** Verify your changes work in the local container
-4. **Deploy:** Use the fly.io deployment workflow to test in a production-like environment
+4. **Run Tests:** Validate with `pnpm test:playwright` to catch regressions
+5. **Deploy:** Use the fly.io deployment workflow to test in a production-like environment
 
 ---
 
