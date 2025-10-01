@@ -542,9 +542,6 @@ def discover_tool_nodes(tools_dir: Path) -> List[ToolIndexNode]:
             # Get the ToolVaultCommand schema as the output schema
             command_schema = ToolVaultCommand.model_json_schema()
 
-            # Get tool directory name for URL
-            tool_dir_name = item.name
-
             # Get relative path from tools root for nested categories
             # Calculate relative path from tools root
             tools_root = tools_dir

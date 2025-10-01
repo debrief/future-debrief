@@ -12,7 +12,9 @@ PYTHON_FILES := $(shell find . -name "*.py" \
   -not -path "./shared-types/*" \
   -not -path "./spa/node_modules/*" \
   -not -path "./node_modules/*" \
-  -not -path "./tmp_package_contents/*")
+  -not -path "./tmp_package_contents/*" \
+  -not -path "./tools/*" \
+  -not -path "./test/*")
 SPA_FILES := $(shell find spa/src -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx")
 NEWEST_PYTHON := $(shell ls -t $(PYTHON_FILES) | head -1)
 NEWEST_SPA := $(shell ls -t $(SPA_FILES) | head -1)
