@@ -291,6 +291,21 @@ def package_toolvault(
     if not tools_dir.exists():
         raise PackagerError(f"Tools directory does not exist: {tools_dir}")
 
+    # Validate that debrief module is available
+    try:
+        import debrief.types.tools
+    except ImportError as e:
+        raise PackagerError(
+            f"\n🚫 PACKAGING ABORTED: Required 'debrief' module not found\n"
+            f"   Import error: {e}\n\n"
+            f"🔧 REQUIRED ACTION:\n"
+            f"   Install the debrief-types package before building:\n"
+            f"   1. From repository root: cd libs/shared-types && pip install -e .\n"
+            f"   2. Or install the wheel: pip install /path/to/debrief_types-*.whl\n"
+            f"   3. Or in Docker: pip3 install --break-system-packages /tmp/wheels/*.whl\n\n"
+            f"📍 The 'debrief' module provides critical type definitions used by the packager.\n"
+        )
+
     # Build SPA first
     spa_build_success = build_spa()
 
@@ -375,6 +390,12 @@ def package_toolvault(
             print(
                 "Warning: Testing directory not found - test commands may not work in packaged version"
             )
+
+        # Note: Dependencies like debrief, pydantic, geojson-pydantic must be installed
+        # in the runtime environment. They cannot be bundled in the .pyz due to
+        # compiled extensions (e.g., pydantic_core._pydantic_core.so).
+        # The validation check at the start of package_toolvault() ensures debrief
+        # is available at build time.
 
         # Copy tools directory with new structure
         tools_dest = package_dir / "tools"
