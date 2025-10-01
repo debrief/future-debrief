@@ -23,6 +23,37 @@ RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: shared-type
     python -m build --wheel --outdir /tmp/wheels && \
     if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: shared-types wheel ready" "${STATUS_WEBHOOK}" || true; fi
 
+# Build Tool Vault package
+FROM node:20-slim AS tool-vault-builder
+ARG STATUS_WEBHOOK
+ARG PR_NUMBER
+
+ENV STATUS_WEBHOOK=${STATUS_WEBHOOK}
+ENV PR_NUMBER=${PR_NUMBER}
+
+WORKDIR /tmp/repo
+
+RUN apt-get update && apt-get install -y python3 python3-pip python3-venv curl && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Copy shared-types wheel from previous stage
+COPY --from=shared-types-builder /tmp/wheels/ /tmp/wheels/
+
+# Install shared-types wheel for Tool Vault packager
+RUN pip3 install --break-system-packages /tmp/wheels/*.whl
+
+# Copy Tool Vault packager source
+COPY libs/tool-vault-packager/ ./libs/tool-vault-packager/
+
+WORKDIR /tmp/repo/libs/tool-vault-packager
+
+# Install npm dependencies and build Tool Vault package
+RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: Tool Vault build starting" "${STATUS_WEBHOOK}" || true; fi && \
+    npm install && \
+    cd spa && npm install && cd .. && \
+    npm run build && \
+    if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: Tool Vault package ready" "${STATUS_WEBHOOK}" || true; fi
+
 # Use the official code-server image as the base
 FROM codercom/code-server:latest
 ARG GITHUB_SHA
@@ -64,10 +95,10 @@ COPY --chown=coder:coder . /home/coder/project/
 # Copy the shared-types wheel produced in the builder stage
 COPY --chown=coder:coder --from=shared-types-builder /tmp/wheels/ /home/coder/project/python/
 
-# Copy pre-built Tool Vault package
+# Copy Tool Vault package from builder stage
 # Tool Vault serves MCP-compatible endpoints on port 60124 for maritime analysis tools
 RUN mkdir -p /home/coder/tool-vault
-COPY --chown=coder:coder libs/tool-vault-packager/dist/toolvault.pyz /home/coder/tool-vault/toolvault.pyz
+COPY --chown=coder:coder --from=tool-vault-builder /tmp/repo/libs/tool-vault-packager/dist/toolvault.pyz /home/coder/tool-vault/toolvault.pyz
 RUN chmod +x /home/coder/tool-vault/toolvault.pyz
 
 # Set Tool Vault configuration for VS Code extension
