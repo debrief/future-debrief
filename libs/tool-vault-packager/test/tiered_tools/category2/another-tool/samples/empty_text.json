@@ -1,0 +1,7 @@
+{
+  "input": {
+    "text": ""
+  },
+  "expectedOutput": null,
+  "baseline_error": "Object of type ShowTextCommand is not JSON serializable"
+}
