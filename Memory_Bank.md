@@ -1965,7 +1965,47 @@ def delete_features(params: DeleteFeaturesParameters) -> DeleteFeaturesCommand:
 - Playwright tests: 3/3 passing (tool visibility, empty selection, multiple features)
 - Package build: All 18 tool tests passing, 209.8 KB package created
 
-**Status:** Implementation complete, bug fixes applied  
-**Issues/Blockers:** Tool execution integration tested - features should be removed from map and outline when tool executes  
+**Status:** Implementation complete, bug fixes applied
+**Issues/Blockers:** Tool execution integration tested - features should be removed from map and outline when tool executes
 **Next Steps (Optional):** Verify delete functionality works end-to-end in VS Code extension
+
+---
+
+**Agent:** Claude Implementation Agent
+**Task Reference:** Issue #170 – Playwright Testing for Docker-based VS Code Extension
+
+**Summary:**
+Implemented comprehensive Playwright end-to-end testing infrastructure for validating Docker deployments of the VS Code extension locally before fly.io deployment. Provides pre-deployment confidence and automated regression testing foundation.
+
+**Details:**
+- Created Playwright configuration at `apps/vs-code/playwright.config.ts` with Docker lifecycle management
+- Implemented global setup (`tests/playwright/global-setup.ts`) that builds Docker image, starts container with proper port mappings, and polls for readiness
+- Implemented global teardown (`tests/playwright/global-teardown.ts`) for clean container stop/removal
+- Configured sequential test execution (not parallel) due to shared Docker instance
+- Added Jest exclusion pattern (`testPathIgnorePatterns: ['/tests/playwright/']`) to prevent conflicts
+
+**Test Coverage (7 tests across 3 suites):**
+1. **Docker Startup Tests** (`docker-startup.spec.ts`) - Container starts, VS Code loads, extension enabled
+2. **Tool Vault Integration Tests** (`tool-vault-integration.spec.ts`) - Health endpoint, WebSocket bridge, bidirectional communication
+3. **Plot Rendering Tests** (`plot-rendering.spec.ts`) - Plot files open, Leaflet map renders, GeoJSON features visible
+
+**Package Updates:**
+- Added `@playwright/test` dependency
+- Added test scripts: `test:playwright`, `test:playwright:ui`, `test:playwright:headed`, `test:playwright:debug`
+- Updated `jest.config.cjs` to exclude Playwright tests
+
+**Documentation:**
+- Comprehensive Playwright testing section in `apps/vs-code/docs/local-docker-testing.md`
+- Quick start guide, test architecture, troubleshooting, CI/CD integration notes
+
+**Key Implementation Details:**
+- Docker build from repository root with args: `GITHUB_SHA=playwright-test`, `PR_NUMBER=test`
+- Port mappings: 8080 (VS Code), 60123 (WebSocket), 60124 (Tool Vault)
+- Readiness polling with 3-minute timeout
+- Container ID storage for cleanup
+- TypeScript type checking passed, lint warnings only (acceptable for tests)
+
+**Status:** Phase 1 (MVP) complete - all infrastructure ready for use
+**Issues/Blockers:** None - infrastructure validated and committed
+**Next Steps (Optional):** Phase 2 - GitHub Actions CI/CD integration for automated PR testing
 
