@@ -29,7 +29,7 @@ export interface ToolExecuteButtonProps {
 }
 
 // Helper to collect all category keys for initial expansion
-function collectCategoryKeys(nodes: (ToolNode | ToolCategory)[], depth: number = 0): string[] {
+function collectCategoryKeys(nodes: (ToolNode | ToolCategory)[], depth = 0): string[] {
   const keys: string[] = [];
   for (const node of nodes) {
     if (node.type === 'category') {
@@ -193,7 +193,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
   }, [isMenuOpen, handleClickOutside]);
 
   // Recursive function to render tree nodes
-  const renderTreeNodes = useCallback((nodes: (ToolNode | ToolCategory)[], depth: number = 0): React.ReactNode => {
+  const renderTreeNodes = useCallback((nodes: (ToolNode | ToolCategory)[], depth = 0): React.ReactNode => {
     return nodes.map((node, index) => {
       if (node.type === 'tool') {
         const isApplicable = applicableToolNames.has(node.name);
@@ -282,7 +282,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
                 aria-label="Toggle show all tools"
                 type="button"
               >
-                <span className="toggle-icon">🔍</span>
+                <span className="toggle-icon">All</span>
               </button>
               <button
                 className={`toggle-button ${showDescriptionsState ? 'active' : ''}`}
@@ -291,7 +291,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
                 aria-label="Toggle show descriptions"
                 type="button"
               >
-                <span className="toggle-icon">📝</span>
+                <span className="toggle-icon">Desc</span>
               </button>
             </div>
           </div>
