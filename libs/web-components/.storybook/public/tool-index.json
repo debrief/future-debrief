@@ -1,2461 +1,1260 @@
 {
-  "tools": [
+  "root": [
     {
-      "name": "track_speed_filter",
-      "description": "Find timestamps where track speed equals or exceeds a minimum threshold.",
-      "inputSchema": {
-        "schema_": null,
-        "id_": null,
-        "ref": null,
-        "type": "object",
-        "title": null,
-        "description": null,
-        "examples": null,
-        "comment": null,
-        "enum": null,
-        "const": null,
-        "default": null,
-        "minimum": null,
-        "maximum": null,
-        "exclusiveMinimum": null,
-        "exclusiveMaximum": null,
-        "multipleOf": null,
-        "minLength": null,
-        "maxLength": null,
-        "pattern": null,
-        "format": null,
-        "items": null,
-        "minItems": null,
-        "maxItems": null,
-        "uniqueItems": null,
-        "contains": null,
-        "properties": {
-          "track_feature": {
-            "type": null,
-            "description": "A GeoJSON track feature conforming to DebriefTrackFeature schema with LineString or MultiLineString geometry",
-            "title": null,
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": [
-              {
-                "geometry": {
-                  "coordinates": [
-                    [
-                      0,
-                      0
-                    ],
-                    [
-                      0.01,
-                      0.01
-                    ],
-                    [
-                      0.02,
-                      0.02
-                    ]
-                  ],
-                  "type": "LineString"
+      "type": "category",
+      "name": "feature-management",
+      "children": [
+        {
+          "type": "tool",
+          "name": "delete_features",
+          "description": "Delete selected features from the current plot.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "features": {
+                "type": "array",
+                "description": "Array of Debrief features to delete",
+                "enum": null,
+                "items": {
+                  "type": null,
+                  "description": null,
+                  "enum": null,
+                  "items": null,
+                  "properties": null,
+                  "required": null,
+                  "additionalProperties": null,
+                  "default": null,
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/DebriefTrackFeature"
+                    },
+                    {
+                      "$ref": "#/$defs/DebriefPointFeature"
+                    },
+                    {
+                      "$ref": "#/$defs/DebriefAnnotationFeature"
+                    },
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/ViewportMetadataFeature"
+                        },
+                        {
+                          "$ref": "#/$defs/TimeMetadataFeature"
+                        },
+                        {
+                          "$ref": "#/$defs/SelectionMetadataFeature"
+                        }
+                      ]
+                    },
+                    {
+                      "$ref": "#/$defs/DebriefZoneFeature"
+                    },
+                    {
+                      "$ref": "#/$defs/DebriefBuoyfieldFeature"
+                    },
+                    {
+                      "$ref": "#/$defs/DebriefBackdropFeature"
+                    }
+                  ]
                 },
-                "id": "track_001",
-                "properties": {
-                  "dataType": "track",
-                  "timestamps": [
-                    "2023-01-01T10:00:00Z",
-                    "2023-01-01T10:01:00Z",
-                    "2023-01-01T10:02:00Z"
-                  ],
-                  "name": "Sample Track",
-                  "description": "Test track for speed analysis"
-                },
-                "type": "Feature"
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "examples": [
+                  [
+                    {
+                      "geometry": {
+                        "coordinates": [
+                          [
+                            0,
+                            0
+                          ],
+                          [
+                            1,
+                            1
+                          ]
+                        ],
+                        "type": "LineString"
+                      },
+                      "id": "track-001",
+                      "properties": {
+                        "dataType": "track"
+                      },
+                      "type": "Feature"
+                    }
+                  ]
+                ],
+                "title": "Features"
               }
+            },
+            "required": [
+              "features"
             ],
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": "#/$defs/DebriefTrackFeature"
+            "additionalProperties": false,
+            "description": null
           },
-          "min_speed": {
-            "type": "number",
-            "description": "Minimum speed threshold in knots",
-            "title": "Min Speed",
-            "enum": null,
-            "const": null,
-            "default": 10.0,
-            "examples": [
-              5.0,
-              10.0,
-              15.0,
-              20.0
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "command": {
+                "type": null,
+                "description": "The command type",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "$ref": "#/$defs/CommandType"
+              },
+              "payload": {
+                "type": null,
+                "description": "Command-specific payload",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "title": "Payload"
+              }
+            },
+            "required": [
+              "command",
+              "payload"
             ],
-            "minimum": 0.0,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": null
-          }
-        },
-        "required": [
-          "track_feature"
-        ],
-        "additionalProperties": false,
-        "patternProperties": null,
-        "propertyNames": null,
-        "minProperties": null,
-        "maxProperties": null,
-        "allOf": null,
-        "anyOf": null,
-        "oneOf": null,
-        "not_": null,
-        "if_": null,
-        "then": null,
-        "else_": null,
-        "defs": null,
-        "definitions": null
-      },
-      "outputSchema": {
-        "schema_": null,
-        "id_": null,
-        "ref": null,
-        "type": "object",
-        "title": "ToolVaultCommand",
-        "description": "A command returned by a ToolVault tool.",
-        "examples": null,
-        "comment": null,
-        "enum": null,
-        "const": null,
-        "default": null,
-        "minimum": null,
-        "maximum": null,
-        "exclusiveMinimum": null,
-        "exclusiveMaximum": null,
-        "multipleOf": null,
-        "minLength": null,
-        "maxLength": null,
-        "pattern": null,
-        "format": null,
-        "items": null,
-        "minItems": null,
-        "maxItems": null,
-        "uniqueItems": null,
-        "contains": null,
-        "properties": {
-          "command": {
-            "type": null,
-            "description": "The command type",
-            "title": null,
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": "#/$defs/CommandType"
+            "additionalProperties": false,
+            "description": "A command returned by a ToolVault tool.",
+            "$defs": {
+              "CommandType": {
+                "description": "Valid ToolVault command types.",
+                "enum": [
+                  "addFeatures",
+                  "updateFeatures",
+                  "deleteFeatures",
+                  "setFeatureCollection",
+                  "setViewport",
+                  "setSelection",
+                  "setTimeState",
+                  "showText",
+                  "showData",
+                  "showImage",
+                  "logMessage",
+                  "composite"
+                ],
+                "title": "CommandType",
+                "type": "string"
+              }
+            },
+            "title": "ToolVaultCommand"
           },
-          "payload": {
-            "type": null,
-            "description": "Command-specific payload",
-            "title": "Payload",
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": null
-          }
+          "tool_url": "/api/tools/feature-management/delete_features/tool.json"
         },
-        "required": [
-          "command",
-          "payload"
-        ],
-        "additionalProperties": false,
-        "patternProperties": null,
-        "propertyNames": null,
-        "minProperties": null,
-        "maxProperties": null,
-        "allOf": null,
-        "anyOf": null,
-        "oneOf": null,
-        "not_": null,
-        "if_": null,
-        "then": null,
-        "else_": null,
-        "defs": {
-          "CommandType": {
-            "schema_": null,
-            "id_": null,
-            "ref": null,
-            "type": "string",
-            "title": "CommandType",
-            "description": "Valid ToolVault command types.",
-            "examples": null,
-            "comment": null,
-            "enum": [
-              "addFeatures",
-              "updateFeatures",
-              "deleteFeatures",
-              "setFeatureCollection",
-              "showText",
-              "showData",
-              "showImage",
-              "logMessage",
-              "composite"
+        {
+          "type": "tool",
+          "name": "toggle_first_feature_color",
+          "description": "Toggle the color property of the first feature in a GeoJSON FeatureCollection.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "feature_collection": {
+                "type": null,
+                "description": "A GeoJSON FeatureCollection object conforming to the Debrief FeatureCollection schema",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "$ref": "#/$defs/DebriefFeatureCollection",
+                "examples": [
+                  {
+                    "features": [
+                      {
+                        "geometry": {
+                          "coordinates": [
+                            0,
+                            0
+                          ],
+                          "type": "Point"
+                        },
+                        "id": "feature_001",
+                        "properties": {
+                          "color": "red",
+                          "dataType": "point"
+                        },
+                        "type": "Feature"
+                      }
+                    ],
+                    "type": "FeatureCollection"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "feature_collection"
             ],
-            "const": null,
-            "default": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "contains": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "if_": null,
-            "then": null,
-            "else_": null,
-            "defs": null,
-            "definitions": null
-          }
-        },
-        "definitions": null
-      },
-      "tool_url": "/api/tools/track_speed_filter/tool.json"
+            "additionalProperties": false,
+            "description": null
+          },
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "command": {
+                "type": null,
+                "description": "The command type",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "$ref": "#/$defs/CommandType"
+              },
+              "payload": {
+                "type": null,
+                "description": "Command-specific payload",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "title": "Payload"
+              }
+            },
+            "required": [
+              "command",
+              "payload"
+            ],
+            "additionalProperties": false,
+            "description": "A command returned by a ToolVault tool.",
+            "$defs": {
+              "CommandType": {
+                "description": "Valid ToolVault command types.",
+                "enum": [
+                  "addFeatures",
+                  "updateFeatures",
+                  "deleteFeatures",
+                  "setFeatureCollection",
+                  "setViewport",
+                  "setSelection",
+                  "setTimeState",
+                  "showText",
+                  "showData",
+                  "showImage",
+                  "logMessage",
+                  "composite"
+                ],
+                "title": "CommandType",
+                "type": "string"
+              }
+            },
+            "title": "ToolVaultCommand"
+          },
+          "tool_url": "/api/tools/feature-management/toggle_first_feature_color/tool.json"
+        }
+      ]
     },
     {
-      "name": "track_speed_filter_fast",
-      "description": "Filter track timestamps using pre-calculated speeds array for fast processing.",
-      "inputSchema": {
-        "schema_": null,
-        "id_": null,
-        "ref": null,
-        "type": "object",
-        "title": null,
-        "description": null,
-        "examples": null,
-        "comment": null,
-        "enum": null,
-        "const": null,
-        "default": null,
-        "minimum": null,
-        "maximum": null,
-        "exclusiveMinimum": null,
-        "exclusiveMaximum": null,
-        "multipleOf": null,
-        "minLength": null,
-        "maxLength": null,
-        "pattern": null,
-        "format": null,
-        "items": null,
-        "minItems": null,
-        "maxItems": null,
-        "uniqueItems": null,
-        "contains": null,
-        "properties": {
-          "track_feature": {
-            "type": null,
-            "description": "A Track feature conforming to shared-types Track schema, with additional required 'speeds' array in properties",
-            "title": null,
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": [
-              {
-                "geometry": {
-                  "coordinates": [
-                    [
-                      0,
-                      0
-                    ],
-                    [
-                      0.01,
-                      0.01
-                    ],
-                    [
-                      0.02,
-                      0.02
-                    ]
-                  ],
-                  "type": "LineString"
+      "type": "category",
+      "name": "selection",
+      "children": [
+        {
+          "type": "tool",
+          "name": "fit_to_selection",
+          "description": "Calculate bounds of features and set viewport to fit them.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "features": {
+                "type": "array",
+                "description": "Array of Debrief features to calculate bounds for",
+                "enum": null,
+                "items": {
+                  "type": null,
+                  "description": null,
+                  "enum": null,
+                  "items": null,
+                  "properties": null,
+                  "required": null,
+                  "additionalProperties": null,
+                  "default": null,
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/DebriefTrackFeature"
+                    },
+                    {
+                      "$ref": "#/$defs/DebriefPointFeature"
+                    },
+                    {
+                      "$ref": "#/$defs/DebriefAnnotationFeature"
+                    },
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/ViewportMetadataFeature"
+                        },
+                        {
+                          "$ref": "#/$defs/TimeMetadataFeature"
+                        },
+                        {
+                          "$ref": "#/$defs/SelectionMetadataFeature"
+                        }
+                      ]
+                    },
+                    {
+                      "$ref": "#/$defs/DebriefZoneFeature"
+                    },
+                    {
+                      "$ref": "#/$defs/DebriefBuoyfieldFeature"
+                    },
+                    {
+                      "$ref": "#/$defs/DebriefBackdropFeature"
+                    }
+                  ]
                 },
-                "id": "track_fast_001",
-                "properties": {
-                  "dataType": "track",
-                  "timestamps": [
-                    "2023-01-01T10:00:00Z",
-                    "2023-01-01T10:01:00Z",
-                    "2023-01-01T10:02:00Z"
-                  ],
-                  "speeds": [
-                    15.2,
-                    18.7,
-                    12.3
-                  ],
-                  "name": "High Speed Track",
-                  "description": "Track with pre-calculated speeds"
-                },
-                "type": "Feature"
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "examples": [
+                  [
+                    {
+                      "geometry": {
+                        "coordinates": [
+                          [
+                            0,
+                            0
+                          ],
+                          [
+                            1,
+                            1
+                          ]
+                        ],
+                        "type": "LineString"
+                      },
+                      "id": "track-001",
+                      "properties": {
+                        "dataType": "track"
+                      },
+                      "type": "Feature"
+                    }
+                  ]
+                ],
+                "title": "Features"
+              },
+              "padding": {
+                "type": "number",
+                "description": "Additional padding around bounds as percentage (0.1 = 10%)",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": 0.1,
+                "examples": [
+                  0.1,
+                  0.05,
+                  0.2
+                ],
+                "title": "Padding"
               }
+            },
+            "required": [
+              "features"
             ],
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": "#/$defs/DebriefTrackFeature"
+            "additionalProperties": false,
+            "description": null
           },
-          "min_speed": {
-            "type": "number",
-            "description": "Minimum speed threshold in knots",
-            "title": "Min Speed",
-            "enum": null,
-            "const": null,
-            "default": 10.0,
-            "examples": [
-              5.0,
-              10.0,
-              15.0,
-              20.0
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "command": {
+                "type": null,
+                "description": "The command type",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "$ref": "#/$defs/CommandType"
+              },
+              "payload": {
+                "type": null,
+                "description": "Command-specific payload",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "title": "Payload"
+              }
+            },
+            "required": [
+              "command",
+              "payload"
             ],
-            "minimum": 0.0,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": null
-          }
-        },
-        "required": [
-          "track_feature"
-        ],
-        "additionalProperties": false,
-        "patternProperties": null,
-        "propertyNames": null,
-        "minProperties": null,
-        "maxProperties": null,
-        "allOf": null,
-        "anyOf": null,
-        "oneOf": null,
-        "not_": null,
-        "if_": null,
-        "then": null,
-        "else_": null,
-        "defs": null,
-        "definitions": null
-      },
-      "outputSchema": {
-        "schema_": null,
-        "id_": null,
-        "ref": null,
-        "type": "object",
-        "title": "ToolVaultCommand",
-        "description": "A command returned by a ToolVault tool.",
-        "examples": null,
-        "comment": null,
-        "enum": null,
-        "const": null,
-        "default": null,
-        "minimum": null,
-        "maximum": null,
-        "exclusiveMinimum": null,
-        "exclusiveMaximum": null,
-        "multipleOf": null,
-        "minLength": null,
-        "maxLength": null,
-        "pattern": null,
-        "format": null,
-        "items": null,
-        "minItems": null,
-        "maxItems": null,
-        "uniqueItems": null,
-        "contains": null,
-        "properties": {
-          "command": {
-            "type": null,
-            "description": "The command type",
-            "title": null,
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": "#/$defs/CommandType"
+            "additionalProperties": false,
+            "description": "A command returned by a ToolVault tool.",
+            "$defs": {
+              "CommandType": {
+                "description": "Valid ToolVault command types.",
+                "enum": [
+                  "addFeatures",
+                  "updateFeatures",
+                  "deleteFeatures",
+                  "setFeatureCollection",
+                  "setViewport",
+                  "setSelection",
+                  "setTimeState",
+                  "showText",
+                  "showData",
+                  "showImage",
+                  "logMessage",
+                  "composite"
+                ],
+                "title": "CommandType",
+                "type": "string"
+              }
+            },
+            "title": "ToolVaultCommand"
           },
-          "payload": {
-            "type": null,
-            "description": "Command-specific payload",
-            "title": "Payload",
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": null
-          }
+          "tool_url": "/api/tools/selection/fit_to_selection/tool.json"
         },
-        "required": [
-          "command",
-          "payload"
-        ],
-        "additionalProperties": false,
-        "patternProperties": null,
-        "propertyNames": null,
-        "minProperties": null,
-        "maxProperties": null,
-        "allOf": null,
-        "anyOf": null,
-        "oneOf": null,
-        "not_": null,
-        "if_": null,
-        "then": null,
-        "else_": null,
-        "defs": {
-          "CommandType": {
-            "schema_": null,
-            "id_": null,
-            "ref": null,
-            "type": "string",
-            "title": "CommandType",
-            "description": "Valid ToolVault command types.",
-            "examples": null,
-            "comment": null,
-            "enum": [
-              "addFeatures",
-              "updateFeatures",
-              "deleteFeatures",
-              "setFeatureCollection",
-              "showText",
-              "showData",
-              "showImage",
-              "logMessage",
-              "composite"
+        {
+          "type": "tool",
+          "name": "select_all_visible",
+          "description": "Select all features that are visible within the current viewport bounds.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "feature_collection": {
+                "type": null,
+                "description": "GeoJSON FeatureCollection containing features to check for visibility",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "$ref": "#/$defs/DebriefFeatureCollection",
+                "examples": [
+                  {
+                    "features": [
+                      {
+                        "geometry": {
+                          "coordinates": [
+                            [
+                              -1.0,
+                              52.0
+                            ],
+                            [
+                              -1.1,
+                              52.1
+                            ]
+                          ],
+                          "type": "LineString"
+                        },
+                        "id": "track-001",
+                        "properties": {
+                          "dataType": "track",
+                          "name": "Track 1"
+                        },
+                        "type": "Feature"
+                      }
+                    ],
+                    "type": "FeatureCollection"
+                  }
+                ]
+              },
+              "viewport_state": {
+                "type": null,
+                "description": "Current viewport state with bounds [west, south, east, north]",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "$ref": "#/$defs/ViewportState",
+                "examples": [
+                  {
+                    "bounds": [
+                      -2.0,
+                      51.0,
+                      0.0,
+                      53.0
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "feature_collection",
+              "viewport_state"
             ],
-            "const": null,
-            "default": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "contains": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "if_": null,
-            "then": null,
-            "else_": null,
-            "defs": null,
-            "definitions": null
-          }
+            "additionalProperties": false,
+            "description": null
+          },
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "command": {
+                "type": null,
+                "description": "The command type",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "$ref": "#/$defs/CommandType"
+              },
+              "payload": {
+                "type": null,
+                "description": "Command-specific payload",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "title": "Payload"
+              }
+            },
+            "required": [
+              "command",
+              "payload"
+            ],
+            "additionalProperties": false,
+            "description": "A command returned by a ToolVault tool.",
+            "$defs": {
+              "CommandType": {
+                "description": "Valid ToolVault command types.",
+                "enum": [
+                  "addFeatures",
+                  "updateFeatures",
+                  "deleteFeatures",
+                  "setFeatureCollection",
+                  "setViewport",
+                  "setSelection",
+                  "setTimeState",
+                  "showText",
+                  "showData",
+                  "showImage",
+                  "logMessage",
+                  "composite"
+                ],
+                "title": "CommandType",
+                "type": "string"
+              }
+            },
+            "title": "ToolVaultCommand"
+          },
+          "tool_url": "/api/tools/selection/select_all_visible/tool.json"
         },
-        "definitions": null
-      },
-      "tool_url": "/api/tools/track_speed_filter_fast/tool.json"
+        {
+          "type": "tool",
+          "name": "select_feature_start_time",
+          "description": "Set TimeState current to the earliest timestamp from any feature.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "features": {
+                "type": "array",
+                "description": "Array of Debrief features to analyze for timestamps",
+                "enum": null,
+                "items": {
+                  "type": null,
+                  "description": null,
+                  "enum": null,
+                  "items": null,
+                  "properties": null,
+                  "required": null,
+                  "additionalProperties": null,
+                  "default": null,
+                  "oneOf": [
+                    {
+                      "$ref": "#/$defs/DebriefTrackFeature"
+                    },
+                    {
+                      "$ref": "#/$defs/DebriefPointFeature"
+                    },
+                    {
+                      "$ref": "#/$defs/DebriefAnnotationFeature"
+                    },
+                    {
+                      "anyOf": [
+                        {
+                          "$ref": "#/$defs/ViewportMetadataFeature"
+                        },
+                        {
+                          "$ref": "#/$defs/TimeMetadataFeature"
+                        },
+                        {
+                          "$ref": "#/$defs/SelectionMetadataFeature"
+                        }
+                      ]
+                    },
+                    {
+                      "$ref": "#/$defs/DebriefZoneFeature"
+                    },
+                    {
+                      "$ref": "#/$defs/DebriefBuoyfieldFeature"
+                    },
+                    {
+                      "$ref": "#/$defs/DebriefBackdropFeature"
+                    }
+                  ]
+                },
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "examples": [
+                  [
+                    {
+                      "geometry": {
+                        "coordinates": [
+                          [
+                            0,
+                            0
+                          ],
+                          [
+                            1,
+                            1
+                          ]
+                        ],
+                        "type": "LineString"
+                      },
+                      "id": "track-001",
+                      "properties": {
+                        "dataType": "track",
+                        "timestamps": [
+                          "2024-01-01T10:00:00Z",
+                          "2024-01-01T11:00:00Z"
+                        ]
+                      },
+                      "type": "Feature"
+                    }
+                  ]
+                ],
+                "title": "Features"
+              },
+              "current_time_state": {
+                "type": null,
+                "description": "Current time state to update",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "$ref": "#/$defs/TimeState",
+                "examples": [
+                  {
+                    "current": "2024-01-01T12:00:00Z",
+                    "end": "2024-01-01T23:59:59Z",
+                    "start": "2024-01-01T00:00:00Z"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "features",
+              "current_time_state"
+            ],
+            "additionalProperties": false,
+            "description": null
+          },
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "command": {
+                "type": null,
+                "description": "The command type",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "$ref": "#/$defs/CommandType"
+              },
+              "payload": {
+                "type": null,
+                "description": "Command-specific payload",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "title": "Payload"
+              }
+            },
+            "required": [
+              "command",
+              "payload"
+            ],
+            "additionalProperties": false,
+            "description": "A command returned by a ToolVault tool.",
+            "$defs": {
+              "CommandType": {
+                "description": "Valid ToolVault command types.",
+                "enum": [
+                  "addFeatures",
+                  "updateFeatures",
+                  "deleteFeatures",
+                  "setFeatureCollection",
+                  "setViewport",
+                  "setSelection",
+                  "setTimeState",
+                  "showText",
+                  "showData",
+                  "showImage",
+                  "logMessage",
+                  "composite"
+                ],
+                "title": "CommandType",
+                "type": "string"
+              }
+            },
+            "title": "ToolVaultCommand"
+          },
+          "tool_url": "/api/tools/selection/select_feature_start_time/tool.json"
+        }
+      ]
     },
     {
-      "name": "toggle_first_feature_color",
-      "description": "Toggle the color property of the first feature in a GeoJSON FeatureCollection.",
-      "inputSchema": {
-        "schema_": null,
-        "id_": null,
-        "ref": null,
-        "type": "object",
-        "title": null,
-        "description": null,
-        "examples": null,
-        "comment": null,
-        "enum": null,
-        "const": null,
-        "default": null,
-        "minimum": null,
-        "maximum": null,
-        "exclusiveMinimum": null,
-        "exclusiveMaximum": null,
-        "multipleOf": null,
-        "minLength": null,
-        "maxLength": null,
-        "pattern": null,
-        "format": null,
-        "items": null,
-        "minItems": null,
-        "maxItems": null,
-        "uniqueItems": null,
-        "contains": null,
-        "properties": {
-          "feature_collection": {
-            "type": null,
-            "description": "A GeoJSON FeatureCollection object conforming to the Debrief FeatureCollection schema",
-            "title": null,
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": [
-              {
-                "features": [
+      "type": "category",
+      "name": "text",
+      "children": [
+        {
+          "type": "tool",
+          "name": "word_count",
+          "description": "Count the number of words in a given block of text.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "description": "The input text block to count words from",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "examples": [
+                  "Hello world",
+                  "This is a longer text with multiple words to count",
+                  "",
+                  "Single"
+                ],
+                "minLength": 0,
+                "title": "Text"
+              }
+            },
+            "required": [
+              "text"
+            ],
+            "additionalProperties": false,
+            "description": null
+          },
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "command": {
+                "type": null,
+                "description": "The command type",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "$ref": "#/$defs/CommandType"
+              },
+              "payload": {
+                "type": null,
+                "description": "Command-specific payload",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "title": "Payload"
+              }
+            },
+            "required": [
+              "command",
+              "payload"
+            ],
+            "additionalProperties": false,
+            "description": "A command returned by a ToolVault tool.",
+            "$defs": {
+              "CommandType": {
+                "description": "Valid ToolVault command types.",
+                "enum": [
+                  "addFeatures",
+                  "updateFeatures",
+                  "deleteFeatures",
+                  "setFeatureCollection",
+                  "setViewport",
+                  "setSelection",
+                  "setTimeState",
+                  "showText",
+                  "showData",
+                  "showImage",
+                  "logMessage",
+                  "composite"
+                ],
+                "title": "CommandType",
+                "type": "string"
+              }
+            },
+            "title": "ToolVaultCommand"
+          },
+          "tool_url": "/api/tools/text/word_count/tool.json"
+        }
+      ]
+    },
+    {
+      "type": "category",
+      "name": "track-analysis",
+      "children": [
+        {
+          "type": "tool",
+          "name": "track_speed_filter",
+          "description": "Find timestamps where track speed equals or exceeds a minimum threshold.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "track_feature": {
+                "type": null,
+                "description": "A GeoJSON track feature conforming to DebriefTrackFeature schema with LineString or MultiLineString geometry",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "$ref": "#/$defs/DebriefTrackFeature",
+                "examples": [
                   {
                     "geometry": {
                       "coordinates": [
-                        0,
-                        0
+                        [
+                          0,
+                          0
+                        ],
+                        [
+                          0.01,
+                          0.01
+                        ],
+                        [
+                          0.02,
+                          0.02
+                        ]
                       ],
-                      "type": "Point"
+                      "type": "LineString"
                     },
-                    "id": "feature_001",
+                    "id": "track_001",
                     "properties": {
-                      "color": "red",
-                      "dataType": "point"
+                      "dataType": "track",
+                      "timestamps": [
+                        "2023-01-01T10:00:00Z",
+                        "2023-01-01T10:01:00Z",
+                        "2023-01-01T10:02:00Z"
+                      ],
+                      "name": "Sample Track",
+                      "description": "Test track for speed analysis"
                     },
                     "type": "Feature"
                   }
+                ]
+              },
+              "min_speed": {
+                "type": "number",
+                "description": "Minimum speed threshold in knots",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": 10.0,
+                "examples": [
+                  5.0,
+                  10.0,
+                  15.0,
+                  20.0
                 ],
-                "type": "FeatureCollection"
+                "minimum": 0.0,
+                "title": "Min Speed"
               }
-            ],
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": "#/$defs/DebriefFeatureCollection"
-          }
-        },
-        "required": [
-          "feature_collection"
-        ],
-        "additionalProperties": false,
-        "patternProperties": null,
-        "propertyNames": null,
-        "minProperties": null,
-        "maxProperties": null,
-        "allOf": null,
-        "anyOf": null,
-        "oneOf": null,
-        "not_": null,
-        "if_": null,
-        "then": null,
-        "else_": null,
-        "defs": null,
-        "definitions": null
-      },
-      "outputSchema": {
-        "schema_": null,
-        "id_": null,
-        "ref": null,
-        "type": "object",
-        "title": "ToolVaultCommand",
-        "description": "A command returned by a ToolVault tool.",
-        "examples": null,
-        "comment": null,
-        "enum": null,
-        "const": null,
-        "default": null,
-        "minimum": null,
-        "maximum": null,
-        "exclusiveMinimum": null,
-        "exclusiveMaximum": null,
-        "multipleOf": null,
-        "minLength": null,
-        "maxLength": null,
-        "pattern": null,
-        "format": null,
-        "items": null,
-        "minItems": null,
-        "maxItems": null,
-        "uniqueItems": null,
-        "contains": null,
-        "properties": {
-          "command": {
-            "type": null,
-            "description": "The command type",
-            "title": null,
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": "#/$defs/CommandType"
-          },
-          "payload": {
-            "type": null,
-            "description": "Command-specific payload",
-            "title": "Payload",
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": null
-          }
-        },
-        "required": [
-          "command",
-          "payload"
-        ],
-        "additionalProperties": false,
-        "patternProperties": null,
-        "propertyNames": null,
-        "minProperties": null,
-        "maxProperties": null,
-        "allOf": null,
-        "anyOf": null,
-        "oneOf": null,
-        "not_": null,
-        "if_": null,
-        "then": null,
-        "else_": null,
-        "defs": {
-          "CommandType": {
-            "schema_": null,
-            "id_": null,
-            "ref": null,
-            "type": "string",
-            "title": "CommandType",
-            "description": "Valid ToolVault command types.",
-            "examples": null,
-            "comment": null,
-            "enum": [
-              "addFeatures",
-              "updateFeatures",
-              "deleteFeatures",
-              "setFeatureCollection",
-              "showText",
-              "showData",
-              "showImage",
-              "logMessage",
-              "composite"
-            ],
-            "const": null,
-            "default": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "contains": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "if_": null,
-            "then": null,
-            "else_": null,
-            "defs": null,
-            "definitions": null
-          }
-        },
-        "definitions": null
-      },
-      "tool_url": "/api/tools/toggle_first_feature_color/tool.json"
-    },
-    {
-      "name": "word_count",
-      "description": "Count the number of words in a given block of text.",
-      "inputSchema": {
-        "schema_": null,
-        "id_": null,
-        "ref": null,
-        "type": "object",
-        "title": null,
-        "description": null,
-        "examples": null,
-        "comment": null,
-        "enum": null,
-        "const": null,
-        "default": null,
-        "minimum": null,
-        "maximum": null,
-        "exclusiveMinimum": null,
-        "exclusiveMaximum": null,
-        "multipleOf": null,
-        "minLength": null,
-        "maxLength": null,
-        "pattern": null,
-        "format": null,
-        "items": null,
-        "minItems": null,
-        "maxItems": null,
-        "uniqueItems": null,
-        "contains": null,
-        "properties": {
-          "text": {
-            "type": "string",
-            "description": "The input text block to count words from",
-            "title": "Text",
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": [
-              "Hello world",
-              "This is a longer text with multiple words to count",
-              "",
-              "Single"
-            ],
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": 0,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": null
-          }
-        },
-        "required": [
-          "text"
-        ],
-        "additionalProperties": false,
-        "patternProperties": null,
-        "propertyNames": null,
-        "minProperties": null,
-        "maxProperties": null,
-        "allOf": null,
-        "anyOf": null,
-        "oneOf": null,
-        "not_": null,
-        "if_": null,
-        "then": null,
-        "else_": null,
-        "defs": null,
-        "definitions": null
-      },
-      "outputSchema": {
-        "schema_": null,
-        "id_": null,
-        "ref": null,
-        "type": "object",
-        "title": "ToolVaultCommand",
-        "description": "A command returned by a ToolVault tool.",
-        "examples": null,
-        "comment": null,
-        "enum": null,
-        "const": null,
-        "default": null,
-        "minimum": null,
-        "maximum": null,
-        "exclusiveMinimum": null,
-        "exclusiveMaximum": null,
-        "multipleOf": null,
-        "minLength": null,
-        "maxLength": null,
-        "pattern": null,
-        "format": null,
-        "items": null,
-        "minItems": null,
-        "maxItems": null,
-        "uniqueItems": null,
-        "contains": null,
-        "properties": {
-          "command": {
-            "type": null,
-            "description": "The command type",
-            "title": null,
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": "#/$defs/CommandType"
-          },
-          "payload": {
-            "type": null,
-            "description": "Command-specific payload",
-            "title": "Payload",
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": null
-          }
-        },
-        "required": [
-          "command",
-          "payload"
-        ],
-        "additionalProperties": false,
-        "patternProperties": null,
-        "propertyNames": null,
-        "minProperties": null,
-        "maxProperties": null,
-        "allOf": null,
-        "anyOf": null,
-        "oneOf": null,
-        "not_": null,
-        "if_": null,
-        "then": null,
-        "else_": null,
-        "defs": {
-          "CommandType": {
-            "schema_": null,
-            "id_": null,
-            "ref": null,
-            "type": "string",
-            "title": "CommandType",
-            "description": "Valid ToolVault command types.",
-            "examples": null,
-            "comment": null,
-            "enum": [
-              "addFeatures",
-              "updateFeatures",
-              "deleteFeatures",
-              "setFeatureCollection",
-              "showText",
-              "showData",
-              "showImage",
-              "logMessage",
-              "composite"
-            ],
-            "const": null,
-            "default": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "contains": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "if_": null,
-            "then": null,
-            "else_": null,
-            "defs": null,
-            "definitions": null
-          }
-        },
-        "definitions": null
-      },
-      "tool_url": "/api/tools/word_count/tool.json"
-    },
-    {
-      "name": "viewport_grid_generator",
-      "description": "Generate a grid of points within a viewport area at specified intervals.",
-      "inputSchema": {
-        "schema_": null,
-        "id_": null,
-        "ref": null,
-        "type": "object",
-        "title": null,
-        "description": null,
-        "examples": null,
-        "comment": null,
-        "enum": null,
-        "const": null,
-        "default": null,
-        "minimum": null,
-        "maximum": null,
-        "exclusiveMinimum": null,
-        "exclusiveMaximum": null,
-        "multipleOf": null,
-        "minLength": null,
-        "maxLength": null,
-        "pattern": null,
-        "format": null,
-        "items": null,
-        "minItems": null,
-        "maxItems": null,
-        "uniqueItems": null,
-        "contains": null,
-        "properties": {
-          "viewport_state": {
-            "type": null,
-            "description": "Viewport state containing bounds as [west, south, east, north] in decimal degrees",
-            "title": null,
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": [
-              {
-                "bounds": [
-                  -1.0,
-                  -1.0,
-                  1.0,
-                  1.0
-                ]
-              },
-              {
-                "bounds": [
-                  -122.5,
-                  37.7,
-                  -122.3,
-                  37.9
-                ]
-              },
-              {
-                "bounds": [
-                  0.0,
-                  50.0,
-                  2.0,
-                  52.0
-                ]
-              }
-            ],
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": "#/$defs/ViewportState"
-          },
-          "lat_interval": {
-            "type": "number",
-            "description": "Latitude interval between grid points in decimal degrees",
-            "title": "Lat Interval",
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": [
-              0.1,
-              0.5,
-              1.0
-            ],
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": 0.0,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": null
-          },
-          "lon_interval": {
-            "type": "number",
-            "description": "Longitude interval between grid points in decimal degrees",
-            "title": "Lon Interval",
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": [
-              0.1,
-              0.5,
-              1.0
-            ],
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": 0.0,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": null
-          }
-        },
-        "required": [
-          "viewport_state",
-          "lat_interval",
-          "lon_interval"
-        ],
-        "additionalProperties": false,
-        "patternProperties": null,
-        "propertyNames": null,
-        "minProperties": null,
-        "maxProperties": null,
-        "allOf": null,
-        "anyOf": null,
-        "oneOf": null,
-        "not_": null,
-        "if_": null,
-        "then": null,
-        "else_": null,
-        "defs": null,
-        "definitions": null
-      },
-      "outputSchema": {
-        "schema_": null,
-        "id_": null,
-        "ref": null,
-        "type": "object",
-        "title": "ToolVaultCommand",
-        "description": "A command returned by a ToolVault tool.",
-        "examples": null,
-        "comment": null,
-        "enum": null,
-        "const": null,
-        "default": null,
-        "minimum": null,
-        "maximum": null,
-        "exclusiveMinimum": null,
-        "exclusiveMaximum": null,
-        "multipleOf": null,
-        "minLength": null,
-        "maxLength": null,
-        "pattern": null,
-        "format": null,
-        "items": null,
-        "minItems": null,
-        "maxItems": null,
-        "uniqueItems": null,
-        "contains": null,
-        "properties": {
-          "command": {
-            "type": null,
-            "description": "The command type",
-            "title": null,
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": "#/$defs/CommandType"
-          },
-          "payload": {
-            "type": null,
-            "description": "Command-specific payload",
-            "title": "Payload",
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": null
-          }
-        },
-        "required": [
-          "command",
-          "payload"
-        ],
-        "additionalProperties": false,
-        "patternProperties": null,
-        "propertyNames": null,
-        "minProperties": null,
-        "maxProperties": null,
-        "allOf": null,
-        "anyOf": null,
-        "oneOf": null,
-        "not_": null,
-        "if_": null,
-        "then": null,
-        "else_": null,
-        "defs": {
-          "CommandType": {
-            "schema_": null,
-            "id_": null,
-            "ref": null,
-            "type": "string",
-            "title": "CommandType",
-            "description": "Valid ToolVault command types.",
-            "examples": null,
-            "comment": null,
-            "enum": [
-              "addFeatures",
-              "updateFeatures",
-              "deleteFeatures",
-              "setFeatureCollection",
-              "showText",
-              "showData",
-              "showImage",
-              "logMessage",
-              "composite"
-            ],
-            "const": null,
-            "default": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "contains": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "if_": null,
-            "then": null,
-            "else_": null,
-            "defs": null,
-            "definitions": null
-          }
-        },
-        "definitions": null
-      },
-      "tool_url": "/api/tools/viewport_grid_generator/tool.json"
-    },
-    {
-      "name": "fit_to_selection",
-      "description": "Calculate bounds of features and set viewport to fit them.",
-      "inputSchema": {
-        "schema_": null,
-        "id_": null,
-        "ref": null,
-        "type": "object",
-        "title": null,
-        "description": null,
-        "examples": null,
-        "comment": null,
-        "enum": null,
-        "const": null,
-        "default": null,
-        "minimum": null,
-        "maximum": null,
-        "exclusiveMinimum": null,
-        "exclusiveMaximum": null,
-        "multipleOf": null,
-        "minLength": null,
-        "maxLength": null,
-        "pattern": null,
-        "format": null,
-        "items": null,
-        "minItems": null,
-        "maxItems": null,
-        "uniqueItems": null,
-        "contains": null,
-        "properties": {
-          "features": {
-            "type": "array",
-            "description": "Array of Debrief features to calculate bounds for",
-            "title": "Features",
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": [
-              [
-                {
-                  "geometry": {
-                    "coordinates": [
-                      [
-                        0,
-                        0
-                      ],
-                      [
-                        1,
-                        1
-                      ]
-                    ],
-                    "type": "LineString"
-                  },
-                  "id": "track-001",
-                  "properties": {
-                    "dataType": "track"
-                  },
-                  "type": "Feature"
-                }
-              ]
-            ],
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": {
-              "type": null,
-              "description": null,
-              "title": null,
-              "enum": null,
-              "const": null,
-              "default": null,
-              "examples": null,
-              "minimum": null,
-              "maximum": null,
-              "exclusiveMinimum": null,
-              "exclusiveMaximum": null,
-              "multipleOf": null,
-              "minLength": null,
-              "maxLength": null,
-              "pattern": null,
-              "format": null,
-              "items": null,
-              "minItems": null,
-              "maxItems": null,
-              "uniqueItems": null,
-              "properties": null,
-              "required": null,
-              "additionalProperties": null,
-              "patternProperties": null,
-              "propertyNames": null,
-              "minProperties": null,
-              "maxProperties": null,
-              "allOf": null,
-              "anyOf": [
-                {
-                  "type": null,
-                  "description": null,
-                  "title": null,
-                  "enum": null,
-                  "const": null,
-                  "default": null,
-                  "examples": null,
-                  "minimum": null,
-                  "maximum": null,
-                  "exclusiveMinimum": null,
-                  "exclusiveMaximum": null,
-                  "multipleOf": null,
-                  "minLength": null,
-                  "maxLength": null,
-                  "pattern": null,
-                  "format": null,
-                  "items": null,
-                  "minItems": null,
-                  "maxItems": null,
-                  "uniqueItems": null,
-                  "properties": null,
-                  "required": null,
-                  "additionalProperties": null,
-                  "patternProperties": null,
-                  "propertyNames": null,
-                  "minProperties": null,
-                  "maxProperties": null,
-                  "allOf": null,
-                  "anyOf": null,
-                  "oneOf": null,
-                  "not_": null,
-                  "ref": "#/$defs/DebriefTrackFeature"
-                },
-                {
-                  "type": null,
-                  "description": null,
-                  "title": null,
-                  "enum": null,
-                  "const": null,
-                  "default": null,
-                  "examples": null,
-                  "minimum": null,
-                  "maximum": null,
-                  "exclusiveMinimum": null,
-                  "exclusiveMaximum": null,
-                  "multipleOf": null,
-                  "minLength": null,
-                  "maxLength": null,
-                  "pattern": null,
-                  "format": null,
-                  "items": null,
-                  "minItems": null,
-                  "maxItems": null,
-                  "uniqueItems": null,
-                  "properties": null,
-                  "required": null,
-                  "additionalProperties": null,
-                  "patternProperties": null,
-                  "propertyNames": null,
-                  "minProperties": null,
-                  "maxProperties": null,
-                  "allOf": null,
-                  "anyOf": null,
-                  "oneOf": null,
-                  "not_": null,
-                  "ref": "#/$defs/DebriefPointFeature"
-                },
-                {
-                  "type": null,
-                  "description": null,
-                  "title": null,
-                  "enum": null,
-                  "const": null,
-                  "default": null,
-                  "examples": null,
-                  "minimum": null,
-                  "maximum": null,
-                  "exclusiveMinimum": null,
-                  "exclusiveMaximum": null,
-                  "multipleOf": null,
-                  "minLength": null,
-                  "maxLength": null,
-                  "pattern": null,
-                  "format": null,
-                  "items": null,
-                  "minItems": null,
-                  "maxItems": null,
-                  "uniqueItems": null,
-                  "properties": null,
-                  "required": null,
-                  "additionalProperties": null,
-                  "patternProperties": null,
-                  "propertyNames": null,
-                  "minProperties": null,
-                  "maxProperties": null,
-                  "allOf": null,
-                  "anyOf": null,
-                  "oneOf": null,
-                  "not_": null,
-                  "ref": "#/$defs/DebriefAnnotationFeature"
-                }
-              ],
-              "oneOf": null,
-              "not_": null,
-              "ref": null
             },
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": null
-          },
-          "padding": {
-            "type": "number",
-            "description": "Additional padding around bounds as percentage (0.1 = 10%)",
-            "title": "Padding",
-            "enum": null,
-            "const": null,
-            "default": 0.1,
-            "examples": [
-              0.1,
-              0.05,
-              0.2
+            "required": [
+              "track_feature"
             ],
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": null
-          }
-        },
-        "required": [
-        ],
-        "additionalProperties": false,
-        "patternProperties": null,
-        "propertyNames": null,
-        "minProperties": null,
-        "maxProperties": null,
-        "allOf": null,
-        "anyOf": null,
-        "oneOf": null,
-        "not_": null,
-        "if_": null,
-        "then": null,
-        "else_": null,
-        "defs": null,
-        "definitions": null
-      },
-      "outputSchema": {
-        "schema_": null,
-        "id_": null,
-        "ref": null,
-        "type": "object",
-        "title": "ToolVaultCommand",
-        "description": "A command returned by a ToolVault tool.",
-        "examples": null,
-        "comment": null,
-        "enum": null,
-        "const": null,
-        "default": null,
-        "minimum": null,
-        "maximum": null,
-        "exclusiveMinimum": null,
-        "exclusiveMaximum": null,
-        "multipleOf": null,
-        "minLength": null,
-        "maxLength": null,
-        "pattern": null,
-        "format": null,
-        "items": null,
-        "minItems": null,
-        "maxItems": null,
-        "uniqueItems": null,
-        "contains": null,
-        "properties": {
-          "command": {
-            "type": null,
-            "description": "The command type",
-            "title": null,
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": "#/$defs/CommandType"
+            "additionalProperties": false,
+            "description": null
           },
-          "payload": {
-            "type": null,
-            "description": "Command-specific payload",
-            "title": "Payload",
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": null
-          }
-        },
-        "required": [
-          "command",
-          "payload"
-        ],
-        "additionalProperties": false,
-        "patternProperties": null,
-        "propertyNames": null,
-        "minProperties": null,
-        "maxProperties": null,
-        "allOf": null,
-        "anyOf": null,
-        "oneOf": null,
-        "not_": null,
-        "if_": null,
-        "then": null,
-        "else_": null,
-        "defs": {
-          "CommandType": {
-            "schema_": null,
-            "id_": null,
-            "ref": null,
-            "type": "string",
-            "title": "CommandType",
-            "description": "Valid ToolVault command types.",
-            "examples": null,
-            "comment": null,
-            "enum": [
-              "addFeatures",
-              "updateFeatures",
-              "deleteFeatures",
-              "setFeatureCollection",
-              "showText",
-              "showData",
-              "showImage",
-              "logMessage",
-              "composite"
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "command": {
+                "type": null,
+                "description": "The command type",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "$ref": "#/$defs/CommandType"
+              },
+              "payload": {
+                "type": null,
+                "description": "Command-specific payload",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "title": "Payload"
+              }
+            },
+            "required": [
+              "command",
+              "payload"
             ],
-            "const": null,
-            "default": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "contains": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "if_": null,
-            "then": null,
-            "else_": null,
-            "defs": null,
-            "definitions": null
-          }
+            "additionalProperties": false,
+            "description": "A command returned by a ToolVault tool.",
+            "$defs": {
+              "CommandType": {
+                "description": "Valid ToolVault command types.",
+                "enum": [
+                  "addFeatures",
+                  "updateFeatures",
+                  "deleteFeatures",
+                  "setFeatureCollection",
+                  "setViewport",
+                  "setSelection",
+                  "setTimeState",
+                  "showText",
+                  "showData",
+                  "showImage",
+                  "logMessage",
+                  "composite"
+                ],
+                "title": "CommandType",
+                "type": "string"
+              }
+            },
+            "title": "ToolVaultCommand"
+          },
+          "tool_url": "/api/tools/track-analysis/track_speed_filter/tool.json"
         },
-        "definitions": null
-      },
-      "tool_url": "/api/tools/fit_to_selection/tool.json"
+        {
+          "type": "tool",
+          "name": "track_speed_filter_fast",
+          "description": "Filter track timestamps using pre-calculated speeds array for fast processing.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "track_feature": {
+                "type": null,
+                "description": "A Track feature conforming to shared-types Track schema, with additional required 'speeds' array in properties",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "$ref": "#/$defs/DebriefTrackFeature",
+                "examples": [
+                  {
+                    "geometry": {
+                      "coordinates": [
+                        [
+                          0,
+                          0
+                        ],
+                        [
+                          0.01,
+                          0.01
+                        ],
+                        [
+                          0.02,
+                          0.02
+                        ]
+                      ],
+                      "type": "LineString"
+                    },
+                    "id": "track_fast_001",
+                    "properties": {
+                      "dataType": "track",
+                      "timestamps": [
+                        "2023-01-01T10:00:00Z",
+                        "2023-01-01T10:01:00Z",
+                        "2023-01-01T10:02:00Z"
+                      ],
+                      "speeds": [
+                        15.2,
+                        18.7,
+                        12.3
+                      ],
+                      "name": "High Speed Track",
+                      "description": "Track with pre-calculated speeds"
+                    },
+                    "type": "Feature"
+                  }
+                ]
+              },
+              "min_speed": {
+                "type": "number",
+                "description": "Minimum speed threshold in knots",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": 10.0,
+                "examples": [
+                  5.0,
+                  10.0,
+                  15.0,
+                  20.0
+                ],
+                "minimum": 0.0,
+                "title": "Min Speed"
+              }
+            },
+            "required": [
+              "track_feature"
+            ],
+            "additionalProperties": false,
+            "description": null
+          },
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "command": {
+                "type": null,
+                "description": "The command type",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "$ref": "#/$defs/CommandType"
+              },
+              "payload": {
+                "type": null,
+                "description": "Command-specific payload",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "title": "Payload"
+              }
+            },
+            "required": [
+              "command",
+              "payload"
+            ],
+            "additionalProperties": false,
+            "description": "A command returned by a ToolVault tool.",
+            "$defs": {
+              "CommandType": {
+                "description": "Valid ToolVault command types.",
+                "enum": [
+                  "addFeatures",
+                  "updateFeatures",
+                  "deleteFeatures",
+                  "setFeatureCollection",
+                  "setViewport",
+                  "setSelection",
+                  "setTimeState",
+                  "showText",
+                  "showData",
+                  "showImage",
+                  "logMessage",
+                  "composite"
+                ],
+                "title": "CommandType",
+                "type": "string"
+              }
+            },
+            "title": "ToolVaultCommand"
+          },
+          "tool_url": "/api/tools/track-analysis/track_speed_filter_fast/tool.json"
+        }
+      ]
     },
     {
-      "name": "select_feature_start_time",
-      "description": "Set TimeState current to the earliest timestamp from any feature.",
-      "inputSchema": {
-        "schema_": null,
-        "id_": null,
-        "ref": null,
-        "type": "object",
-        "title": null,
-        "description": null,
-        "examples": null,
-        "comment": null,
-        "enum": null,
-        "const": null,
-        "default": null,
-        "minimum": null,
-        "maximum": null,
-        "exclusiveMinimum": null,
-        "exclusiveMaximum": null,
-        "multipleOf": null,
-        "minLength": null,
-        "maxLength": null,
-        "pattern": null,
-        "format": null,
-        "items": null,
-        "minItems": null,
-        "maxItems": null,
-        "uniqueItems": null,
-        "contains": null,
-        "properties": {
-          "features": {
-            "type": "array",
-            "description": "Array of Debrief features to analyze for timestamps",
-            "title": "Features",
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": [
-              [
-                {
-                  "geometry": {
-                    "coordinates": [
-                      [
-                        0,
-                        0
-                      ],
-                      [
-                        1,
-                        1
-                      ]
-                    ],
-                    "type": "LineString"
-                  },
-                  "id": "track-001",
-                  "properties": {
-                    "dataType": "track",
-                    "timestamps": [
-                      "2024-01-01T10:00:00Z",
-                      "2024-01-01T11:00:00Z"
+      "type": "category",
+      "name": "viewport",
+      "children": [
+        {
+          "type": "tool",
+          "name": "viewport_grid_generator",
+          "description": "Generate a grid of points within a viewport area at specified intervals.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "viewport_state": {
+                "type": null,
+                "description": "Viewport state containing bounds as [west, south, east, north] in decimal degrees",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "$ref": "#/$defs/ViewportState",
+                "examples": [
+                  {
+                    "bounds": [
+                      -1.0,
+                      -1.0,
+                      1.0,
+                      1.0
                     ]
                   },
-                  "type": "Feature"
-                }
-              ]
-            ],
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": {
-              "type": null,
-              "description": null,
-              "title": null,
-              "enum": null,
-              "const": null,
-              "default": null,
-              "examples": null,
-              "minimum": null,
-              "maximum": null,
-              "exclusiveMinimum": null,
-              "exclusiveMaximum": null,
-              "multipleOf": null,
-              "minLength": null,
-              "maxLength": null,
-              "pattern": null,
-              "format": null,
-              "items": null,
-              "minItems": null,
-              "maxItems": null,
-              "uniqueItems": null,
-              "properties": null,
-              "required": null,
-              "additionalProperties": null,
-              "patternProperties": null,
-              "propertyNames": null,
-              "minProperties": null,
-              "maxProperties": null,
-              "allOf": null,
-              "anyOf": [
-                {
-                  "type": null,
-                  "description": null,
-                  "title": null,
-                  "enum": null,
-                  "const": null,
-                  "default": null,
-                  "examples": null,
-                  "minimum": null,
-                  "maximum": null,
-                  "exclusiveMinimum": null,
-                  "exclusiveMaximum": null,
-                  "multipleOf": null,
-                  "minLength": null,
-                  "maxLength": null,
-                  "pattern": null,
-                  "format": null,
-                  "items": null,
-                  "minItems": null,
-                  "maxItems": null,
-                  "uniqueItems": null,
-                  "properties": null,
-                  "required": null,
-                  "additionalProperties": null,
-                  "patternProperties": null,
-                  "propertyNames": null,
-                  "minProperties": null,
-                  "maxProperties": null,
-                  "allOf": null,
-                  "anyOf": null,
-                  "oneOf": null,
-                  "not_": null,
-                  "ref": "#/$defs/DebriefTrackFeature"
-                },
-                {
-                  "type": null,
-                  "description": null,
-                  "title": null,
-                  "enum": null,
-                  "const": null,
-                  "default": null,
-                  "examples": null,
-                  "minimum": null,
-                  "maximum": null,
-                  "exclusiveMinimum": null,
-                  "exclusiveMaximum": null,
-                  "multipleOf": null,
-                  "minLength": null,
-                  "maxLength": null,
-                  "pattern": null,
-                  "format": null,
-                  "items": null,
-                  "minItems": null,
-                  "maxItems": null,
-                  "uniqueItems": null,
-                  "properties": null,
-                  "required": null,
-                  "additionalProperties": null,
-                  "patternProperties": null,
-                  "propertyNames": null,
-                  "minProperties": null,
-                  "maxProperties": null,
-                  "allOf": null,
-                  "anyOf": null,
-                  "oneOf": null,
-                  "not_": null,
-                  "ref": "#/$defs/DebriefPointFeature"
-                },
-                {
-                  "type": null,
-                  "description": null,
-                  "title": null,
-                  "enum": null,
-                  "const": null,
-                  "default": null,
-                  "examples": null,
-                  "minimum": null,
-                  "maximum": null,
-                  "exclusiveMinimum": null,
-                  "exclusiveMaximum": null,
-                  "multipleOf": null,
-                  "minLength": null,
-                  "maxLength": null,
-                  "pattern": null,
-                  "format": null,
-                  "items": null,
-                  "minItems": null,
-                  "maxItems": null,
-                  "uniqueItems": null,
-                  "properties": null,
-                  "required": null,
-                  "additionalProperties": null,
-                  "patternProperties": null,
-                  "propertyNames": null,
-                  "minProperties": null,
-                  "maxProperties": null,
-                  "allOf": null,
-                  "anyOf": null,
-                  "oneOf": null,
-                  "not_": null,
-                  "ref": "#/$defs/DebriefAnnotationFeature"
-                }
-              ],
-              "oneOf": null,
-              "not_": null,
-              "ref": null
-            },
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": null
-          },
-          "current_time_state": {
-            "type": null,
-            "description": "Current time state to update",
-            "title": null,
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": [
-              {
-                "current": "2024-01-01T12:00:00Z",
-                "end": "2024-01-01T23:59:59Z",
-                "start": "2024-01-01T00:00:00Z"
+                  {
+                    "bounds": [
+                      -122.5,
+                      37.7,
+                      -122.3,
+                      37.9
+                    ]
+                  },
+                  {
+                    "bounds": [
+                      0.0,
+                      50.0,
+                      2.0,
+                      52.0
+                    ]
+                  }
+                ]
+              },
+              "lat_interval": {
+                "type": "number",
+                "description": "Latitude interval between grid points in decimal degrees",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "examples": [
+                  0.1,
+                  0.5,
+                  1.0
+                ],
+                "exclusiveMinimum": 0.0,
+                "title": "Lat Interval"
+              },
+              "lon_interval": {
+                "type": "number",
+                "description": "Longitude interval between grid points in decimal degrees",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "examples": [
+                  0.1,
+                  0.5,
+                  1.0
+                ],
+                "exclusiveMinimum": 0.0,
+                "title": "Lon Interval"
               }
+            },
+            "required": [
+              "viewport_state",
+              "lat_interval",
+              "lon_interval"
             ],
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": "#/$defs/TimeState"
-          }
-        },
-        "required": [
-          "features",
-          "current_time_state"
-        ],
-        "additionalProperties": false,
-        "patternProperties": null,
-        "propertyNames": null,
-        "minProperties": null,
-        "maxProperties": null,
-        "allOf": null,
-        "anyOf": null,
-        "oneOf": null,
-        "not_": null,
-        "if_": null,
-        "then": null,
-        "else_": null,
-        "defs": null,
-        "definitions": null
-      },
-      "outputSchema": {
-        "schema_": null,
-        "id_": null,
-        "ref": null,
-        "type": "object",
-        "title": "ToolVaultCommand",
-        "description": "A command returned by a ToolVault tool.",
-        "examples": null,
-        "comment": null,
-        "enum": null,
-        "const": null,
-        "default": null,
-        "minimum": null,
-        "maximum": null,
-        "exclusiveMinimum": null,
-        "exclusiveMaximum": null,
-        "multipleOf": null,
-        "minLength": null,
-        "maxLength": null,
-        "pattern": null,
-        "format": null,
-        "items": null,
-        "minItems": null,
-        "maxItems": null,
-        "uniqueItems": null,
-        "contains": null,
-        "properties": {
-          "command": {
-            "type": null,
-            "description": "The command type",
-            "title": null,
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": "#/$defs/CommandType"
+            "additionalProperties": false,
+            "description": null
           },
-          "payload": {
-            "type": null,
-            "description": "Command-specific payload",
-            "title": "Payload",
-            "enum": null,
-            "const": null,
-            "default": null,
-            "examples": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "ref": null
-          }
-        },
-        "required": [
-          "command",
-          "payload"
-        ],
-        "additionalProperties": false,
-        "patternProperties": null,
-        "propertyNames": null,
-        "minProperties": null,
-        "maxProperties": null,
-        "allOf": null,
-        "anyOf": null,
-        "oneOf": null,
-        "not_": null,
-        "if_": null,
-        "then": null,
-        "else_": null,
-        "defs": {
-          "CommandType": {
-            "schema_": null,
-            "id_": null,
-            "ref": null,
-            "type": "string",
-            "title": "CommandType",
-            "description": "Valid ToolVault command types.",
-            "examples": null,
-            "comment": null,
-            "enum": [
-              "addFeatures",
-              "updateFeatures",
-              "deleteFeatures",
-              "setFeatureCollection",
-              "showText",
-              "showData",
-              "showImage",
-              "logMessage",
-              "composite"
+          "outputSchema": {
+            "type": "object",
+            "properties": {
+              "command": {
+                "type": null,
+                "description": "The command type",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "$ref": "#/$defs/CommandType"
+              },
+              "payload": {
+                "type": null,
+                "description": "Command-specific payload",
+                "enum": null,
+                "items": null,
+                "properties": null,
+                "required": null,
+                "additionalProperties": null,
+                "default": null,
+                "title": "Payload"
+              }
+            },
+            "required": [
+              "command",
+              "payload"
             ],
-            "const": null,
-            "default": null,
-            "minimum": null,
-            "maximum": null,
-            "exclusiveMinimum": null,
-            "exclusiveMaximum": null,
-            "multipleOf": null,
-            "minLength": null,
-            "maxLength": null,
-            "pattern": null,
-            "format": null,
-            "items": null,
-            "minItems": null,
-            "maxItems": null,
-            "uniqueItems": null,
-            "contains": null,
-            "properties": null,
-            "required": null,
-            "additionalProperties": null,
-            "patternProperties": null,
-            "propertyNames": null,
-            "minProperties": null,
-            "maxProperties": null,
-            "allOf": null,
-            "anyOf": null,
-            "oneOf": null,
-            "not_": null,
-            "if_": null,
-            "then": null,
-            "else_": null,
-            "defs": null,
-            "definitions": null
-          }
-        },
-        "definitions": null
-      },
-      "tool_url": "/api/tools/select_feature_start_time/tool.json"
+            "additionalProperties": false,
+            "description": "A command returned by a ToolVault tool.",
+            "$defs": {
+              "CommandType": {
+                "description": "Valid ToolVault command types.",
+                "enum": [
+                  "addFeatures",
+                  "updateFeatures",
+                  "deleteFeatures",
+                  "setFeatureCollection",
+                  "setViewport",
+                  "setSelection",
+                  "setTimeState",
+                  "showText",
+                  "showData",
+                  "showImage",
+                  "logMessage",
+                  "composite"
+                ],
+                "title": "CommandType",
+                "type": "string"
+              }
+            },
+            "title": "ToolVaultCommand"
+          },
+          "tool_url": "/api/tools/viewport/viewport_grid_generator/tool.json"
+        }
+      ]
     }
   ],
   "version": "1.0.0",
-  "description": "ToolVault packaged tools",
+  "description": "ToolVault packaged tools with hierarchical structure",
   "packageInfo": null
 }
