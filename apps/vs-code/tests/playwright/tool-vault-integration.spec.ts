@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, Page } from '@playwright/test';
 
 /**
  * Tool Vault Integration Tests
@@ -11,6 +11,29 @@ import { test, expect } from '@playwright/test';
  * (which happens on opening a .plot.json file).
  */
 
+/**
+ * Helper function to handle VS Code workspace trust dialog
+ * This dialog appears when code-server first opens a workspace
+ */
+async function handleTrustDialog(page: Page) {
+  try {
+    // Wait for the trust button to appear (it may take a moment)
+    const trustButton = page.locator('button:has-text("Yes, I trust the authors")');
+    await trustButton.waitFor({ state: 'visible', timeout: 10000 });
+
+    // Click the trust button
+    await trustButton.click();
+
+    // Wait for dialog to fully dismiss and workspace to finish loading
+    await page.waitForTimeout(3000);
+
+    console.log('✅ Workspace trust dialog handled');
+  } catch (error) {
+    // Dialog didn't appear or already dismissed - that's fine
+    console.log('ℹ️  No workspace trust dialog found (may have been auto-dismissed)');
+  }
+}
+
 test.describe('Tool Vault Server Integration', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to VS Code
@@ -20,6 +43,9 @@ test.describe('Tool Vault Server Integration', () => {
     await expect(page.locator('.monaco-workbench')).toBeVisible({
       timeout: 60000,
     });
+
+    // Handle workspace trust dialog if it appears
+    await handleTrustDialog(page);
 
     // Open a .plot.json file to trigger extension activation
     // This starts the Tool Vault server
