@@ -58,7 +58,6 @@ discover_tools, generate_index_json, output_tool_details, create_app = _import_c
 def list_tools_command(tools_path: str):
     """List all available tools and their metadata."""
     try:
-        tools = discover_tools(tools_path)
         index_data = generate_index_json(tools_path)
 
         print("Available Tools:")
