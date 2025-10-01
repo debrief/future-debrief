@@ -53,9 +53,9 @@ test.describe('Docker Container Startup', () => {
       timeout: 10000,
     });
 
-    // Additional verification: Check that workspace is loaded
-    const workspaceIndicator = page.locator('text=/workspace/i');
-    await expect(workspaceIndicator).toBeVisible({ timeout: 5000 });
+    // Additional verification: Check that workspace is loaded in Explorer
+    const workspaceSection = page.locator('h3.title:has-text("workspace")');
+    await expect(workspaceSection).toBeVisible({ timeout: 5000 });
   });
 
   test('should load Debrief extension', async ({ page }) => {
