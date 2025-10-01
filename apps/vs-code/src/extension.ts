@@ -85,7 +85,25 @@ export function activate(context: vscode.ExtensionContext) {
 
                 // Load tool index and show success notification
                 const toolIndex = await toolVaultServer!.getToolIndex();
-                const toolCount = (toolIndex as {tools?: unknown[]})?.tools?.length ?? 'unknown number of';
+
+                // Helper to count tools from tree structure
+                function countTools(nodes: unknown[]): number {
+                    let count = 0;
+                    for (const node of nodes) {
+                        const nodeObj = node as Record<string, unknown>;
+                        if (nodeObj.type === 'tool') {
+                            count++;
+                        } else if (nodeObj.type === 'category' && Array.isArray(nodeObj.children)) {
+                            count += countTools(nodeObj.children);
+                        }
+                    }
+                    return count;
+                }
+
+                const toolCount = (toolIndex && typeof toolIndex === 'object' && 'root' in toolIndex && Array.isArray((toolIndex as Record<string, unknown>).root))
+                    ? countTools((toolIndex as Record<string, unknown>).root as unknown[])
+                    : 'unknown number of';
+
                 vscode.window.showInformationMessage(
                     `Tool Vault server started successfully with ${toolCount} tools available.`
                 );
