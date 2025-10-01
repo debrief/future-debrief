@@ -39,14 +39,19 @@ For those familiar with the codebase, here's the fastest path to a running conta
 ```bash
 # From repository root
 pnpm install
-pnpm --filter @debrief/shared-types build
-pnpm --filter @debrief/web-components build
-cd apps/vs-code && npx @vscode/vsce package --no-dependencies && cp vs-code-0.0.1.vsix ../../ && cd ../..
-docker build -t debrief-vscode-local --build-arg GITHUB_SHA=local --build-arg PR_NUMBER=dev -f apps/vs-code/Dockerfile .
-docker run -p 8080:8080 debrief-vscode-local
+pnpm build:shared-types
+pnpm build:web-components
+
+# From apps/vs-code directory
+cd apps/vs-code
+pnpm build:docker
+pnpm docker:build
+pnpm docker:run
 ```
 
 Then open your browser to: `http://localhost:8080`
+
+**Bonus:** Use `pnpm docker:logs:follow` to watch container logs, and `pnpm docker:stop` to stop and remove the container.
 
 ## Build Instructions
 
