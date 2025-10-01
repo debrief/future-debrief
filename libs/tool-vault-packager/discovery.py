@@ -551,6 +551,11 @@ def discover_tool_nodes(tools_dir: Path) -> List[ToolIndexNode]:
             relative_path = item.relative_to(tools_root)
             tool_url = f"/api/tools/{relative_path}/tool.json"
 
+            # Calculate module path for lazy loading
+            # Convert path like "text/word_count" to "tools.text.word_count.execute"
+            module_parts = ["tools"] + list(relative_path.parts) + ["execute"]
+            module_path = ".".join(module_parts)
+
             # Create Tool instance
             try:
                 tool_instance = Tool(
@@ -565,6 +570,8 @@ def discover_tool_nodes(tools_dir: Path) -> List[ToolIndexNode]:
                     ),
                     outputSchema=JSONSchema(**command_schema),
                     tool_url=tool_url,
+                    module_path=module_path,
+                    function_name=func_name,
                 )
                 nodes.append(tool_instance)
             except Exception as e:
