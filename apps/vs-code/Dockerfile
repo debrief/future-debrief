@@ -115,11 +115,11 @@ ENV DEBRIEF_TOOL_VAULT_PATH=/home/coder/tool-vault/toolvault.pyz
 WORKDIR /home/coder/project
 
 # Verify the pre-built VSIX exists
-RUN if [ ! -f "apps/vs-code/vs-code-0.0.1.vsix" ]; then echo "Error: Pre-built vs-code-0.0.1.vsix missing at apps/vs-code/vs-code-0.0.1.vsix"; exit 1; fi
+RUN if [ ! -f "vs-code-0.0.1.vsix" ]; then echo "Error: Pre-built vs-code-0.0.1.vsix missing"; exit 1; fi
 
 # Install the extension in code-server
 RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: installing Debrief VSIX" "${STATUS_WEBHOOK}" || true; fi && \
-    code-server --install-extension ./apps/vs-code/vs-code-0.0.1.vsix && \
+    code-server --install-extension ./vs-code-0.0.1.vsix && \
     if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: Debrief VSIX installed" "${STATUS_WEBHOOK}" || true; fi
 
 # Install Python extension for code-server
