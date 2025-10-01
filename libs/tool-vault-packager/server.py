@@ -4,7 +4,7 @@ import json
 import sys
 import traceback
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from debrief.types.tools import ToolCallRequest
 from fastapi import FastAPI, HTTPException
@@ -202,12 +202,15 @@ class ToolVaultServer:
             function = getattr(module, function_name)
 
             # Detect Pydantic parameter model from function signature
-            from discovery import detect_pydantic_parameter_model
-            pydantic_model = detect_pydantic_parameter_model(function, module)
+            from discovery import detect_pydantic_parameter_model, PydanticModelType
+            pydantic_model_raw = detect_pydantic_parameter_model(function, module)
 
-            if not pydantic_model:
+            if not pydantic_model_raw:
                 print(f"Warning: Tool '{tool_name}' has no Pydantic parameter model")
                 return None
+
+            # Cast to PydanticModelType for type safety
+            pydantic_model = cast(PydanticModelType, pydantic_model_raw)
 
             # Extract metadata from index
             description = tool_data.get("description", "")
