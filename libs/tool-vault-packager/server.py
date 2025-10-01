@@ -117,7 +117,7 @@ class ToolVaultServer:
                         )
             else:
                 # Development mode - generate index metadata
-                self.index_data = generate_index_json(self.tools)
+                self.index_data = generate_index_json(tools_path)
                 print(f"Generated index for {len(self.tools)} tools")
         except Exception as e:
             raise RuntimeError(f"Failed to initialize tools: {e}")

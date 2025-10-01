@@ -12,6 +12,9 @@ from debrief.types.tools import (
     GlobalToolIndexModel,
     JSONSchemaType,
     SampleInputData,
+    Tool,
+    ToolCategory,
+    ToolIndexNode,
     ToolMetadataModel,
     ToolVaultCommand,
 )
@@ -455,12 +458,140 @@ def discover_tools_from_zip(zip_path: str) -> List[ToolMetadata]:
     return tools
 
 
+def discover_tool_nodes(tools_dir: Path) -> List[ToolIndexNode]:
+    """
+    Recursively discover tools and categories in a directory, building a tree structure.
+
+    Args:
+        tools_dir: Directory to scan for tools and subdirectories
+
+    Returns:
+        List of ToolIndexNode objects (Tool or ToolCategory)
+    """
+    from debrief.types.tools import JSONSchema, JSONSchemaProperty
+
+    nodes: List[ToolIndexNode] = []
+
+    if not tools_dir.exists():
+        return nodes
+
+    # Process all subdirectories in sorted order for consistency
+    for item in sorted(tools_dir.iterdir()):
+        if not item.is_dir() or item.name.startswith("__"):
+            continue
+
+        execute_file = item / "execute.py"
+
+        if execute_file.exists():
+            # This is a tool folder - create Tool object
+            tool_name = item.name
+
+            # Load the execute.py module
+            module_name = f"{tool_name}_execute"
+            spec = importlib.util.spec_from_file_location(module_name, execute_file)
+            if spec is None or spec.loader is None:
+                continue
+
+            try:
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+            except Exception as e:
+                print(f"Warning: Failed to load tool '{tool_name}': {e}")
+                continue
+
+            # Find public functions in the module
+            public_functions = [
+                (name, obj)
+                for name, obj in inspect.getmembers(module, inspect.isfunction)
+                if not name.startswith("_") and obj.__module__ == module_name
+            ]
+
+            if len(public_functions) != 1:
+                print(f"Warning: Tool '{tool_name}' must have exactly one public function, skipping")
+                continue
+
+            func_name, func = public_functions[0]
+
+            # Extract metadata
+            description = extract_first_sentence(extract_function_docstring(func))
+
+            # Build parameters schema from Pydantic model
+            pydantic_model = detect_pydantic_parameter_model(func, module)
+            if not pydantic_model:
+                print(f"Skipping tool '{func_name}' - no Pydantic parameter model found")
+                continue
+
+            typed_model = cast(PydanticModelType, pydantic_model)
+            parameters = extract_pydantic_parameters(typed_model)
+
+            # Convert parameters to properly typed JSONSchemaProperty objects
+            json_properties = {}
+            required_fields = []
+
+            if parameters:
+                for param_name, param_schema in parameters.items():
+                    # Extract required field and remove it from the property schema
+                    param_copy = param_schema.copy()
+                    is_required = param_copy.pop("required", False)
+                    if is_required:
+                        required_fields.append(param_name)
+
+                    # Create JSONSchemaProperty from the remaining schema
+                    json_properties[param_name] = JSONSchemaProperty(**param_copy)
+
+            # Get the ToolVaultCommand schema as the output schema
+            command_schema = ToolVaultCommand.model_json_schema()
+
+            # Get tool directory name for URL
+            tool_dir_name = item.name
+
+            # Get relative path from tools root for nested categories
+            # Calculate relative path from tools root
+            tools_root = tools_dir
+            while tools_root.name != "tools" and tools_root.parent != tools_root:
+                tools_root = tools_root.parent
+
+            relative_path = item.relative_to(tools_root)
+            tool_url = f"/api/tools/{relative_path}/tool.json"
+
+            # Create Tool instance
+            try:
+                tool_instance = Tool(
+                    type="tool",
+                    name=func_name,
+                    description=description,
+                    inputSchema=JSONSchema(
+                        type=JSONSchemaType.OBJECT,
+                        properties=json_properties,
+                        required=required_fields,
+                        additionalProperties=False,
+                    ),
+                    outputSchema=JSONSchema(**command_schema),
+                    tool_url=tool_url,
+                )
+                nodes.append(tool_instance)
+            except Exception as e:
+                print(f"Warning: Failed to create Tool instance for '{func_name}': {e}")
+                continue
+        else:
+            # This is a category folder - recurse
+            children = discover_tool_nodes(item)
+            if children:  # Only add category if it has children
+                nodes.append(ToolCategory(
+                    type="category",
+                    name=item.name,
+                    children=children
+                ))
+
+    return nodes
+
+
 def discover_tools(tools_path: str) -> List[ToolMetadata]:
     """
     Discover tools in the specified directory using the new folder structure.
 
     Each tool should be in its own folder containing:
-    - execute.py: The tool implementation with exactly one public function
+    - tool.py: The tool implementation with exactly one public function
     - samples/: Directory with sample JSON input files
 
     Args:
@@ -486,11 +617,25 @@ def discover_tools(tools_path: str) -> List[ToolMetadata]:
     if not tools_dir.exists():
         raise ToolDiscoveryError(f"Tools directory does not exist: {tools_path}")
 
-    # Find all subdirectories that contain execute.py
-    for tool_dir in tools_dir.iterdir():
-        if not tool_dir.is_dir() or tool_dir.name.startswith("__"):
-            continue
+    # Find all subdirectories that contain execute.py (recursively for nested structure)
+    def find_tool_dirs(directory: Path) -> list[Path]:
+        """Recursively find directories containing execute.py"""
+        tool_dirs = []
+        for item in directory.iterdir():
+            if not item.is_dir() or item.name.startswith("__"):
+                continue
 
+            execute_file = item / "execute.py"
+            if execute_file.exists():
+                tool_dirs.append(item)
+            else:
+                # Recurse into subdirectories
+                tool_dirs.extend(find_tool_dirs(item))
+        return tool_dirs
+
+    tool_directories = find_tool_dirs(tools_dir)
+
+    for tool_dir in tool_directories:
         execute_file = tool_dir / "execute.py"
         if not execute_file.exists():
             continue
@@ -634,9 +779,31 @@ def generate_tool_schema(tool: ToolMetadata) -> Dict[str, Any]:
     }
 
 
+def generate_tool_list_response_tree(tools_dir: Path) -> GlobalToolIndexModel:
+    """
+    Generate a GlobalToolIndexModel with hierarchical tree structure.
+
+    Args:
+        tools_dir: Path to the tools directory
+
+    Returns:
+        GlobalToolIndexModel instance with tree-structured root
+    """
+    root_nodes = discover_tool_nodes(tools_dir)
+
+    return GlobalToolIndexModel(
+        root=root_nodes,
+        version="1.0.0",
+        description="ToolVault packaged tools with hierarchical structure",
+        packageInfo=None
+    )
+
+
 def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexModel:
     """
     Generate a GlobalToolIndexModel conforming to shared-types GlobalToolIndexModel.
+
+    DEPRECATED: Use generate_tool_list_response_tree() for hierarchical structure.
 
     Args:
         tools: List of discovered tool metadata
@@ -842,21 +1009,24 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
 
         tools_list.append(tool_instance)
 
+    # Convert flat tools list to tree structure with all tools at root level
+    root_nodes = [tool for tool in tools_list]
+
     return GlobalToolIndexModel(
-        tools=tools_list, version="1.0.0", description="ToolVault packaged tools", packageInfo=None
+        root=root_nodes, version="1.0.0", description="ToolVault packaged tools", packageInfo=None
     )
 
 
-def generate_index_json(tools: List[ToolMetadata]) -> Dict[str, Any]:
+def generate_index_json(tools_path: str) -> Dict[str, Any]:
     """
-    Generate index.json from discovered tools using new schema format.
-    Maintains backward compatibility while conforming to shared-types schemas.
+    Generate index.json from discovered tools using hierarchical tree structure.
 
     Args:
-        tools: List of discovered tool metadata
+        tools_path: Path to the tools directory
 
     Returns:
-        Dictionary representing the index.json structure
+        Dictionary representing the index.json structure with tree hierarchy
     """
-    global_tool_index = generate_tool_list_response(tools)
+    tools_dir = Path(tools_path)
+    global_tool_index = generate_tool_list_response_tree(tools_dir)
     return global_tool_index.model_dump()

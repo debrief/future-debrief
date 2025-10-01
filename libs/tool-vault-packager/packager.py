@@ -311,7 +311,7 @@ def package_toolvault(
     try:
         # Discover and validate tools first
         tools = discover_tools(str(tools_dir))
-        index_data = generate_index_json(tools)
+        index_data = generate_index_json(str(tools_dir))
         print(f"Discovered {len(tools)} tools for packaging")
 
     except ToolDiscoveryError as e:

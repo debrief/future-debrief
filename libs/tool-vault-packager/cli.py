@@ -59,12 +59,24 @@ def list_tools_command(tools_path: str):
     """List all available tools and their metadata."""
     try:
         tools = discover_tools(tools_path)
-        index_data = generate_index_json(tools)
+        index_data = generate_index_json(tools_path)
 
         print("Available Tools:")
         print("=" * 50)
 
-        for tool_info in index_data["tools"]:
+        # Recursively collect all tools from tree structure
+        def collect_tools(nodes):
+            tools_list = []
+            for node in nodes:
+                if node.get("type") == "tool":
+                    tools_list.append(node)
+                elif node.get("type") == "category":
+                    tools_list.extend(collect_tools(node.get("children", [])))
+            return tools_list
+
+        all_tools = collect_tools(index_data.get("root", []))
+
+        for tool_info in all_tools:
             print(f"\nTool: {tool_info['name']}")
             print(f"Description: {tool_info['description']}")
             print("Parameters:")
