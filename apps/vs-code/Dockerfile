@@ -128,7 +128,7 @@ RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: installing 
     if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: Python extension installed" "${STATUS_WEBHOOK}" || true; fi
 
 # Copy workspace files to the workspace directory
-RUN cp -r workspace/* /home/coder/workspace/ 2>/dev/null || true
+RUN cp -r apps/vs-code/workspace/* /home/coder/workspace/ 2>/dev/null || true
 
 # Create VS Code settings to use virtual environment Python
 RUN mkdir -p /home/coder/workspace/.vscode && \
