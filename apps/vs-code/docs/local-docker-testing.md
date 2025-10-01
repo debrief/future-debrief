@@ -493,15 +493,12 @@ Automated end-to-end tests validate that the Docker deployment works correctly. 
 
 ### Quick Start
 
-**Prerequisites:** Build dependencies first (one-time setup or when dependencies change):
+**Prerequisites:** Build shared dependencies first (one-time setup or when dependencies change):
 
 ```bash
 # From repository root
 pnpm --filter @debrief/shared-types build
 pnpm --filter @debrief/web-components build
-cd apps/vs-code
-pnpm build                   # Creates VSIX
-cp vs-code-0.0.1.vsix ../..  # Copy to repo root (required by Dockerfile)
 ```
 
 Then run the test suite:
@@ -512,14 +509,17 @@ pnpm test:playwright
 ```
 
 **What happens:**
-1. Playwright builds the Docker image from existing VSIX and dependencies
-2. Starts a container with all required port mappings
-3. Runs all test scenarios against the running container
-4. Cleans up the container when tests complete
+1. Playwright automatically builds VSIX with current extension code (~2 seconds)
+2. Builds Docker image using the fresh VSIX (leverages layer caching for dependencies)
+3. Starts a container with all required port mappings
+4. Runs all test scenarios against the running container
+5. Cleans up the container when tests complete
 
-**Test duration:** Approximately 3-5 minutes (includes Docker build time)
+**Test duration:**
+- First run: ~3-5 minutes (full Docker build)
+- Subsequent runs: ~30-60 seconds (Docker layer caching + VSIX rebuild)
 
-**Important:** Tests will fail fast if prerequisites are missing. This keeps the test cycle fast - only build dependencies when they actually change.
+**Important:** Tests always use your current extension code. Only rebuild shared-types or web-components when those actually change.
 
 ### Available Test Commands
 
@@ -588,24 +588,15 @@ Tests use a global setup/teardown pattern:
 
 ---
 
-**Problem:** Build failures - "Pre-built vs-code-0.0.1.vsix missing"
+**Problem:** VSIX build fails during test setup
 
-**Solution:** Build the VSIX and copy to repo root:
-```bash
-cd apps/vs-code
-pnpm build
-cp vs-code-0.0.1.vsix ../..
-```
-
----
-
-**Problem:** Build failures - shared-types or web-components missing
-
-**Solution:** Build dependencies first:
+**Solution:** Build dependencies first (they're required by the VSIX):
 ```bash
 pnpm --filter @debrief/shared-types build
 pnpm --filter @debrief/web-components build
 ```
+
+The test setup automatically builds the VSIX, but it needs these dependencies.
 
 ---
 

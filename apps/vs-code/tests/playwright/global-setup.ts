@@ -45,10 +45,6 @@ async function globalSetup() {
       console.log('   No existing container to remove\n');
     }
 
-    // Build Docker image from repository root
-    console.log('🔨 Building Docker image...');
-    console.log('   (This may take 2-5 minutes on first run)\n');
-
     // Find repository root using git (works with worktrees)
     let repoRoot: string;
     try {
@@ -61,6 +57,37 @@ async function globalSetup() {
         '❌ Could not find git repository root. Are you in a git repo?'
       );
     }
+
+    // Build VSIX with current code
+    console.log('📦 Building VSIX with current extension code...');
+    const vsCodeDir = path.join(repoRoot, 'apps/vs-code');
+    const vsixPath = path.join(repoRoot, 'vs-code-0.0.1.vsix');
+
+    try {
+      execSync('pnpm build', {
+        cwd: vsCodeDir,
+        stdio: 'inherit',
+      });
+      console.log('✅ VSIX built successfully\n');
+    } catch {
+      throw new Error(
+        '❌ Failed to build VSIX. Ensure dependencies are built first:\n' +
+          '   pnpm --filter @debrief/shared-types build\n' +
+          '   pnpm --filter @debrief/web-components build'
+      );
+    }
+
+    // Copy VSIX to repository root (required by Dockerfile)
+    try {
+      const vsixSource = path.join(vsCodeDir, 'vs-code-0.0.1.vsix');
+      execSync(`cp "${vsixSource}" "${vsixPath}"`, { stdio: 'pipe' });
+    } catch {
+      throw new Error('❌ Failed to copy VSIX to repository root');
+    }
+
+    // Build Docker image from repository root
+    console.log('🔨 Building Docker image...');
+    console.log('   (Docker will use layer caching for unchanged dependencies)\n');
 
     const dockerfilePath = path.join(repoRoot, 'apps/vs-code/Dockerfile');
 
