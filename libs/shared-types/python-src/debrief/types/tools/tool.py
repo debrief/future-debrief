@@ -29,6 +29,14 @@ class Tool(BaseModel):
         None,
         description="Optional URL for SPA navigation to tool details"
     )
+    module_path: Optional[str] = Field(
+        None,
+        description="Python module path for lazy loading (e.g., 'tools.text.word_count.execute')"
+    )
+    function_name: Optional[str] = Field(
+        None,
+        description="Function name within the module for execution"
+    )
 
     class Config:
         extra = "forbid"  # No additional properties
