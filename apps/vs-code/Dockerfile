@@ -34,6 +34,7 @@ ENV PR_NUMBER=${PR_NUMBER}
 WORKDIR /tmp/repo
 
 RUN apt-get update && apt-get install -y python3 python3-pip python3-venv curl && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy shared-types wheel from previous stage
@@ -70,18 +71,16 @@ ENV GITHUB_SHA=${GITHUB_SHA} \
 # Set the working directory
 WORKDIR /home/coder
 
-# Install Python (required for workspace testing)
+# Install Python (required for workspace testing and Tool Vault runtime)
 USER root
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-venv \
     curl \
+    && ln -s /usr/bin/python3 /usr/bin/python \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
-# Create symlink for python command
-RUN ln -s /usr/bin/python3 /usr/bin/python
 
 # Switch back to coder user
 USER coder
@@ -94,6 +93,14 @@ COPY --chown=coder:coder . /home/coder/project/
 
 # Copy the shared-types wheel produced in the builder stage
 COPY --chown=coder:coder --from=shared-types-builder /tmp/wheels/ /home/coder/project/python/
+
+# Install shared-types and Tool Vault dependencies system-wide for the .pyz runtime
+USER root
+RUN pip3 install --break-system-packages \
+    /home/coder/project/python/*.whl \
+    'fastapi>=0.104.0' \
+    'uvicorn>=0.24.0'
+USER coder
 
 # Copy Tool Vault package from builder stage
 # Tool Vault serves MCP-compatible endpoints on port 60124 for maritime analysis tools
