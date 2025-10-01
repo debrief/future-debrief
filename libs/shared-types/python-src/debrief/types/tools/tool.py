@@ -1,13 +1,14 @@
 """Tool Pydantic model for maritime analysis tool definitions."""
 
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
 from .json_schema import JSONSchema
 
 
 class Tool(BaseModel):
     """A tool definition with input/output schemas for maritime analysis."""
 
+    type: Literal["tool"] = "tool"
     name: str = Field(
         ...,
         description="The unique identifier/name of the tool"

@@ -2,7 +2,7 @@
 
 from pydantic import BaseModel, Field
 from typing import List, Optional
-from .tool import Tool
+from .tool_index_node import ToolIndexNode
 
 
 class PackageInfo(BaseModel):
@@ -26,11 +26,11 @@ class PackageInfo(BaseModel):
 
 
 class GlobalToolIndexModel(BaseModel):
-    """Global index for all tools in a package (replaces generate_index_json() output)."""
+    """Global index for all tools in a package with hierarchical structure."""
 
-    tools: List[Tool] = Field(
+    root: List[ToolIndexNode] = Field(
         ...,
-        description="Array of all available tools in this package"
+        description="Root level nodes - can contain tools and/or categories"
     )
     version: str = Field(
         ...,
