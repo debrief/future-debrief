@@ -51,6 +51,14 @@ runs:
       shell: bash
       run: pnpm install --frozen-lockfile
     
+    - name: Build shared-types Python wheel
+      shell: bash
+      run: |
+        echo "🐍 Building shared-types Python wheel..."
+        cd libs/shared-types
+        python -m build --wheel --outdir dist
+        cd ../..
+
     - name: Build VS Code extension and dependencies
       shell: bash
       run: pnpm build:vs-code
@@ -59,7 +67,7 @@ runs:
       shell: bash
       run: |
         echo "🐍 Installing shared-types Python wheel for Tool Vault..."
-        WHEEL_FILE=$(ls libs/shared-types/dist/*.whl)
+        WHEEL_FILE=$(ls libs/shared-types/dist/python/*.whl 2>/dev/null || ls libs/shared-types/dist/*.whl)
         pip install "$WHEEL_FILE"
 
     - name: Build Tool Vault Package
