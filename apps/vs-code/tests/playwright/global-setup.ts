@@ -49,11 +49,20 @@ async function globalSetup() {
     console.log('🔨 Building Docker image...');
     console.log('   (This may take 2-5 minutes on first run)\n');
 
-    const repoRoot = path.resolve(__dirname, '../../../../..');
-    const dockerfilePath = path.join(
-      repoRoot,
-      'apps/vs-code/Dockerfile'
-    );
+    // Find repository root using git (works with worktrees)
+    let repoRoot: string;
+    try {
+      repoRoot = execSync('git rev-parse --show-toplevel', {
+        encoding: 'utf-8',
+        cwd: __dirname,
+      }).trim();
+    } catch {
+      throw new Error(
+        '❌ Could not find git repository root. Are you in a git repo?'
+      );
+    }
+
+    const dockerfilePath = path.join(repoRoot, 'apps/vs-code/Dockerfile');
 
     try {
       execSync(
