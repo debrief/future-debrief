@@ -2,7 +2,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { OutlineViewParent } from './OutlineViewParent';
 import type { DebriefFeatureCollection } from '@debrief/shared-types';
-import type { ToolListResponse } from '@debrief/shared-types/src/types/tools/tool_list_response';
+import type { GlobalToolIndexModel } from '@debrief/shared-types/src/types/tools/global_tool_index';
 
 const featureCollection: DebriefFeatureCollection = {
   type: 'FeatureCollection',
@@ -38,9 +38,10 @@ const featureCollection: DebriefFeatureCollection = {
   ]
 };
 
-const toolList: ToolListResponse = {
-  tools: [
+const toolList: GlobalToolIndexModel = {
+  root: [
     {
+      type: 'tool',
       name: 'test-tool',
       description: 'Demo tool for testing',
       inputSchema: {

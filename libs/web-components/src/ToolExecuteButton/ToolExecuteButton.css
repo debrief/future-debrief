@@ -208,6 +208,56 @@
   padding: 0;
 }
 
+/* Category Styles */
+.tool-category {
+  border-bottom: 1px solid var(--vscode-dropdown-border, #eeeeee);
+}
+
+.tool-category:last-child {
+  border-bottom: none;
+}
+
+.category-header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: var(--vscode-sideBar-background, #f3f3f3);
+  color: var(--vscode-sideBarTitle-foreground, #333333);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-weight: 600;
+  font-size: 13px;
+  gap: 6px;
+}
+
+.category-header:hover {
+  background: var(--vscode-list-hoverBackground, #e8e8e8);
+}
+
+.category-header:focus {
+  outline: 1px solid var(--vscode-focusBorder, #007acc);
+  outline-offset: -1px;
+}
+
+.category-arrow {
+  display: inline-block;
+  font-size: 10px;
+  transition: transform 0.2s ease;
+  min-width: 10px;
+}
+
+.category-name {
+  flex: 1;
+  font-weight: 600;
+}
+
+.category-children {
+  /* No additional styling needed - children will handle their own padding */
+}
+
 .tool-menu-item {
   display: block;
   width: 100%;
