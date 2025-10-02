@@ -8,6 +8,15 @@ echo "🚀 Running pre-push validation..."
 
 ORIGINAL_DIR=$(pwd)
 
+# Check if web-components changed, and if so, build Storybook to catch runtime errors
+if git diff --name-only main...HEAD 2>/dev/null | grep -q "^libs/web-components/"; then
+  echo "✅ Checking Storybook build (web-components changed)..."
+  pnpm --filter @debrief/web-components build-storybook --quiet || {
+    echo "❌ Storybook build failed - check your story files for runtime errors" >&2
+    exit 1
+  }
+fi
+
 # Find all Makefiles and run verify sequentially to show errors properly
 # Store directories in a variable first to avoid subshell issues
 MAKEFILE_DIRS=$(find . -path "*/*/Makefile" -not -path "*/node_modules/*" -exec dirname {} \;)
