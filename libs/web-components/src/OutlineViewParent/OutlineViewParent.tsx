@@ -4,6 +4,8 @@ import type { GlobalToolIndexModel } from '@debrief/shared-types/src/types/tools
 import { OutlineView, type OutlineViewProps } from '../OutlineView/OutlineView';
 import { ToolExecuteButton } from '../ToolExecuteButton/ToolExecuteButton';
 import type { Tool } from '@debrief/shared-types/src/types/tools/tool_list_response';
+import { ToolExecutionProvider } from '../contexts/ToolExecutionContext';
+import { OutlineContextMenu } from '../OutlineView/OutlineContextMenu';
 
 export interface OutlineViewParentProps
   extends Omit<OutlineViewProps, 'selectedFeatureIds' | 'onSelectionChange' | 'toolbarItems'> {
@@ -35,6 +37,7 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
   const [internalSelectedIds, setInternalSelectedIds] = React.useState<string[]>(
     defaultSelectedFeatureIds ?? []
   );
+  const [contextMenu, setContextMenu] = React.useState<{ open: boolean; x: number; y: number } | null>(null);
 
   const isControlled = selectedFeatureIds !== undefined;
   const effectiveSelectedIds = isControlled ? selectedFeatureIds! : internalSelectedIds;
@@ -77,11 +80,30 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
   );
 
   const handleCommandExecute = React.useCallback(
-    (tool: Tool) => {
-      console.warn('[OutlineViewParent] Executing tool command:', tool, 'Selected features:', selectedFeatures);
-      onCommandExecute?.(tool, selectedFeatures);
+    (tool: Tool, features: DebriefFeature[]) => {
+      console.warn('[OutlineViewParent] Executing tool command:', tool, 'Selected features:', features);
+      onCommandExecute?.(tool, features);
     },
-    [onCommandExecute, selectedFeatures]
+    [onCommandExecute]
+  );
+
+  const handleContextMenu = React.useCallback(
+    (featureId: string, mouseX: number, mouseY: number) => {
+      setContextMenu({ open: true, x: mouseX, y: mouseY });
+    },
+    []
+  );
+
+  const handleContextMenuClose = React.useCallback(() => {
+    setContextMenu(null);
+  }, []);
+
+  const handleToolSelect = React.useCallback(
+    (tool: Tool) => {
+      handleCommandExecute(tool, selectedFeatures);
+      setContextMenu(null);
+    },
+    [handleCommandExecute, selectedFeatures]
   );
 
   const toolbarItems = React.useMemo(() => {
@@ -93,7 +115,7 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
         key="tool-execute"
         toolList={toolList}
         selectedFeatures={selectedFeatures}
-        onCommandExecute={handleCommandExecute}
+        onCommandExecute={(tool: Tool) => handleCommandExecute(tool, selectedFeatures)}
         disabled={isExecuteDisabled}
         buttonText={effectiveButtonText}
         menuPosition={menuPosition}
@@ -119,13 +141,34 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
     toolList
   ]);
 
+  const contextMenuContent = React.useMemo(() => {
+    if (!contextMenu?.open) return null;
+    return (
+      <OutlineContextMenu
+        position={{ x: contextMenu.x, y: contextMenu.y }}
+        onToolSelect={handleToolSelect}
+        onClose={handleContextMenuClose}
+      />
+    );
+  }, [contextMenu, handleToolSelect, handleContextMenuClose]);
+
   return (
-    <OutlineView
-      featureCollection={featureCollection}
-      selectedFeatureIds={effectiveSelectedIds}
-      onSelectionChange={handleSelectionChange}
-      toolbarItems={toolbarItems}
-      {...outlineViewCallbacks}
-    />
+    <ToolExecutionProvider
+      toolList={toolList}
+      selectedFeatures={selectedFeatures}
+      onCommandExecute={handleCommandExecute}
+    >
+      <OutlineView
+        featureCollection={featureCollection}
+        selectedFeatureIds={effectiveSelectedIds}
+        onSelectionChange={handleSelectionChange}
+        toolbarItems={toolbarItems}
+        onContextMenu={handleContextMenu}
+        contextMenuOpen={contextMenu?.open ?? false}
+        contextMenuPosition={contextMenu ? { x: contextMenu.x, y: contextMenu.y } : undefined}
+        contextMenuContent={contextMenuContent}
+        {...outlineViewCallbacks}
+      />
+    </ToolExecutionProvider>
   );
 };

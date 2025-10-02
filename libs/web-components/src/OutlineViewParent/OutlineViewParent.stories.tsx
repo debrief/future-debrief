@@ -2,8 +2,8 @@ import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { OutlineViewParent } from './OutlineViewParent';
 import type { DebriefFeature, DebriefFeatureCollection } from '@debrief/shared-types';
-import type { ToolListResponse } from '@debrief/shared-types/src/types/tools/tool_list_response';
-import type { SelectedCommand } from '../ToolExecuteButton/ToolExecuteButton';
+import type { GlobalToolIndexModel } from '@debrief/shared-types/src/types/tools/global_tool_index';
+import type { Tool } from '@debrief/shared-types/src/types/tools/tool_list_response';
 
 const meta: Meta<typeof OutlineViewParent> = {
   title: 'Components/OutlineViewParent',
@@ -37,7 +37,7 @@ interface OutlineViewParentDemoProps {
 
 interface SampleDataState {
   featureCollection: DebriefFeatureCollection | null;
-  toolList: ToolListResponse | null;
+  toolList: GlobalToolIndexModel | null;
   loading: boolean;
   error: string | null;
 }
@@ -76,7 +76,7 @@ const useSampleData = (): SampleDataState => {
         if (!cancelled) {
           setState({
             featureCollection: featureJson as DebriefFeatureCollection,
-            toolList: toolJson as ToolListResponse,
+            toolList: toolJson as GlobalToolIndexModel,
             loading: false,
             error: null
           });
@@ -128,8 +128,8 @@ const OutlineViewParentDemo: React.FC<OutlineViewParentDemoProps> = ({
   }, [featureCollection, selection]);
 
   const handleCommandExecute = React.useCallback(
-    (command: SelectedCommand, features: DebriefFeature[]) => {
-      setLastCommandSummary(`${command.tool.name} executed on ${features.length} feature(s)`);
+    (tool: Tool, features: DebriefFeature[]) => {
+      setLastCommandSummary(`${tool.name} executed on ${features.length} feature(s)`);
     },
     []
   );

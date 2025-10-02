@@ -1,0 +1,87 @@
+.outline-context-menu {
+  position: fixed;
+  background-color: var(--vscode-menu-background, #252526);
+  border: 1px solid var(--vscode-menu-border, #454545);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  min-width: 200px;
+  max-width: 400px;
+  max-height: 500px;
+  overflow-y: auto;
+  z-index: 10000;
+  padding: 4px 0;
+}
+
+.context-menu-empty {
+  padding: 8px 16px;
+  color: var(--vscode-menu-foreground, #cccccc);
+  font-size: 13px;
+  text-align: center;
+}
+
+.context-menu-category {
+  margin: 0;
+}
+
+.context-menu-category-header {
+  width: 100%;
+  padding: 6px 12px;
+  background: none;
+  border: none;
+  color: var(--vscode-menu-foreground, #cccccc);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.context-menu-category-header:hover {
+  background-color: var(--vscode-menu-selectionBackground, #094771);
+}
+
+.category-arrow {
+  font-size: 10px;
+  width: 12px;
+  display: inline-block;
+}
+
+.category-name {
+  flex: 1;
+  text-transform: capitalize;
+}
+
+.context-menu-category-items {
+  padding-left: 8px;
+}
+
+.context-menu-item {
+  width: 100%;
+  padding: 6px 12px 6px 24px;
+  background: none;
+  border: none;
+  color: var(--vscode-menu-foreground, #cccccc);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.context-menu-item:hover {
+  background-color: var(--vscode-menu-selectionBackground, #094771);
+}
+
+.context-menu-item .tool-name {
+  font-weight: 500;
+  color: var(--vscode-menu-foreground, #cccccc);
+}
+
+.context-menu-item .tool-description {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground, #999999);
+  opacity: 0.8;
+}
