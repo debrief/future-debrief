@@ -49,7 +49,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 40px;
+  min-width: 28px;
   height: 20px;
   border: 1px solid var(--vscode-button-border, #0066cc);
   background: var(--vscode-button-secondaryBackground, #5a5a5a);
@@ -57,7 +57,7 @@
   border-radius: 2px;
   cursor: pointer;
   transition: all 0.2s ease;
-  padding: 0 6px;
+  padding: 0 4px;
   font-size: 11px;
   font-weight: 500;
   line-height: 1;
