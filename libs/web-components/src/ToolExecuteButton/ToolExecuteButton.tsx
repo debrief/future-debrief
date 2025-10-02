@@ -1,11 +1,25 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
-import type { ToolListResponse, Tool } from '@debrief/shared-types/src/types/tools/tool_list_response';
+import type { Tool } from '@debrief/shared-types/src/types/tools/tool_list_response';
+import type { GlobalToolIndexModel, Tool as ToolNode, ToolCategory } from '@debrief/shared-types/src/types/tools/global_tool_index';
 import type { DebriefFeature } from '@debrief/shared-types';
 import { ToolFilterService } from '../services/ToolFilterService';
 import './ToolExecuteButton.css';
 
+// Helper to collect all tools from tree structure
+function collectToolsFromTree(nodes: (ToolNode | ToolCategory)[]): Tool[] {
+  const tools: Tool[] = [];
+  for (const node of nodes) {
+    if (node.type === 'tool') {
+      tools.push(node);
+    } else if (node.type === 'category' && node.children) {
+      tools.push(...collectToolsFromTree(node.children));
+    }
+  }
+  return tools;
+}
+
 export interface ToolExecuteButtonProps {
-  toolList: ToolListResponse;
+  toolList: GlobalToolIndexModel;
   selectedFeatures: DebriefFeature[];
   onCommandExecute: (tool: Tool) => void;
   disabled?: boolean;
@@ -14,12 +28,27 @@ export interface ToolExecuteButtonProps {
   enableSmartFiltering?: boolean;
 }
 
+// Helper to collect all category keys for initial expansion
+function collectCategoryKeys(nodes: (ToolNode | ToolCategory)[], depth = 0): string[] {
+  const keys: string[] = [];
+  for (const node of nodes) {
+    if (node.type === 'category') {
+      const categoryKey = `${depth}-${node.name}`;
+      keys.push(categoryKey);
+      if (node.children) {
+        keys.push(...collectCategoryKeys(node.children, depth + 1));
+      }
+    }
+  }
+  return keys;
+}
+
 export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
   toolList,
   selectedFeatures,
   onCommandExecute,
   disabled = false,
-  buttonText = 'Execute Tools',
+  buttonText = 'Run Tools',
   menuPosition = 'bottom',
   enableSmartFiltering = false,
 }) => {
@@ -28,6 +57,13 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [showAllState, setShowAllState] = useState(true); // Default to showing all tools
   const [showDescriptionsState, setShowDescriptionsState] = useState(true); // Default to showing descriptions
+
+  // Initialize with all categories expanded
+  const initialExpandedCategories = useMemo(() => {
+    return new Set(collectCategoryKeys(toolList.root));
+  }, [toolList.root]);
+
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(initialExpandedCategories);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -36,21 +72,23 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
 
   // Get applicable tools from filter service and track which tools are available
   const { availableTools, applicableToolNames, warnings } = useMemo(() => {
-    if (!enableSmartFiltering || !toolList.tools) {
+    // Collect all tools from tree structure
+    const allTools = collectToolsFromTree(toolList.root);
+
+    if (!enableSmartFiltering || allTools.length === 0) {
       // Phase 1: Show all tools, all are considered applicable
-      const tools = toolList.tools || [];
-      const toolNames = new Set(tools.map(tool => tool.name));
-      return { availableTools: tools, applicableToolNames: toolNames, warnings: [] };
+      const toolNames = new Set(allTools.map(tool => tool.name));
+      return { availableTools: allTools, applicableToolNames: toolNames, warnings: [] };
     }
 
     // Phase 2: Use ToolFilterService
     try {
-      const toolsData = { tools: toolList.tools };
+      const toolsData = { tools: allTools };
       const result = toolFilterService.getApplicableTools(selectedFeatures, toolsData);
       const applicableNames = new Set(result.tools.map(tool => tool.name));
 
       // Return filtered tools or all tools based on showAllState
-      const tools = showAllState ? toolList.tools || [] : result.tools;
+      const tools = showAllState ? allTools : result.tools;
 
       // Determine warnings based on filtering state
       const warnings = !showAllState ? result.warnings : [];
@@ -58,33 +96,54 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
       return { availableTools: tools, applicableToolNames: applicableNames, warnings };
     } catch (error) {
       console.error('Error filtering tools:', error);
-      const tools = toolList.tools || [];
-      const toolNames = new Set(tools.map(tool => tool.name));
+      const toolNames = new Set(allTools.map(tool => tool.name));
       return {
-        availableTools: tools,
+        availableTools: allTools,
         applicableToolNames: toolNames,
         warnings: ['Error filtering tools - showing all available tools']
       };
     }
-  }, [toolList.tools, selectedFeatures, enableSmartFiltering, showAllState, toolFilterService]);
+  }, [toolList, selectedFeatures, enableSmartFiltering, showAllState, toolFilterService]);
 
   // Update filter warnings based on computed results
   React.useEffect(() => {
     setFilterWarnings(warnings);
   }, [warnings]);
 
-  // Apply search filtering to the available tools
-  const searchFilteredTools = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return availableTools;
+  // Filter tree nodes based on search query and applicable tools
+  const filterTreeNodes = useCallback((nodes: (ToolNode | ToolCategory)[]): (ToolNode | ToolCategory)[] => {
+    const query = searchQuery.toLowerCase();
+    const filtered: (ToolNode | ToolCategory)[] = [];
+
+    for (const node of nodes) {
+      if (node.type === 'tool') {
+        // Check if tool matches search and is in available tools
+        const isAvailable = availableTools.some(t => t.name === node.name);
+        const matchesSearch = !query ||
+          node.name.toLowerCase().includes(query) ||
+          (node.description && node.description.toLowerCase().includes(query));
+
+        if (isAvailable && matchesSearch) {
+          filtered.push(node);
+        }
+      } else if (node.type === 'category') {
+        // Recursively filter category children
+        const filteredChildren = filterTreeNodes(node.children);
+        if (filteredChildren.length > 0) {
+          filtered.push({
+            ...node,
+            children: filteredChildren
+          });
+        }
+      }
     }
 
-    const query = searchQuery.toLowerCase();
-    return availableTools.filter(tool =>
-      tool.name.toLowerCase().includes(query) ||
-      (tool.description && tool.description.toLowerCase().includes(query))
-    );
-  }, [availableTools, searchQuery]);
+    return filtered;
+  }, [searchQuery, availableTools]);
+
+  const filteredTreeNodes = useMemo(() => {
+    return filterTreeNodes(toolList.root);
+  }, [toolList.root, filterTreeNodes]);
 
   const handleButtonClick = useCallback(() => {
     setIsMenuOpen(prev => !prev);
@@ -99,6 +158,18 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
     onCommandExecute(tool);
     setIsMenuOpen(false);
   }, [onCommandExecute]);
+
+  const toggleCategory = useCallback((categoryName: string) => {
+    setExpandedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(categoryName)) {
+        next.delete(categoryName);
+      } else {
+        next.add(categoryName);
+      }
+      return next;
+    });
+  }, []);
 
   const handleClickOutside = useCallback((event: Event) => {
     if (
@@ -120,6 +191,58 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
       };
     }
   }, [isMenuOpen, handleClickOutside]);
+
+  // Recursive function to render tree nodes
+  const renderTreeNodes = useCallback((nodes: (ToolNode | ToolCategory)[], depth = 0): React.ReactNode => {
+    return nodes.map((node, index) => {
+      if (node.type === 'tool') {
+        const isApplicable = applicableToolNames.has(node.name);
+        const isDisabled = enableSmartFiltering && showAllState && !isApplicable;
+
+        return (
+          <button
+            key={`${depth}-${node.name}-${index}`}
+            className={`tool-menu-item ${isDisabled ? 'disabled' : ''}`}
+            style={{ paddingLeft: `${depth * 20 + 10}px` }}
+            onClick={() => handleCommandSelect(node as Tool, isApplicable)}
+            role="menuitem"
+            disabled={isDisabled}
+            aria-disabled={isDisabled}
+          >
+            <div className="tool-name">{node.name}</div>
+            {showDescriptionsState && (
+              <div className="tool-description">{node.description}</div>
+            )}
+          </button>
+        );
+      } else if (node.type === 'category') {
+        const categoryKey = `${depth}-${node.name}`;
+        const isExpanded = expandedCategories.has(categoryKey);
+
+        return (
+          <div key={categoryKey} className="tool-category">
+            <button
+              className="category-header"
+              style={{ paddingLeft: `${depth * 20 + 10}px` }}
+              onClick={() => toggleCategory(categoryKey)}
+              type="button"
+              aria-expanded={isExpanded}
+            >
+              <span className="category-arrow">{isExpanded ? '▼' : '▶'}</span>
+              <span className="category-name">{node.name}</span>
+            </button>
+            {isExpanded && (
+              <div className="category-children">
+                {renderTreeNodes(node.children, depth + 1)}
+              </div>
+            )}
+          </div>
+        );
+      }
+      return null;
+    });
+  }, [applicableToolNames, enableSmartFiltering, showAllState, showDescriptionsState,
+      expandedCategories, toggleCategory, handleCommandSelect]);
 
   const menuClassName = `tool-execute-menu ${menuPosition === 'top' ? 'menu-top' : 'menu-bottom'}`;
 
@@ -159,7 +282,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
                 aria-label="Toggle show all tools"
                 type="button"
               >
-                <span className="toggle-icon">🔍</span>
+                <span className="toggle-icon">⊕</span>
               </button>
               <button
                 className={`toggle-button ${showDescriptionsState ? 'active' : ''}`}
@@ -168,7 +291,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
                 aria-label="Toggle show descriptions"
                 type="button"
               >
-                <span className="toggle-icon">📝</span>
+                <span className="toggle-icon">ⓘ</span>
               </button>
             </div>
           </div>
@@ -184,7 +307,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
             </div>
           )}
 
-          {searchFilteredTools.length === 0 ? (
+          {filteredTreeNodes.length === 0 ? (
             <div className="no-tools-message">
               {searchQuery.trim() ? (
                 `No tools found matching "${searchQuery}"`
@@ -199,26 +322,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
             </div>
           ) : (
             <div className="tools-list">
-              {searchFilteredTools.map((tool) => {
-                const isApplicable = applicableToolNames.has(tool.name);
-                const isDisabled = enableSmartFiltering && showAllState && !isApplicable;
-
-                return (
-                  <button
-                    key={tool.name}
-                    className={`tool-menu-item ${isDisabled ? 'disabled' : ''}`}
-                    onClick={() => handleCommandSelect(tool, isApplicable)}
-                    role="menuitem"
-                    disabled={isDisabled}
-                    aria-disabled={isDisabled}
-                  >
-                    <div className="tool-name">{tool.name}</div>
-                    {showDescriptionsState && (
-                      <div className="tool-description">{tool.description}</div>
-                    )}
-                  </button>
-                );
-              })}
+              {renderTreeNodes(filteredTreeNodes)}
             </div>
           )}
 

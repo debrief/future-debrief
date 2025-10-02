@@ -1,14 +1,14 @@
 import React from 'react';
 import type { DebriefFeatureCollection, DebriefFeature } from '@debrief/shared-types';
-import type { ToolListResponse } from '@debrief/shared-types/src/types/tools/tool_list_response';
+import type { GlobalToolIndexModel } from '@debrief/shared-types/src/types/tools/global_tool_index';
 import { OutlineView, type OutlineViewProps } from '../OutlineView/OutlineView';
 import { ToolExecuteButton } from '../ToolExecuteButton/ToolExecuteButton';
-import type { Tool } from '@debrief/shared-types/src/types/tools/tool';
+import type { Tool } from '@debrief/shared-types/src/types/tools/tool_list_response';
 
 export interface OutlineViewParentProps
   extends Omit<OutlineViewProps, 'selectedFeatureIds' | 'onSelectionChange' | 'toolbarItems'> {
   featureCollection: DebriefFeatureCollection;
-  toolList: ToolListResponse;
+  toolList: GlobalToolIndexModel;
   selectedFeatureIds?: string[];
   defaultSelectedFeatureIds?: string[];
   onSelectionChange?: (ids: string[]) => void;
@@ -27,7 +27,7 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
   onSelectionChange,
   onCommandExecute,
   enableSmartFiltering = true,
-  buttonText = 'Execute Tools',
+  buttonText,
   menuPosition = 'bottom',
   additionalToolbarContent,
   ...outlineViewCallbacks
@@ -62,8 +62,8 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
       .filter((feature): feature is DebriefFeature => Boolean(feature));
   }, [effectiveSelectedIds, featureMap]);
 
-  const hasTools = Boolean(toolList.tools?.length);
-  const toolCount = toolList.tools?.length || 0;
+  const hasTools = Boolean(toolList.root?.length);
+  const toolCount = toolList.root?.length || 0;
   const isExecuteDisabled = !hasTools || selectedFeatures.length === 0;
 
   const handleSelectionChange = React.useCallback(
@@ -78,7 +78,7 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
 
   const handleCommandExecute = React.useCallback(
     (tool: Tool) => {
-      console.log('[OutlineViewParent] Executing tool command:', tool, 'Selected features:', selectedFeatures);
+      console.warn('[OutlineViewParent] Executing tool command:', tool, 'Selected features:', selectedFeatures);
       onCommandExecute?.(tool, selectedFeatures);
     },
     [onCommandExecute, selectedFeatures]

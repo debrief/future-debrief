@@ -120,9 +120,16 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
     let toolList;
     try {
       toolList = await this._globalController.getToolIndex();
+      if (!toolList || typeof toolList !== 'object') {
+        throw new Error(`Invalid tool index returned: ${JSON.stringify(toolList)}`);
+      }
+      if (!('root' in toolList) || !Array.isArray((toolList as Record<string, unknown>).root)) {
+        throw new Error(`Tool index missing 'root' array. Got keys: ${JSON.stringify(Object.keys(toolList))}`);
+      }
     } catch (error) {
-      console.warn('[DebriefOutlineProvider] Failed to get tool index:', error);
-      toolList = []; // Pass empty tool list on error
+      const errorMessage = `Failed to get tool index: ${error instanceof Error ? error.message : String(error)}`;
+      console.error('[DebriefOutlineProvider] ' + errorMessage, error);
+      throw new Error(errorMessage);
     }
 
     return `<!DOCTYPE html>
@@ -149,10 +156,10 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
           }
         </style>
         <style>
-          body { 
-            font-family: var(--vscode-font-family, sans-serif); 
-            margin: 0; 
-            padding: 0; 
+          body {
+            font-family: var(--vscode-font-family, sans-serif);
+            margin: 0;
+            padding: 8px;
             color: var(--vscode-foreground);
             background-color: var(--vscode-editor-background);
           }
@@ -408,13 +415,29 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
   private async _executeToolCommand(commandName: string, selectedFeatures: unknown[]): Promise<void> {
     try {
       // Get tool index to find the schema for this tool
-      const toolIndex = await this._globalController.getToolIndex() as { tools: unknown[] };
-      if (!toolIndex || !Array.isArray(toolIndex.tools)) {
+      const toolIndex = await this._globalController.getToolIndex() as { root: unknown[] };
+      if (!toolIndex || !Array.isArray(toolIndex.root)) {
         throw new Error('Tool index not available');
       }
 
+      // Helper to collect all tools from tree structure
+      function collectTools(nodes: unknown[]): unknown[] {
+        const tools: unknown[] = [];
+        for (const node of nodes) {
+          const nodeObj = node as Record<string, unknown>;
+          if (nodeObj.type === 'tool') {
+            tools.push(node);
+          } else if (nodeObj.type === 'category' && Array.isArray(nodeObj.children)) {
+            tools.push(...collectTools(nodeObj.children));
+          }
+        }
+        return tools;
+      }
+
+      const allTools = collectTools(toolIndex.root);
+
       // Find the tool schema
-      const toolSchema = toolIndex.tools.find((tool: unknown) => (tool as { name: string }).name === commandName) as ToolSchema | undefined;
+      const toolSchema = allTools.find((tool: unknown) => (tool as { name: string }).name === commandName) as ToolSchema | undefined;
       if (!toolSchema) {
         throw new Error(`Tool schema not found for "${commandName}"`);
       }

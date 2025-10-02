@@ -2,6 +2,8 @@
 
 from .json_schema import JSONSchema, JSONSchemaProperty, JSONSchemaType
 from .tool import Tool
+from .tool_category import ToolCategory
+from .tool_index_node import ToolIndexNode
 from .tool_call_request import ToolCallRequest, ToolArgument
 from .tool_call_response import (
     ToolCallResponse,
@@ -45,6 +47,8 @@ from .commands import (
 __all__ = [
     # Core tool types
     "Tool",
+    "ToolCategory",
+    "ToolIndexNode",
     "ToolCallRequest",
     "ToolArgument",
     "ToolCallResponse",

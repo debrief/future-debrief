@@ -1,29 +1,26 @@
-#!/bin/sh
-. "$(dirname "$0")/_/husky.sh"
+#!/bin/bash
+set -e  # Exit immediately on any error
+
+pnpm test
 
 # Run fast pre-push validation showing detailed errors
 echo "🚀 Running pre-push validation..."
 
-temp_file=$(mktemp)
+ORIGINAL_DIR=$(pwd)
 
 # Find all Makefiles and run verify sequentially to show errors properly
-find . -path "*/*/Makefile" -not -path "*/node_modules/*" -exec dirname {} \; | while read dir; do
-  cd "$dir"
-  pkg_name=$(basename $(pwd))
-  echo "✅ $pkg_name"
+# Store directories in a variable first to avoid subshell issues
+MAKEFILE_DIRS=$(find . -path "*/*/Makefile" -not -path "*/node_modules/*" -exec dirname {} \;)
 
-  if ! make verify; then
-    echo "❌ $pkg_name failed" >&2
-    echo "failed" > "$temp_file"
-  fi
-  cd - > /dev/null
+for dir in $MAKEFILE_DIRS; do
+  cd "$dir" || exit 1
+  pkg_name=$(basename "$(pwd)")
+  echo "✅ Checking $pkg_name..."
+
+  # Fail immediately if make verify fails
+  make verify || { echo "❌ $pkg_name verification failed" >&2; exit 1; }
+
+  cd "$ORIGINAL_DIR" || exit 1
 done
 
-if [ -f "$temp_file" ] && [ "$(cat "$temp_file")" = "failed" ]; then
-  echo "❌ Some validations failed!" >&2
-  rm -f "$temp_file"
-  exit 1
-fi
-
-rm -f "$temp_file"
 echo "✅ All validations passed!"
