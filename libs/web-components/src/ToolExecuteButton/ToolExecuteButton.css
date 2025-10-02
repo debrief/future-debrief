@@ -262,10 +262,6 @@
   font-weight: 600;
 }
 
-.category-children {
-  /* No additional styling needed - children will handle their own padding */
-}
-
 .tool-menu-item {
   display: block;
   width: 100%;
