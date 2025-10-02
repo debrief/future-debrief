@@ -282,7 +282,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
                 aria-label="Toggle show all tools"
                 type="button"
               >
-                <span className="toggle-icon">All</span>
+                <span className="toggle-icon">⊕</span>
               </button>
               <button
                 className={`toggle-button ${showDescriptionsState ? 'active' : ''}`}
@@ -291,7 +291,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
                 aria-label="Toggle show descriptions"
                 type="button"
               >
-                <span className="toggle-icon">Desc</span>
+                <span className="toggle-icon">ⓘ</span>
               </button>
             </div>
           </div>
