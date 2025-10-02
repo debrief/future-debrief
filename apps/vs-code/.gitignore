@@ -176,3 +176,9 @@ libs/
 
 # VS Code extension package (build artifact)
 *.vsix
+
+# Playwright test artifacts
+playwright-report/
+test-results/
+.playwright-vsix/
+tests/playwright/.container-id
