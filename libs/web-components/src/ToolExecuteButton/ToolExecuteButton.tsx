@@ -139,14 +139,14 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
   }, []);
 
   const handleCommandSelect = useCallback((tool: Tool, isApplicable: boolean) => {
-    // Only execute if tool is applicable
-    if (!isApplicable) {
+    // Only enforce applicability when smart filtering is enabled AND showAll is off
+    if (enableSmartFiltering && !showAllState && !isApplicable) {
       return;
     }
 
     onCommandExecute(tool);
     setIsMenuOpen(false);
-  }, [onCommandExecute]);
+  }, [onCommandExecute, enableSmartFiltering, showAllState]);
 
   const toggleCategory = useCallback((categoryName: string) => {
     setExpandedCategories(prev => {
