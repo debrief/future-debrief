@@ -225,6 +225,48 @@ Navigate to `workspace/tests/` and run:
 - `python test_optional_filename.py` - Test optional filename functionality
 - `python test_plot_api.py` - Test full plot manipulation API with optional filename support
 
+### Playwright End-to-End Testing
+Automated Docker-based tests validate the complete deployment workflow:
+
+```bash
+# Prerequisites (one-time or when dependencies change)
+pnpm --filter @debrief/shared-types build
+pnpm --filter @debrief/web-components build
+
+# Run all tests
+pnpm test:playwright
+```
+
+**Test Performance:**
+- **First run:** ~3-5 minutes (builds Docker image once)
+- **Subsequent runs:** ~20ms VSIX build + instant container start (**99%+ faster!**)
+
+**Optimization Details:**
+- Uses `Dockerfile.playwright` (testing-specific, isolated from production)
+- Docker image is built once and cached indefinitely
+- VSIX is volume-mounted at runtime for instant extension updates
+- No Docker rebuild needed for extension code changes
+
+**When to rebuild Docker image:**
+```bash
+docker rmi debrief-playwright-test  # Only when shared dependencies change
+pnpm test:playwright                # Next run rebuilds automatically
+```
+
+**Rebuild triggers:**
+1. Shared-types dependencies change (Python packages, JSON schemas)
+2. Web-components dependencies change (npm packages)
+3. Tool Vault package changes (libs/tool-vault-packager)
+4. Dockerfile.playwright changes
+5. System dependencies change (Python/Node versions)
+
+**Never rebuild for:**
+- ❌ Extension source code changes (`src/**`) - handled by VSIX volume mount
+- ❌ Extension config changes (`package.json`, `tsconfig.json`) - included in VSIX rebuild
+- ❌ Workspace file changes - already in image
+
+See `docs/local-docker-testing.md` for complete testing guide.
+
 ## Architecture
 
 ### Core Components

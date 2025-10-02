@@ -509,17 +509,49 @@ pnpm test:playwright
 ```
 
 **What happens:**
-1. Playwright automatically builds VSIX with current extension code (~2 seconds)
-2. Builds Docker image using the fresh VSIX (leverages layer caching for dependencies)
-3. Starts a container with all required port mappings
+1. Playwright checks if Docker image exists (builds only once on first run)
+2. Automatically builds VSIX with current extension code (~20ms)
+3. Starts container with VSIX volume mount (instant - no rebuild needed!)
 4. Runs all test scenarios against the running container
 5. Cleans up the container when tests complete
 
 **Test duration:**
-- First run: ~3-5 minutes (full Docker build)
-- Subsequent runs: ~30-60 seconds (Docker layer caching + VSIX rebuild)
+- **First run:** ~3-5 minutes (builds Docker image once)
+- **Subsequent runs:** ~20ms VSIX build + container startup only (**99%+ faster!**)
+
+**How the optimization works:**
+- Docker image is built once and cached indefinitely
+- VSIX is mounted as a volume at runtime, so extension code changes are reflected immediately
+- Only the VSIX rebuilds between test runs (20ms vs 3+ minutes for Docker rebuild)
 
 **Important:** Tests always use your current extension code. Only rebuild shared-types or web-components when those actually change.
+
+### When to Rebuild the Docker Image
+
+The Docker image caching is extremely aggressive for fast test iteration. You **only** need to rebuild the Docker image when:
+
+1. **Shared-types dependencies change** (Python packages, JSON schemas)
+2. **Web-components dependencies change** (npm packages, build tools)
+3. **Tool Vault package changes** (libs/tool-vault-packager code)
+4. **Dockerfile.playwright changes** (container configuration)
+5. **System dependencies change** (Python version, Node version, apt packages)
+
+**When you DON'T need to rebuild:**
+- ❌ Extension source code changes (`apps/vs-code/src/**`) - automatically reflected via VSIX volume mount
+- ❌ Extension configuration changes (`package.json`, `tsconfig.json`) - included in VSIX rebuild
+- ❌ Workspace test files changes (`apps/vs-code/workspace/**`) - already in image
+
+**To force a rebuild when needed:**
+
+```bash
+# Remove the cached Docker image
+docker rmi debrief-playwright-test
+
+# Next test run will rebuild automatically
+pnpm test:playwright
+```
+
+**Pro tip:** If you're not sure whether a rebuild is needed, just run the tests. If something is broken due to stale dependencies, you'll know immediately!
 
 ### Available Test Commands
 
