@@ -3,8 +3,9 @@ name: Tool Vault PR Cleanup
 on:
   pull_request:
     types: [closed]
-    paths:
-      - 'libs/tool-vault-packager/**'
+    # No path filter - cleanup should run for ALL PR closures to prevent orphaned apps
+    # Preview deployments may be triggered by various path changes, so we need to
+    # attempt cleanup regardless of which files were modified
 
 jobs:
   pr-cleanup:
