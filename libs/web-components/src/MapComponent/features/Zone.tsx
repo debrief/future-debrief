@@ -2,6 +2,7 @@ import React from 'react';
 import { Polygon } from 'react-leaflet';
 import L from 'leaflet';
 import { GeoJSONFeature } from '../MapComponent';
+import { DebriefTrackFeature } from '@debrief/shared-types';
 import { getFeatureStyle } from '../utils/featureUtils';
 import { Track } from './Track';
 import { Point } from './Point';
@@ -59,7 +60,8 @@ export const Zone: React.FC<ZoneProps> = (props) => {
   }
   
   if (feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString') {
-    return <Track {...props} />;
+    // Type assertion: Zone with track geometry should be rendered as track
+    return <Track {...props} feature={props.feature as unknown as DebriefTrackFeature} />;
   }
 
   // Type guard and handle Polygon/MultiPolygon

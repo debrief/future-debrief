@@ -2,12 +2,11 @@ import React from 'react';
 import { Polyline, Marker } from 'react-leaflet';
 import * as L from 'leaflet';
 import { getFeatureColor, getFeatureStyle } from '../utils/featureUtils';
-import { TimeState } from '@debrief/shared-types';
-import { GeoJSONFeature } from '../MapComponent';
+import { DebriefTrackFeature, TimeState } from '@debrief/shared-types';
 import '../MapComponent.css';
 
 interface TrackProps {
-  feature: GeoJSONFeature;
+  feature: DebriefTrackFeature;
   selectedFeatureIds: (string | number)[];
   onSelectionChange?: (selectedFeatureIds: (string | number)[]) => void;
   timeState?: TimeState;
@@ -41,7 +40,8 @@ export const Track: React.FC<TrackProps> = (props) => {
     return closestIndex;
   };
 
-  const trackColor = getFeatureColor(feature);
+  // Cast for utility functions that expect GeoJSONFeature (structurally compatible)
+  const trackColor = getFeatureColor(feature as unknown as GeoJSON.Feature);
 
   const timeMarkerIcon = L.divIcon({
     className: 'time-marker',
@@ -59,7 +59,7 @@ export const Track: React.FC<TrackProps> = (props) => {
   const geometry = feature.geometry;
 
   let markerPosition: [number, number] | null = null;
-  const timestamps = (feature.properties as Record<string, unknown>)?.timestamps;
+  const timestamps = feature.properties?.timestamps;
   if (timeState?.current && timestamps && Array.isArray(timestamps)) {
     const closestIndex = findClosestTimeIndex(timeState.current, timestamps);
     if (closestIndex !== -1) {
@@ -107,23 +107,24 @@ export const Track: React.FC<TrackProps> = (props) => {
       
       if (!onSelectionChange) return;
       
+      // feature.id can be string | number | null | undefined per DebriefTrackFeature type
       const featureId = (feature.id !== undefined && feature.id !== null) ? feature.id : Math.random();
       let newSelectedIds: (string | number)[];
 
       if (isSelected) {
-        // Remove from selection
+        // Remove from selection - filter by the actual id (which might be null)
         newSelectedIds = selectedFeatureIds.filter(id => id !== feature.id);
       } else {
-        // Add to selection - ensure featureId is string or number
-        const safeFeatureId = typeof featureId === 'string' || typeof featureId === 'number' ? featureId : Math.random();
-        newSelectedIds = [...selectedFeatureIds, safeFeatureId];
+        // Add to selection - use the computed featureId (never null)
+        newSelectedIds = [...selectedFeatureIds, featureId];
       }
       
       onSelectionChange(newSelectedIds);
     });
   };
 
-  const style = getFeatureStyle(feature, isSelected);
+  // Cast for utility functions that expect GeoJSONFeature (structurally compatible)
+  const style = getFeatureStyle(feature as unknown as GeoJSON.Feature, isSelected);
 
   const coordinates = geometry.type === 'LineString' 
     ? (geometry.coordinates as number[][]).map(coord => [coord[1], coord[0]] as [number, number])
