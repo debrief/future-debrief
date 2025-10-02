@@ -74,7 +74,8 @@ describe('OutlineViewParent', () => {
     );
 
     const executeButton = screen.getByRole('button', { name: /Run Tools/i });
-    expect(executeButton).toBeDisabled();
+    // Button should be enabled even with no selection (as long as tools are present)
+    expect(executeButton).not.toBeDisabled();
 
   const tree = screen.getByTestId('outline-view-tree');
   fireEvent(
@@ -85,6 +86,7 @@ describe('OutlineViewParent', () => {
   );
 
     await waitFor(() => expect(handleSelectionChange).toHaveBeenCalledWith(['feature-1']));
+    // Button should still be enabled after selection
     await waitFor(() => expect(executeButton).not.toBeDisabled());
   });
 
