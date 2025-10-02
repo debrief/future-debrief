@@ -48,7 +48,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
   selectedFeatures,
   onCommandExecute,
   disabled = false,
-  buttonText = 'Execute Tools',
+  buttonText = 'Run Tools',
   menuPosition = 'bottom',
   enableSmartFiltering = false,
 }) => {
