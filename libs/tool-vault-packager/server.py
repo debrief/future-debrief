@@ -103,14 +103,14 @@ class ToolVaultServer:
                         index_content = archive.read("index.json").decode("utf-8")
                         self.index_data = json.loads(index_content)
                         print(
-                            f"Loaded pre-built index from package"
+                            "Loaded pre-built index from package"
                         )
                 else:
                     # Fallback for other archive modes
                     with open("index.json", "r") as f:
                         self.index_data = json.load(f)
                         print(
-                            f"Loaded pre-built index from file"
+                            "Loaded pre-built index from file"
                         )
 
                 # In production mode, we don't run discover_tools() at all!
@@ -202,7 +202,7 @@ class ToolVaultServer:
             function = getattr(module, function_name)
 
             # Detect Pydantic parameter model from function signature
-            from discovery import detect_pydantic_parameter_model, PydanticModelType
+            from discovery import PydanticModelType, detect_pydantic_parameter_model
             pydantic_model_raw = detect_pydantic_parameter_model(function, module)
 
             if not pydantic_model_raw:
