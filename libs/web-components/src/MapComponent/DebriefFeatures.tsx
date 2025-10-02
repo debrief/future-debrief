@@ -52,7 +52,7 @@ export const DebriefFeatures: React.FC<DebriefFeaturesProps> = ({
             return <Point key={key} {...commonProps} />;
           }
 
-          if (dataType === 'zone') {
+          if (dataType === 'annotation') {
             return <Zone key={key} {...commonProps} />;
           }
 
