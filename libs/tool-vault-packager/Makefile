@@ -49,9 +49,9 @@ install-dev-deps: ## Install development dependencies including static analysis 
 	@echo "$(BLUE)📦 Installing development dependencies...$(RESET)"
 	@pip install -r requirements-dev.txt && echo "$(GREEN)✅ Development dependencies installed$(RESET)" || (echo "$(RED)❌ Failed to install development dependencies$(RESET)" && exit 1)
 
-lint: ## Run ruff linting (non-blocking)
+lint: ## Run ruff linting (blocking)
 	@echo "$(BLUE)🔍 Running ruff linting...$(RESET)"
-	@ruff check . && echo "$(GREEN)✅ Linting passed$(RESET)" || (echo "$(RED)❌ Linting issues found (non-blocking)$(RESET)" && true)
+	@ruff check . && echo "$(GREEN)✅ Linting passed$(RESET)" || (echo "$(RED)❌ Linting issues found$(RESET)" >&2 && exit 1)
 
 lint-fix: ## Run ruff linting with auto-fix and formatting
 	@echo "$(BLUE)🔧 Running ruff with auto-fix and formatting...$(RESET)"
