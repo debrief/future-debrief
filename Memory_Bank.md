@@ -2108,3 +2108,91 @@ def discover_tool_nodes(tools_dir: Path) -> List[ToolIndexNode]:
 
 ---
 
+
+### Outline View Tool-Vault Decoupling - Issue #185 ✅
+**Date**: 2025-10-02  
+**Objective**: Remove blocking dependency between outline view and tool-vault server loading state
+
+**Problem**: The outline view in `debriefOutlineProvider.ts` was throwing errors and blocking rendering when tool-vault server was unavailable, preventing users from navigating plot features during extension startup.
+
+**Root Cause Analysis**:
+- Lines 120-133: `_renderOutlineView` threw errors when `getToolIndex()` failed
+- OutlineViewParent component (web-components) only needs tools for Execute button
+- Outline tree itself only requires `featureCollection` and `selectionState`
+- Execute button already gracefully handles empty tool list (shows "0 tools present")
+
+**Solution Implemented**:
+
+1. **Non-blocking Tool Fetching** (`debriefOutlineProvider.ts:120-138`)
+   - Changed from throwing errors to graceful fallback with `null`
+   - Used proper TypeScript typing: `Record<string, unknown> | null`
+   - Replaced `console.error` with `console.warn` for non-critical failures
+   - Preserved error context while allowing outline to render
+
+2. **Empty Tool List Fallback** (line 184)
+   - Provide `{ root: [] }` when `toolList` is `null`
+   - OutlineViewParent already handles this gracefully per design
+
+**Code Changes**:
+```typescript
+// BEFORE (lines 120-133):
+let toolList;
+try {
+  toolList = await this._globalController.getToolIndex();
+  if (!toolList || typeof toolList !== 'object') {
+    throw new Error(`Invalid tool index returned`);
+  }
+  // ... more validation ...
+} catch (error) {
+  console.error('[DebriefOutlineProvider] ' + errorMessage, error);
+  throw new Error(errorMessage);  // ❌ Blocks entire outline
+}
+
+// AFTER (lines 120-138):
+let toolList: Record<string, unknown> | null = null;
+try {
+  const fetchedToolList = await this._globalController.getToolIndex();
+  if (!fetchedToolList || typeof fetchedToolList !== 'object') {
+    console.warn('[DebriefOutlineProvider] Invalid tool index, tools unavailable');
+    toolList = null;
+  } else if (!('root' in fetchedToolList) || !Array.isArray(...)) {
+    console.warn('[DebriefOutlineProvider] Tool index missing root array');
+    toolList = null;
+  } else {
+    toolList = fetchedToolList as Record<string, unknown>;
+  }
+} catch (error) {
+  console.warn('[DebriefOutlineProvider] Tool Vault not ready:', ...);
+  toolList = null;  // ✅ Continue without tools
+}
+
+// Line 184 fallback:
+const toolList = ${JSON.stringify(toolList || { root: [] })};
+```
+
+**Testing & Verification**:
+- ✅ TypeScript typecheck passed (no type errors)
+- ✅ ESLint passed (no new errors, strict TypeScript patterns enforced)
+- ✅ Compilation successful (esbuild + dependencies)
+- ✅ No `any` types used (followed VS Code extension strict patterns)
+- ✅ Used `console.warn` for non-critical errors (per ESLint rules)
+
+**Architectural Benefits**:
+- Outline view now appears immediately when `.plot.json` file opens
+- Tool execute button shows "0 tools present" when unavailable
+- Tools become available dynamically via `toolVaultReady` event (existing)
+- Better user experience during extension startup
+- Maintains type safety with proper TypeScript patterns
+
+**Files Modified**:
+- `apps/vs-code/src/providers/panels/debriefOutlineProvider.ts`
+
+**Related Architecture**:
+- Existing `_checkInitialToolVaultState()` handles race conditions (lines 395-408)
+- `toolVaultReady` event subscription already refreshes outline (lines 366-369)
+- No changes needed to OutlineViewParent component (already graceful)
+
+**Status**: Completed - Outline view functions independently of tool-vault state  
+**Commit**: Ready for commit and PR
+
+---

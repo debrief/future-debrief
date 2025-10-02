@@ -117,19 +117,24 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
       vscode.Uri.joinPath(extensionUri, 'media', 'web-components.css')
     );
 
-    let toolList;
+    // Try to fetch tool list, but don't block outline rendering if unavailable
+    let toolList: Record<string, unknown> | null = null;
     try {
-      toolList = await this._globalController.getToolIndex();
-      if (!toolList || typeof toolList !== 'object') {
-        throw new Error(`Invalid tool index returned: ${JSON.stringify(toolList)}`);
-      }
-      if (!('root' in toolList) || !Array.isArray((toolList as Record<string, unknown>).root)) {
-        throw new Error(`Tool index missing 'root' array. Got keys: ${JSON.stringify(Object.keys(toolList))}`);
+      const fetchedToolList = await this._globalController.getToolIndex();
+      if (!fetchedToolList || typeof fetchedToolList !== 'object') {
+        console.warn('[DebriefOutlineProvider] Invalid tool index returned, tools will be unavailable');
+        toolList = null;
+      } else if (!('root' in fetchedToolList) || !Array.isArray((fetchedToolList as Record<string, unknown>).root)) {
+        console.warn('[DebriefOutlineProvider] Tool index missing root array, tools will be unavailable');
+        toolList = null;
+      } else {
+        toolList = fetchedToolList as Record<string, unknown>;
       }
     } catch (error) {
-      const errorMessage = `Failed to get tool index: ${error instanceof Error ? error.message : String(error)}`;
-      console.error('[DebriefOutlineProvider] ' + errorMessage, error);
-      throw new Error(errorMessage);
+      // Don't throw - just log and continue without tools
+      console.warn('[DebriefOutlineProvider] Tool Vault not ready, outline will render without tools:',
+        error instanceof Error ? error.message : String(error));
+      toolList = null;
     }
 
     return `<!DOCTYPE html>
@@ -176,7 +181,7 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
           const vscode = acquireVsCodeApi();
           window.vscode = vscode;
           const outlineData = ${JSON.stringify(data)};
-          const toolList = ${JSON.stringify(toolList)};
+          const toolList = ${JSON.stringify(toolList || { root: [] })};
           
           function initializeOutlineView() {
             const container = document.getElementById('outline-container');
