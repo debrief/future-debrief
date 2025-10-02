@@ -73,7 +73,7 @@ describe('OutlineViewParent', () => {
       />
     );
 
-    const executeButton = screen.getByRole('button', { name: /Execute Tools/i });
+    const executeButton = screen.getByRole('button', { name: /Run Tools/i });
     expect(executeButton).toBeDisabled();
 
   const tree = screen.getByTestId('outline-view-tree');
@@ -90,7 +90,7 @@ describe('OutlineViewParent', () => {
 
   it('logs command execution and forwards payload when a tool is chosen', async () => {
     const handleCommandExecute = jest.fn();
-    const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => undefined);
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
 
     try {
       render(
@@ -102,7 +102,7 @@ describe('OutlineViewParent', () => {
         />
       );
 
-      const executeButton = screen.getByRole('button', { name: /Execute Tools/i });
+      const executeButton = screen.getByRole('button', { name: /Run Tools/i });
       fireEvent.click(executeButton);
 
       const toolButton = await screen.findByText('test-tool');
