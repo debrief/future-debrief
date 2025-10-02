@@ -57,13 +57,21 @@ class TrackProperties(BaseModel):
 class DebriefTrackFeature(Feature[Union[LineString, MultiLineString], TrackProperties]):
     """A GeoJSON Feature representing a track with LineString or MultiLineString geometry."""
 
+    # Explicitly override geometry to make it required (not nullable)
+    geometry: Union[LineString, MultiLineString] = Field(
+        ...,
+        description="Track geometry must be LineString or MultiLineString"
+    )
+
     class Config:
         extra = "forbid"  # Strict validation - no additional properties
 
     @field_validator('geometry')
     @classmethod
     def validate_track_geometry(cls, v):
-        """Ensure geometry is LineString or MultiLineString."""
+        """Ensure geometry is required and is LineString or MultiLineString."""
+        if v is None:
+            raise ValueError('Track features must have a geometry')
         if not isinstance(v, (LineString, MultiLineString)):
             raise ValueError('Track features must have LineString or MultiLineString geometry')
         return v
