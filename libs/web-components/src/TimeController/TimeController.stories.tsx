@@ -90,15 +90,31 @@ export const Interactive: Story = {
   },
 };
 
-export const VSCodeTheming: Story = {
-  render: () => (
+const VSCodeThemingWrapper = () => {
+  const initialTimeState: TimeState = {
+    current: '2024-01-15T12:00:00Z',
+    start: '2024-01-15T08:00:00Z',
+    end: '2024-01-15T16:00:00Z',
+  };
+
+  const [timeState, setTimeState] = useState<TimeState>(initialTimeState);
+
+  const handleTimeChange = (newTime: string) => {
+    setTimeState(prev => ({ ...prev, current: newTime }));
+  };
+
+  return (
     <div style={{ padding: '20px', background: 'var(--vscode-editor-background, #1e1e1e)', minHeight: '400px' }}>
       <h3 style={{ color: 'var(--vscode-editor-foreground, #cccccc)', marginBottom: '16px' }}>VS Code Elements Integration - TimeController</h3>
       <p style={{ color: 'var(--vscode-descriptionForeground, #cccccc)', marginBottom: '20px' }}>
         TimeController uses native vscode-elements for labels with VS Code themed slider controls.
       </p>
       <div style={{ border: '1px solid var(--vscode-panel-border, #3e3e3e)', borderRadius: '4px', padding: '16px' }}>
-        <InteractiveWrapper />
+        <TimeController
+          timeState={timeState}
+          timeFormat="rn-short"
+          onTimeChange={handleTimeChange}
+        />
       </div>
       <div style={{ marginTop: '16px', fontSize: '12px', color: 'var(--vscode-descriptionForeground, #cccccc)' }}>
         <strong>Features:</strong>
@@ -110,7 +126,11 @@ export const VSCodeTheming: Story = {
         </ul>
       </div>
     </div>
-  ),
+  );
+};
+
+export const VSCodeTheming: Story = {
+  render: () => <VSCodeThemingWrapper />,
 };
 
 export const NoTimeRange: Story = {
