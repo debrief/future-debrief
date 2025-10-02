@@ -1,23 +1,37 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { TimeState } from '@debrief/shared-types';
-import { VscodeButton, VscodeLabel } from '@vscode-elements/react-elements';
+import { VscodeLabel, VscodeButton } from '@vscode-elements/react-elements';
+import { TimeDisplay } from './TimeDisplay';
+import { TimeSlider } from './TimeSlider';
+import { TimeFormat } from './timeUtils';
 import './TimeController.css';
 
 export interface TimeControllerProps {
   onTimeChange?: (time: string) => void;
   timeState?: TimeState;
-  isPlaying?: boolean;
-  onPlayPause?: () => void;
+  timeFormat?: TimeFormat;
+  onOpenSettings?: () => void;
   className?: string;
 }
 
 export const TimeController: React.FC<TimeControllerProps> = ({
   onTimeChange,
   timeState,
-  isPlaying = false,
-  onPlayPause,
+  timeFormat = 'rn-short',
+  onOpenSettings,
   className = '',
 }) => {
+  // Define hooks before any conditional returns
+  const handleSliderChange = useCallback(
+    (newTimeMs: number) => {
+      if (onTimeChange) {
+        const newTime = new Date(newTimeMs).toISOString();
+        onTimeChange(newTime);
+      }
+    },
+    [onTimeChange]
+  );
+
   if (!timeState || !timeState.start || !timeState.end || !timeState.current) {
     return (
       <div className={`time-controller no-data ${className}`} data-testid="time-controller">
@@ -31,42 +45,54 @@ export const TimeController: React.FC<TimeControllerProps> = ({
   const endTime = new Date(end).getTime();
   const currentTime = new Date(current).getTime();
 
-  const handleTimeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (onTimeChange) {
-      const newTime = new Date(parseInt(event.target.value, 10)).toISOString();
-      onTimeChange(newTime);
-    }
-  };
-
   return (
     <div className={`time-controller ${className}`} data-testid="time-controller">
-      <div className="time-labels">
-        <VscodeLabel className="current-time" data-testid="time-label">
-          {new Date(currentTime).toLocaleString()}
-        </VscodeLabel>
-        
-        <VscodeLabel className="time-range">
-          {new Date(startTime).toLocaleString()} - {new Date(endTime).toLocaleString()}
-        </VscodeLabel>
-      </div>
-      
-      <input
-        type="range"
-        min={startTime}
-        max={endTime}
-        value={currentTime}
-        onChange={handleTimeChange}
-        className="time-slider"
-        data-testid="time-slider"
-      />
-      
-      {onPlayPause && (
-        <div className="play-controls">
-          <VscodeButton onClick={onPlayPause} data-testid="play-pause-button">
-            {isPlaying ? 'Pause' : 'Play'}
+      {/* Header row with current time and settings button */}
+      <div className="time-header-row">
+        <TimeDisplay
+          time={new Date(currentTime)}
+          format={timeFormat}
+          className="current-time"
+          data-testid="time-label"
+        />
+        {onOpenSettings && (
+          <VscodeButton
+            appearance="icon"
+            onClick={onOpenSettings}
+            className="settings-button"
+            data-testid="settings-button"
+            aria-label="Open Time Controller Settings"
+          >
+            <span className="codicon codicon-settings-gear"></span>
           </VscodeButton>
-        </div>
-      )}
+        )}
+      </div>
+
+      {/* Row 2: Slider with tick marks */}
+      <div className="time-slider-row">
+        <TimeSlider
+          startTime={startTime}
+          endTime={endTime}
+          currentTime={currentTime}
+          onChange={handleSliderChange}
+        />
+      </div>
+
+      {/* Row 3: Start and end times (left and right) */}
+      <div className="time-range-row">
+        <TimeDisplay
+          time={new Date(startTime)}
+          format={timeFormat}
+          className="start-time"
+          data-testid="start-time-label"
+        />
+        <TimeDisplay
+          time={new Date(endTime)}
+          format={timeFormat}
+          className="end-time"
+          data-testid="end-time-label"
+        />
+      </div>
     </div>
   );
 };

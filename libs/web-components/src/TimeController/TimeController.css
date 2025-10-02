@@ -1,9 +1,12 @@
 .time-controller {
-  padding: 12px;
+  padding: 16px;
   background: var(--vscode-editor-background, #1e1e1e);
   border: 1px solid var(--vscode-panel-border, #3e3e3e);
   border-radius: 4px;
   color: var(--vscode-editor-foreground, #cccccc);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .time-controller.no-data {
@@ -12,69 +15,148 @@
   color: var(--vscode-descriptionForeground, #cccccc);
 }
 
-.time-labels {
-  margin-bottom: 12px;
+/* Row 1: Current time display (centered, prominent) */
+.time-current-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.time-labels .current-time {
+.time-current-row .current-time {
   font-size: 16px;
-  font-weight: bold;
-  margin-bottom: 8px;
-  display: block;
+  font-weight: 600;
   color: var(--vscode-editor-foreground, #cccccc);
+  text-align: center;
 }
 
-.time-labels .time-range {
-  font-size: 13px;
-  color: var(--vscode-descriptionForeground, #cccccc);
-  display: block;
-  margin-bottom: 8px;
+/* Row 2: Slider with tick marks */
+.time-slider-row {
+  padding: 0 4px;
 }
 
+/* Row 3: Start and end times (left and right) */
+.time-range-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.time-range-row .start-time,
+.time-range-row .end-time {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground, #858585);
+}
+
+.time-range-row .start-time {
+  text-align: left;
+}
+
+.time-range-row .end-time {
+  text-align: right;
+}
+
+/* Slider wrapper and track container */
+.time-slider-wrapper {
+  width: 100%;
+  position: relative;
+}
+
+.time-slider-track {
+  width: 100%;
+  position: relative;
+  height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+/* Tick marks */
+.time-slider-ticks {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 8px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.time-slider-tick {
+  position: absolute;
+  width: 2px;
+  height: 8px;
+  background: var(--vscode-descriptionForeground, #858585);
+  opacity: 0.5;
+  transform: translateX(-50%);
+}
+
+/* Range input slider */
 .time-slider {
   width: 100%;
   height: 6px;
-  margin: 12px 0;
+  margin: 0;
   background: var(--vscode-scrollbarSlider-background, #79797966);
   border-radius: 3px;
   outline: none;
   -webkit-appearance: none;
   appearance: none;
+  position: relative;
+  z-index: 2;
+  cursor: pointer;
 }
 
+.time-slider:focus {
+  outline: 2px solid var(--vscode-focusBorder, #007acc);
+  outline-offset: 2px;
+}
+
+/* Webkit slider thumb (Chrome, Safari, Edge) */
 .time-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--vscode-button-background, #0e639c);
   cursor: pointer;
   border: 2px solid var(--vscode-editor-background, #1e1e1e);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: background 0.1s ease, transform 0.1s ease;
 }
 
 .time-slider::-webkit-slider-thumb:hover {
   background: var(--vscode-button-hoverBackground, #1177bb);
+  transform: scale(1.1);
 }
 
 .time-slider::-webkit-slider-thumb:active {
   background: var(--vscode-button-background, #0e639c);
-  transform: scale(1.1);
+  transform: scale(1.15);
 }
 
+/* Firefox slider thumb */
 .time-slider::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--vscode-button-background, #0e639c);
   cursor: pointer;
   border: 2px solid var(--vscode-editor-background, #1e1e1e);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: background 0.1s ease, transform 0.1s ease;
 }
 
 .time-slider::-moz-range-thumb:hover {
   background: var(--vscode-button-hoverBackground, #1177bb);
+  transform: scale(1.1);
 }
 
+.time-slider::-moz-range-thumb:active {
+  transform: scale(1.15);
+}
+
+/* Firefox slider track */
 .time-slider::-moz-range-track {
   width: 100%;
   height: 6px;

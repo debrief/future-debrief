@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import React, { useState } from 'react';
 import { TimeController } from './TimeController';
 import { TimeState } from '@debrief/shared-types';
+import { TimeFormat } from './timeUtils';
 
 const meta: Meta<typeof TimeController> = {
   title: 'Components/TimeController',
@@ -12,8 +13,10 @@ const meta: Meta<typeof TimeController> = {
   tags: ['autodocs'],
   argTypes: {
     onTimeChange: { action: 'time changed' },
-    onPlayPause: { action: 'play/pause clicked' },
-    isPlaying: { control: 'boolean' },
+    timeFormat: {
+      control: 'select',
+      options: ['plain', 'iso', 'rn-short', 'rn-long'],
+    },
     timeState: { control: 'object' },
   },
 };
@@ -22,91 +25,68 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  args: {
-    timeState: {
-      current: '2024-01-15T10:00:00Z', // Fixed time at start of range
-      start: '2024-01-15T10:00:00Z', // Fixed start time
-      end: '2024-01-15T12:00:00Z', // Fixed end time
-    },
-    isPlaying: false,
+  render: (args) => {
+    const initialTimeState: TimeState = args.timeState || {
+      current: '2024-01-15T11:00:00Z',
+      start: '2024-01-15T10:00:00Z',
+      end: '2024-01-15T12:00:00Z',
+    };
+
+    const [timeState, setTimeState] = useState<TimeState>(initialTimeState);
+
+    const handleTimeChange = (newTime: string) => {
+      setTimeState(prev => ({ ...prev, current: newTime }));
+    };
+
+    return (
+      <TimeController
+        timeState={timeState}
+        timeFormat={args.timeFormat || 'plain'}
+        onTimeChange={handleTimeChange}
+      />
+    );
   },
-};
-
-export const Playing: Story = {
   args: {
+    timeFormat: 'plain',
     timeState: {
-      current: '2024-01-15T10:00:00Z', // Fixed time at start of range
-      start: '2024-01-15T10:00:00Z', // Fixed start time
-      end: '2024-01-15T12:00:00Z', // Fixed end time
+      current: '2024-01-15T11:00:00Z',
+      start: '2024-01-15T10:00:00Z',
+      end: '2024-01-15T12:00:00Z',
     },
-    isPlaying: true,
   },
-};
-
-const WithTimeRangeWrapper = () => {
-  const initialTimeState: TimeState = {
-    current: '2024-01-15T12:00:00Z', // Fixed time in middle of range
-    start: '2024-01-15T10:00:00Z',
-    end: '2024-01-15T14:00:00Z',
-  };
-
-  const [timeState, setTimeState] = useState<TimeState>(initialTimeState);
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  const handleTimeChange = (newTime: string) => {
-    setTimeState(prev => ({ ...prev, current: newTime }));
-  };
-
-  const handlePlayPause = () => {
-    setIsPlaying(prev => !prev);
-  };
-
-  return (
-    <TimeController
-      timeState={timeState}
-      isPlaying={isPlaying}
-      onTimeChange={handleTimeChange}
-      onPlayPause={handlePlayPause}
-    />
-  );
-};
-
-export const WithTimeRange: Story = {
-  render: () => <WithTimeRangeWrapper />,
-};
-
-const InteractiveWrapper = () => {
-  const initialTimeState: TimeState = {
-    current: '2024-01-15T08:00:00Z', // Fixed time at start of range
-    start: '2024-01-15T08:00:00Z', // Fixed start time
-    end: '2024-01-15T16:00:00Z', // Fixed end time (8 hour range)
-  };
-
-  const [timeState, setTimeState] = useState<TimeState>(initialTimeState);
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  const handleTimeChange = (newTime: string) => {
-    setTimeState(prev => ({ ...prev, current: newTime }));
-    console.warn('Time changed to:', newTime);
-  };
-
-  const handlePlayPause = () => {
-    setIsPlaying(prev => !prev);
-    console.warn('Play/Pause clicked');
-  };
-
-  return (
-    <TimeController
-      timeState={timeState}
-      isPlaying={isPlaying}
-      onTimeChange={handleTimeChange}
-      onPlayPause={handlePlayPause}
-    />
-  );
 };
 
 export const Interactive: Story = {
-  render: () => <InteractiveWrapper />,
+  render: (args) => {
+    const initialTimeState: TimeState = args.timeState || {
+      current: '2024-01-15T12:00:00Z',
+      start: '2024-01-15T08:00:00Z',
+      end: '2024-01-15T16:00:00Z',
+    };
+
+    const [timeState, setTimeState] = useState<TimeState>(initialTimeState);
+
+    const handleTimeChange = (newTime: string) => {
+      setTimeState(prev => ({ ...prev, current: newTime }));
+      console.warn('Time changed to:', newTime);
+    };
+
+    return (
+      <TimeController
+        timeState={timeState}
+        timeFormat={args.timeFormat || 'plain'}
+        onTimeChange={handleTimeChange}
+      />
+    );
+  },
+  args: {
+    timeFormat: 'plain',
+    timeState: {
+      current: '2024-01-15T12:00:00Z',
+      start: '2024-01-15T08:00:00Z',
+      end: '2024-01-15T16:00:00Z',
+    },
+  },
 };
 
 export const VSCodeTheming: Story = {
@@ -114,18 +94,18 @@ export const VSCodeTheming: Story = {
     <div style={{ padding: '20px', background: 'var(--vscode-editor-background, #1e1e1e)', minHeight: '400px' }}>
       <h3 style={{ color: 'var(--vscode-editor-foreground, #cccccc)', marginBottom: '16px' }}>VS Code Elements Integration - TimeController</h3>
       <p style={{ color: 'var(--vscode-descriptionForeground, #cccccc)', marginBottom: '20px' }}>
-        TimeController now uses native vscode-elements for buttons and labels with VS Code themed slider controls.
+        TimeController uses native vscode-elements for labels with VS Code themed slider controls.
       </p>
       <div style={{ border: '1px solid var(--vscode-panel-border, #3e3e3e)', borderRadius: '4px', padding: '16px' }}>
-        <WithTimeRangeWrapper />
+        <InteractiveWrapper />
       </div>
       <div style={{ marginTop: '16px', fontSize: '12px', color: 'var(--vscode-descriptionForeground, #cccccc)' }}>
         <strong>Features:</strong>
         <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
-          <li>VscodeButton for play/pause controls</li>
           <li>VscodeLabel for time displays</li>
           <li>VS Code themed range slider with hover effects</li>
           <li>Automatic theme adaptation</li>
+          <li>Mouse wheel scrubbing support</li>
         </ul>
       </div>
     </div>
@@ -135,7 +115,6 @@ export const VSCodeTheming: Story = {
 export const NoTimeRange: Story = {
   args: {
     timeState: undefined,
-    isPlaying: false,
   },
 };
 
@@ -146,7 +125,6 @@ export const MissingCurrentTime: Story = {
       start: '2024-01-15T10:00:00Z',
       end: '2024-01-15T14:00:00Z',
     },
-    isPlaying: false,
   },
 };
 
@@ -157,7 +135,6 @@ export const MissingRangeStart: Story = {
       start: '',
       end: '2024-01-15T14:00:00Z',
     },
-    isPlaying: false,
   },
 };
 
@@ -168,6 +145,222 @@ export const MissingRangeEnd: Story = {
       start: '2024-01-15T10:00:00Z',
       end: '',
     },
-    isPlaying: false,
   },
+};
+
+// Time Format Stories
+const PlainEnglishWrapper = () => {
+  const [timeState, setTimeState] = useState<TimeState>({
+    current: '2024-01-15T14:30:00Z',
+    start: '2024-01-15T10:00:00Z',
+    end: '2024-01-15T18:00:00Z',
+  });
+  return (
+    <TimeController
+      timeState={timeState}
+      timeFormat="plain"
+      onTimeChange={(time) => setTimeState(prev => ({ ...prev, current: time }))}
+    />
+  );
+};
+
+const ISOFormatWrapper = () => {
+  const [timeState, setTimeState] = useState<TimeState>({
+    current: '2024-01-15T14:30:00Z',
+    start: '2024-01-15T10:00:00Z',
+    end: '2024-01-15T18:00:00Z',
+  });
+  return (
+    <TimeController
+      timeState={timeState}
+      timeFormat="iso"
+      onTimeChange={(time) => setTimeState(prev => ({ ...prev, current: time }))}
+    />
+  );
+};
+
+const RoyalNavyShortWrapper = () => {
+  const [timeState, setTimeState] = useState<TimeState>({
+    current: '2024-01-15T14:30:00Z',
+    start: '2024-01-15T10:00:00Z',
+    end: '2024-01-15T18:00:00Z',
+  });
+  return (
+    <TimeController
+      timeState={timeState}
+      timeFormat="rn-short"
+      onTimeChange={(time) => setTimeState(prev => ({ ...prev, current: time }))}
+    />
+  );
+};
+
+const RoyalNavyLongWrapper = () => {
+  const [timeState, setTimeState] = useState<TimeState>({
+    current: '2024-01-15T14:30:00Z',
+    start: '2024-01-15T10:00:00Z',
+    end: '2024-01-15T18:00:00Z',
+  });
+  return (
+    <TimeController
+      timeState={timeState}
+      timeFormat="rn-long"
+      onTimeChange={(time) => setTimeState(prev => ({ ...prev, current: time }))}
+    />
+  );
+};
+
+export const PlainEnglishFormat: Story = {
+  render: () => <PlainEnglishWrapper />,
+};
+
+export const ISOFormat: Story = {
+  render: () => <ISOFormatWrapper />,
+};
+
+export const RoyalNavyShortFormat: Story = {
+  render: () => <RoyalNavyShortWrapper />,
+};
+
+export const RoyalNavyLongFormat: Story = {
+  render: () => <RoyalNavyLongWrapper />,
+};
+
+// Time Range Stories
+const ShortRangeWrapper = () => {
+  const [timeState, setTimeState] = useState<TimeState>({
+    current: '2024-01-15T12:15:00Z',
+    start: '2024-01-15T12:00:00Z',
+    end: '2024-01-15T12:30:00Z', // 30 minutes
+  });
+  return (
+    <TimeController
+      timeState={timeState}
+      timeFormat="plain"
+      onTimeChange={(time) => setTimeState(prev => ({ ...prev, current: time }))}
+    />
+  );
+};
+
+const MediumRangeWrapper = () => {
+  const [timeState, setTimeState] = useState<TimeState>({
+    current: '2024-01-15T12:00:00Z',
+    start: '2024-01-15T08:00:00Z',
+    end: '2024-01-15T16:00:00Z', // 8 hours
+  });
+  return (
+    <TimeController
+      timeState={timeState}
+      timeFormat="plain"
+      onTimeChange={(time) => setTimeState(prev => ({ ...prev, current: time }))}
+    />
+  );
+};
+
+const LongRangeWrapper = () => {
+  const [timeState, setTimeState] = useState<TimeState>({
+    current: '2024-01-15T12:00:00Z',
+    start: '2024-01-01T00:00:00Z',
+    end: '2024-01-31T23:59:59Z', // 1 month
+  });
+  return (
+    <TimeController
+      timeState={timeState}
+      timeFormat="plain"
+      onTimeChange={(time) => setTimeState(prev => ({ ...prev, current: time }))}
+    />
+  );
+};
+
+const VeryLongRangeWrapper = () => {
+  const [timeState, setTimeState] = useState<TimeState>({
+    current: '2024-06-15T12:00:00Z',
+    start: '2024-01-01T00:00:00Z',
+    end: '2024-12-31T23:59:59Z', // 1 year
+  });
+  return (
+    <TimeController
+      timeState={timeState}
+      timeFormat="plain"
+      onTimeChange={(time) => setTimeState(prev => ({ ...prev, current: time }))}
+    />
+  );
+};
+
+export const ShortRange: Story = {
+  render: () => <ShortRangeWrapper />,
+};
+
+export const MediumRange: Story = {
+  render: () => <MediumRangeWrapper />,
+};
+
+export const LongRange: Story = {
+  render: () => <LongRangeWrapper />,
+};
+
+export const VeryLongRange: Story = {
+  render: () => <VeryLongRangeWrapper />,
+};
+
+// Interactive Story with Format Switching
+const InteractiveWithFormatWrapper = () => {
+  const initialTimeState: TimeState = {
+    current: '2024-01-15T12:00:00Z',
+    start: '2024-01-15T08:00:00Z',
+    end: '2024-01-15T16:00:00Z',
+  };
+
+  const [timeState, setTimeState] = useState<TimeState>(initialTimeState);
+  const [timeFormat, setTimeFormat] = useState<TimeFormat>('plain');
+
+  const handleTimeChange = (newTime: string) => {
+    setTimeState(prev => ({ ...prev, current: newTime }));
+    console.warn('Time changed to:', newTime);
+  };
+
+  return (
+    <div style={{ padding: '20px', background: 'var(--vscode-editor-background, #1e1e1e)', minHeight: '400px' }}>
+      <div style={{ marginBottom: '20px' }}>
+        <label style={{ color: 'var(--vscode-editor-foreground, #cccccc)', marginRight: '10px' }}>
+          Time Format:
+        </label>
+        <select
+          value={timeFormat}
+          onChange={(e) => setTimeFormat(e.target.value as TimeFormat)}
+          style={{
+            padding: '4px 8px',
+            background: 'var(--vscode-dropdown-background, #3c3c3c)',
+            color: 'var(--vscode-dropdown-foreground, #cccccc)',
+            border: '1px solid var(--vscode-dropdown-border, #3e3e3e)',
+            borderRadius: '2px',
+          }}
+        >
+          <option value="plain">Plain English</option>
+          <option value="iso">ISO 8601</option>
+          <option value="rn-short">RN Short (DDHHMMZ)</option>
+          <option value="rn-long">RN Long (MMM DDHHMMZ)</option>
+        </select>
+      </div>
+      <TimeController
+        timeState={timeState}
+        timeFormat={timeFormat}
+        onTimeChange={handleTimeChange}
+      />
+      <div style={{ marginTop: '20px', fontSize: '12px', color: 'var(--vscode-descriptionForeground, #cccccc)' }}>
+        <strong>Features Demonstrated:</strong>
+        <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+          <li>3-row layout (current time / slider / start-end times)</li>
+          <li>Adaptive tick marks based on time range</li>
+          <li>Keyboard navigation (arrow keys, Home, End, PageUp/Down)</li>
+          <li>Multiple time format support</li>
+          <li>Live time scrubbing with throttling</li>
+          <li>VS Code theme integration</li>
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+export const InteractiveWithFormats: Story = {
+  render: () => <InteractiveWithFormatWrapper />,
 };
