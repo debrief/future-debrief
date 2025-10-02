@@ -13,6 +13,7 @@ const meta: Meta<typeof TimeController> = {
   tags: ['autodocs'],
   argTypes: {
     onTimeChange: { action: 'time changed' },
+    onOpenSettings: { action: 'settings opened' },
     timeFormat: {
       control: 'select',
       options: ['plain', 'iso', 'rn-short', 'rn-long'],
@@ -363,4 +364,53 @@ const InteractiveWithFormatWrapper = () => {
 
 export const InteractiveWithFormats: Story = {
   render: () => <InteractiveWithFormatWrapper />,
+};
+
+// Settings Button Demo
+const SettingsButtonWrapper = () => {
+  const initialTimeState: TimeState = {
+    current: '2024-01-15T12:00:00Z',
+    start: '2024-01-15T08:00:00Z',
+    end: '2024-01-15T16:00:00Z',
+  };
+
+  const [timeState, setTimeState] = useState<TimeState>(initialTimeState);
+  const [settingsClicked, setSettingsClicked] = useState(false);
+
+  const handleTimeChange = (newTime: string) => {
+    setTimeState(prev => ({ ...prev, current: newTime }));
+  };
+
+  const handleOpenSettings = () => {
+    setSettingsClicked(true);
+    console.warn('Settings button clicked!');
+    setTimeout(() => setSettingsClicked(false), 2000);
+  };
+
+  return (
+    <div style={{ padding: '20px', background: 'var(--vscode-editor-background, #1e1e1e)', minHeight: '300px' }}>
+      <TimeController
+        timeState={timeState}
+        timeFormat="rn-short"
+        onTimeChange={handleTimeChange}
+        onOpenSettings={handleOpenSettings}
+      />
+      {settingsClicked && (
+        <div style={{
+          marginTop: '20px',
+          padding: '10px',
+          background: 'var(--vscode-inputValidation-infoBackground, #007acc)',
+          color: 'var(--vscode-inputValidation-infoForeground, #ffffff)',
+          borderRadius: '4px',
+          fontSize: '12px',
+        }}>
+          Settings button clicked! In VS Code, this would open the time format preference.
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const WithSettingsButton: Story = {
+  render: () => <SettingsButtonWrapper />,
 };

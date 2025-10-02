@@ -15,18 +15,26 @@
   color: var(--vscode-descriptionForeground, #cccccc);
 }
 
-/* Row 1: Current time display (centered, prominent) */
-.time-current-row {
+/* Row 1: Header with current time and settings button */
+.time-header-row {
   display: flex;
   justify-content: center;
   align-items: center;
+  position: relative;
 }
 
-.time-current-row .current-time {
+.time-header-row .current-time {
   font-size: 16px;
   font-weight: 600;
   color: var(--vscode-editor-foreground, #cccccc);
   text-align: center;
+}
+
+.time-header-row .settings-button {
+  position: absolute;
+  right: 0;
+  padding: 4px;
+  min-width: unset;
 }
 
 /* Row 2: Slider with tick marks */

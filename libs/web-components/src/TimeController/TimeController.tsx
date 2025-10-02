@@ -57,7 +57,6 @@ export const TimeController: React.FC<TimeControllerProps> = ({
         />
         {onOpenSettings && (
           <VscodeButton
-            appearance="icon"
             onClick={onOpenSettings}
             className="settings-button"
             data-testid="settings-button"

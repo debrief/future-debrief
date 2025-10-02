@@ -118,6 +118,29 @@ describe('TimeController', () => {
   });
 
 
+  describe('Settings Button', () => {
+    it('renders settings button when onOpenSettings is provided', () => {
+      const onOpenSettings = jest.fn();
+      render(<TimeController timeState={mockTimeState} onOpenSettings={onOpenSettings} />);
+      expect(screen.getByTestId('settings-button')).toBeInTheDocument();
+    });
+
+    it('does not render settings button when onOpenSettings is not provided', () => {
+      render(<TimeController timeState={mockTimeState} />);
+      expect(screen.queryByTestId('settings-button')).not.toBeInTheDocument();
+    });
+
+    it('calls onOpenSettings when settings button is clicked', () => {
+      const onOpenSettings = jest.fn();
+      render(<TimeController timeState={mockTimeState} onOpenSettings={onOpenSettings} />);
+
+      const settingsButton = screen.getByTestId('settings-button');
+      fireEvent.click(settingsButton);
+
+      expect(onOpenSettings).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('Edge Cases', () => {
     it('handles missing current time', () => {
       const invalidState = { ...mockTimeState, current: '' };
