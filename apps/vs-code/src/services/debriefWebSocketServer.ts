@@ -112,10 +112,10 @@ export class DebriefWebSocketServer {
             });
 
             await new Promise<void>((resolve, reject) => {
-                // Bind to 0.0.0.0 to allow access from outside the container (Docker, remote connections)
-                // This is safe because VS Code extensions run in a trusted environment
-                this.httpServer!.listen(this.port, '0.0.0.0', () => {
-                    console.log(`HTTP server listening on port ${this.port} (0.0.0.0)`);
+                // Bind to localhost only for security - Python scripts run on same machine
+                // If Docker/remote access is needed, users can use port forwarding
+                this.httpServer!.listen(this.port, 'localhost', () => {
+                    console.log(`HTTP server listening on port ${this.port} (localhost only)`);
                     resolve();
                 });
                 this.httpServer!.on('error', reject);
