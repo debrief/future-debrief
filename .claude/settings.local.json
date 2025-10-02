@@ -192,7 +192,11 @@
       "Bash(docker logs:*)",
       "Bash(docker exec:*)",
       "Bash(docker stop:*)",
-      "Bash(open:*)"
+      "Bash(open:*)",
+      "Bash(docker rmi:*)",
+      "Bash(docker system prune:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)"
     ]
   }
 }
