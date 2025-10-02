@@ -116,6 +116,7 @@ test.describe('Debrief Sidebar Panel', () => {
     const frames = page.frames();
     console.log(`Found ${frames.length} frames`);
 
+    let outlineFound = false;
     for (const frame of frames) {
       try {
         // Look for outline-specific elements
@@ -129,6 +130,9 @@ test.describe('Debrief Sidebar Panel', () => {
         // Frame not accessible, continue
       }
     }
+
+    // Use the variable to avoid unused variable warning
+    console.log(`Outline found: ${outlineFound}`);
 
     // Note: OutlineViewParent might be in a webview that's hard to access
     // At minimum, verify the Debrief sidebar is open
