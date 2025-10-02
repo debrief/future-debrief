@@ -221,9 +221,24 @@ test.describe('Debrief Sidebar Panel', () => {
   });
 
   test('should enable Tool Execute button after Tool Vault starts', async ({ page }) => {
-    console.log('🔍 Opening Debrief sidebar and checking Tool Execute button...');
+    console.log('🔍 Opening plot file and Debrief sidebar to check Tool Execute button...');
 
-    // Click the Debrief icon in activity bar
+    // First, open large-sample.plot.json to trigger extension activation
+    console.log('📂 Opening large-sample.plot.json...');
+    await page.keyboard.press('Control+P');
+    await page.waitForTimeout(1000);
+    await page.keyboard.type('large-sample.plot.json');
+    await page.waitForTimeout(1000);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(3000);
+
+    // Verify file opened
+    const activeTab = page.locator('.tab.active:has-text("large-sample.plot.json")');
+    await expect(activeTab).toBeVisible({ timeout: 10000 });
+    console.log('✅ Plot file opened');
+
+    // Now click the Debrief icon in activity bar to open the panel
+    console.log('🔍 Opening Debrief activity panel...');
     const debriefIcon = page.locator('.activitybar a[aria-label*="Debrief"]');
     await debriefIcon.click();
     await page.waitForTimeout(2000);
