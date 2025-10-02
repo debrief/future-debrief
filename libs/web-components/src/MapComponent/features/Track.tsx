@@ -59,7 +59,7 @@ export const Track: React.FC<TrackProps> = (props) => {
   const geometry = feature.geometry;
 
   let markerPosition: [number, number] | null = null;
-  const timestamps = (feature.properties as any)?.timestamps;
+  const timestamps = (feature.properties as Record<string, unknown>)?.timestamps;
   if (timeState?.current && timestamps && Array.isArray(timestamps)) {
     const closestIndex = findClosestTimeIndex(timeState.current, timestamps);
     if (closestIndex !== -1) {
