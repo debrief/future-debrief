@@ -1,10 +1,11 @@
 #!/bin/bash
+set -e  # Exit immediately on any error
+
 pnpm test
 
 # Run fast pre-push validation showing detailed errors
 echo "🚀 Running pre-push validation..."
 
-FAILED=0
 ORIGINAL_DIR=$(pwd)
 
 # Find all Makefiles and run verify sequentially to show errors properly
@@ -12,20 +13,14 @@ ORIGINAL_DIR=$(pwd)
 MAKEFILE_DIRS=$(find . -path "*/*/Makefile" -not -path "*/node_modules/*" -exec dirname {} \;)
 
 for dir in $MAKEFILE_DIRS; do
-  cd "$dir" || continue
+  cd "$dir" || exit 1
   pkg_name=$(basename "$(pwd)")
   echo "✅ Checking $pkg_name..."
 
-  if ! make verify; then
-    echo "❌ $pkg_name failed" >&2
-    FAILED=1
-  fi
+  # Fail immediately if make verify fails
+  make verify || { echo "❌ $pkg_name verification failed" >&2; exit 1; }
+
   cd "$ORIGINAL_DIR" || exit 1
 done
-
-if [ "$FAILED" = "1" ]; then
-  echo "❌ Some validations failed!" >&2
-  exit 1
-fi
 
 echo "✅ All validations passed!"

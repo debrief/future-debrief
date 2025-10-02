@@ -31,7 +31,7 @@ help: ## Show this help message
 	@echo "$(GREEN)Available targets:$(RESET)"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(BLUE)%-15s$(RESET) %s\n", $$1, $$2}'
 
-verify: verify-artifacts verify-tests verify-static-analysis ## Fast verification (timestamp-based)
+verify: verify-static-analysis verify-artifacts verify-tests ## Fast verification (timestamp-based)
 	@echo "$(GREEN)✅ All tool-vault-packager verifications passed!$(RESET)"
 
 verify-static-analysis: ## Run static analysis as part of verification (blocking)
