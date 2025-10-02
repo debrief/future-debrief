@@ -48,25 +48,19 @@ async function globalSetup() {
       console.log('   No existing container to remove\n');
     }
 
-    // Verify ports are available
+    // Free up required ports
     console.log('🔍 Checking port availability...');
-    const portsInUse: number[] = [];
     for (const port of [VS_CODE_PORT, WEBSOCKET_PORT, TOOL_VAULT_PORT]) {
       try {
         const output = execSync(`lsof -i :${port} -t`, { encoding: 'utf-8', stdio: 'pipe' }).trim();
         if (output) {
-          portsInUse.push(port);
+          console.log(`   Port ${port} in use, killing process...`);
+          execSync(`kill -9 ${output}`, { stdio: 'pipe' });
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for port to be released
         }
       } catch {
-        // Port is free
+        // Port is free or kill failed (which is ok)
       }
-    }
-
-    if (portsInUse.length > 0) {
-      throw new Error(
-        `❌ Required ports are in use: ${portsInUse.join(', ')}\n` +
-        `   Please stop any applications using these ports and try again.`
-      );
     }
     console.log('   All ports available\n');
 

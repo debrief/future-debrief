@@ -48,25 +48,93 @@ test.describe('Tool Vault Server Integration', () => {
     await handleTrustDialog(page);
 
     // Open a .plot.json file to trigger extension activation
-    // This starts the Tool Vault server
+    // This starts the Tool Vault server and WebSocket bridge
     await page.keyboard.press('Control+P'); // Open Quick Open
     await page.waitForTimeout(1000);
     await page.keyboard.type('large-sample.plot.json');
     await page.keyboard.press('Enter');
 
     // Wait for the custom editor to start loading
-    // This gives Tool Vault time to start up
+    // This gives Tool Vault and WebSocket bridge time to start up
     await page.waitForTimeout(5000);
+  });
+
+  test('should verify Debrief WebSocket bridge is activated', async ({ page }) => {
+    console.log('🔍 Verifying Debrief WebSocket bridge is available...');
+
+    // Wait for extension to fully activate
+    await page.waitForTimeout(3000);
+
+    // Check for error notifications
+    const pageText = await page.textContent('body');
+
+    // Look for fatal errors (not "already in use" which means it's running from a previous test)
+    if (pageText?.includes('Failed to start WebSocket server') ||
+        pageText?.includes('WebSocket bridge startup failed')) {
+      console.error('❌ WebSocket server failed to start - fatal error detected');
+      throw new Error('WebSocket bridge failed to start. Check extension activation logs.');
+    }
+
+    // Check if we got an "already in use" message - this means it's already running, which is OK
+    if (pageText?.includes('already in use') || pageText?.includes('EADDRINUSE')) {
+      console.log('ℹ️  WebSocket server already running from previous test (expected in test suite)');
+    }
+
+    // Look for success notification (may not always be present if already running)
+    const hasSuccessMessage = pageText?.includes('WebSocket bridge started') ||
+                             pageText?.includes('started on port 60123');
+
+    if (hasSuccessMessage) {
+      console.log('✅ Found WebSocket bridge activation notification');
+    } else {
+      console.log('⚠️  WebSocket activation notification not in page text (may be already running)');
+    }
+
+    // Verify by connecting to the WebSocket
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const WebSocket = require('ws');
+
+    console.log('🔌 Attempting to connect to WebSocket bridge...');
+    const ws = new WebSocket('ws://localhost:60123');
+
+    const connectionResult = await new Promise<{ success: boolean, error?: string }>((resolve) => {
+      const timeout = setTimeout(() => {
+        resolve({ success: false, error: 'Connection timeout' });
+        ws.close();
+      }, 5000);
+
+      ws.on('open', () => {
+        clearTimeout(timeout);
+        console.log('✅ WebSocket connection established');
+        ws.close();
+        resolve({ success: true });
+      });
+
+      ws.on('error', (error: Error) => {
+        clearTimeout(timeout);
+        resolve({ success: false, error: error.message });
+      });
+    });
+
+    if (!connectionResult.success) {
+      throw new Error(`WebSocket bridge connection failed: ${connectionResult.error}`);
+    }
+
+    console.log('✅ Debrief WebSocket bridge is activated and accepting connections');
   });
 
   test('should validate Tool Vault health endpoint with structured response', async ({
     request,
   }) => {
-    // Tool Vault starts in background, so retry with exponential backoff
+    // Tool Vault starts in background during container startup
+    // Give it sufficient time to initialize, then retry with longer intervals
+    console.log('⏳ Waiting for Tool Vault to fully initialize...');
+    await new Promise((resolve) => setTimeout(resolve, 10000)); // Initial 10s wait
+
     let response;
     let lastError;
-    const maxRetries = 10;
-    const initialDelay = 1000;
+    const maxRetries = 15;
+    const retryDelay = 3000; // 3 seconds between retries
 
     for (let i = 0; i < maxRetries; i++) {
       try {
@@ -74,15 +142,15 @@ test.describe('Tool Vault Server Integration', () => {
           timeout: 5000,
         });
         if (response.ok()) {
+          console.log(`✅ Tool Vault responded on attempt ${i + 1}`);
           break; // Success!
         }
       } catch (error) {
         lastError = error;
-        const delay = initialDelay * Math.pow(1.5, i);
         console.log(
-          `⏳ Tool Vault not ready (attempt ${i + 1}/${maxRetries}), waiting ${delay}ms...`
+          `⏳ Tool Vault not ready (attempt ${i + 1}/${maxRetries}), waiting ${retryDelay}ms...`
         );
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, retryDelay));
       }
     }
 
@@ -107,33 +175,63 @@ test.describe('Tool Vault Server Integration', () => {
   });
 
   test('should validate WebSocket bridge is accessible on port 60123', async () => {
+    // WebSocket server starts when extension activates
+    // The extension activates when VS Code starts (we already opened it in beforeEach)
+    // Give it time to fully initialize
+    console.log('⏳ Waiting for WebSocket server to start...');
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
     // Use Node.js WebSocket client to test connection
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const WebSocket = require('ws');
 
-    // Attempt connection to WebSocket bridge
-    const ws = new WebSocket('ws://localhost:60123');
+    console.log('🔌 Attempting WebSocket connection on port 60123...');
 
-    // Wait for connection to open or fail
-    const connectionResult = await new Promise<{
-      success: boolean;
-      error?: Error;
-    }>((resolve) => {
-      const timeout = setTimeout(() => {
-        resolve({ success: false, error: new Error('Connection timeout') });
-        ws.close();
-      }, 10000);
+    // Retry connection with exponential backoff
+    let ws;
+    let connectionResult = { success: false, error: new Error('Not attempted') };
+    const maxRetries = 5;
 
-      ws.on('open', () => {
-        clearTimeout(timeout);
-        resolve({ success: true });
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      console.log(`   Attempt ${attempt}/${maxRetries}...`);
+
+      ws = new WebSocket('ws://localhost:60123');
+
+      connectionResult = await new Promise<{
+        success: boolean;
+        error?: Error;
+      }>((resolve) => {
+        const timeout = setTimeout(() => {
+          resolve({
+            success: false,
+            error: new Error(`Connection timeout on attempt ${attempt}`),
+          });
+          ws.close();
+        }, 5000);
+
+        ws.on('open', () => {
+          clearTimeout(timeout);
+          console.log(`   ✅ Connection succeeded on attempt ${attempt}`);
+          resolve({ success: true });
+        });
+
+        ws.on('error', (error: Error) => {
+          clearTimeout(timeout);
+          console.log(`   ❌ Connection failed on attempt ${attempt}: ${error.message}`);
+          resolve({ success: false, error });
+          ws.close();
+        });
       });
 
-      ws.on('error', (error: Error) => {
-        clearTimeout(timeout);
-        resolve({ success: false, error });
-      });
-    });
+      if (connectionResult.success) {
+        break; // Keep ws open for echo test
+      }
+
+      // Wait before retry
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
 
     // Assert connection succeeded
     expect(connectionResult.success).toBeTruthy();
@@ -141,11 +239,14 @@ test.describe('Tool Vault Server Integration', () => {
       throw connectionResult.error;
     }
 
-    // Optionally: Test bidirectional communication with a ping/echo
+    console.log('✅ WebSocket bridge connection verified');
+
+    // Test bidirectional communication with a ping/echo
     // Send a simple command to verify the bridge responds
     const echoTest = await new Promise<{ success: boolean; data?: unknown }>(
       (resolve) => {
         const timeout = setTimeout(() => {
+          console.log('⚠️  Echo test timed out (this is OK if no plot is open)');
           resolve({ success: false });
         }, 5000);
 
@@ -153,6 +254,7 @@ test.describe('Tool Vault Server Integration', () => {
           clearTimeout(timeout);
           try {
             const parsed = JSON.parse(data.toString());
+            console.log('✅ WebSocket echo test response:', parsed);
             resolve({ success: true, data: parsed });
           } catch {
             resolve({ success: false });
@@ -172,9 +274,9 @@ test.describe('Tool Vault Server Integration', () => {
     // We expect either success or a structured error response
     // (the command might fail if no plot is open, but the bridge should respond)
     expect(echoTest.success).toBeTruthy();
-    console.log('WebSocket echo test response:', echoTest.data);
 
     // Clean up
     ws.close();
+    console.log('✅ WebSocket bridge fully verified');
   });
 });
