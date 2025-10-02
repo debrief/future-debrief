@@ -186,6 +186,19 @@
           "default": false,
           "description": "Enable development mode to reduce UI clutter and show only essential views",
           "scope": "resource"
+        },
+        "debrief.timeController.format": {
+          "type": "string",
+          "enum": ["rn-short", "plain", "iso", "rn-long"],
+          "enumDescriptions": [
+            "Royal Navy Short: 151430Z",
+            "Plain English: Jan 15, 2024, 14:30:00 UTC",
+            "ISO 8601: 2024-01-15T14:30:00.000Z",
+            "Royal Navy Long: JAN 151430Z"
+          ],
+          "default": "rn-short",
+          "description": "Time display format for the Time Controller",
+          "scope": "resource"
         }
       }
     }
