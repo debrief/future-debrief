@@ -23,7 +23,7 @@
       "outputs": []
     },
     "test": {
-      "outputs": ["coverage/**"]
+      "outputs": []
     },
     "storybook": {
       "cache": false,
