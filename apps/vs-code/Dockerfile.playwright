@@ -103,9 +103,6 @@ RUN chmod +x /home/coder/tool-vault/toolvault.pyz
 
 ENV DEBRIEF_TOOL_VAULT_PATH=/home/coder/tool-vault/toolvault.pyz
 
-# Install Python extension (one-time setup)
-RUN code-server --install-extension ms-python.python
-
 # Copy workspace files
 WORKDIR /home/coder/project
 RUN cp -r apps/vs-code/workspace/* /home/coder/workspace/
@@ -133,9 +130,10 @@ if [ -f /home/coder/vsix/vs-code-0.0.1.vsix ]; then\n\
   echo "✅ Debrief extension installed"\n\
 fi\n\
 \n\
-# Start Tool Vault in background\n\
-echo "🚀 Starting Tool Vault server..."\n\
-nohup python /home/coder/tool-vault/toolvault.pyz serve > /tmp/toolvault.log 2>&1 &\n\
+# Start Tool Vault in background on port 60124\n\
+echo "🚀 Starting Tool Vault server on port 60124..."\n\
+nohup python /home/coder/tool-vault/toolvault.pyz serve --port 60124 --host 0.0.0.0 > /tmp/toolvault.log 2>&1 &\n\
+sleep 2\n\
 \n\
 # Start code-server with auth disabled for testing\n\
 echo "🚀 Starting code-server..."\n\
