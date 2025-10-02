@@ -2089,3 +2089,22 @@ def discover_tool_nodes(tools_dir: Path) -> List[ToolIndexNode]:
 
 *Last Updated: 2025-10-01*  
 *Total Sections Compressed: 28 major implementations*
+
+### Track Properties Validation Error - Issue #179 ✅
+**Problem**: Pydantic validation rejecting `track.properties.times` as extra input
+- **Error**: `Extra inputs are not permitted [type=extra_forbidden]` when using `select-feature-start-time` tool
+- **Root Cause**: Test data files used `"times"` but TrackProperties Pydantic model expects `"timestamps"`
+- **Investigation**: Schema has always used `timestamps` since commit abc1022, but test data was not updated
+- **Decision**: Fix test data to match schema (fail-fast approach) rather than add backwards-compatible alias
+- **Solution**: Updated all instances of `"times":` → `"timestamps":` in workspace plot.json files
+- **Files Modified**: 
+  - `apps/vs-code/workspace/large-sample.plot.json`
+  - `apps/vs-code/workspace/large-sample.plot copy.json`
+- **Verification**: Confirmed no other plot.json files had the same issue
+- **Commit**: a7b6aa6 - Fix track test data property name to match schema
+- **Status**: Completed - Data consistency restored, ready for tool validation testing
+
+**Key Insight**: In pre-production, we control all data. Strict schema validation with `extra="forbid"` helps catch inconsistencies early. Fixing data is preferred over adding alias support.
+
+---
+
