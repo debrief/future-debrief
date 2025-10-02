@@ -194,7 +194,8 @@
       "Bash(docker stop:*)",
       "Bash(gtimeout:*)",
       "Bash(lsof:*)",
-      "Bash(xargs kill:*)"
+      "Bash(xargs kill:*)",
+      "Bash(gh run view:*)"
     ]
   }
 }

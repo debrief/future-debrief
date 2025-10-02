@@ -5,6 +5,8 @@ import { OutlineView } from '../OutlineView/OutlineView';
 import { ToolFilterService } from '../services/ToolFilterService';
 import type { GlobalToolIndexModel } from '@debrief/shared-types/src/types/tools/global_tool_index';
 import type { DebriefFeature, DebriefFeatureCollection } from '@debrief/shared-types';
+import { ToolExecutionProvider } from '../contexts/ToolExecutionContext';
+import type { Tool } from '@debrief/shared-types/src/types/tools/tool_list_response';
 
 const meta: Meta<typeof ToolExecuteButton> = {
   title: 'ToolExecuteButton',
@@ -255,73 +257,82 @@ export const InteractionDemo = () => {
     );
   };
 
+  const handleCommandExecute = React.useCallback((tool: Tool, features: DebriefFeature[]) => {
+    console.warn('Command executed:', tool, 'on features:', features);
+  }, []);
+
   return (
-    <div style={{ padding: '20px', display: 'flex', gap: '20px' }}>
-      {/* Left side - Feature selection */}
-      <div style={{ flex: '1', border: '1px solid #ccc', borderRadius: '4px', padding: '15px' }}>
-        <h3>Sample Features</h3>
-        <p style={{ fontSize: '14px', color: '#666', marginBottom: '15px' }}>
-          Select features to test filtering behavior:
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {mockFeatures.map(feature => (
-            <label key={feature.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
-              <input
-                type="checkbox"
-                checked={selectedFeatureIds.includes(String(feature.id))}
-                onChange={() => handleFeatureToggle(String(feature.id))}
-              />
-              <span style={{ fontWeight: 'bold' }}>{feature.properties?.name}</span>
-              <span style={{ color: '#666', fontSize: '12px' }}>({feature.properties?.dataType})</span>
-            </label>
-          ))}
-        </div>
-
-        <div style={{
-          marginTop: '15px',
-          padding: '10px',
-          background: '#f8f8f8',
-          borderRadius: '4px',
-          fontSize: '12px'
-        }}>
-          <strong>Selected:</strong> {selectedFeatures.length} feature(s)
-          {selectedFeatures.length > 0 && (
-            <ul style={{ margin: '5px 0 0 0', paddingLeft: '15px' }}>
-              {selectedFeatures.map(feature => (
-                <li key={feature.id}>{feature.properties?.name}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </div>
-
-      {/* Right side - ToolExecuteButton controls */}
-      <div style={{ flex: '1', border: '1px solid #ccc', borderRadius: '4px', padding: '15px' }}>
-        <h3>Interactive ToolExecuteButton Demo</h3>
-        <p style={{ marginBottom: '20px', fontSize: '14px' }}>
-          This demonstrates the ToolExecuteButton with Phase 2 smart filtering capabilities and all toggles.
-        </p>
-
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px', flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
-              <input
-                type="checkbox"
-                checked={enableSmartFiltering}
-                onChange={(e) => setEnableSmartFiltering(e.target.checked)}
-              />
-              Enable Smart Filtering
-            </label>
+    <ToolExecutionProvider
+      toolList={toolIndexData}
+      selectedFeatures={selectedFeatures}
+      onCommandExecute={handleCommandExecute}
+    >
+      <div style={{ padding: '20px', display: 'flex', gap: '20px' }}>
+        {/* Left side - Feature selection */}
+        <div style={{ flex: '1', border: '1px solid #ccc', borderRadius: '4px', padding: '15px' }}>
+          <h3>Sample Features</h3>
+          <p style={{ fontSize: '14px', color: '#666', marginBottom: '15px' }}>
+            Select features to test filtering behavior:
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {mockFeatures.map(feature => (
+              <label key={feature.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }}>
+                <input
+                  type="checkbox"
+                  checked={selectedFeatureIds.includes(String(feature.id))}
+                  onChange={() => handleFeatureToggle(String(feature.id))}
+                />
+                <span style={{ fontWeight: 'bold' }}>{feature.properties?.name}</span>
+                <span style={{ color: '#666', fontSize: '12px' }}>({feature.properties?.dataType})</span>
+              </label>
+            ))}
           </div>
 
-          <ToolExecuteButton
-            toolList={toolIndexData}
-            selectedFeatures={selectedFeatures}
-            onCommandExecute={(command) => console.warn('Command executed:', command)}
-            enableSmartFiltering={enableSmartFiltering}
-            buttonText="Execute Tools"
-          />
+          <div style={{
+            marginTop: '15px',
+            padding: '10px',
+            background: '#f8f8f8',
+            borderRadius: '4px',
+            fontSize: '12px'
+          }}>
+            <strong>Selected:</strong> {selectedFeatures.length} feature(s)
+            {selectedFeatures.length > 0 && (
+              <ul style={{ margin: '5px 0 0 0', paddingLeft: '15px' }}>
+                {selectedFeatures.map(feature => (
+                  <li key={feature.id}>{feature.properties?.name}</li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
+
+        {/* Right side - ToolExecuteButton controls */}
+        <div style={{ flex: '1', border: '1px solid #ccc', borderRadius: '4px', padding: '15px' }}>
+          <h3>Interactive ToolExecuteButton Demo</h3>
+          <p style={{ marginBottom: '20px', fontSize: '14px' }}>
+            This demonstrates the ToolExecuteButton with Phase 2 smart filtering capabilities and all toggles.
+          </p>
+
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '15px', flexWrap: 'wrap' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '14px' }}>
+                <input
+                  type="checkbox"
+                  checked={enableSmartFiltering}
+                  onChange={(e) => setEnableSmartFiltering(e.target.checked)}
+                />
+                Enable Smart Filtering
+              </label>
+            </div>
+
+            <ToolExecuteButton
+              toolList={toolIndexData}
+              selectedFeatures={selectedFeatures}
+              onCommandExecute={handleCommandExecute}
+              enableSmartFiltering={enableSmartFiltering}
+              buttonText="Execute Tools"
+            />
+          </div>
 
         <div style={{
           background: '#f0f0f0',
@@ -339,7 +350,8 @@ export const InteractionDemo = () => {
           </ul>
         </div>
       </div>
-    </div>
+      </div>
+    </ToolExecutionProvider>
   );
 };
 
@@ -415,8 +427,17 @@ export const InteractiveWithOutlineView = () => {
     );
   }
 
+  const handleCommandExecute = (tool: Tool, features: DebriefFeature[]) => {
+    console.warn('Command executed:', tool, 'on features:', features);
+  };
+
   return (
-    <div style={{ padding: '20px', display: 'flex', gap: '20px', height: '600px' }}>
+    <ToolExecutionProvider
+      toolList={toolData}
+      selectedFeatures={selectedFeatures}
+      onCommandExecute={handleCommandExecute}
+    >
+      <div style={{ padding: '20px', display: 'flex', gap: '20px', height: '600px' }}>
       {/* Left side - OutlineView */}
       <div style={{ flex: '1', border: '1px solid #ccc', borderRadius: '4px', padding: '10px' }}>
         <h3>Feature Selection (OutlineView)</h3>
@@ -482,7 +503,7 @@ export const InteractiveWithOutlineView = () => {
           <ToolExecuteButton
             toolList={toolData}
             selectedFeatures={selectedFeatures}
-            onCommandExecute={(command) => console.warn('Command executed:', command)}
+            onCommandExecute={handleCommandExecute}
             enableSmartFiltering={true}
             buttonText={`Execute Tools (${totalToolCount} available)`}
           />
@@ -507,6 +528,7 @@ export const InteractiveWithOutlineView = () => {
           </ul>
         </div>
       </div>
-    </div>
+      </div>
+    </ToolExecutionProvider>
   );
 };
