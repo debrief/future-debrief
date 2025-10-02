@@ -16,21 +16,65 @@ import { test, expect, Page } from '@playwright/test';
  */
 async function handleTrustDialog(page: Page) {
   try {
-    // Wait for the trust button to appear (it may take a moment)
-    const trustButton = page.locator('button:has-text("Yes, I trust the authors")');
-    await trustButton.waitFor({ state: 'visible', timeout: 10000 });
+    // Try multiple button text variations
+    const trustVariations = [
+      'Yes, I trust the authors',
+      'Trust',
+      'Yes',
+      'Continue',
+    ];
 
-    // Click the trust button
-    await trustButton.click();
+    let handled = false;
+    for (const buttonText of trustVariations) {
+      try {
+        const trustButton = page.locator(`button:has-text("${buttonText}")`);
+        await trustButton.waitFor({ state: 'visible', timeout: 3000 });
+        await trustButton.click({ force: true }); // Force click to bypass modal overlay
+        handled = true;
+        console.log(`✅ Workspace trust dialog handled (clicked "${buttonText}")`);
+        break;
+      } catch {
+        // Try next variation
+      }
+    }
 
-    // Wait for dialog to fully dismiss and workspace to finish loading
-    await page.waitForTimeout(3000);
+    if (!handled) {
+      // Try pressing Escape to dismiss any modal
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(500);
+    }
 
-    console.log('✅ Workspace trust dialog handled');
+    // Wait for dialog to fully dismiss
+    await page.waitForTimeout(2000);
   } catch (error) {
-    // Dialog didn't appear or already dismissed - that's fine
-    console.log('ℹ️  No workspace trust dialog found (may have been auto-dismissed)');
+    console.log('ℹ️  No workspace trust dialog found');
   }
+}
+
+/**
+ * Helper function to open a plot file from Explorer
+ */
+async function openPlotFile(page: Page, filename: string) {
+  // Ensure Explorer is visible
+  const explorerIcon = page.locator(
+    '.activitybar a[aria-label="Explorer (Ctrl+Shift+E)"]'
+  );
+  await explorerIcon.click();
+  await page.waitForTimeout(1000);
+
+  // Find and double-click the file
+  const plotFile = page.locator(
+    `.monaco-list-row[aria-label*="${filename}"]`
+  );
+  await expect(plotFile).toBeVisible({ timeout: 10000 });
+  await plotFile.dblclick();
+
+  // Wait for editor to load
+  await page.waitForTimeout(3000);
+
+  // Verify file opened
+  const activeTab = page.locator('.tab.active');
+  await expect(activeTab).toContainText(filename, { timeout: 10000 });
 }
 
 test.describe('Plot JSON Editor Rendering', () => {
@@ -48,21 +92,8 @@ test.describe('Plot JSON Editor Rendering', () => {
   });
 
   test('should open large-sample.plot.json successfully', async ({ page }) => {
-    // Use Quick Open to find and open the plot file
-    await page.keyboard.press('Control+P');
-    await page.waitForTimeout(1000);
-    await page.keyboard.type('large-sample.plot.json');
-    await page.keyboard.press('Enter');
-
-    // Wait for custom editor to load
-    // The plot editor uses a webview which takes time to initialize
-    await page.waitForTimeout(3000);
-
-    // Verify the file is open by checking the tab title
-    const activeTab = page.locator('.tab.active');
-    await expect(activeTab).toContainText('large-sample.plot.json', {
-      timeout: 10000,
-    });
+    // Open the plot file using Explorer
+    await openPlotFile(page, 'large-sample.plot.json');
 
     // Verify webview exists (Plot JSON editor uses webviews)
     const webviewFrame = page.frameLocator('iframe.webview');
@@ -72,14 +103,11 @@ test.describe('Plot JSON Editor Rendering', () => {
   });
 
   test('should render Leaflet map component', async ({ page }) => {
-    // Open the plot file
-    await page.keyboard.press('Control+P');
-    await page.waitForTimeout(1000);
-    await page.keyboard.type('large-sample.plot.json');
-    await page.keyboard.press('Enter');
+    // Open the plot file using Explorer
+    await openPlotFile(page, 'large-sample.plot.json');
 
     // Wait for webview to initialize
-    await page.waitForTimeout(5000);
+    await page.waitForTimeout(2000);
 
     // Access webview content
     const webviewFrame = page.frameLocator('iframe.webview');
@@ -105,18 +133,18 @@ test.describe('Plot JSON Editor Rendering', () => {
   });
 
   test('should display core UI elements', async ({ page }) => {
-    // Open the plot file
-    await page.keyboard.press('Control+P');
-    await page.waitForTimeout(1000);
-    await page.keyboard.type('large-sample.plot.json');
-    await page.keyboard.press('Enter');
+    // Open the plot file using Explorer
+    await openPlotFile(page, 'large-sample.plot.json');
 
     // Wait for extension to fully activate
-    await page.waitForTimeout(8000);
+    await page.waitForTimeout(5000);
 
     // Check for Debrief sidebar icon in activity bar
     // The Debrief extension adds a custom activity bar icon
-    const debriefIcon = page.locator('[aria-label*="Debrief"]');
+    // Use specific selector for activity bar to avoid strict mode violation
+    const debriefIcon = page.locator(
+      '.activitybar a[aria-label*="Debrief"]'
+    );
     await expect(debriefIcon).toBeVisible({ timeout: 10000 });
 
     // Click to open Debrief sidebar

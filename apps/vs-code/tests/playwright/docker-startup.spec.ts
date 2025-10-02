@@ -13,20 +13,38 @@ import { test, expect, Page } from '@playwright/test';
  */
 async function handleTrustDialog(page: Page) {
   try {
-    // Wait for the trust button to appear (it may take a moment)
-    const trustButton = page.locator('button:has-text("Yes, I trust the authors")');
-    await trustButton.waitFor({ state: 'visible', timeout: 10000 });
+    // Try multiple button text variations
+    const trustVariations = [
+      'Yes, I trust the authors',
+      'Trust',
+      'Yes',
+      'Continue',
+    ];
 
-    // Click the trust button
-    await trustButton.click();
+    let handled = false;
+    for (const buttonText of trustVariations) {
+      try {
+        const trustButton = page.locator(`button:has-text("${buttonText}")`);
+        await trustButton.waitFor({ state: 'visible', timeout: 3000 });
+        await trustButton.click({ force: true }); // Force click to bypass modal overlay
+        handled = true;
+        console.log(`✅ Workspace trust dialog handled (clicked "${buttonText}")`);
+        break;
+      } catch {
+        // Try next variation
+      }
+    }
 
-    // Wait for dialog to fully dismiss and workspace to finish loading
-    await page.waitForTimeout(3000);
+    if (!handled) {
+      // Try pressing Escape to dismiss any modal
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(500);
+    }
 
-    console.log('✅ Workspace trust dialog handled');
+    // Wait for dialog to fully dismiss
+    await page.waitForTimeout(2000);
   } catch (error) {
-    // Dialog didn't appear or already dismissed - that's fine
-    console.log('ℹ️  No workspace trust dialog found (may have been auto-dismissed)');
+    console.log('ℹ️  No workspace trust dialog found');
   }
 }
 
@@ -69,9 +87,12 @@ test.describe('Docker Container Startup', () => {
     // Handle workspace trust dialog if it appears
     await handleTrustDialog(page);
 
-    // Open Extensions view using keyboard shortcut (Cmd+Shift+X / Ctrl+Shift+X)
-    // This is more reliable than clicking the extensions icon
-    await page.keyboard.press('Control+Shift+X');
+    // Open Extensions view by clicking the activity bar icon
+    // Use aria-label to find the Extensions icon in the activity bar
+    const extensionsIcon = page.locator(
+      '.activitybar a[aria-label="Extensions (Ctrl+Shift+X)"]'
+    );
+    await extensionsIcon.click();
 
     // Wait for extensions view to load
     await page.waitForSelector('[id="workbench.view.extensions"]', {

@@ -1,0 +1,149 @@
+# Playwright Testing Dockerfile
+# Optimized for fast iteration - VSIX installed at runtime via volume mount
+# This allows testing new extension code without rebuilding the Docker image
+
+ARG GITHUB_SHA=playwright-test
+ARG PR_NUMBER=test
+ARG STATUS_WEBHOOK=""
+
+# Build shared-types wheel (same as production)
+FROM python:3.11-slim AS shared-types-builder
+ARG STATUS_WEBHOOK
+ARG PR_NUMBER
+
+ENV STATUS_WEBHOOK=${STATUS_WEBHOOK}
+ENV PR_NUMBER=${PR_NUMBER}
+
+WORKDIR /tmp/repo
+
+RUN apt-get update && apt-get install -y make curl && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+COPY libs/shared-types/ ./libs/shared-types/
+
+WORKDIR /tmp/repo/libs/shared-types
+
+RUN pip install --no-cache-dir -r requirements.txt && \
+    python -m build --wheel --outdir /tmp/wheels
+
+# Build Tool Vault package (same as production)
+FROM node:20-slim AS tool-vault-builder
+ARG STATUS_WEBHOOK
+ARG PR_NUMBER
+
+ENV STATUS_WEBHOOK=${STATUS_WEBHOOK}
+ENV PR_NUMBER=${PR_NUMBER}
+
+WORKDIR /tmp/repo
+
+RUN apt-get update && apt-get install -y python3 python3-pip python3-venv curl && \
+    ln -s /usr/bin/python3 /usr/bin/python && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+COPY --from=shared-types-builder /tmp/wheels/ /tmp/wheels/
+RUN pip3 install --break-system-packages /tmp/wheels/*.whl
+
+COPY libs/tool-vault-packager/ ./libs/tool-vault-packager/
+
+WORKDIR /tmp/repo/libs/tool-vault-packager
+
+RUN npm install && \
+    cd spa && npm install && cd .. && \
+    npm run build
+
+# Main code-server stage
+FROM codercom/code-server:latest
+ARG GITHUB_SHA
+ARG PR_NUMBER
+ARG STATUS_WEBHOOK
+
+LABEL org.opencontainers.image.revision="${GITHUB_SHA}" \
+      org.opencontainers.image.version="playwright-test"
+
+ENV GITHUB_SHA=${GITHUB_SHA} \
+    PR_NUMBER=${PR_NUMBER} \
+    STATUS_WEBHOOK=${STATUS_WEBHOOK}
+
+WORKDIR /home/coder
+
+# Install Python and dependencies
+USER root
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    curl \
+    && ln -s /usr/bin/python3 /usr/bin/python \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+USER coder
+
+# Create workspace and project directories
+RUN mkdir -p /home/coder/workspace /home/coder/project
+
+# Copy project files (excluding VSIX - will be volume mounted)
+COPY --chown=coder:coder . /home/coder/project/
+
+# Copy shared-types wheel
+COPY --chown=coder:coder --from=shared-types-builder /tmp/wheels/ /home/coder/project/python/
+
+# Install Python dependencies
+USER root
+RUN pip3 install --break-system-packages \
+    /home/coder/project/python/*.whl \
+    'fastapi>=0.104.0' \
+    'uvicorn>=0.24.0'
+USER coder
+
+# Copy Tool Vault package
+RUN mkdir -p /home/coder/tool-vault
+COPY --chown=coder:coder --from=tool-vault-builder /tmp/repo/libs/tool-vault-packager/dist/toolvault.pyz /home/coder/tool-vault/toolvault.pyz
+RUN chmod +x /home/coder/tool-vault/toolvault.pyz
+
+ENV DEBRIEF_TOOL_VAULT_PATH=/home/coder/tool-vault/toolvault.pyz
+
+# Install Python extension (one-time setup)
+RUN code-server --install-extension ms-python.python
+
+# Copy workspace files
+WORKDIR /home/coder/project
+RUN cp -r apps/vs-code/workspace/* /home/coder/workspace/
+
+WORKDIR /home/coder/workspace
+
+# Create VS Code settings to disable workspace trust
+RUN mkdir -p /home/coder/.local/share/code-server/User && \
+    echo '{\n\
+  "security.workspace.trust.enabled": false,\n\
+  "security.workspace.trust.startupPrompt": "never",\n\
+  "security.workspace.trust.banner": "never",\n\
+  "security.workspace.trust.emptyWindow": false\n\
+}' > /home/coder/.local/share/code-server/User/settings.json
+
+# Create startup script that installs VSIX from volume mount
+RUN echo '#!/bin/bash\n\
+set -e\n\
+\n\
+# Install VSIX from volume mount if present\n\
+if [ -f /home/coder/vsix/vs-code-0.0.1.vsix ]; then\n\
+  echo "📦 Installing Debrief extension from volume mount..."\n\
+  code-server --uninstall-extension debrief.vs-code 2>/dev/null || true\n\
+  code-server --install-extension /home/coder/vsix/vs-code-0.0.1.vsix\n\
+  echo "✅ Debrief extension installed"\n\
+fi\n\
+\n\
+# Start Tool Vault in background\n\
+echo "🚀 Starting Tool Vault server..."\n\
+nohup python /home/coder/tool-vault/toolvault.pyz serve > /tmp/toolvault.log 2>&1 &\n\
+\n\
+# Start code-server with auth disabled for testing\n\
+echo "🚀 Starting code-server..."\n\
+exec code-server --auth none --bind-addr 0.0.0.0:8080 /home/coder/workspace\n\
+' > /home/coder/startup.sh && chmod +x /home/coder/startup.sh
+
+# Expose ports
+EXPOSE 8080 60123 60124
+
+# Use startup script as entrypoint
+ENTRYPOINT ["/home/coder/startup.sh"]

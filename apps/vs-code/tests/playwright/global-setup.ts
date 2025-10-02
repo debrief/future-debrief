@@ -39,11 +39,36 @@ async function globalSetup() {
     console.log('🧹 Cleaning up any existing test containers...');
     try {
       execSync(`docker rm -f ${CONTAINER_NAME}`, { stdio: 'pipe' });
-      console.log('   Removed existing container\n');
+      console.log('   Removed existing container');
+      // Wait for ports to be released
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      console.log('   Ports released\n');
     } catch {
       // No existing container, that's fine
       console.log('   No existing container to remove\n');
     }
+
+    // Verify ports are available
+    console.log('🔍 Checking port availability...');
+    const portsInUse: number[] = [];
+    for (const port of [VS_CODE_PORT, WEBSOCKET_PORT, TOOL_VAULT_PORT]) {
+      try {
+        const output = execSync(`lsof -i :${port} -t`, { encoding: 'utf-8', stdio: 'pipe' }).trim();
+        if (output) {
+          portsInUse.push(port);
+        }
+      } catch {
+        // Port is free
+      }
+    }
+
+    if (portsInUse.length > 0) {
+      throw new Error(
+        `❌ Required ports are in use: ${portsInUse.join(', ')}\n` +
+        `   Please stop any applications using these ports and try again.`
+      );
+    }
+    console.log('   All ports available\n');
 
     // Find repository root using git (works with worktrees)
     let repoRoot: string;
@@ -61,7 +86,7 @@ async function globalSetup() {
     // Build VSIX with current code
     console.log('📦 Building VSIX with current extension code...');
     const vsCodeDir = path.join(repoRoot, 'apps/vs-code');
-    const vsixPath = path.join(repoRoot, 'vs-code-0.0.1.vsix');
+    const vsixPath = path.join(vsCodeDir, 'vs-code-0.0.1.vsix');
 
     try {
       execSync('pnpm build', {
@@ -77,48 +102,74 @@ async function globalSetup() {
       );
     }
 
-    // Copy VSIX to repository root (required by Dockerfile)
+    // Check if Docker image exists, build only if missing
+    console.log('🔍 Checking if Docker image exists...');
+    let imageExists = false;
     try {
-      const vsixSource = path.join(vsCodeDir, 'vs-code-0.0.1.vsix');
-      execSync(`cp "${vsixSource}" "${vsixPath}"`, { stdio: 'pipe' });
+      execSync(`docker image inspect ${CONTAINER_NAME}`, { stdio: 'pipe' });
+      imageExists = true;
+      console.log('✅ Docker image already exists, skipping build\n');
     } catch {
-      throw new Error('❌ Failed to copy VSIX to repository root');
+      console.log('📦 Image not found, building...\n');
     }
 
-    // Build Docker image from repository root
-    console.log('🔨 Building Docker image...');
-    console.log('   (Docker will use layer caching for unchanged dependencies)\n');
+    if (!imageExists) {
+      // Build Docker image from repository root (one-time build)
+      console.log('🔨 Building Docker image (this only happens once)...');
+      console.log('   Future test runs will reuse this image\n');
 
-    const dockerfilePath = path.join(repoRoot, 'apps/vs-code/Dockerfile');
+      const dockerfilePath = path.join(
+        repoRoot,
+        'apps/vs-code/Dockerfile.playwright'
+      );
 
-    try {
-      execSync(
-        `docker build -t ${CONTAINER_NAME} ` +
-          `--build-arg GITHUB_SHA=playwright-test ` +
-          `--build-arg PR_NUMBER=test ` +
-          `-f ${dockerfilePath} ${repoRoot}`,
-        {
-          stdio: 'inherit',
-          cwd: repoRoot,
-        }
-      );
-      console.log('✅ Docker image built successfully\n');
-    } catch {
-      throw new Error(
-        `❌ Failed to build Docker image. Check build logs above for details.`
-      );
+      try {
+        execSync(
+          `docker build -t ${CONTAINER_NAME} ` +
+            `--build-arg GITHUB_SHA=playwright-test ` +
+            `--build-arg PR_NUMBER=test ` +
+            `-f "${dockerfilePath}" "${repoRoot}"`,
+          {
+            stdio: 'inherit',
+            cwd: repoRoot,
+          }
+        );
+        console.log('✅ Docker image built successfully\n');
+        console.log(
+          `💡 Tip: To rebuild the image, run: docker rmi ${CONTAINER_NAME}\n`
+        );
+      } catch {
+        throw new Error(
+          `❌ Failed to build Docker image. Check build logs above for details.`
+        );
+      }
     }
 
-    // Start Docker container
-    console.log('🚢 Starting Docker container...');
+    // Start Docker container with VSIX volume mount
+    console.log('🚢 Starting Docker container with VSIX volume mount...');
 
     let containerId: string;
+
     try {
+      // Create a temporary directory for mounting VSIX
+      const vsixMountDir = path.join(vsCodeDir, '.playwright-vsix');
+      if (!fs.existsSync(vsixMountDir)) {
+        fs.mkdirSync(vsixMountDir, { recursive: true });
+      }
+
+      // Copy VSIX to mount directory
+      execSync(`cp "${vsixPath}" "${vsixMountDir}/vs-code-0.0.1.vsix"`, {
+        stdio: 'pipe',
+      });
+
+      // Start container with volume mount
+      // The Dockerfile.playwright's startup script will install the VSIX
       containerId = execSync(
         `docker run -d --name ${CONTAINER_NAME} ` +
           `-p ${VS_CODE_PORT}:8080 ` +
           `-p ${WEBSOCKET_PORT}:60123 ` +
           `-p ${TOOL_VAULT_PORT}:60124 ` +
+          `-v "${vsixMountDir}:/home/coder/vsix:ro" ` +
           `${CONTAINER_NAME}`,
         { encoding: 'utf-8' }
       ).trim();
@@ -172,6 +223,36 @@ async function globalSetup() {
       throw new Error(
         `VS Code interface failed to start within ${READINESS_TIMEOUT_MS / 1000}s`
       );
+    }
+
+    // Wait additional time for extension to activate and WebSocket server to start
+    console.log('⏳ Waiting for Debrief extension to activate...');
+    await new Promise((resolve) => setTimeout(resolve, 10000)); // 10 seconds for extension activation
+
+    // Verify WebSocket server is running by checking container logs
+    console.log('🔍 Verifying WebSocket server started...');
+    try {
+      const logs = execSync(`docker logs ${CONTAINER_NAME} 2>&1`, {
+        encoding: 'utf-8',
+      });
+
+      if (logs.includes('WebSocket server port 60123 is already in use')) {
+        throw new Error(
+          '❌ WebSocket server failed to start - port conflict detected.\n' +
+          '   This should not happen after cleanup. Check container logs.'
+        );
+      }
+
+      if (logs.includes('WebSocket server listening on port 60123')) {
+        console.log('✅ WebSocket server is running\n');
+      } else {
+        console.warn('⚠️  Could not confirm WebSocket server status from logs\n');
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('port conflict')) {
+        throw error;
+      }
+      console.warn('⚠️  Could not verify WebSocket server status\n');
     }
 
     console.log('✅ Docker setup complete. Tests can now run.\n');
