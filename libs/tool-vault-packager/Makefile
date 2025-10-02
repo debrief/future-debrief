@@ -12,7 +12,9 @@ PYTHON_FILES := $(shell find . -name "*.py" \
   -not -path "./shared-types/*" \
   -not -path "./spa/node_modules/*" \
   -not -path "./node_modules/*" \
-  -not -path "./tmp_package_contents/*")
+  -not -path "./tmp_package_contents/*" \
+  -not -path "./tools/*" \
+  -not -path "./test/*")
 SPA_FILES := $(shell find spa/src -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx")
 NEWEST_PYTHON := $(shell ls -t $(PYTHON_FILES) | head -1)
 NEWEST_SPA := $(shell ls -t $(SPA_FILES) | head -1)
@@ -29,7 +31,7 @@ help: ## Show this help message
 	@echo "$(GREEN)Available targets:$(RESET)"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(BLUE)%-15s$(RESET) %s\n", $$1, $$2}'
 
-verify: verify-artifacts verify-tests verify-static-analysis ## Fast verification (timestamp-based)
+verify: verify-static-analysis verify-artifacts verify-tests ## Fast verification (timestamp-based)
 	@echo "$(GREEN)✅ All tool-vault-packager verifications passed!$(RESET)"
 
 verify-static-analysis: ## Run static analysis as part of verification (blocking)
@@ -47,9 +49,9 @@ install-dev-deps: ## Install development dependencies including static analysis 
 	@echo "$(BLUE)📦 Installing development dependencies...$(RESET)"
 	@pip install -r requirements-dev.txt && echo "$(GREEN)✅ Development dependencies installed$(RESET)" || (echo "$(RED)❌ Failed to install development dependencies$(RESET)" && exit 1)
 
-lint: ## Run ruff linting (non-blocking)
+lint: ## Run ruff linting (blocking)
 	@echo "$(BLUE)🔍 Running ruff linting...$(RESET)"
-	@ruff check . && echo "$(GREEN)✅ Linting passed$(RESET)" || (echo "$(RED)❌ Linting issues found (non-blocking)$(RESET)" && true)
+	@ruff check . && echo "$(GREEN)✅ Linting passed$(RESET)" || (echo "$(RED)❌ Linting issues found$(RESET)" >&2 && exit 1)
 
 lint-fix: ## Run ruff linting with auto-fix and formatting
 	@echo "$(BLUE)🔧 Running ruff with auto-fix and formatting...$(RESET)"

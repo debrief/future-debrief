@@ -22,16 +22,52 @@ npm install @debrief/web-components
 
 ### TimeController
 
-A component for controlling time-based data playback and navigation.
+Temporal navigation component for maritime datasets with interactive slider, adaptive tick marks, and multiple time format support.
+
+**Features:**
+- 3-row layout (current time / slider / start-end times)
+- Adaptive tick marks based on dataset time span
+- Multiple time formats (Plain English, Unix, Royal Navy short/long)
+- Keyboard navigation (Arrow keys, Home/End, PageUp/Down)
+- Mouse wheel scrubbing support
+- VS Code theme integration (light/dark)
+- Optimized for large datasets (60fps smooth scrolling)
 
 **Props:**
-- `currentTime?: Date` - The current time being displayed
-- `startTime?: Date` - The start time of the time range
-- `endTime?: Date` - The end time of the time range  
-- `isPlaying?: boolean` - Whether playback is currently active
-- `onTimeChange?: (time: Date) => void` - Callback when time changes
-- `onPlayPause?: () => void` - Callback when play/pause is clicked
+- `timeState: TimeState` - Current time and range boundaries (required)
+- `timeFormat?: 'plain' | 'iso' | 'rn-short' | 'rn-long'` - Time display format (default: 'rn-short')
+- `onTimeChange?: (time: string) => void` - Callback when time changes (ISO 8601 string)
+- `onOpenSettings?: () => void` - Callback when settings button is clicked (optional)
 - `className?: string` - Additional CSS classes
+
+**TimeState Interface:**
+```typescript
+interface TimeState {
+  current: string;  // ISO 8601 datetime string
+  start: string;    // ISO 8601 datetime string
+  end: string;      // ISO 8601 datetime string
+}
+```
+
+**Usage Example:**
+```typescript
+import { TimeController } from '@debrief/web-components';
+import { TimeState } from '@debrief/shared-types';
+
+const [timeState, setTimeState] = useState<TimeState>({
+  current: '2024-01-15T12:00:00Z',
+  start: '2024-01-15T08:00:00Z',
+  end: '2024-01-15T16:00:00Z',
+});
+
+<TimeController
+  timeState={timeState}
+  timeFormat="rn-short"  // Optional: defaults to 'rn-short'
+  onTimeChange={(time) => setTimeState(prev => ({ ...prev, current: time }))}
+/>
+```
+
+**Documentation:** See [docs/time-controller-usage.md](./docs/time-controller-usage.md) for detailed usage guide.
 
 ### PropertiesView
 

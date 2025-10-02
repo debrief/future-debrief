@@ -117,12 +117,24 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
       vscode.Uri.joinPath(extensionUri, 'media', 'web-components.css')
     );
 
-    let toolList;
+    // Try to fetch tool list, but don't block outline rendering if unavailable
+    let toolList: Record<string, unknown> | null = null;
     try {
-      toolList = await this._globalController.getToolIndex();
+      const fetchedToolList = await this._globalController.getToolIndex();
+      if (!fetchedToolList || typeof fetchedToolList !== 'object') {
+        console.warn('[DebriefOutlineProvider] Invalid tool index returned, tools will be unavailable');
+        toolList = null;
+      } else if (!('root' in fetchedToolList) || !Array.isArray((fetchedToolList as Record<string, unknown>).root)) {
+        console.warn('[DebriefOutlineProvider] Tool index missing root array, tools will be unavailable');
+        toolList = null;
+      } else {
+        toolList = fetchedToolList as Record<string, unknown>;
+      }
     } catch (error) {
-      console.warn('[DebriefOutlineProvider] Failed to get tool index:', error);
-      toolList = []; // Pass empty tool list on error
+      // Don't throw - just log and continue without tools
+      console.warn('[DebriefOutlineProvider] Tool Vault not ready, outline will render without tools:',
+        error instanceof Error ? error.message : String(error));
+      toolList = null;
     }
 
     return `<!DOCTYPE html>
@@ -149,10 +161,10 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
           }
         </style>
         <style>
-          body { 
-            font-family: var(--vscode-font-family, sans-serif); 
-            margin: 0; 
-            padding: 0; 
+          body {
+            font-family: var(--vscode-font-family, sans-serif);
+            margin: 0;
+            padding: 8px;
             color: var(--vscode-foreground);
             background-color: var(--vscode-editor-background);
           }
@@ -169,7 +181,7 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
           const vscode = acquireVsCodeApi();
           window.vscode = vscode;
           const outlineData = ${JSON.stringify(data)};
-          const toolList = ${JSON.stringify(toolList)};
+          const toolList = ${JSON.stringify(toolList || { root: [] })};
           
           function initializeOutlineView() {
             const container = document.getElementById('outline-container');
@@ -408,13 +420,29 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
   private async _executeToolCommand(commandName: string, selectedFeatures: unknown[]): Promise<void> {
     try {
       // Get tool index to find the schema for this tool
-      const toolIndex = await this._globalController.getToolIndex() as { tools: unknown[] };
-      if (!toolIndex || !Array.isArray(toolIndex.tools)) {
+      const toolIndex = await this._globalController.getToolIndex() as { root: unknown[] };
+      if (!toolIndex || !Array.isArray(toolIndex.root)) {
         throw new Error('Tool index not available');
       }
 
+      // Helper to collect all tools from tree structure
+      function collectTools(nodes: unknown[]): unknown[] {
+        const tools: unknown[] = [];
+        for (const node of nodes) {
+          const nodeObj = node as Record<string, unknown>;
+          if (nodeObj.type === 'tool') {
+            tools.push(node);
+          } else if (nodeObj.type === 'category' && Array.isArray(nodeObj.children)) {
+            tools.push(...collectTools(nodeObj.children));
+          }
+        }
+        return tools;
+      }
+
+      const allTools = collectTools(toolIndex.root);
+
       // Find the tool schema
-      const toolSchema = toolIndex.tools.find((tool: unknown) => (tool as { name: string }).name === commandName) as ToolSchema | undefined;
+      const toolSchema = allTools.find((tool: unknown) => (tool as { name: string }).name === commandName) as ToolSchema | undefined;
       if (!toolSchema) {
         throw new Error(`Tool schema not found for "${commandName}"`);
       }

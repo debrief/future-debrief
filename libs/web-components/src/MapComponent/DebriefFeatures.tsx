@@ -1,6 +1,6 @@
 import React from 'react';
 import { GeoJSONFeatureCollection } from './MapComponent';
-import { TimeState } from '@debrief/shared-types';
+import { DebriefTrackFeature, TimeState } from '@debrief/shared-types';
 import { Track } from './features/Track';
 import { Point } from './features/Point';
 import { Zone } from './features/Zone';
@@ -44,14 +44,15 @@ export const DebriefFeatures: React.FC<DebriefFeaturesProps> = ({
 
           // Route features to appropriate specialized renderers
           if (dataType === 'track' && (feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString')) {
-            return <Track key={key} {...commonProps} />;
+            // Type assertion: we've validated this is a track feature with track geometry
+            return <Track key={key} {...commonProps} feature={feature as unknown as DebriefTrackFeature} />;
           }
 
           if (dataType === 'reference-point' && (feature.geometry.type === 'Point' || feature.geometry.type === 'MultiPoint')) {
             return <Point key={key} {...commonProps} />;
           }
 
-          if (dataType === 'zone') {
+          if (dataType === 'annotation') {
             return <Zone key={key} {...commonProps} />;
           }
 

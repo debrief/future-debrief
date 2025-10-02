@@ -120,7 +120,7 @@ export function classifyFeature(feature: unknown): 'track' | 'point' | 'annotati
         return 'track';
       case 'reference-point':
         return 'point';
-      case 'zone':
+      case 'annotation':
         return 'annotation';
       default:
         // Invalid dataType values should still be validated based on geometry
@@ -394,7 +394,7 @@ export function validateFeatureDetailed(feature: unknown, index: number): Featur
           if (isObject(properties)) {
             const dataType = getObjectProperty(properties, 'dataType');
             if (!dataType) {
-              errors.push('Annotation features must have dataType: "zone" in properties');
+              errors.push('Annotation features must have dataType: "annotation" in properties');
             }
             const annotationType = getObjectProperty(properties, 'annotationType');
             if (typeof annotationType === 'string' && !validateAnnotationType(annotationType)) {

@@ -4,7 +4,7 @@ import json
 import sys
 import traceback
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 from debrief.types.tools import ToolCallRequest
 from fastapi import FastAPI, HTTPException
@@ -90,13 +90,10 @@ class ToolVaultServer:
         # Detect runtime context first
         self._running_from_archive = hasattr(sys, "_MEIPASS") or str(sys.argv[0]).endswith(".pyz")
 
-        # Discover tools
+        # Load or generate tool index
         try:
-            self.tools = discover_tools(tools_path)
-            self.tools_by_name = {tool.name: tool for tool in self.tools}
-
             if self._running_from_archive:
-                # Running from .pyz package - load pre-built index instead of generating
+                # Running from .pyz package - load pre-built index (fast path, no discovery!)
                 import zipfile
 
                 # Get the path to the current .pyz file
@@ -106,18 +103,38 @@ class ToolVaultServer:
                         index_content = archive.read("index.json").decode("utf-8")
                         self.index_data = json.loads(index_content)
                         print(
-                            f"Loaded pre-built index with {len(self.index_data.get('tools', []))} tools from package"
+                            "Loaded pre-built index from package"
                         )
                 else:
                     # Fallback for other archive modes
                     with open("index.json", "r") as f:
                         self.index_data = json.load(f)
                         print(
-                            f"Loaded pre-built index with {len(self.index_data.get('tools', []))} tools"
+                            "Loaded pre-built index from file"
                         )
+
+                # In production mode, we don't run discover_tools() at all!
+                # Tools are lazy-loaded on-demand from index metadata
+                self.tools = []
+                self.tools_by_name = {}
+
+                # Extract tool count from tree for logging
+                def count_tools_in_tree(nodes):
+                    count = 0
+                    for node in nodes:
+                        if node.get("type") == "tool":
+                            count += 1
+                        elif node.get("type") == "category":
+                            count += count_tools_in_tree(node.get("children", []))
+                    return count
+
+                tool_count = count_tools_in_tree(self.index_data.get("root", []))
+                print(f"Loaded index with {tool_count} tools (lazy loading enabled)")
             else:
-                # Development mode - generate index metadata
-                self.index_data = generate_index_json(self.tools)
+                # Development mode - discover tools and generate index
+                self.tools = discover_tools(tools_path)
+                self.tools_by_name = {tool.name: tool for tool in self.tools}
+                self.index_data = generate_index_json(tools_path)
                 print(f"Generated index for {len(self.tools)} tools")
         except Exception as e:
             raise RuntimeError(f"Failed to initialize tools: {e}")
@@ -144,6 +161,93 @@ class ToolVaultServer:
 
         # Setup routes
         self._setup_routes()
+
+    def _lazy_load_tool(self, tool_name: str):
+        """
+        Lazy-load a tool on-demand from index metadata.
+        Only used in production mode (packaged .pyz).
+
+        Returns the ToolMetadata object for execution.
+        """
+        # Check if already loaded
+        if tool_name in self.tools_by_name:
+            return self.tools_by_name[tool_name]
+
+        # Find tool in index
+        def find_tool_in_tree(nodes, name):
+            for node in nodes:
+                if node.get("type") == "tool" and node.get("name") == name:
+                    return node
+                elif node.get("type") == "category":
+                    result = find_tool_in_tree(node.get("children", []), name)
+                    if result:
+                        return result
+            return None
+
+        tool_data = find_tool_in_tree(self.index_data.get("root", []), tool_name)
+        if not tool_data:
+            return None
+
+        # Import the tool module and get the function
+        module_path = tool_data.get("module_path")
+        function_name = tool_data.get("function_name")
+
+        if not module_path or not function_name:
+            print(f"Warning: Tool '{tool_name}' missing module_path or function_name in index")
+            return None
+
+        try:
+            import importlib
+            module = importlib.import_module(module_path)
+            function = getattr(module, function_name)
+
+            # Detect Pydantic parameter model from function signature
+            from discovery import PydanticModelType, detect_pydantic_parameter_model
+            pydantic_model_raw = detect_pydantic_parameter_model(function, module)
+
+            if not pydantic_model_raw:
+                print(f"Warning: Tool '{tool_name}' has no Pydantic parameter model")
+                return None
+
+            # Cast to PydanticModelType for type safety
+            pydantic_model = cast(PydanticModelType, pydantic_model_raw)
+
+            # Extract metadata from index
+            description = tool_data.get("description", "")
+            input_schema = tool_data.get("inputSchema", {})
+
+            # Convert JSON schema to parameters dict
+            parameters = {}
+            if input_schema and "properties" in input_schema:
+                for param_name, param_info in input_schema["properties"].items():
+                    parameters[param_name] = {
+                        "type": param_info.get("type", "any"),
+                        "description": param_info.get("description", ""),
+                        "required": param_name in input_schema.get("required", [])
+                    }
+
+            # Create ToolMetadata object with required fields
+            from discovery import ToolMetadata
+            tool_metadata = ToolMetadata(
+                name=tool_name,
+                function=function,
+                description=description,
+                parameters=parameters,
+                return_type="dict",  # Default assumption for output
+                module_path=module_path,
+                tool_dir=str(Path("tools") / tool_name),
+                pydantic_model=pydantic_model
+            )
+
+            # Cache it
+            self.tools_by_name[tool_name] = tool_metadata
+            return tool_metadata
+
+        except Exception as e:
+            print(f"Error lazy-loading tool '{tool_name}': {e}")
+            import traceback
+            traceback.print_exc()
+            return None
 
     def _setup_static_files(self):
         """Setup static file serving for SPA."""
@@ -277,10 +381,15 @@ class ToolVaultServer:
             """MCP-compatible tool call endpoint."""
             tool_name = request.name
 
-            if tool_name not in self.tools_by_name:
+            # In production mode, lazy-load tool if not already loaded
+            if self._running_from_archive and tool_name not in self.tools_by_name:
+                tool = self._lazy_load_tool(tool_name)
+                if tool is None:
+                    raise HTTPException(status_code=404, detail=f"Tool '{tool_name}' not found")
+            elif tool_name not in self.tools_by_name:
                 raise HTTPException(status_code=404, detail=f"Tool '{tool_name}' not found")
-
-            tool = self.tools_by_name[tool_name]
+            else:
+                tool = self.tools_by_name[tool_name]
 
             if tool.pydantic_model is None:
                 raise HTTPException(

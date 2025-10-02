@@ -32,8 +32,9 @@ function App() {
       const toolsResponse = await mcpService.listTools();
       
       // Create a pseudo-global index from root info and tools
+      // Convert flat tools list to root-based structure for compatibility
       const globalIndex = {
-        tools: toolsResponse.tools,
+        root: toolsResponse.tools || [],
         version: rootInfo.version || toolsResponse.version || 'Unknown',
         description: rootInfo.name || 'ToolVault',
         packageInfo: {
@@ -42,7 +43,7 @@ function App() {
           author: 'ToolVault'
         }
       };
-      
+
       setState(prev => ({
         ...prev,
         loading: false,

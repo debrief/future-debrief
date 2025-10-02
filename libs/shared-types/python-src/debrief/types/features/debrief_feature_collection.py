@@ -8,7 +8,6 @@ from .track import DebriefTrackFeature
 from .point import DebriefPointFeature
 from .annotation import DebriefAnnotationFeature
 from .metadata import MetadataFeature
-from .zone import DebriefZoneFeature
 from .buoyfield import DebriefBuoyfieldFeature
 from .backdrop import DebriefBackdropFeature
 
@@ -38,7 +37,6 @@ DebriefFeature = Annotated[
         Annotated[DebriefPointFeature, Tag("reference-point")],
         Annotated[DebriefAnnotationFeature, Tag("annotation")],
         Annotated[MetadataFeature, Tag("metadata")],
-        Annotated[DebriefZoneFeature, Tag("zone")],
         Annotated[DebriefBuoyfieldFeature, Tag("buoyfield")],
         Annotated[DebriefBackdropFeature, Tag("backdrop")],
     ],

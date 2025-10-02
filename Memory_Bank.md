@@ -1984,10 +1984,11 @@ Implemented comprehensive Playwright end-to-end testing infrastructure for valid
 - Configured sequential test execution (not parallel) due to shared Docker instance
 - Added Jest exclusion pattern (`testPathIgnorePatterns: ['/tests/playwright/']`) to prevent conflicts
 
-**Test Coverage (7 tests across 3 suites):**
+**Test Coverage (12 tests across 4 suites):**
 1. **Docker Startup Tests** (`docker-startup.spec.ts`) - Container starts, VS Code loads, extension enabled
 2. **Tool Vault Integration Tests** (`tool-vault-integration.spec.ts`) - Health endpoint, WebSocket bridge, bidirectional communication
 3. **Plot Rendering Tests** (`plot-rendering.spec.ts`) - Plot files open, Leaflet map renders, GeoJSON features visible
+4. **Debrief Sidebar Tests** (`debrief-sidebar.spec.ts`) - Sidebar panels, outline view, tool execute button
 
 **Package Updates:**
 - Added `@playwright/test` dependency
@@ -1999,13 +2000,240 @@ Implemented comprehensive Playwright end-to-end testing infrastructure for valid
 - Quick start guide, test architecture, troubleshooting, CI/CD integration notes
 
 **Key Implementation Details:**
-- Docker build from repository root with args: `GITHUB_SHA=playwright-test`, `PR_NUMBER=test`
+- Docker build with VSIX volume mounting for 99%+ faster iterations
 - Port mappings: 8080 (VS Code), 60123 (WebSocket), 60124 (Tool Vault)
-- Readiness polling with 3-minute timeout
-- Container ID storage for cleanup
-- TypeScript type checking passed, lint warnings only (acceptable for tests)
+- Fixed VS Code web redirect handling (workspace folder parameter)
+- Enhanced WebSocket server lifecycle with proper connection cleanup
+- Improved extension deactivation with async cleanup
+- TypeScript type checking passed with proper type annotations
 
-**Status:** Phase 1 (MVP) complete - all infrastructure ready for use
+**Status:** Complete - all 12 tests passing in 4.7 minutes
 **Issues/Blockers:** None - infrastructure validated and committed
 **Next Steps (Optional):** Phase 2 - GitHub Actions CI/CD integration for automated PR testing
 
+---
+
+**Agent:** Claude Implementation Agent
+**Task Reference:** Issue #138 – Hierarchical Tool Organization in Tool-Vault
+
+**Summary:**
+Transformed tool-vault from flat tool list to hierarchical folder-based organization with unlimited depth support. Implemented discriminated union tree structure spanning libs/shared-types, libs/tool-vault-packager, and libs/web-components.
+
+**Details:**
+
+**Phase 1 - Pydantic Data Models:**
+- Updated `Tool` model to add `type: Literal["tool"]` discriminator field (`libs/shared-types/python-src/debrief/types/tools/tool.py`)
+- Created `ToolCategory` model with recursive `children: List[ToolIndexNode]` field (`libs/shared-types/python-src/debrief/types/tools/tool_category.py`)
+- Created `ToolIndexNode` discriminated union type using `Union[Tool, ToolCategory]` (`libs/shared-types/python-src/debrief/types/tools/tool_index_node.py`)
+- Updated `GlobalToolIndexModel` to use `root: List[ToolIndexNode]` instead of `tools: List[Tool]` (`libs/shared-types/python-src/debrief/types/tools/global_tool_index.py`)
+- Built shared-types successfully to generate TypeScript types and JSON schemas
+
+**Phase 2 - Folder Reorganization:**
+- Reorganized existing tools into semantic categories:
+  - `tools/text/word_count/`
+  - `tools/selection/{fit_to_selection, select_all_visible, select_feature_start_time}/`
+  - `tools/feature-management/{delete_features, toggle_first_feature_color}/`
+  - `tools/track-analysis/{track_speed_filter, track_speed_filter_fast}/`
+  - `tools/viewport/viewport_grid_generator/`
+- Created 3-level test fixture in `test/tiered_tools/` with structure:
+  - `category1/subcategory1/deep-tool-1/`
+  - `category1/tool-at-level-2/`
+  - `category2/another-tool/`
+
+**Phase 3 - Tool Discovery Updates:**
+- Created `discover_tool_nodes()` function for recursive tree scanning (`libs/tool-vault-packager/discovery.py:478-536`)
+- Updated `discover_tools()` to recursively find tools in nested directories using `find_tool_dirs()` helper
+- Created `generate_tool_list_response_tree()` for tree-based index generation
+- Updated `generate_index_json()` signature to accept `tools_path` parameter instead of tools list
+- Fixed critical bug: Changed tool file detection from `tool.py` to correct `execute.py` filename
+- Updated all call sites in cli.py, packager.py, and server.py to use new index generation
+
+**Phase 4 - Packager Path Preservation:**
+- Fixed critical bug in `packager.py` where nested tool paths were lost during packaging
+- **Before**: Used `Path(tool.tool_dir).name` which only captured immediate directory name
+- **After**: Calculate relative path from tools root to preserve full nested structure:
+```python
+tool_path = Path(tool.tool_dir)
+tools_root = Path(tools_dir)
+relative_tool_path = tool_path.relative_to(tools_root)
+tool_metadata_dir = package_dir / "tools" / relative_tool_path / "metadata"
+tool_metadata_dir.mkdir(parents=True, exist_ok=True)
+```
+- Result: Package now correctly preserves paths like `tools/viewport/viewport_grid_generator/`
+
+**Phase 5 - Frontend Updates:**
+- Updated `ToolExecuteButton` component to support tree structure (`libs/web-components/src/ToolExecuteButton/ToolExecuteButton.tsx`)
+- Added `flattenToolTree()` helper to extract all tools from tree for backward compatibility
+- Updated props interface to accept `ToolListResponse | GlobalToolIndexModel`
+- Modified useMemo hook to flatten tree before filtering
+- Fixed `App.tsx` in SPA to use `root` field instead of `tools` (`libs/tool-vault-packager/spa/src/App.tsx:36-45`)
+
+**Critical Fixes:**
+
+1. **Import Error Resolution:**
+   - Problem: Old Python wheel from different worktree caused import failures
+   - Solution: Rebuilt shared-types, uninstalled old wheel, reinstalled new wheel
+   - Commands: `pnpm build`, `pip uninstall -y debrief-types`, `pip install --no-deps shared-types/dist/python/debrief_types-1.0.0-py3-none-any.whl`
+
+2. **Circular Import in Pydantic:**
+   - Problem: ToolCategory references itself via ToolIndexNode
+   - Solution: Used TYPE_CHECKING guard and `model_rebuild()` to resolve forward references
+   - Location: `libs/shared-types/python-src/debrief/types/tools/tool_index_node.py`
+
+3. **SPA Type Mismatch:**
+   - Problem: SPA creating globalIndex with legacy `tools` field
+   - Solution: Changed to use `root: toolsResponse.tools || []`
+   - Location: `libs/tool-vault-packager/spa/src/App.tsx:36`
+
+**Output/Result:**
+```python
+# libs/tool-vault-packager/discovery.py - Key function
+def discover_tool_nodes(tools_dir: Path) -> List[ToolIndexNode]:
+    """Recursively discover tools and categories in a directory, building a tree structure."""
+    nodes: List[ToolIndexNode] = []
+    
+    for item in sorted(tools_dir.iterdir()):
+        if not item.is_dir() or item.name.startswith("__"):
+            continue
+        
+        execute_file = item / "execute.py"
+        
+        if execute_file.exists():
+            # This is a tool folder - create Tool object
+            tool_instance = create_tool_from_execute_file(execute_file, item)
+            nodes.append(tool_instance)
+        else:
+            # This is a category folder - recurse
+            children = discover_tool_nodes(item)
+            if children:
+                nodes.append(ToolCategory(
+                    type="category",
+                    name=item.name,
+                    children=children
+                ))
+    
+    return nodes
+```
+
+**Test Results:**
+- All 18 tool tests passing (including 3-level nested tools)
+- All 10 integration tests passing
+- Package structure correctly preserved nested paths
+- Full monorepo build successful with Turbo cache
+- Generated index.json uses `root` field with tree structure
+
+**Status:** Completed - tree structure fully implemented and tested  
+**Known Limitation:** ToolExecuteButton currently flattens tree for display; user noted backward compatibility not needed for pre-production system  
+**Next Steps (Optional):** Could implement proper recursive tree rendering in ToolExecuteButton UI with category navigation/dropdowns instead of flattening
+
+---
+
+*Last Updated: 2025-10-01*  
+*Total Sections Compressed: 28 major implementations*
+
+### Track Properties Validation Error - Issue #179 ✅
+**Problem**: Pydantic validation rejecting `track.properties.times` as extra input
+- **Error**: `Extra inputs are not permitted [type=extra_forbidden]` when using `select-feature-start-time` tool
+- **Root Cause**: Test data files used `"times"` but TrackProperties Pydantic model expects `"timestamps"`
+- **Investigation**: Schema has always used `timestamps` since commit abc1022, but test data was not updated
+- **Decision**: Fix test data to match schema (fail-fast approach) rather than add backwards-compatible alias
+- **Solution**: Updated all instances of `"times":` → `"timestamps":` in workspace plot.json files
+- **Files Modified**: 
+  - `apps/vs-code/workspace/large-sample.plot.json`
+  - `apps/vs-code/workspace/large-sample.plot copy.json`
+- **Verification**: Confirmed no other plot.json files had the same issue
+- **Commit**: a7b6aa6 - Fix track test data property name to match schema
+- **Status**: Completed - Data consistency restored, ready for tool validation testing
+
+**Key Insight**: In pre-production, we control all data. Strict schema validation with `extra="forbid"` helps catch inconsistencies early. Fixing data is preferred over adding alias support.
+
+---
+
+
+### Outline View Tool-Vault Decoupling - Issue #185 ✅
+**Date**: 2025-10-02  
+**Objective**: Remove blocking dependency between outline view and tool-vault server loading state
+
+**Problem**: The outline view in `debriefOutlineProvider.ts` was throwing errors and blocking rendering when tool-vault server was unavailable, preventing users from navigating plot features during extension startup.
+
+**Root Cause Analysis**:
+- Lines 120-133: `_renderOutlineView` threw errors when `getToolIndex()` failed
+- OutlineViewParent component (web-components) only needs tools for Execute button
+- Outline tree itself only requires `featureCollection` and `selectionState`
+- Execute button already gracefully handles empty tool list (shows "0 tools present")
+
+**Solution Implemented**:
+
+1. **Non-blocking Tool Fetching** (`debriefOutlineProvider.ts:120-138`)
+   - Changed from throwing errors to graceful fallback with `null`
+   - Used proper TypeScript typing: `Record<string, unknown> | null`
+   - Replaced `console.error` with `console.warn` for non-critical failures
+   - Preserved error context while allowing outline to render
+
+2. **Empty Tool List Fallback** (line 184)
+   - Provide `{ root: [] }` when `toolList` is `null`
+   - OutlineViewParent already handles this gracefully per design
+
+**Code Changes**:
+```typescript
+// BEFORE (lines 120-133):
+let toolList;
+try {
+  toolList = await this._globalController.getToolIndex();
+  if (!toolList || typeof toolList !== 'object') {
+    throw new Error(`Invalid tool index returned`);
+  }
+  // ... more validation ...
+} catch (error) {
+  console.error('[DebriefOutlineProvider] ' + errorMessage, error);
+  throw new Error(errorMessage);  // ❌ Blocks entire outline
+}
+
+// AFTER (lines 120-138):
+let toolList: Record<string, unknown> | null = null;
+try {
+  const fetchedToolList = await this._globalController.getToolIndex();
+  if (!fetchedToolList || typeof fetchedToolList !== 'object') {
+    console.warn('[DebriefOutlineProvider] Invalid tool index, tools unavailable');
+    toolList = null;
+  } else if (!('root' in fetchedToolList) || !Array.isArray(...)) {
+    console.warn('[DebriefOutlineProvider] Tool index missing root array');
+    toolList = null;
+  } else {
+    toolList = fetchedToolList as Record<string, unknown>;
+  }
+} catch (error) {
+  console.warn('[DebriefOutlineProvider] Tool Vault not ready:', ...);
+  toolList = null;  // ✅ Continue without tools
+}
+
+// Line 184 fallback:
+const toolList = ${JSON.stringify(toolList || { root: [] })};
+```
+
+**Testing & Verification**:
+- ✅ TypeScript typecheck passed (no type errors)
+- ✅ ESLint passed (no new errors, strict TypeScript patterns enforced)
+- ✅ Compilation successful (esbuild + dependencies)
+- ✅ No `any` types used (followed VS Code extension strict patterns)
+- ✅ Used `console.warn` for non-critical errors (per ESLint rules)
+
+**Architectural Benefits**:
+- Outline view now appears immediately when `.plot.json` file opens
+- Tool execute button shows "0 tools present" when unavailable
+- Tools become available dynamically via `toolVaultReady` event (existing)
+- Better user experience during extension startup
+- Maintains type safety with proper TypeScript patterns
+
+**Files Modified**:
+- `apps/vs-code/src/providers/panels/debriefOutlineProvider.ts`
+
+**Related Architecture**:
+- Existing `_checkInitialToolVaultState()` handles race conditions (lines 395-408)
+- `toolVaultReady` event subscription already refreshes outline (lines 366-369)
+- No changes needed to OutlineViewParent component (already graceful)
+
+**Status**: Completed - Outline view functions independently of tool-vault state
+**Commit**: Ready for commit and PR
+
+---

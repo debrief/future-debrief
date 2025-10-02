@@ -85,7 +85,25 @@ export function activate(context: vscode.ExtensionContext) {
 
                 // Load tool index and show success notification
                 const toolIndex = await toolVaultServer!.getToolIndex();
-                const toolCount = (toolIndex as {tools?: unknown[]})?.tools?.length ?? 'unknown number of';
+
+                // Helper to count tools from tree structure
+                function countTools(nodes: unknown[]): number {
+                    let count = 0;
+                    for (const node of nodes) {
+                        const nodeObj = node as Record<string, unknown>;
+                        if (nodeObj.type === 'tool') {
+                            count++;
+                        } else if (nodeObj.type === 'category' && Array.isArray(nodeObj.children)) {
+                            count += countTools(nodeObj.children);
+                        }
+                    }
+                    return count;
+                }
+
+                const toolCount = (toolIndex && typeof toolIndex === 'object' && 'root' in toolIndex && Array.isArray((toolIndex as Record<string, unknown>).root))
+                    ? countTools((toolIndex as Record<string, unknown>).root as unknown[])
+                    : 'unknown number of';
+
                 vscode.window.showInformationMessage(
                     `Tool Vault server started successfully with ${toolCount} tools available.`
                 );
@@ -392,6 +410,17 @@ export function activate(context: vscode.ExtensionContext) {
 export async function deactivate() {
     console.warn('Debrief Extension is now deactivating...');
 
+    // Stop Tool Vault server first (more critical to clean up)
+    if (toolVaultServer) {
+        try {
+            await toolVaultServer.stopServer();
+            console.log('✅ Tool Vault server stopped');
+        } catch (error) {
+            console.error('Error stopping Tool Vault server:', error);
+        }
+        toolVaultServer = null;
+    }
+
     // Stop WebSocket server and wait for it to fully shut down
     if (webSocketServer) {
         try {
@@ -401,17 +430,6 @@ export async function deactivate() {
             console.error('Error stopping WebSocket server:', error);
         }
         webSocketServer = null;
-    }
-
-    // Stop Tool Vault server and wait for it to fully shut down
-    if (toolVaultServer) {
-        try {
-            await toolVaultServer.stopServer();
-            console.log('✅ Tool Vault server stopped');
-        } catch (error) {
-            console.error('Error stopping Tool Vault server:', error);
-        }
-        toolVaultServer = null;
     }
 
     // Cleanup panel providers

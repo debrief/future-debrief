@@ -195,6 +195,7 @@
       "Bash(open:*)",
       "Bash(docker rmi:*)",
       "Bash(docker system prune:*)",
+      "Bash(gtimeout:*)",
       "Bash(lsof:*)",
       "Bash(xargs kill:*)"
     ]

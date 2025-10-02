@@ -311,7 +311,7 @@ def package_toolvault(
     try:
         # Discover and validate tools first
         tools = discover_tools(str(tools_dir))
-        index_data = generate_index_json(tools)
+        index_data = generate_index_json(str(tools_dir))
         print(f"Discovered {len(tools)} tools for packaging")
 
     except ToolDiscoveryError as e:
@@ -429,8 +429,13 @@ def package_toolvault(
 
         # Save detailed tool metadata to metadata folder
         for tool in tools:
-            tool_metadata_dir = package_dir / "tools" / Path(tool.tool_dir).name / "metadata"
-            tool_metadata_dir.mkdir(exist_ok=True)
+            # Get relative path from tools_dir to preserve nested structure
+            tool_path = Path(tool.tool_dir)
+            tools_root = Path(tools_dir)
+            relative_tool_path = tool_path.relative_to(tools_root)
+
+            tool_metadata_dir = package_dir / "tools" / relative_tool_path / "metadata"
+            tool_metadata_dir.mkdir(parents=True, exist_ok=True)
             schemas_dir = tool_metadata_dir / "schemas"
             schemas_dir.mkdir(exist_ok=True)
 
@@ -547,8 +552,8 @@ def package_toolvault(
                 stats=tool_stats,
             )
 
-            # Save tool index in the package directory
-            package_tool_dir = package_dir / "tools" / Path(tool.tool_dir).name
+            # Save tool index in the package directory (using relative path)
+            package_tool_dir = package_dir / "tools" / relative_tool_path
             package_tool_index_file = package_tool_dir / "tool.json"
             with open(package_tool_index_file, "w") as f:
                 json.dump(tool_index_model.model_dump(), f, indent=2)

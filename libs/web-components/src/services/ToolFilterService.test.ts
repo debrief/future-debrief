@@ -61,10 +61,9 @@ describe('ToolFilterService', () => {
       ]]
     },
     properties: {
-      dataType: 'zone',
+      dataType: 'annotation',
       name: 'Test Zone',
-      fill: '#FF0000',
-      stroke: '#000000'
+      color: '#FF0000'
     }
   });
 
@@ -193,7 +192,7 @@ describe('ToolFilterService', () => {
 
     it('should return warning when no tools match selected features', () => {
       const pointFeature = createMockPointFeature();
-      const toolsData = { tools: [createMockTool('polygon-only-tool', ['zone'])] };
+      const toolsData = { tools: [createMockTool('polygon-only-tool', ['polygon'])] };
 
       const result = toolFilterService.getApplicableTools([pointFeature], toolsData);
 

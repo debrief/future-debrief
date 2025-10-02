@@ -48,11 +48,14 @@ export class TimeControllerProvider implements vscode.WebviewViewProvider {
                     // Force update after dragging ends to sync with any missed state changes
                     setTimeout(() => this._updateView(), 100);
                     break;
+                case 'openSettings':
+                    this._handleOpenSettings();
+                    break;
                 case 'play':
                     // TODO: Handle play functionality
                     break;
                 case 'pause':
-                    // TODO: Handle pause functionality  
+                    // TODO: Handle pause functionality
                     break;
                 case 'stop':
                     this._handleStop();
@@ -165,6 +168,21 @@ export class TimeControllerProvider implements vscode.WebviewViewProvider {
     }
 
     /**
+     * Get the configured time format from VS Code settings
+     */
+    private _getTimeFormat(): string {
+        const config = vscode.workspace.getConfiguration('debrief');
+        return config.get<string>('timeController.format', 'rn-short');
+    }
+
+    /**
+     * Handle opening the time controller settings
+     */
+    private _handleOpenSettings(): void {
+        void vscode.commands.executeCommand('workbench.action.openSettings', 'debrief.timeController.format');
+    }
+
+    /**
      * Dispose of the provider
      */
     public dispose(): void {
@@ -233,23 +251,23 @@ export class TimeControllerProvider implements vscode.WebviewViewProvider {
                             
                             timeControllerInstance = window.DebriefWebComponents.createTimeController(container, {
                                 timeState: timeState,
-                                isPlaying: false,
+                                timeFormat: '${this._getTimeFormat()}',
                                 onTimeChange: (time) => {
                                     const now = Date.now();
-                                    
+
                                     // If dragging, throttle updates to reduce lag
                                     if (isDragging && now - lastUpdateTime < UPDATE_THROTTLE) {
                                         return;
                                     }
-                                    
+
                                     lastUpdateTime = now;
                                     vscode.postMessage({
                                         type: 'timeChange',
                                         value: time
                                     });
                                 },
-                                onPlayPause: () => {
-                                    vscode.postMessage({ type: 'play' });
+                                onOpenSettings: () => {
+                                    vscode.postMessage({ type: 'openSettings' });
                                 }
                             });
                             

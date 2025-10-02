@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { ToolExecuteButton } from './ToolExecuteButton';
 import { OutlineView } from '../OutlineView/OutlineView';
 import { ToolFilterService } from '../services/ToolFilterService';
-import type { ToolListResponse } from '@debrief/shared-types/src/types/tools/tool_list_response';
+import type { GlobalToolIndexModel } from '@debrief/shared-types/src/types/tools/global_tool_index';
 import type { DebriefFeature, DebriefFeatureCollection } from '@debrief/shared-types';
 
 const meta: Meta<typeof ToolExecuteButton> = {
@@ -33,12 +33,17 @@ const meta: Meta<typeof ToolExecuteButton> = {
 export default meta;
 type Story = StoryObj<typeof ToolExecuteButton>;
 
-// Load tool data from the existing tool-index.json for realistic testing
-const toolIndexData: ToolListResponse = {
-  "tools": [
+// Tool data using tree structure with categories
+const toolIndexData: GlobalToolIndexModel = {
+  "root": [
     {
-      "name": "track_speed_filter",
-      "description": "Find timestamps where track speed equals or exceeds a minimum threshold.",
+      "type": "category",
+      "name": "Track Analysis",
+      "children": [
+        {
+          "type": "tool",
+          "name": "track_speed_filter",
+          "description": "Find timestamps where track speed equals or exceeds a minimum threshold.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -66,11 +71,18 @@ const toolIndexData: ToolListResponse = {
         "required": ["track_feature"],
         "additionalProperties": false
       },
-      "tool_url": "/api/tools/track_speed_filter/tool.json"
+          "tool_url": "/api/tools/track_speed_filter/tool.json"
+        }
+      ]
     },
     {
-      "name": "point_in_zone",
-      "description": "Check if a point lies within a zone polygon.",
+      "type": "category",
+      "name": "Spatial Analysis",
+      "children": [
+        {
+          "type": "tool",
+          "name": "point_in_zone",
+          "description": "Check if a point lies within a zone polygon.",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -96,50 +108,60 @@ const toolIndexData: ToolListResponse = {
         "required": ["point_feature", "zone_feature"],
         "additionalProperties": false
       },
-      "tool_url": "/api/tools/point_in_zone/tool.json"
-    },
-    {
-      "name": "word_count",
-      "description": "Count words in text input.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "text": {
-            "type": "string",
-            "description": "Text to count words in",
-            "examples": ["Hello world", "This is a test"]
-          }
+          "tool_url": "/api/tools/point_in_zone/tool.json"
         },
-        "required": ["text"],
-        "additionalProperties": false
-      },
-      "tool_url": "/api/tools/word_count/tool.json"
-    },
-    {
-      "name": "fit_to_selection",
-      "description": "Fit the map view to encompass all selected features or all data if nothing is selected.",
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "selected_features": {
-            "type": "array",
-            "items": {
-              "description": "Any GeoJSON feature"
+        {
+          "type": "tool",
+          "name": "fit_to_selection",
+          "description": "Fit the map view to encompass all selected features or all data if nothing is selected.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "selected_features": {
+                "type": "array",
+                "items": {
+                  "description": "Any GeoJSON feature"
+                },
+                "description": "Array of selected features to fit to. If empty, fits to all data.",
+                "default": []
+              },
+              "padding": {
+                "type": "number",
+                "description": "Additional padding around bounds as percentage (0.1 = 10%)",
+                "default": 0.1,
+                "examples": [0.1, 0.05, 0.2]
+              }
             },
-            "description": "Array of selected features to fit to. If empty, fits to all data.",
-            "default": []
+            "required": [],
+            "additionalProperties": false
           },
-          "padding": {
-            "type": "number",
-            "description": "Additional padding around bounds as percentage (0.1 = 10%)",
-            "default": 0.1,
-            "examples": [0.1, 0.05, 0.2]
-          }
-        },
-        "required": [],
-        "additionalProperties": false
-      },
-      "tool_url": "/api/tools/fit_to_selection/tool.json"
+          "tool_url": "/api/tools/fit_to_selection/tool.json"
+        }
+      ]
+    },
+    {
+      "type": "category",
+      "name": "Text Processing",
+      "children": [
+        {
+          "type": "tool",
+          "name": "word_count",
+          "description": "Count words in text input.",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "description": "Text to count words in",
+                "examples": ["Hello world", "This is a test"]
+              }
+            },
+            "required": ["text"],
+            "additionalProperties": false
+          },
+          "tool_url": "/api/tools/word_count/tool.json"
+        }
+      ]
     }
   ],
   "version": "1.0.0",
@@ -324,7 +346,7 @@ export const InteractionDemo = () => {
 // Interactive story that demonstrates dynamic behavior between OutlineView and ToolExecuteButton
 export const InteractiveWithOutlineView = () => {
   const [plotData, setPlotData] = React.useState<DebriefFeatureCollection | null>(null);
-  const [toolData, setToolData] = React.useState<ToolListResponse | null>(null);
+  const [toolData, setToolData] = React.useState<GlobalToolIndexModel | null>(null);
   const [selectedFeatureIds, setSelectedFeatureIds] = React.useState<string[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -371,7 +393,7 @@ export const InteractiveWithOutlineView = () => {
 
   // Get tool counts for display
   const totalToolCount = React.useMemo(() => {
-    return toolData?.tools?.length || 0;
+    return toolData?.root?.length || 0;
   }, [toolData]);
 
   if (loading) {
