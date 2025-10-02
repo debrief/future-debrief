@@ -35,8 +35,8 @@ export default defineConfig({
   globalTeardown: require.resolve('./tests/playwright/global-teardown'),
 
   use: {
-    // Base URL for VS Code web interface
-    baseURL: 'http://localhost:8080',
+    // Base URL for VS Code web interface with workspace folder
+    baseURL: 'http://localhost:8080/?folder=/home/coder/workspace',
 
     // Screenshot on failure for debugging
     screenshot: 'only-on-failure',
