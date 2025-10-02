@@ -27,7 +27,7 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
   onSelectionChange,
   onCommandExecute,
   enableSmartFiltering = true,
-  buttonText = 'Execute Tools',
+  buttonText,
   menuPosition = 'bottom',
   additionalToolbarContent,
   ...outlineViewCallbacks
@@ -78,7 +78,7 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
 
   const handleCommandExecute = React.useCallback(
     (tool: Tool) => {
-      console.log('[OutlineViewParent] Executing tool command:', tool, 'Selected features:', selectedFeatures);
+      console.warn('[OutlineViewParent] Executing tool command:', tool, 'Selected features:', selectedFeatures);
       onCommandExecute?.(tool, selectedFeatures);
     },
     [onCommandExecute, selectedFeatures]
