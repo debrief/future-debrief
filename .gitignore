@@ -151,3 +151,4 @@ libs/tool-vault-packager/test-results
 apps/vs-code/python/
 apps/vs-code/tool-vault/toolvault.pyz
 libs/shared-types/.python-deps-installed
+vs-code-0.0.1.vsix
