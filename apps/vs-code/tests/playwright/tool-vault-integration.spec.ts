@@ -188,8 +188,12 @@ test.describe('Tool Vault Server Integration', () => {
     console.log('🔌 Attempting WebSocket connection on port 60123...');
 
     // Retry connection with exponential backoff
-    let ws;
-    let connectionResult = { success: false, error: new Error('Not attempted') };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let ws: any = null;
+    let connectionResult: { success: boolean; error?: Error } = {
+      success: false,
+      error: new Error('Not attempted')
+    };
     const maxRetries = 5;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -206,19 +210,23 @@ test.describe('Tool Vault Server Integration', () => {
             success: false,
             error: new Error(`Connection timeout on attempt ${attempt}`),
           });
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
           ws.close();
         }, 5000);
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         ws.on('open', () => {
           clearTimeout(timeout);
           console.log(`   ✅ Connection succeeded on attempt ${attempt}`);
           resolve({ success: true });
         });
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         ws.on('error', (error: Error) => {
           clearTimeout(timeout);
           console.log(`   ❌ Connection failed on attempt ${attempt}: ${error.message}`);
           resolve({ success: false, error });
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
           ws.close();
         });
       });
@@ -250,10 +258,11 @@ test.describe('Tool Vault Server Integration', () => {
           resolve({ success: false });
         }, 5000);
 
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         ws.on('message', (data: Buffer) => {
           clearTimeout(timeout);
           try {
-            const parsed = JSON.parse(data.toString());
+            const parsed = JSON.parse(data.toString()) as unknown;
             console.log('✅ WebSocket echo test response:', parsed);
             resolve({ success: true, data: parsed });
           } catch {
@@ -262,6 +271,7 @@ test.describe('Tool Vault Server Integration', () => {
         });
 
         // Send a test command (get_feature_collection is a safe read-only command)
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
         ws.send(
           JSON.stringify({
             command: 'get_feature_collection',
@@ -276,6 +286,7 @@ test.describe('Tool Vault Server Integration', () => {
     expect(echoTest.success).toBeTruthy();
 
     // Clean up
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     ws.close();
     console.log('✅ WebSocket bridge fully verified');
   });

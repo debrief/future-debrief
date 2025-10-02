@@ -116,7 +116,6 @@ test.describe('Debrief Sidebar Panel', () => {
     const frames = page.frames();
     console.log(`Found ${frames.length} frames`);
 
-    let outlineFound = false;
     for (const frame of frames) {
       try {
         // Look for outline-specific elements
