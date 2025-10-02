@@ -80,7 +80,7 @@ export function validateAnnotationFeature(feature: unknown): feature is DebriefA
   }
   
   // Check required dataType discriminator
-  if (getObjectProperty(properties, 'dataType') !== 'zone') {
+  if (getObjectProperty(properties, 'dataType') !== 'annotation') {
     return false;
   }
   
