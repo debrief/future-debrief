@@ -1,9 +1,9 @@
 import React from 'react';
 import { Polyline, Marker } from 'react-leaflet';
 import * as L from 'leaflet';
-import { GeoJSONFeature } from '../MapComponent';
 import { getFeatureColor, getFeatureStyle } from '../utils/featureUtils';
 import { TimeState } from '@debrief/shared-types';
+import { GeoJSONFeature } from '../MapComponent';
 import '../MapComponent.css';
 
 interface TrackProps {
@@ -50,13 +50,21 @@ export const Track: React.FC<TrackProps> = (props) => {
     iconAnchor: [6, 6],
   });
 
+  // Return early if geometry is null or not a track geometry type
+  if (!feature.geometry || (feature.geometry.type !== 'LineString' && feature.geometry.type !== 'MultiLineString')) {
+    return null;
+  }
+
+  // After the check above, geometry is guaranteed to be non-null and either LineString or MultiLineString
+  const geometry = feature.geometry;
+
   let markerPosition: [number, number] | null = null;
-  if (timeState?.current && feature.properties?.times && Array.isArray(feature.properties.times)) {
-    const timestamps = feature.properties.times as string[];
+  const timestamps = (feature.properties as any)?.timestamps;
+  if (timeState?.current && timestamps && Array.isArray(timestamps)) {
     const closestIndex = findClosestTimeIndex(timeState.current, timestamps);
     if (closestIndex !== -1) {
-      if (feature.geometry.type === 'LineString') {
-        const coordinates = feature.geometry.coordinates as number[][];
+      if (geometry.type === 'LineString') {
+        const coordinates = geometry.coordinates as number[][];
         // Handle case where timestamps and coordinates arrays have different lengths
         // Map timestamp index to coordinate index proportionally
         const coordIndex = Math.min(
@@ -70,10 +78,10 @@ export const Track: React.FC<TrackProps> = (props) => {
           coords,
           markerPosition
         });
-      } else if (feature.geometry.type === 'MultiLineString') {
+      } else if (geometry.type === 'MultiLineString') {
         // For MultiLineString, we need to handle the mapping differently
         const allCoords: number[][] = [];
-        for (const line of (feature.geometry.coordinates as number[][][])) {
+        for (const line of (geometry.coordinates as number[][][])) {
           allCoords.push(...line);
         }
         const coordIndex = Math.min(
@@ -99,15 +107,16 @@ export const Track: React.FC<TrackProps> = (props) => {
       
       if (!onSelectionChange) return;
       
-      const featureId = feature.id !== undefined ? feature.id : Math.random();
+      const featureId = (feature.id !== undefined && feature.id !== null) ? feature.id : Math.random();
       let newSelectedIds: (string | number)[];
-      
+
       if (isSelected) {
         // Remove from selection
         newSelectedIds = selectedFeatureIds.filter(id => id !== feature.id);
       } else {
-        // Add to selection
-        newSelectedIds = [...selectedFeatureIds, featureId];
+        // Add to selection - ensure featureId is string or number
+        const safeFeatureId = typeof featureId === 'string' || typeof featureId === 'number' ? featureId : Math.random();
+        newSelectedIds = [...selectedFeatureIds, safeFeatureId];
       }
       
       onSelectionChange(newSelectedIds);
@@ -115,15 +124,10 @@ export const Track: React.FC<TrackProps> = (props) => {
   };
 
   const style = getFeatureStyle(feature, isSelected);
-  
-  // Type guard and extract coordinates for LineString/MultiLineString
-  if (feature.geometry.type !== 'LineString' && feature.geometry.type !== 'MultiLineString') {
-    return null;
-  }
-  
-  const coordinates = feature.geometry.type === 'LineString' 
-    ? (feature.geometry.coordinates as number[][]).map(coord => [coord[1], coord[0]] as [number, number])
-    : (feature.geometry.coordinates as number[][][]).map((lineString: number[][]) => 
+
+  const coordinates = geometry.type === 'LineString' 
+    ? (geometry.coordinates as number[][]).map(coord => [coord[1], coord[0]] as [number, number])
+    : (geometry.coordinates as number[][][]).map((lineString: number[][]) => 
         lineString.map((coord: number[]) => [coord[1], coord[0]] as [number, number])
       );
 
@@ -133,7 +137,7 @@ export const Track: React.FC<TrackProps> = (props) => {
     }
   };
 
-  if (feature.geometry.type === 'MultiLineString') {
+  if (geometry.type === 'MultiLineString') {
     return (
       <>
         {(coordinates as [number, number][][]).map((lineCoords, index) => (
