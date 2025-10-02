@@ -407,37 +407,42 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(disposable);
 }
 
-export function deactivate() {
-    console.warn('Debrief Extension is now deactivated');
-    
-    // Stop WebSocket server
-    if (webSocketServer) {
-        webSocketServer.stop().catch(error => {
-            console.error('Error stopping WebSocket server:', error);
-        });
-        webSocketServer = null;
-    }
+export async function deactivate() {
+    console.warn('Debrief Extension is now deactivating...');
 
-    // Stop Tool Vault server
+    // Stop Tool Vault server first (more critical to clean up)
     if (toolVaultServer) {
-        toolVaultServer.stopServer().catch(error => {
+        try {
+            await toolVaultServer.stopServer();
+            console.warn('Tool Vault server stopped');
+        } catch (error) {
             console.error('Error stopping Tool Vault server:', error);
-        });
+        }
         toolVaultServer = null;
     }
 
+    // Stop WebSocket server
+    if (webSocketServer) {
+        try {
+            await webSocketServer.stop();
+            console.warn('WebSocket server stopped');
+        } catch (error) {
+            console.error('Error stopping WebSocket server:', error);
+        }
+        webSocketServer = null;
+    }
 
     // Cleanup panel providers
     if (timeControllerProvider) {
         timeControllerProvider.dispose();
         timeControllerProvider = null;
     }
-    
+
     if (debriefOutlineProvider) {
         debriefOutlineProvider.dispose();
         debriefOutlineProvider = null;
     }
-    
+
     if (propertiesViewProvider) {
         propertiesViewProvider.dispose();
         propertiesViewProvider = null;
@@ -445,25 +450,25 @@ export function deactivate() {
 
     // Cleanup state persistence
     statePersistence = null;
-    
+
     // Cleanup history manager
     if (historyManager) {
         historyManager.dispose();
         historyManager = null;
     }
-    
+
     // Cleanup activation handler
     if (activationHandler) {
         activationHandler.dispose();
         activationHandler = null;
     }
-    
+
     // Cleanup GlobalController
     if (globalController) {
         globalController.dispose();
         globalController = null;
     }
-    
+
     // Clear editor ID manager
     EditorIdManager.clear();
 
@@ -472,4 +477,6 @@ export function deactivate() {
     debriefOutlineProvider = null;
     propertiesViewProvider = null;
     toolVaultServer = null;
+
+    console.warn('Debrief Extension deactivated');
 }
