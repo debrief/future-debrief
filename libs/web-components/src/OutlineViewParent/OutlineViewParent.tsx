@@ -64,7 +64,7 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
 
   const hasTools = Boolean(toolList.root?.length);
   const toolCount = toolList.root?.length || 0;
-  const isExecuteDisabled = !hasTools || selectedFeatures.length === 0;
+  const isExecuteDisabled = !hasTools;
 
   const handleSelectionChange = React.useCallback(
     (ids: string[]) => {
