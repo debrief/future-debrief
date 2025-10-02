@@ -72,7 +72,7 @@ const createSampleFeatureCollection = (): DebriefFeatureCollection => ({
         ]],
       },
       properties: {
-        dataType: 'zone',
+        dataType: 'annotation',
         annotationType: 'area',
         name: 'Restricted Area',
         text: 'Military Exercise Zone - No Entry',
@@ -481,7 +481,7 @@ const ToolVaultCommandHandlerDemo: React.FC = () => {
               <li>Features: {createSampleFeatureCollection().features.length}</li>
               <li>Tracks: {createSampleFeatureCollection().features.filter(f => f.properties?.dataType === 'track').length}</li>
               <li>Points: {createSampleFeatureCollection().features.filter(f => f.properties?.dataType === 'reference-point').length}</li>
-              <li>Annotations: {createSampleFeatureCollection().features.filter(f => f.properties?.dataType === 'zone').length}</li>
+              <li>Annotations: {createSampleFeatureCollection().features.filter(f => f.properties?.dataType === 'annotation').length}</li>
             </ul>
           </div>
 
@@ -491,7 +491,7 @@ const ToolVaultCommandHandlerDemo: React.FC = () => {
               <li>Features: {featureCollection.features.length}</li>
               <li>Tracks: {featureCollection.features.filter(f => f.properties?.dataType === 'track').length}</li>
               <li>Points: {featureCollection.features.filter(f => f.properties?.dataType === 'reference-point').length}</li>
-              <li>Annotations: {featureCollection.features.filter(f => f.properties?.dataType === 'zone').length}</li>
+              <li>Annotations: {featureCollection.features.filter(f => f.properties?.dataType === 'annotation').length}</li>
             </ul>
 
             {result && (result as Record<string, unknown>).metadata && (

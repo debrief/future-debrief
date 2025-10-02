@@ -265,7 +265,7 @@ export class ToolFilterService {
             canSatisfy = matchingFeatureCount > 0;
             hasFeatureParameters = true;
           } else if ((paramName.includes('zone') || paramName.includes('polygon')) || description.toLowerCase().includes('zone feature')) {
-            matchingFeatureCount = features.filter(f => f.properties?.dataType === 'zone').length;
+            matchingFeatureCount = features.filter(f => f.properties?.dataType === 'annotation').length;
             canSatisfy = matchingFeatureCount > 0;
             hasFeatureParameters = true;
           } else if (paramName.includes('feature') || description.toLowerCase().includes('features') ||
@@ -350,7 +350,7 @@ export class ToolFilterService {
                 matchingFeatureCount = features.filter(f => f.properties?.dataType === 'reference-point').length;
                 canSatisfy = matchingFeatureCount > 0;
               } else if ((paramName.includes('zone') || paramName.includes('polygon')) || description.toLowerCase().includes('zone feature')) {
-                matchingFeatureCount = features.filter(f => f.properties?.dataType === 'zone').length;
+                matchingFeatureCount = features.filter(f => f.properties?.dataType === 'annotation').length;
                 canSatisfy = matchingFeatureCount > 0;
               } else if (paramName.includes('feature') || description.toLowerCase().includes('features') ||
                          (description.toLowerCase().includes('feature') && !description.toLowerCase().includes('grid points'))) {

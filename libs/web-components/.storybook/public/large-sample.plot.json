@@ -20037,7 +20037,7 @@
                 "name": "SAP 1-1",
                 "stroke": "#F00",
                 "fill": "#0F0",
-                "dataType": "zone",
+                "dataType": "annotation",
                 "visible": true,
                 "time": "2024-11-14T19:10:00.000Z",
                 "timeEnd": "2024-11-15T04:10:00.000Z",
@@ -20325,7 +20325,7 @@
                 "name": "SAP 1-2",
                 "stroke": "#F55",
                 "fill": "#F55",
-                "dataType": "zone",
+                "dataType": "annotation",
                 "visible": true,
                 "time": "2024-11-14T18:10:00.000Z",
                 "specifics": {
@@ -20368,7 +20368,7 @@
                 "stroke": "#0FF",
                 "fill": "#0FF",
                 "fill-opacity": 0.2,
-                "dataType": "zone",
+                "dataType": "annotation",
                 "visible": true,
                 "specifics": {
                     "shapeType": "polygon"
@@ -20410,7 +20410,7 @@
                 "stroke": "#F0F",
                 "fill": "#0F0",
                 "fill-opacity": 1,
-                "dataType": "zone",
+                "dataType": "annotation",
                 "visible": true,
                 "specifics": {
                     "shapeType": "rectangle",
@@ -20460,7 +20460,7 @@
                 "stroke": "#F0F",
                 "fill": "#F0F",
                 "fill-opacity": 0.5,
-                "dataType": "zone",
+                "dataType": "annotation",
                 "visible": true,
                 "specifics": {
                     "shapeType": "polygon"
@@ -20513,7 +20513,7 @@
                 "name": "RING SECTOR ALPHA",
                 "stroke": "#a100e6",
                 "fill": "#a100e6",
-                "dataType": "zone",
+                "dataType": "annotation",
                 "visible": true,
                 "specifics": {
                     "shapeType": "section-circular-ring",
