@@ -9,7 +9,6 @@ from .metadata import (
     TimeMetadataFeature,
     SelectionMetadataFeature
 )
-from .zone import DebriefZoneFeature
 from .buoyfield import DebriefBuoyfieldFeature
 from .backdrop import DebriefBackdropFeature
 from .debrief_feature_collection import DebriefFeatureCollection, DebriefFeature
@@ -22,7 +21,6 @@ __all__ = [
     'ViewportMetadataFeature',
     'TimeMetadataFeature',
     'SelectionMetadataFeature',
-    'DebriefZoneFeature',
     'DebriefBuoyfieldFeature',
     'DebriefBackdropFeature',
     'DebriefFeatureCollection',

@@ -52,7 +52,6 @@ def main():
         TimeMetadataFeature,
         SelectionMetadataFeature,
     )
-    from debrief.types.features.zone import DebriefZoneFeature
     from debrief.types.features.buoyfield import DebriefBuoyfieldFeature
     from debrief.types.features.backdrop import DebriefBackdropFeature
     from debrief.types.states.current_state import CurrentState
@@ -109,7 +108,6 @@ def main():
         "derived/json-schema/features/metadata_viewport.schema.json": ViewportMetadataFeature,
         "derived/json-schema/features/metadata_time.schema.json": TimeMetadataFeature,
         "derived/json-schema/features/metadata_selection.schema.json": SelectionMetadataFeature,
-        "derived/json-schema/features/zone.schema.json": DebriefZoneFeature,
         "derived/json-schema/features/buoyfield.schema.json": DebriefBuoyfieldFeature,
         "derived/json-schema/features/backdrop.schema.json": DebriefBackdropFeature,
         "derived/json-schema/features/debrief_feature_collection.schema.json": DebriefFeatureCollection,

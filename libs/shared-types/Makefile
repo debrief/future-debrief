@@ -11,7 +11,6 @@ EXPECTED_SCHEMAS := derived/json-schema/features/track.schema.json \
                    derived/json-schema/features/metadata_viewport.schema.json \
                    derived/json-schema/features/metadata_time.schema.json \
                    derived/json-schema/features/metadata_selection.schema.json \
-                   derived/json-schema/features/zone.schema.json \
                    derived/json-schema/features/buoyfield.schema.json \
                    derived/json-schema/features/backdrop.schema.json \
                    derived/json-schema/features/debrief_feature_collection.schema.json \

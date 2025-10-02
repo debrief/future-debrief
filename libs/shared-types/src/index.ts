@@ -56,7 +56,6 @@ export type { TimeMetadataFeature } from './types/features/metadata_time';
 export type { SelectionMetadataFeature } from './types/features/metadata_selection';
 
 // Re-export feature types
-export type { DebriefZoneFeature } from './types/features/zone';
 export type { DebriefBuoyfieldFeature } from './types/features/buoyfield';
 export type { DebriefBackdropFeature } from './types/features/backdrop';
 
