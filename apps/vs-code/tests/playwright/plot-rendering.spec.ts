@@ -60,7 +60,32 @@ async function openPlotFile(page: Page, filename: string) {
     '.activitybar a[aria-label="Explorer (Ctrl+Shift+E)"]'
   );
   await explorerIcon.click();
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(3000);
+
+  // Wait for any monaco list to appear (file tree)
+  await page.waitForSelector('.monaco-list', { timeout: 10000 });
+  await page.waitForTimeout(2000);
+
+  // Expand all collapsed folders to ensure files are visible
+  let expandedAny = false;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const chevrons = page.locator('.monaco-icon-label .codicon-chevron-right');
+    const count = await chevrons.count();
+
+    if (count === 0) break; // No more folders to expand
+
+    for (let i = 0; i < count; i++) {
+      try {
+        await chevrons.nth(0).click({ timeout: 1000 }); // Always click first (index changes after expansion)
+        await page.waitForTimeout(300);
+        expandedAny = true;
+      } catch {
+        // Chevron might not be clickable
+      }
+    }
+
+    if (!expandedAny) break; // Couldn't expand anything new
+  }
 
   // Find and double-click the file
   const plotFile = page.locator(

@@ -62,8 +62,35 @@ test.describe('Tool Vault Server Integration', () => {
   test('should validate Tool Vault health endpoint with structured response', async ({
     request,
   }) => {
-    // Hit the Tool Vault health endpoint
-    const response = await request.get('http://localhost:60124/health');
+    // Tool Vault starts in background, so retry with exponential backoff
+    let response;
+    let lastError;
+    const maxRetries = 10;
+    const initialDelay = 1000;
+
+    for (let i = 0; i < maxRetries; i++) {
+      try {
+        response = await request.get('http://localhost:60124/health', {
+          timeout: 5000,
+        });
+        if (response.ok()) {
+          break; // Success!
+        }
+      } catch (error) {
+        lastError = error;
+        const delay = initialDelay * Math.pow(1.5, i);
+        console.log(
+          `⏳ Tool Vault not ready (attempt ${i + 1}/${maxRetries}), waiting ${delay}ms...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+
+    if (!response || !response.ok()) {
+      throw new Error(
+        `Tool Vault health endpoint failed after ${maxRetries} attempts. Last error: ${lastError}`
+      );
+    }
 
     // Verify HTTP 200 status
     expect(response.ok()).toBeTruthy();
@@ -73,12 +100,10 @@ test.describe('Tool Vault Server Integration', () => {
     const body = await response.json();
 
     // Validate response structure
-    // Tool Vault health endpoints typically return { "status": "ok" } or similar
     expect(body).toHaveProperty('status');
     expect(typeof body.status).toBe('string');
 
-    // Log response for debugging
-    console.log('Tool Vault health response:', body);
+    console.log('✅ Tool Vault health response:', body);
   });
 
   test('should validate WebSocket bridge is accessible on port 60123', async () => {

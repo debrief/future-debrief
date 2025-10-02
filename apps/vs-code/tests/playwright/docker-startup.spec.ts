@@ -88,7 +88,6 @@ test.describe('Docker Container Startup', () => {
     await handleTrustDialog(page);
 
     // Open Extensions view by clicking the activity bar icon
-    // Use aria-label to find the Extensions icon in the activity bar
     const extensionsIcon = page.locator(
       '.activitybar a[aria-label="Extensions (Ctrl+Shift+X)"]'
     );
@@ -99,20 +98,25 @@ test.describe('Docker Container Startup', () => {
       timeout: 15000,
     });
 
-    // Search for "debrief" in the search box
-    const searchBox = page.locator(
-      '[placeholder="Search Extensions in Workspace"]'
-    );
-    await searchBox.fill('debrief');
-    await page.waitForTimeout(2000); // Give search time to filter
+    // Wait for extension list to render
+    await page.waitForTimeout(3000);
+
+    // Try to find and use search box (may not exist in all VS Code versions)
+    try {
+      const searchBox = page.locator('[placeholder*="Search"]').first();
+      await searchBox.waitFor({ state: 'visible', timeout: 5000 });
+      await searchBox.fill('debrief');
+      await page.waitForTimeout(2000);
+    } catch {
+      console.log('⚠️  Search box not found, checking all installed extensions');
+    }
 
     // Check if Debrief extension is listed
-    // The extension should appear in the installed extensions list
-    const extensionRow = page.locator('.extension', {
+    const extensionRow = page.locator('.extension-list-item', {
       has: page.locator('text=/debrief/i'),
     });
 
-    await expect(extensionRow).toBeVisible({ timeout: 10000 });
+    await expect(extensionRow).toBeVisible({ timeout: 15000 });
 
     // Verify extension is enabled (not disabled)
     // Disabled extensions typically show a "Disabled" badge or button
