@@ -156,10 +156,10 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
           }
         </style>
         <style>
-          body { 
-            font-family: var(--vscode-font-family, sans-serif); 
-            margin: 0; 
-            padding: 0; 
+          body {
+            font-family: var(--vscode-font-family, sans-serif);
+            margin: 0;
+            padding: 8px;
             color: var(--vscode-foreground);
             background-color: var(--vscode-editor-background);
           }
