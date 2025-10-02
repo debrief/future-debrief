@@ -13,7 +13,7 @@
                 "symbolInterval": 1800000,
                 "initialMonth": 11,
                 "initialYear": 2024,
-                "times": [
+                "timestamps": [
                     "2024-11-14T21:16:53.662Z",
                     "2024-11-14T21:17:53.662Z",
                     "2024-11-14T21:18:53.662Z",
@@ -4607,7 +4607,7 @@
                 "symbolInterval": 1800000,
                 "initialMonth": 11,
                 "initialYear": 2024,
-                "times": [
+                "timestamps": [
                     "2024-11-14T16:16:53.662Z",
                     "2024-11-14T16:17:53.662Z",
                     "2024-11-14T16:18:53.662Z",
@@ -12382,7 +12382,7 @@
                 "symbolInterval": 1800000,
                 "initialMonth": 11,
                 "initialYear": 2024,
-                "times": [
+                "timestamps": [
                     "2024-11-14T16:17:00.000Z",
                     "2024-11-14T16:18:00.000Z",
                     "2024-11-14T16:19:00.000Z",

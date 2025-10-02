@@ -28,7 +28,7 @@ const trackFeature = plot.features.find(
   (f) => f.properties?.dataType === 'track' && f.geometry.type === 'LineString'
 ) as GeoJSONFeature;
 
-const timestamps = trackFeature.properties?.times as string[];
+const timestamps = (trackFeature.properties as any)?.timestamps as string[];
 const startTime = new Date(timestamps[0]).getTime();
 const endTime = new Date(timestamps[timestamps.length - 1]).getTime();
 const timeRange = endTime - startTime; // Total duration in milliseconds
