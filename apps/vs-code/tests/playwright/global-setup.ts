@@ -48,20 +48,42 @@ async function globalSetup() {
       console.log('   No existing container to remove\n');
     }
 
-    // Free up required ports
+    // Check port availability - fail if ports are in use rather than killing arbitrary processes
     console.log('🔍 Checking port availability...');
+    const portsInUse: Array<{ port: number; pids: string }> = [];
+
     for (const port of [VS_CODE_PORT, WEBSOCKET_PORT, TOOL_VAULT_PORT]) {
       try {
         const output = execSync(`lsof -i :${port} -t`, { encoding: 'utf-8', stdio: 'pipe' }).trim();
         if (output) {
-          console.log(`   Port ${port} in use, killing process...`);
-          execSync(`kill -9 ${output}`, { stdio: 'pipe' });
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait for port to be released
+          portsInUse.push({ port, pids: output });
         }
       } catch {
-        // Port is free or kill failed (which is ok)
+        // Port is free (lsof returns non-zero when no processes found)
       }
     }
+
+    if (portsInUse.length > 0) {
+      console.error('\n❌ Required ports are already in use:\n');
+      for (const { port, pids } of portsInUse) {
+        console.error(`   Port ${port}: process(es) ${pids}`);
+        try {
+          const processInfo = execSync(`ps -p ${pids.split('\n')[0]} -o comm=`, {
+            encoding: 'utf-8',
+            stdio: 'pipe'
+          }).trim();
+          console.error(`   (${processInfo})`);
+        } catch {
+          // Process info not available
+        }
+      }
+      console.error('\nPlease stop these processes before running tests.');
+      console.error('Common solutions:');
+      console.error('  - Stop any running Docker containers: docker stop debrief-playwright-test');
+      console.error('  - Check for other VS Code instances or web servers');
+      throw new Error('Required ports are in use. Tests cannot proceed.');
+    }
+
     console.log('   All ports available\n');
 
     // Find repository root using git (works with worktrees)
