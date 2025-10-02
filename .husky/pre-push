@@ -1,12 +1,17 @@
+#!/bin/bash
 pnpm test
 
 # Run fast pre-push validation showing detailed errors
 echo "🚀 Running pre-push validation..."
 
 FAILED=0
+ORIGINAL_DIR=$(pwd)
 
 # Find all Makefiles and run verify sequentially to show errors properly
-while IFS= read -r dir; do
+# Store directories in a variable first to avoid subshell issues
+MAKEFILE_DIRS=$(find . -path "*/*/Makefile" -not -path "*/node_modules/*" -exec dirname {} \;)
+
+for dir in $MAKEFILE_DIRS; do
   cd "$dir" || continue
   pkg_name=$(basename "$(pwd)")
   echo "✅ Checking $pkg_name..."
@@ -15,8 +20,8 @@ while IFS= read -r dir; do
     echo "❌ $pkg_name failed" >&2
     FAILED=1
   fi
-  cd - > /dev/null || exit 1
-done < <(find . -path "*/*/Makefile" -not -path "*/node_modules/*" -exec dirname {} \;)
+  cd "$ORIGINAL_DIR" || exit 1
+done
 
 if [ "$FAILED" = "1" ]; then
   echo "❌ Some validations failed!" >&2
