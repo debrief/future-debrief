@@ -37,6 +37,7 @@ Temporal navigation component for maritime datasets with interactive slider, ada
 - `timeState: TimeState` - Current time and range boundaries (required)
 - `timeFormat?: 'plain' | 'iso' | 'rn-short' | 'rn-long'` - Time display format (default: 'rn-short')
 - `onTimeChange?: (time: string) => void` - Callback when time changes (ISO 8601 string)
+- `onOpenSettings?: () => void` - Callback when settings button is clicked (optional)
 - `className?: string` - Additional CSS classes
 
 **TimeState Interface:**

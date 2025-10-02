@@ -79,8 +79,9 @@ controller.updateProps({
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `timeState` | `TimeState` | required | Current time and range boundaries |
-| `timeFormat` | `'plain' \| 'unix' \| 'rn-short' \| 'rn-long'` | `'plain'` | Time display format |
+| `timeFormat` | `'plain' \| 'iso' \| 'rn-short' \| 'rn-long'` | `'rn-short'` | Time display format |
 | `onTimeChange` | `(time: string) => void` | optional | Callback when time changes |
+| `onOpenSettings` | `() => void` | optional | Callback when settings button is clicked |
 | `className` | `string` | `''` | Additional CSS class names |
 
 ### TimeState Interface
@@ -187,6 +188,28 @@ this._globalController.updateState(editorId, 'timeState', {
   current: newTime,
 });
 ```
+
+## VS Code Configuration
+
+The TimeController can be configured through VS Code settings:
+
+### Time Format Preference
+
+Set your preferred time format in VS Code settings:
+
+**Setting**: `debrief.timeController.format`
+
+**Options**:
+- `rn-short` - Royal Navy Short: 151430Z (default)
+- `plain` - Plain English: Jan 15, 2024, 14:30:00 UTC
+- `iso` - ISO 8601: 2024-01-15T14:30:00.000Z
+- `rn-long` - Royal Navy Long: JAN 151430Z
+
+**Accessing Settings**:
+1. Click the settings button (⚙️) in the TimeController header
+2. Or manually: `Preferences > Settings > search for "debrief.timeController.format"`
+
+The component will automatically use the configured format when rendered in the VS Code extension.
 
 ## Styling and Theming
 
