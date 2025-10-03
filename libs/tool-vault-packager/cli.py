@@ -179,12 +179,20 @@ def serve_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
         # Create the app
         app = create_app(tools_path)
 
-        print(f"Server starting on http://{host}:{port}")
-        print(f"Web interface: http://{host}:{port}/ui/")
-        print(f"MCP API: http://{host}:{port}/tools/list")
+        print(f"Tool Vault Server starting on http://{host}:{port}")
         print(f"Tools directory: {tools_path}")
-        print("Additional endpoints:")
+        print("")
+        print("MCP Endpoints (LLM Integration):")
+        print(f"  - POST http://{host}:{port}/mcp")
+        print("")
+        print("Web interface:")
+        print(f"  - GET  http://{host}:{port}/ui/")
+        print("")
+        print("Legacy REST API (backward compatibility):")
+        print(f"  - GET  http://{host}:{port}/tools/list")
         print(f"  - POST http://{host}:{port}/tools/call")
+        print("")
+        print("System:")
         print(f"  - GET  http://{host}:{port}/health")
 
         # Start the server
