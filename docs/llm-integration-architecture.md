@@ -458,27 +458,40 @@ const tools = [
 fs.writeFileSync('dist/mcp-tools.json', JSON.stringify({ tools }));
 ```
 
-**Shared Command Handler**:
+**Shared Command Handler** (Reuses existing ToolVaultCommandHandler):
 ```typescript
 // apps/vs-code/src/services/commandHandler.ts
+import { ToolVaultCommandHandler } from '@debrief/web-components/services';
+
+// Singleton instance (already exists in VS Code extension)
+const commandHandler = new ToolVaultCommandHandler(stateSetter);
+
 export async function handleCommand(command: string, params: any) {
   switch (command) {
     case 'debrief_get_selection':
       return globalController.getSelection(params.filename);
 
     case 'debrief_apply_command':
-      return globalController.applyDebriefCommand(
-        params.command,
-        params.filename
+      // Delegate to existing ToolVaultCommandHandler!
+      // No duplication - same logic used by tool-vault tools
+      const results = await commandHandler.processCommands(
+        [params.command],  // Array of DebriefCommands
+        currentFeatureCollection
       );
+      return results[0];
 
     case 'debrief_get_features':
       return globalController.getFeatureCollection(params.filename);
 
-    // ... all other commands
+    // ... other commands
   }
 }
 ```
+
+**Key Refactoring**: The Debrief State Server **reuses** the existing `ToolVaultCommandHandler` from `@debrief/web-components` instead of duplicating command processing logic. This ensures:
+- ✅ **No duplication** - Same code handles commands from both tool-vault tools and MCP tools
+- ✅ **Consistent behavior** - Identical command execution regardless of source
+- ✅ **Simpler maintenance** - Single implementation to test and update
 
 **Benefits**:
 - ✅ **No wrapper layer** - Single server with dual interface
@@ -1379,346 +1392,109 @@ This approach combines the best of both previous options:
 
 ---
 
-### 5.1 Phase 1: Implementation (1-2 weeks)
-|----------|--------|-------------|------------------|--------|
-| **Time to Market** | High | ✅ 2-3 weeks | ⚠️ 4-6 weeks | Wrapper |
-| **Breaking Changes** | High | ✅ None (additive) | ✅ **One file** (debrief_api.py) | **TIE** |
-| **Long-term Maintainability** | Medium | ⚠️ Extra layer | ✅ Cleaner architecture | Refactor |
-| **Architecture Simplicity** | High | ⚠️ Wrapper + original | ✅ Single HTTP service | **Refactor** |
-| **Future Web Access** | High | ❌ Requires HTTP anyway | ✅ Native HTTP | **Refactor** |
-| **Risk Level** | High | ✅ Low (can disable) | ✅ **Low (one client)** | **TIE** |
-| **Testing Burden** | Medium | ⚠️ Wrapper + integration | ⚠️ Update one wrapper | **TIE** |
-| **Tool Vault Integration** | High | ⚠️ Need MCP wrapper | ✅ **CLI already works** | **Refactor** |
+### 5.1 Phase 1: MCP Endpoint Implementation (3-5 days)
 
-**Key Insight**: With only one client wrapper (`debrief_api.py`) and Tool Vault CLI support, **HTTP refactoring is now the recommended approach** unless extreme time pressure (<4 weeks).
+**Goal**: Add streamable-http MCP endpoints to both existing servers
 
-#### 5.0.2 Architectural Options Detailed Comparison
+**Timeline**: 3-5 days (much faster than original wrapper/refactoring estimates!)
 
-##### Option A: MCP Wrapper Approach
+**Deliverables**:
 
-**Architecture**:
-```
-LLM Extension → MCP State Server (stdio) → WebSocket Client → WebSocket Server (existing)
-LLM Extension → Bash Tool → Tool Vault CLI (python toolvault.pyz call-tool)
-```
+#### Week 1: Core Implementation (3-5 days)
 
-**Pros**:
-- ✅ **Fast delivery**: 2-3 weeks to working prototype
-- ✅ **Zero breaking changes**: Python clients continue working
-- ✅ **Low risk**: Can disable MCP servers without affecting core
-- ✅ **Incremental**: Can still refactor later if HTTP needed
-- ✅ **Tool Vault simple**: Just use CLI, no MCP wrapper needed
+**Debrief State Server** (apps/vs-code - TypeScript/Express):
+- [ ] Add POST `/mcp` endpoint with JSON-RPC 2.0 handler
+- [ ] Implement `tools/list` method (return pre-cached tool index)
+- [ ] Implement `tools/call` method routing to existing command handlers
+- [ ] Generate MCP tool index at build time (`scripts/generate-mcp-tools.ts`)
+- [ ] Add health check endpoint
+- [ ] Error handling with JSON-RPC error codes
 
-**Cons**:
-- ❌ **Extra layer**: Adds complexity with wrapper maintenance
-- ❌ **Doesn't eliminate WebSocket**: Still need WebSocket server
-- ❌ **Future HTTP needs**: If web dashboard needed, requires refactor anyway
-- ❌ **Performance overhead**: Extra hop in communication chain
-- ❌ **Temporary solution**: Likely to be replaced within 12 months
+**Tool Vault Server** (libs/tool-vault-packager - Python/FastAPI):
+- [ ] Add POST `/mcp` endpoint with JSON-RPC 2.0 handler
+- [ ] Implement `tools/list` method (wrap existing tool discovery)
+- [ ] Implement `tools/call` method (wrap existing tool execution)
+- [ ] Error handling with JSON-RPC error codes
+- [ ] Update server startup to log MCP endpoint availability
 
-**Best for**: Extreme time pressure (<4 weeks), deferring architectural decisions
+**Documentation**:
+- [ ] Update Continue.dev configuration guide for streamable-http
+- [ ] Update GitHub Copilot configuration (when available)
+- [ ] Example workflows: delete feature, filter features, update selection
+- [ ] Troubleshooting guide for MCP connection issues
 
-##### Option B: HTTP Refactoring Approach (NOW RECOMMENDED)
+**Testing**:
+- [ ] Manual testing with Continue.dev + Ollama
+- [ ] Test each MCP tool individually
+- [ ] End-to-end workflow testing (multi-step operations)
+- [ ] Error scenario testing (invalid requests, server unavailable)
+- [ ] Multiple concurrent client testing
 
-**Architecture**:
-```
-LLM Extension → MCP State Server (stdio) → HTTP Client → HTTP/REST Server (new)
-LLM Extension → Bash Tool → Tool Vault CLI (python toolvault.pyz call-tool)
-Python Test Scripts → debrief_api.py (HTTP wrapper) → HTTP/REST Server (new)
-VS Code Extension → HTTP Client → HTTP/REST Server (new)
-```
+#### Success Criteria
 
-**Pros**:
-- ✅ **Cleaner architecture**: Single service, no wrapper layer
-- ✅ **Future-proof**: Enables web dashboards, remote access, multi-user
-- ✅ **Matches Tool Vault**: Consistent HTTP pattern across services (both :60123 and :60124 are HTTP)
-- ✅ **LLM-friendly**: HTTP is universal, no special adapters needed
-- ✅ **Simpler MCP servers**: Direct HTTP calls, less translation
-- ✅ **Low client impact**: Only `debrief_api.py` wrapper needs updating (one file!)
-- ✅ **Test scripts unchanged**: They use the wrapper, so they just work
-- ✅ **No external clients**: Pre-production, so no third-party integrations to break
+- ✅ Both servers expose `/mcp` endpoints responding to JSON-RPC 2.0
+- ✅ Continue.dev can discover and call all tools
+- ✅ Multi-step workflows execute successfully (e.g., get selection → delete → verify)
+- ✅ Error responses use proper JSON-RPC error format
+- ✅ Multiple LLM clients can connect simultaneously
+- ✅ Legacy APIs (WebSocket, REST) continue working unchanged
 
-**Cons**:
-- ❌ **Time investment**: 4-6 weeks for implementation + testing (reduced from 6-8 weeks)
-- ⚠️ **Breaking changes**: One file (`debrief_api.py`) needs rewriting (low impact)
-- ⚠️ **Testing burden**: VS Code extension regression testing (manageable)
-- ⚠️ **Bidirectional sync**: Need polling, SSE, or WebSocket fallback for push (acceptable)
+#### Implementation Code References
 
-**Best for**: Long-term architectural improvement, **especially given single client wrapper and pre-production status**
+**Debrief State Server** (`apps/vs-code/src/services/debriefStateServer.ts`):
+```typescript
+app.post('/mcp', async (req, res) => {
+  const request = req.body;
 
-##### Option C: Hybrid Approach (Dual Protocol)
+  switch (request.method) {
+    case 'tools/list':
+      return res.json({
+        jsonrpc: '2.0',
+        id: request.id,
+        result: { tools: mcpToolIndex.tools }
+      });
 
-**Architecture**:
-```
-LLM Extension → MCP Server → HTTP Client → HTTP/REST Server (new)
-Python Clients (legacy) → WebSocket Client → WebSocket Server (deprecated)
-VS Code Extension → Direct HTTP or WebSocket (configurable)
+    case 'tools/call':
+      const result = await handleCommand(request.params.name, request.params.arguments);
+      return res.json({ jsonrpc: '2.0', id: request.id, result });
+  }
+});
 ```
 
-**Pros**:
-- ✅ **Gradual migration**: Both protocols available during transition
-- ✅ **No immediate breaking changes**: WebSocket marked deprecated
-- ✅ **Best of both worlds**: HTTP for new clients, WebSocket for legacy
-- ✅ **Bidirectional options**: Choose per use case
+**Tool Vault Server** (`libs/tool-vault-packager/server.py`):
+```python
+@app.post("/mcp")
+async def mcp_endpoint(request: dict):
+    method = request.get("method")
+    request_id = request.get("id")
 
-**Cons**:
-- ❌ **Highest complexity**: Maintaining two protocols simultaneously
-- ❌ **Longest timeline**: 8-10 weeks (both implementations)
-- ❌ **Technical debt**: Temporary dual-protocol maintenance burden
-- ❌ **State sync complexity**: Keeping both protocols consistent
+    if method == "tools/list":
+        return {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "result": {"tools": tools_cache}
+        }
 
-**Best for**: Large codebases with many WebSocket clients requiring gradual migration
-
-#### 5.0.3 Decision Factors (REVISED)
-
-**Choose MCP Wrapper (Option A) if**:
-- ✅ Extreme time pressure (<4 weeks deadline)
-- ✅ Want to defer architectural decisions to Phase 4
-- ✅ Need proof-of-concept before committing to HTTP
-- ✅ Very limited team bandwidth (1-2 weeks max)
-
-**Choose HTTP Refactoring (Option B) if** (**NOW RECOMMENDED**):
-- ✅ Web dashboard or remote access is a possibility within 12 months
-- ✅ Willing to update one Python wrapper file (`debrief_api.py`)
-- ✅ Long-term architecture cleanliness is priority
-- ✅ Team has 4-6 weeks for implementation + testing
-- ✅ Pre-production status (no external clients to break)
-- ✅ Want consistent HTTP pattern across both services (:60123 and :60124)
-- ✅ Value eliminating wrapper layer complexity
-
-**Key Change**: With only **one client wrapper** (`debrief_api.py`) and **Tool Vault CLI support**, HTTP refactoring is now **significantly lower risk** and **recommended** unless extreme time pressure exists.
-
-**Choose Hybrid Approach (Option C) if**:
-- ✅ Many external WebSocket clients exist (beyond Python test clients)
-- ✅ Cannot break existing integrations
-- ✅ Need HTTP for new use cases but WebSocket for legacy
-- ✅ Have 8-10 weeks for implementation
-- ✅ Can accept temporary dual-protocol maintenance
-
-#### 5.0.4 Recommendation Framework
-
-**Decision Tree**:
-
-```mermaid
-graph TD
-    Start[Start: LLM Integration Architecture]
-    Q1{Are there many<br/>external WebSocket<br/>clients?}
-    Q2{Is web dashboard/remote<br/>access needed within<br/>6 months?}
-    Q3{Can we allocate<br/>6-8 weeks for<br/>refactoring?}
-    Q4{Is maintaining<br/>dual protocols<br/>acceptable?}
-
-    Start --> Q1
-    Q1 -->|Yes| Q4
-    Q1 -->|No| Q2
-
-    Q4 -->|Yes| Hybrid[Option C: Hybrid<br/>Dual Protocol]
-    Q4 -->|No| Q2
-
-    Q2 -->|Yes| Q3
-    Q2 -->|No| WrapperFast[Option A: MCP Wrapper<br/>RECOMMENDED]
-
-    Q3 -->|Yes| Refactor[Option B: HTTP Refactoring]
-    Q3 -->|No| WrapperFallback[Option A: MCP Wrapper<br/>Then refactor in Phase 4]
-
-    style WrapperFast fill:#90EE90
-    style Refactor fill:#FFD700
-    style Hybrid fill:#FFA500
+    elif method == "tools/call":
+        result = await call_tool(
+            request["params"]["name"],
+            request["params"]["arguments"]
+        )
+        return {"jsonrpc": "2.0", "id": request_id, "result": result}
 ```
-
-#### 5.0.5 Phase 0 Deliverables
-
-**Week 1 Tasks**:
-
-1. **Stakeholder Survey** (Day 1-2):
-   - [ ] Identify all WebSocket client dependencies (beyond test Python scripts)
-   - [ ] Survey team for planned features requiring web/remote access
-   - [ ] Assess timeline constraints and deadlines
-   - [ ] Evaluate team bandwidth and skill sets
-
-2. **Technical Spike** (Day 2-3):
-   - [ ] Prototype minimal HTTP endpoint for `get_feature_collection`
-   - [ ] Test bidirectional sync options (polling vs SSE vs WebSocket fallback)
-   - [ ] Benchmark WebSocket vs HTTP latency in current architecture
-   - [ ] Estimate effort for Python client migration
-
-3. **Risk Assessment** (Day 3-4):
-   - [ ] Document breaking changes impact
-   - [ ] Test plan scope estimation
-   - [ ] Rollback strategy for each option
-   - [ ] Performance regression risk analysis
-
-4. **Decision Meeting** (Day 4):
-   - [ ] Present findings to team
-   - [ ] Review decision criteria matrix with stakeholders
-   - [ ] Make architectural decision
-   - [ ] Document rationale in ADR
-
-5. **Planning** (Day 5):
-   - [ ] Create detailed implementation plan for chosen approach
-   - [ ] Update this architecture document with final decision
-   - [ ] Schedule implementation phases
-   - [ ] Assign resources and responsibilities
-
-#### 5.0.6 Success Criteria for Phase 0
-
-- ✅ Clear architectural decision documented with rationale
-- ✅ Stakeholder alignment on approach
-- ✅ Detailed implementation plan for chosen option
-- ✅ Risk mitigation strategies defined
-- ✅ ADR created (e.g., ADR-016-llm-integration-protocol.md)
-- ✅ Team understands trade-offs and timeline
-
-#### 5.0.7 Key Questions to Answer
-
-Before proceeding to Phase 1, answer these questions:
-
-1. **Client Dependencies**: How many external WebSocket clients exist beyond `debrief_api.py`?
-   - **Answer**: Zero external clients (pre-production)
-   - **Impact**: ✅ Strongly favors HTTP refactoring
-
-2. **Tool Vault Integration**: Does Tool Vault have CLI/stdio support?
-   - **Answer**: Yes - `python toolvault.pyz list-tools` and `call-tool` work
-   - **Impact**: ✅ No need for "Debrief Tools Server" MCP wrapper - use Bash tool directly
-
-3. **Future Features**: Is web dashboard, remote access, or mobile app planned?
-   - **If yes within 12 months**: ✅ Strongly favor HTTP refactoring
-   - **If no plans**: Wrapper acceptable (but HTTP still cleaner)
-
-4. **Timeline Pressure**: What's the deadline for LLM integration?
-   - **If <4 weeks**: Must use wrapper
-   - **If 4-6 weeks**: HTTP refactoring recommended (revised estimate)
-   - **If >6 weeks**: Strongly favor HTTP refactoring
-
-5. **Team Bandwidth**: How many engineering weeks available?
-   - **If <3 weeks**: Must use wrapper
-   - **If 3-6 weeks**: HTTP refactoring viable (single client reduces effort)
-   - **If 6+ weeks**: Strongly favor HTTP refactoring
-
-**Critical Findings**:
-- ✅ **Only one client wrapper** to update (`debrief_api.py`)
-- ✅ **Tool Vault CLI already works** (no wrapper needed)
-- ✅ **Pre-production status** (no external clients)
-- ✅ **HTTP refactoring is now significantly lower risk**
-
-**Updated Recommendation**: **HTTP Refactoring (Option B)** unless deadline is <4 weeks.
 
 ---
 
-### 5.1 Phase 1: Implementation (Timeline depends on Phase 0 decision)
+### 5.2 Phase 2: Enhanced Features & Robustness (2-3 weeks)
 
-**Note**: Phase 1 plan varies significantly based on Phase 0 architectural decision. See subsections below.
-
-#### 5.1.A Phase 1: MCP Wrapper Implementation (2-3 weeks)
-
-**Goal**: Enable basic LLM orchestration using wrapper approach
-
-**Deliverables**:
-1. **Debrief State Server** (stdio MCP)
-   - Core tools: `get_selection`, `set_selection`, `get_features`, `update_features`
-   - WebSocket connection with retry logic
-   - Basic error handling and logging
-
-2. **Debrief Tools Server** (stdio MCP)
-   - Dynamic tool discovery from Tool Vault
-   - Tool execution with ToolVaultCommand handling
-   - HTTP client with timeout protection
-
-3. **Documentation**
-   - Installation guide for Claude Code
-   - Example workflows (delete feature, update selection)
-   - Troubleshooting guide
-
-4. **Testing**
-   - Integration tests for each MCP tool
-   - End-to-end workflow tests with Claude Code
-   - Error scenario testing (connection failures, invalid inputs)
-
-**Success Criteria**:
-- ✅ LLM can retrieve and update plot state via MCP tools
-- ✅ LLM can execute Tool Vault tools and process results
-- ✅ Multi-step workflows execute successfully
-- ✅ Error handling provides clear feedback
-
-#### 5.1.B Phase 1: HTTP Refactoring Implementation (6-8 weeks)
-
-**Goal**: Refactor WebSocket server to HTTP/REST with backward compatibility
+**Goal**: Improve robustness, add remaining MCP tools, and enhance observability
 
 **Deliverables**:
 
-**Week 1-2: HTTP Server Implementation**
-- [ ] Design HTTP/REST API matching WebSocket commands
-- [ ] Implement Express/Fastify HTTP server on port 60123
-- [ ] Core endpoints: GET/POST for features, selection, time, viewport
-- [ ] Error handling and standardized response formats
-
-**Week 3-4: VS Code Extension Integration**
-- [ ] Refactor `debriefWebSocketServer.ts` to `debriefHttpServer.ts`
-- [ ] Update GlobalController to use HTTP client
-- [ ] Implement SSE or polling for bidirectional sync (if needed)
-- [ ] Maintain feature parity with WebSocket version
-
-**Week 5-6: Python Client Migration**
-- [ ] Rewrite `debrief_api.py` to use HTTP requests
-- [ ] Maintain same public API (transparent to users)
-- [ ] Update all test scripts
-- [ ] Document migration guide
-
-**Week 7-8: MCP Server + Testing**
-- [ ] Implement MCP servers (simpler with direct HTTP)
-- [ ] Full regression testing
-- [ ] Performance benchmarking
-- [ ] Documentation and examples
-
-**Success Criteria**:
-- ✅ HTTP server provides all WebSocket functionality
-- ✅ VS Code extension works with HTTP server
-- ✅ Python clients migrated and working
-- ✅ MCP servers functional with HTTP backend
-- ✅ Performance acceptable (<200ms p95)
-- ✅ All tests passing
-
----
-
-### 5.2 Phase 2: Enhanced Features (Timeline: +2-3 weeks after Phase 1)
-
-**Goal**: Enable basic LLM orchestration of state and tool operations
-
-**Deliverables**:
-1. **Debrief State Server** (stdio MCP)
-   - Core tools: `get_selection`, `set_selection`, `get_features`, `update_features`
-   - WebSocket connection with retry logic
-   - Basic error handling and logging
-
-2. **Debrief Tools Server** (stdio MCP)
-   - Dynamic tool discovery from Tool Vault
-   - Tool execution with ToolVaultCommand handling
-   - HTTP client with timeout protection
-
-3. **Documentation**
-   - Installation guide for Claude Code
-   - Example workflows (delete feature, update selection)
-   - Troubleshooting guide
-
-4. **Testing**
-   - Integration tests for each MCP tool
-   - End-to-end workflow tests with Claude Code
-   - Error scenario testing (connection failures, invalid inputs)
-
-**Success Criteria**:
-- ✅ LLM can retrieve and update plot state via MCP tools
-- ✅ LLM can execute Tool Vault tools and process results
-- ✅ Multi-step workflows execute successfully
-- ✅ Error handling provides clear feedback
-
-### 5.2 Phase 2: Enhanced Features (2-3 weeks)
-
-**Goal**: Improve robustness, observability, and platform support
-
-**Deliverables**:
-1. **Additional State Tools**
-   - Time state: `get_time`, `set_time`
-   - Viewport state: `get_viewport`, `set_viewport`
-   - Utility: `list_open_plots`, `zoom_to_selection`
+1. **Additional MCP Tools** (Debrief State Server)
+   - Time state: `debrief_get_time`, `debrief_set_time`
+   - Viewport state: `debrief_get_viewport`, `debrief_set_viewport`
+   - Utility: `debrief_list_plots`, `debrief_zoom_to_selection`
 
 2. **Advanced Error Handling**
    - Retry logic with exponential backoff
