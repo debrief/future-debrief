@@ -253,7 +253,6 @@ graph TB
 
     subgraph "Tool Vault Server :60124"
         MCP_TV["POST /mcp endpoint<br/>MCP JSON-RPC 2.0"]
-        REST_TV["REST API<br/>Legacy endpoints"]
         HANDLER_TV["Tool Execution<br/>Handler"]
     end
 
@@ -262,9 +261,8 @@ graph TB
         GM["Global Controller"]
     end
 
-    subgraph "User Code"
-        PYSCRIPT["Python Scripts<br/>debrief_api.py"]
-        TSCODE["TypeScript/JS<br/>Custom tools"]
+    subgraph "User Python Scripts"
+        PYSCRIPT["debrief_api.py<br/>Modified for MCP"]
     end
 
     GH -->|HTTP POST /mcp| MCP_DS
@@ -274,11 +272,9 @@ graph TB
 
     MCP_DS --> HANDLER_DS
     WS --> HANDLER_DS
-    PYSCRIPT -->|WebSocket or HTTP| WS
-    TSCODE -->|HTTP| MCP_DS
+    PYSCRIPT -->|HTTP POST /mcp| MCP_DS
 
     MCP_TV --> HANDLER_TV
-    REST_TV --> HANDLER_TV
 
     HANDLER_DS -->|Update state| PE
     HANDLER_DS -->|Update state| GM
@@ -288,7 +284,6 @@ graph TB
     style HANDLER_DS fill:#e1f5ff
     style HANDLER_TV fill:#e1f5ff
     style WS fill:#FFE4B5
-    style REST_TV fill:#FFE4B5
     style PE fill:#fff4e1
     style GM fill:#fff4e1
 ```
@@ -300,9 +295,11 @@ graph TB
 **Implementation Language**: TypeScript/Node.js (matches existing codebase in `apps/vs-code/src/services/debriefWebSocketServer.ts`)
 
 **Architecture**: Single server with dual interfaces:
-- **`POST /mcp` endpoint**: For LLM extensions (MCP JSON-RPC 2.0 over streamable-http)
-- **WebSocket/HTTP interface**: For existing clients (`debrief_api.py`, VS Code extension)
+- **`POST /mcp` endpoint**: For LLM extensions AND user Python scripts (MCP JSON-RPC 2.0 over streamable-http)
+- **WebSocket interface**: For VS Code extension internal communication (legacy)
 - **Shared command handler**: Same logic for both interfaces
+
+**Key Update**: User Python scripts (`debrief_api.py`) will be **modified to use MCP endpoint** instead of WebSocket - aligning with LLM integration pattern.
 
 **Key Simplification**: No separate MCP server package needed - just add one endpoint to existing server.
 
@@ -531,9 +528,9 @@ export async function handleCommand(command: string, params: any) {
 
 **Implementation Language**: Python/FastAPI (existing codebase in `libs/tool-vault-packager/server.py`)
 
-**Architecture**: Add `/mcp` endpoint to existing FastAPI server (port 60124)
+**Architecture**: Implement native `/mcp` endpoint on FastAPI server (port 60124)
 
-**Key Advantage**: Tool Vault already has `/tools/list` and `/tools/call` endpoints - MCP endpoint just wraps them in JSON-RPC 2.0 format!
+**Key Simplification**: Since we're not in production yet, Tool Vault will ONLY expose MCP endpoint - no legacy REST API to maintain!
 
 **Implementation Details**:
 
@@ -603,22 +600,13 @@ async def mcp_endpoint(request: dict):
                 "message": str(e)
             }
         }
-
-# Existing REST endpoints (unchanged)
-@app.get("/tools/list")
-async def list_tools():
-    return {"tools": tools_cache}
-
-@app.post("/tools/call")
-async def call_tool_rest(request: dict):
-    return await call_tool(request["name"], request["arguments"])
 ```
 
 **Benefits**:
-- ✅ **Minimal code** - Just one new endpoint wrapping existing logic
-- ✅ **No transformation needed** - Tool Vault schema already MCP-compatible
-- ✅ **Existing infrastructure** - FastAPI server already running
-- ✅ **Zero downtime** - Add MCP without touching existing endpoints
+- ✅ **Clean implementation** - Single MCP endpoint, no legacy API
+- ✅ **MCP-native** - Tool Vault schema already MCP-compatible
+- ✅ **FastAPI infrastructure** - Lightweight server on port 60124
+- ✅ **Pre-production advantage** - No backwards compatibility burden
 
 ### 2.4 Architectural Decision: streamable-http vs stdio
 
@@ -843,9 +831,8 @@ return { success: true, deletedId: featureId };
 
 **Command Producers** (multiple sources):
 1. **Tool Vault tools**: Maritime analysis tools returning plot updates
-2. **User workspace scripts**: Python/JavaScript scripts in `workspace/` directory
-3. **VS Code extensions**: User-authored extensions manipulating plots
-4. **LLM-generated code**: Code written by LLMs and executed in workspace
+2. **User Python scripts**: Python scripts in `workspace/` directory (via `debrief_api.py`)
+3. **LLM-generated code**: Python code written by LLMs and executed in workspace
 
 **Command Types**:
 - `setFeatureCollection`: Update entire feature collection
@@ -1491,7 +1478,7 @@ this.toolVaultCommandHandler = new ToolVaultCommandHandler(this.createStateSette
 - [ ] Test tool execution → command processing → state update flow
 - [ ] Test ToolVaultCommandHandler processes commands correctly
 - [ ] Test multi-plot scenarios (MULTIPLE_PLOTS error handling)
-- [ ] Test backward compatibility (existing Python scripts via WebSocket)
+- [ ] Test Python scripts via MCP endpoint (modified debrief_api.py)
 
 **End-to-End Tests**:
 - [ ] Test LLM extension connects to MCP endpoint
@@ -1512,7 +1499,7 @@ this.toolVaultCommandHandler = new ToolVaultCommandHandler(this.createStateSette
 
 ✅ **ToolVaultCommandHandler** (`libs/web-components/src/services/ToolVaultCommandHandler.ts`): Reusable service works for both WebSocket and MCP - no changes needed
 
-✅ **Tool Vault Server** (`libs/tool-vault-packager/server.py`): Just add `/mcp` endpoint - existing `/tools/call` unchanged
+✅ **Tool Vault Server** (`libs/tool-vault-packager/server.py`): Clean MCP-only implementation - no legacy endpoints to maintain
 
 #### Architecture Clarification
 
@@ -1568,6 +1555,12 @@ GlobalController.updateState()
 - [ ] Implement `tools/call` method (wrap existing tool execution)
 - [ ] Error handling with JSON-RPC error codes
 - [ ] Update server startup to log MCP endpoint availability
+- [ ] **No legacy REST API needed** - MCP-only implementation
+
+**Python Script Integration** (apps/vs-code/workspace/tests):
+- [ ] Modify `debrief_api.py` to use MCP endpoint instead of WebSocket
+- [ ] Update to use JSON-RPC 2.0 request format
+- [ ] Test all existing Python script workflows with new MCP client
 
 **Documentation**:
 - [ ] Update GitHub Copilot configuration guide for streamable-http
@@ -1589,7 +1582,8 @@ GlobalController.updateState()
 - ✅ Multi-step workflows execute successfully (e.g., get selection → delete → verify)
 - ✅ Error responses use proper JSON-RPC error format
 - ✅ Multiple LLM clients can connect simultaneously
-- ✅ Legacy APIs (WebSocket, REST) continue working unchanged
+- ✅ Python scripts (`debrief_api.py`) successfully use MCP endpoint
+- ✅ Tool Vault MCP-only implementation (no legacy REST API)
 
 #### Implementation Code References
 
@@ -2171,9 +2165,9 @@ If future requirements demand HTTP access (web dashboards, remote access, multi-
 - **Node.js HTTP Client (Fetch API)**: https://nodejs.org/api/globals.html#fetch
 
 ### Future Debrief References
-- **WebSocket API Documentation**: `apps/vs-code/README.md` (lines 251-433)
+- **WebSocket API Documentation**: `apps/vs-code/README.md` (lines 251-433) - to be supplemented with MCP docs
 - **Tool Vault Architecture**: `libs/tool-vault-packager/DEVELOPERS.md`
-- **Python WebSocket Client**: `apps/vs-code/workspace/tests/debrief_api.py`
+- **Python MCP Client**: `apps/vs-code/workspace/tests/debrief_api.py` - will be modified to use MCP endpoint
 - **Shared Types**: `libs/shared-types/`
 
 ---
