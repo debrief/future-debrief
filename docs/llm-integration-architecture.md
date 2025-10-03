@@ -241,30 +241,30 @@ The recommended approach is **maximally simplified**:
 ```mermaid
 graph TB
     subgraph "VS Code LLM Integrations"
-        GH[GitHub Copilot<br/>Phase 1: Initial]
-        TOG[together.dev<br/>Phase 2: Offline]
+        GH["GitHub Copilot<br/>Phase 1: Initial"]
+        TOG["together.dev<br/>Phase 2: Offline"]
     end
 
     subgraph "Debrief State Server :60123"
-        MCP_DS[/mcp endpoint<br/>MCP JSON-RPC 2.0]
-        WS[WebSocket<br/>Legacy API]
-        HANDLER_DS[Command Handler<br/>Shared Logic]
+        MCP_DS["POST /mcp endpoint<br/>MCP JSON-RPC 2.0"]
+        WS["WebSocket<br/>Legacy API"]
+        HANDLER_DS["Command Handler<br/>Shared Logic"]
     end
 
     subgraph "Tool Vault Server :60124"
-        MCP_TV[/mcp endpoint<br/>MCP JSON-RPC 2.0]
-        REST_TV[REST API<br/>Legacy endpoints]
-        HANDLER_TV[Tool Execution<br/>Handler]
+        MCP_TV["POST /mcp endpoint<br/>MCP JSON-RPC 2.0"]
+        REST_TV["REST API<br/>Legacy endpoints"]
+        HANDLER_TV["Tool Execution<br/>Handler"]
     end
 
     subgraph "VS Code Extension"
-        PE[Plot Editor]
-        GM[Global Controller]
+        PE["Plot Editor"]
+        GM["Global Controller"]
     end
 
     subgraph "User Code"
-        PYSCRIPT[Python Scripts<br/>debrief_api.py]
-        TSCODE[TypeScript/JS<br/>Custom tools]
+        PYSCRIPT["Python Scripts<br/>debrief_api.py"]
+        TSCODE["TypeScript/JS<br/>Custom tools"]
     end
 
     GH -->|HTTP POST /mcp| MCP_DS
