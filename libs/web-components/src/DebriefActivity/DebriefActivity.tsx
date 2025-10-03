@@ -1,17 +1,20 @@
 import React from 'react';
 import { ActivityBar, ActivityPanel } from '../ActivityBar/ActivityBar';
 import { TimeController, TimeControllerProps } from '../TimeController/TimeController';
-import { OutlineView, OutlineViewProps } from '../OutlineView/OutlineView';
+import { OutlineViewParent } from '../OutlineViewParent/OutlineViewParent';
 import { PropertiesView, PropertiesViewProps } from '../PropertiesView/PropertiesView';
 import { CurrentStateTable } from '../CurrentStateTable/CurrentStateTable';
-import { CurrentState } from '@debrief/shared-types';
+import { CurrentState, DebriefFeatureCollection } from '@debrief/shared-types';
+import type { GlobalToolIndexModel } from '@debrief/shared-types/src/types/tools/global_tool_index';
+import type { Tool } from '@debrief/shared-types/src/types/tools/tool_list_response';
+import type { DebriefFeature } from '@debrief/shared-types';
 
 /**
  * DebriefActivity - Composite component that combines all activity panels
  *
  * This component wraps ActivityBar and composes the individual panels:
  * - TimeController
- * - OutlineView
+ * - OutlineViewParent (with tool execution UI)
  * - PropertiesView
  * - CurrentStateTable
  */
@@ -22,12 +25,12 @@ export interface DebriefActivityProps {
   onTimeChange?: TimeControllerProps['onTimeChange'];
   onOpenSettings?: TimeControllerProps['onOpenSettings'];
 
-  // OutlineView props
-  featureCollection?: { type: 'FeatureCollection'; features: unknown[] };
+  // OutlineViewParent props
+  featureCollection?: DebriefFeatureCollection;
   selectedFeatureIds?: string[];
-  toolList?: unknown; // Not used by OutlineView, kept for backwards compatibility
+  toolList?: GlobalToolIndexModel;
   onSelectionChange?: (ids: string[]) => void;
-  onCommandExecute?: (tool: unknown, selectedFeatures: unknown[]) => void; // Not used by OutlineView
+  onCommandExecute?: (tool: Tool, selectedFeatures: DebriefFeature[]) => void;
   onFeatureVisibilityChange?: (id: string, visible: boolean) => void;
   onViewFeature?: (featureId: string) => void;
   onDeleteFeatures?: (ids: string[]) => void;
@@ -47,10 +50,12 @@ export const DebriefActivity: React.FC<DebriefActivityProps> = ({
   onTimeChange,
   onOpenSettings,
 
-  // OutlineView props
+  // OutlineViewParent props
   featureCollection,
-  selectedFeatureIds = [],
-  onSelectionChange = () => {},
+  selectedFeatureIds,
+  toolList,
+  onSelectionChange,
+  onCommandExecute,
   onFeatureVisibilityChange,
   onViewFeature,
   onDeleteFeatures,
@@ -62,8 +67,13 @@ export const DebriefActivity: React.FC<DebriefActivityProps> = ({
   // CurrentStateTable props
   currentState
 }) => {
-  // Provide defaults for required OutlineView props
-  const defaultFeatureCollection = { type: 'FeatureCollection' as const, features: [] };
+  // Provide defaults for required OutlineViewParent props
+  const defaultFeatureCollection: DebriefFeatureCollection = { type: 'FeatureCollection', features: [] };
+  const defaultToolList: GlobalToolIndexModel = {
+    root: [],
+    version: '1.0.0',
+    description: 'Tool index not available'
+  };
 
   return (
     <ActivityBar>
@@ -77,10 +87,12 @@ export const DebriefActivity: React.FC<DebriefActivityProps> = ({
       </ActivityPanel>
 
       <ActivityPanel title="Outline" collapsible={true} resizable={true}>
-        <OutlineView
-          featureCollection={featureCollection as OutlineViewProps['featureCollection'] || defaultFeatureCollection}
+        <OutlineViewParent
+          featureCollection={featureCollection || defaultFeatureCollection}
+          toolList={toolList || defaultToolList}
           selectedFeatureIds={selectedFeatureIds}
           onSelectionChange={onSelectionChange}
+          onCommandExecute={onCommandExecute}
           onFeatureVisibilityChange={onFeatureVisibilityChange}
           onViewFeature={onViewFeature}
           onDeleteFeatures={onDeleteFeatures}
