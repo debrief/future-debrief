@@ -1,7 +1,7 @@
 """Viewport grid generator tool for maritime analysis."""
 
 from debrief.types.states.viewport_state import ViewportState
-from debrief.types.tools import AddFeaturesCommand, ShowTextCommand, DebriefCommand
+from debrief.types.tools import AddFeaturesCommand, DebriefCommand, ShowTextCommand
 from pydantic import BaseModel, Field, ValidationError
 
 

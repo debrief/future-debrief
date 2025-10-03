@@ -6,7 +6,7 @@ from typing import Any, List, Union
 from debrief.types.features import DebriefFeatureCollection
 from debrief.types.states.selection_state import SelectionState
 from debrief.types.states.viewport_state import ViewportState
-from debrief.types.tools import SetSelectionCommand, ShowTextCommand, DebriefCommand
+from debrief.types.tools import DebriefCommand, SetSelectionCommand, ShowTextCommand
 from pydantic import BaseModel, Field, field_validator
 
 

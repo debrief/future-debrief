@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Protocol, Union, cast, get_type_hints
 
 from debrief.types.tools import (
+    DebriefCommand,
     GitHistoryEntry,
     GlobalToolIndexModel,
     JSONSchemaType,
@@ -16,7 +17,6 @@ from debrief.types.tools import (
     ToolCategory,
     ToolIndexNode,
     ToolMetadataModel,
-    DebriefCommand,
 )
 
 
@@ -507,7 +507,9 @@ def discover_tool_nodes(tools_dir: Path) -> List[ToolIndexNode]:
             ]
 
             if len(public_functions) != 1:
-                print(f"Warning: Tool '{tool_name}' must have exactly one public function, skipping")
+                print(
+                    f"Warning: Tool '{tool_name}' must have exactly one public function, skipping"
+                )
                 continue
 
             func_name, func = public_functions[0]
@@ -581,11 +583,7 @@ def discover_tool_nodes(tools_dir: Path) -> List[ToolIndexNode]:
             # This is a category folder - recurse
             children = discover_tool_nodes(item)
             if children:  # Only add category if it has children
-                nodes.append(ToolCategory(
-                    type="category",
-                    name=item.name,
-                    children=children
-                ))
+                nodes.append(ToolCategory(type="category", name=item.name, children=children))
 
     return nodes
 
@@ -799,7 +797,7 @@ def generate_tool_list_response_tree(tools_dir: Path) -> GlobalToolIndexModel:
         root=root_nodes,
         version="1.0.0",
         description="ToolVault packaged tools with hierarchical structure",
-        packageInfo=None
+        packageInfo=None,
     )
 
 

@@ -2,8 +2,8 @@
 
 from debrief.types.features import DebriefFeatureCollection
 from debrief.types.tools import (
-    ShowTextCommand,
     DebriefCommand,
+    ShowTextCommand,
     UpdateFeaturesCommand,
 )
 from pydantic import BaseModel, Field, ValidationError
@@ -142,11 +142,10 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Deb
 
         # Return UpdateFeaturesCommand with the validated feature
         # We need to serialize with aliases and re-parse to get proper JSON keys
-        feature_json = validated_feature.model_dump(by_alias=True, mode='json')
+        feature_json = validated_feature.model_dump(by_alias=True, mode="json")
 
         return UpdateFeaturesCommand.model_construct(
-            command="updateFeatures",
-            payload=[feature_json]
+            command="updateFeatures", payload=[feature_json]
         )
 
     except ValidationError as e:

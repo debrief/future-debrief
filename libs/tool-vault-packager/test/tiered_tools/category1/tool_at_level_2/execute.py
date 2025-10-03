@@ -1,6 +1,6 @@
 """Word counting tool for text analysis."""
 
-from debrief.types.tools import ShowTextCommand, DebriefCommand
+from debrief.types.tools import DebriefCommand, ShowTextCommand
 from pydantic import BaseModel, Field
 
 

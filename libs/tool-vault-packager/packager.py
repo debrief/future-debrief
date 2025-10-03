@@ -8,12 +8,12 @@ import zipapp
 from pathlib import Path
 
 from debrief.types.tools import (
+    DebriefCommand,
     SampleInputReference,
     ToolFileReference,
     ToolFilesCollection,
     ToolIndexModel,
     ToolStatsModel,
-    DebriefCommand,
 )
 
 try:

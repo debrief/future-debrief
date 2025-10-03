@@ -5,7 +5,7 @@ from typing import List
 # Use hierarchical imports from shared-types
 from debrief.types.features import DebriefFeature
 from debrief.types.states.viewport_state import ViewportState
-from debrief.types.tools import SetViewportCommand, ShowTextCommand, DebriefCommand
+from debrief.types.tools import DebriefCommand, SetViewportCommand, ShowTextCommand
 from pydantic import BaseModel, Field
 
 

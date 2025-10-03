@@ -102,16 +102,12 @@ class ToolVaultServer:
                     with zipfile.ZipFile(pyz_path, "r") as archive:
                         index_content = archive.read("index.json").decode("utf-8")
                         self.index_data = json.loads(index_content)
-                        print(
-                            "Loaded pre-built index from package"
-                        )
+                        print("Loaded pre-built index from package")
                 else:
                     # Fallback for other archive modes
                     with open("index.json", "r") as f:
                         self.index_data = json.load(f)
-                        print(
-                            "Loaded pre-built index from file"
-                        )
+                        print("Loaded pre-built index from file")
 
                 # In production mode, we don't run discover_tools() at all!
                 # Tools are lazy-loaded on-demand from index metadata
@@ -198,11 +194,13 @@ class ToolVaultServer:
 
         try:
             import importlib
+
             module = importlib.import_module(module_path)
             function = getattr(module, function_name)
 
             # Detect Pydantic parameter model from function signature
             from discovery import PydanticModelType, detect_pydantic_parameter_model
+
             pydantic_model_raw = detect_pydantic_parameter_model(function, module)
 
             if not pydantic_model_raw:
@@ -223,11 +221,12 @@ class ToolVaultServer:
                     parameters[param_name] = {
                         "type": param_info.get("type", "any"),
                         "description": param_info.get("description", ""),
-                        "required": param_name in input_schema.get("required", [])
+                        "required": param_name in input_schema.get("required", []),
                     }
 
             # Create ToolMetadata object with required fields
             from discovery import ToolMetadata
+
             tool_metadata = ToolMetadata(
                 name=tool_name,
                 function=function,
@@ -236,7 +235,7 @@ class ToolVaultServer:
                 return_type="dict",  # Default assumption for output
                 module_path=module_path,
                 tool_dir=str(Path("tools") / tool_name),
-                pydantic_model=pydantic_model
+                pydantic_model=pydantic_model,
             )
 
             # Cache it
@@ -246,6 +245,7 @@ class ToolVaultServer:
         except Exception as e:
             print(f"Error lazy-loading tool '{tool_name}': {e}")
             import traceback
+
             traceback.print_exc()
             return None
 

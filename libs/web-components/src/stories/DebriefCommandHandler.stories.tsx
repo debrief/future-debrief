@@ -1,13 +1,13 @@
 /**
- * Storybook stories for ToolVaultCommandHandler service demonstration
+ * Storybook stories for DebriefCommandHandler service demonstration
  *
- * These stories provide interactive examples of all 12 ToolVaultCommand types,
+ * These stories provide interactive examples of all 12 DebriefCommand types,
  * showing before/after state changes and command processing results.
  */
 
 import type { Meta, StoryObj } from '@storybook/react';
 import React, { useState, useCallback, useMemo } from 'react';
-import { ToolVaultCommandHandler } from '../services/ToolVaultCommandHandler';
+import { DebriefCommandHandler } from '../services/DebriefCommandHandler';
 import { StateSetter } from '../services/types';
 import {
   DebriefFeatureCollection,
@@ -258,7 +258,7 @@ const sampleCommands = {
 };
 
 // Interactive Story Component
-const ToolVaultCommandHandlerDemo: React.FC = () => {
+const DebriefCommandHandlerDemo: React.FC = () => {
   const [featureCollection, setFeatureCollection] = useState<DebriefFeatureCollection>(
     createSampleFeatureCollection()
   );
@@ -307,7 +307,7 @@ const ToolVaultCommandHandlerDemo: React.FC = () => {
     },
   }), []);
 
-  const handler = useMemo(() => new ToolVaultCommandHandler(stateSetter), [stateSetter]);
+  const handler = useMemo(() => new DebriefCommandHandler(stateSetter), [stateSetter]);
 
   const executeCommand = useCallback(async () => {
     setIsProcessing(true);
@@ -344,7 +344,7 @@ const ToolVaultCommandHandlerDemo: React.FC = () => {
 
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-      <h2>ToolVaultCommand Handler Interactive Demo</h2>
+      <h2>DebriefCommand Handler Interactive Demo</h2>
 
       <div style={{ marginBottom: '20px' }}>
         <h3>Current State Display</h3>
@@ -511,17 +511,17 @@ const ToolVaultCommandHandlerDemo: React.FC = () => {
 };
 
 // Storybook configuration
-const meta: Meta<typeof ToolVaultCommandHandlerDemo> = {
-  title: 'Services/ToolVaultCommandHandler',
-  component: ToolVaultCommandHandlerDemo,
+const meta: Meta<typeof DebriefCommandHandlerDemo> = {
+  title: 'Services/DebriefCommandHandler',
+  component: DebriefCommandHandlerDemo,
   parameters: {
     layout: 'fullscreen',
     docs: {
       description: {
         component: `
-# ToolVaultCommand Handler Service
+# DebriefCommand Handler Service
 
-This interactive demo showcases the ToolVaultCommandHandler service, which processes all 12 types of ToolVaultCommands and updates plot state accordingly.
+This interactive demo showcases the DebriefCommandHandler service, which processes all 12 types of DebriefCommands and updates plot state accordingly.
 
 ## Features Demonstrated
 
@@ -561,14 +561,14 @@ The demo uses real maritime GeoJSON data including vessel tracks, navigation poi
 };
 
 export default meta;
-type Story = StoryObj<typeof ToolVaultCommandHandlerDemo>;
+type Story = StoryObj<typeof DebriefCommandHandlerDemo>;
 
 export const Interactive: Story = {
-  render: () => <ToolVaultCommandHandlerDemo />,
+  render: () => <DebriefCommandHandlerDemo />,
 };
 
 export const FeatureManagementCommands: Story = {
-  render: () => <ToolVaultCommandHandlerDemo />,
+  render: () => <DebriefCommandHandlerDemo />,
   parameters: {
     docs: {
       description: {
@@ -579,7 +579,7 @@ export const FeatureManagementCommands: Story = {
 };
 
 export const StateManagementCommands: Story = {
-  render: () => <ToolVaultCommandHandlerDemo />,
+  render: () => <DebriefCommandHandlerDemo />,
   parameters: {
     docs: {
       description: {
@@ -590,7 +590,7 @@ export const StateManagementCommands: Story = {
 };
 
 export const UserInterfaceCommands: Story = {
-  render: () => <ToolVaultCommandHandlerDemo />,
+  render: () => <DebriefCommandHandlerDemo />,
   parameters: {
     docs: {
       description: {
@@ -601,7 +601,7 @@ export const UserInterfaceCommands: Story = {
 };
 
 export const CompositeCommandExample: Story = {
-  render: () => <ToolVaultCommandHandlerDemo />,
+  render: () => <DebriefCommandHandlerDemo />,
   parameters: {
     docs: {
       description: {
