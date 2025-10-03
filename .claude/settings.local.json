@@ -204,9 +204,6 @@
       "WebFetch(domain:leafletjs.com)",
       "WebFetch(domain:levelup.gitconnected.com)",
       "WebFetch(domain:medium.com)"
-    ],
-    "deny": [
-      "Bash(git add:*)"
     ]
   }
 }
