@@ -2284,3 +2284,123 @@ const toolList = ${JSON.stringify(toolList || { root: [] })};
 **Commit**: Ready for commit and PR
 
 ---
+
+### ActivityBar Component Implementation - Issue #199 ✅
+**Date**: 2025-10-03  
+**Objective**: Create production-ready VS Code-style ActivityBar component with collapsible and resizable panels
+
+**Problem**: The existing `DebriefActivity` component used `react-resizable-panels` library and didn't match VS Code's native panel behavior for collapse/expand with space redistribution.
+
+**Solution Implemented**: Built custom ActivityBar component with Container + Children pattern using React hooks for state management and proper VS Code styling via vscode-elements primitives.
+
+**Implementation Details**:
+
+1. **Component Architecture** (`libs/web-components/src/ActivityBar/`)
+   - **ActivityBar.tsx**: Main container managing panel states and space distribution
+   - **ActivityPanel.tsx**: Marker component consumed by ActivityBar
+   - **ActivityBar.stories.tsx**: Comprehensive Storybook demonstrations (8 stories)
+
+2. **Core Features**:
+   - **Collapsible Panels**: Optional collapse with chevron icons (VscodeIcon component)
+   - **Resizable Panels**: Drag borders between adjacent panels with minimum height enforcement
+   - **Non-Resizable Support**: Fixed-height panels (200px) excluded from space redistribution
+   - **Greedy Space Redistribution**: Open resizable panels share available space equally
+   - **VS Code Styling**: Native VS Code appearance via vscode-elements CSS variables
+
+3. **State Management**:
+   - React hooks (useState, useEffect, useRef) for internal state
+   - Per-panel state tracking (collapsed, height)
+   - Mouse event handlers for resize (onMouseDown, onMouseMove, onMouseUp)
+   - Automatic space recalculation on collapse/expand
+
+4. **Key Design Decisions**:
+   - **Click Area Restriction**: Only icon + title trigger collapse (not entire header)
+   - **Fixed Non-Resizable Heights**: 200px for panels with `resizable={false}`
+   - **No Animations**: Immediate state changes for performance
+   - **Overflow Hidden**: Prevent scrollbars on panel content
+   - **Minimum Heights**: Header (35px) + content (100px) = 135px minimum
+
+**Component API**:
+```typescript
+<ActivityBar>
+  <ActivityPanel title="Explorer" collapsible={true} resizable={false}>
+    {content}
+  </ActivityPanel>
+  <ActivityPanel title="Outline" collapsible={false} resizable={true}>
+    {content}
+  </ActivityPanel>
+</ActivityBar>
+```
+
+**Files Created**:
+- `libs/web-components/src/ActivityBar/ActivityBar.tsx` (270 lines)
+- `libs/web-components/src/ActivityBar/ActivityBar.stories.tsx` (316 lines, 8 stories)
+
+**Files Modified**:
+- `libs/web-components/src/index.ts` - Added exports for ActivityBar and ActivityPanel
+- `libs/web-components/src/DebriefActivity/DebriefActivity.tsx` - Added deprecation notices
+
+**Storybook Stories** (8 comprehensive examples):
+1. **Default**: Mixed resizable/non-resizable behavior
+2. **MixedCollapsible**: Collapsible vs always-open panels
+3. **MixedResizable**: Resizable vs fixed-size panels
+4. **CollapseSpaceRedistribution**: Demonstrates greedy space algorithm
+5. **ResizeInteraction**: Shows resize handle behavior and limits
+6. **AllPanelsCollapsed**: Whitespace below collapsed panels
+7. **SinglePanel**: Simplest use case
+8. **ComplexContent**: Real-world content examples
+
+**Technical Implementation Highlights**:
+
+```typescript
+// Non-resizable space calculation (lines 69-107)
+const redistributeSpace = (newStates: PanelState[], childArray: React.ReactNode[]) => {
+  let collapsedHeight = 0;
+  let nonResizableOpenHeight = 0;
+  let resizableOpenCount = 0;
+  
+  // Calculate heights for different panel types
+  newStates.forEach((state, index) => {
+    const resizable = isResizable(childArray[index]);
+    if (state.collapsed) {
+      collapsedHeight += HEADER_HEIGHT;
+    } else if (!resizable) {
+      nonResizableOpenHeight += FIXED_NON_RESIZABLE_HEIGHT; // Fixed 200px
+    } else {
+      resizableOpenCount++;
+    }
+  });
+  
+  // Distribute remaining space among resizable panels
+  const availableHeight = containerHeight - collapsedHeight - nonResizableOpenHeight;
+  const heightPerResizablePanel = resizableOpenCount > 0 ? availableHeight / resizableOpenCount : 0;
+};
+```
+
+**Quality Assurance**:
+- ✅ TypeScript compilation passed (no errors)
+- ✅ ESLint validation passed (fixed 2 apostrophe escaping issues)
+- ✅ Storybook hot-reload working
+- ✅ All interactive behaviors tested: collapse, resize, space redistribution
+- ✅ vscode-elements integration verified (VscodeIcon chevrons displaying)
+
+**User Experience Improvements**:
+- Color-coded panels in Storybook for visual testing
+- Title annotations showing panel capabilities (e.g., "Collapsible + Resizable")
+- Safe collapse interaction (prevents accidental collapse during resize)
+- Whitespace appears when only non-resizable panels open (correct behavior)
+
+**Deprecation Management**:
+- Added `@deprecated` JSDoc tags to DebriefActivity component
+- Component remains available for backward compatibility
+- Migration path documented in deprecation notice
+
+**Status**: Completed - Production-ready component with comprehensive Storybook documentation  
+**Branch**: `issue-199-activitybar-component`  
+**Next Steps**: Ready for integration into VS Code extension as replacement for DebriefActivity
+
+---
+
+*Last Updated: 2025-10-03*  
+*Total Sections: 29 major implementations*
+
