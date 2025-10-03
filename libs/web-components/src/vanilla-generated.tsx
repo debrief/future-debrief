@@ -9,11 +9,12 @@ import { PropertiesView, PropertiesViewProps } from './PropertiesView/Properties
 import { OutlineView, OutlineViewProps } from './OutlineView/OutlineView';
 import { OutlineViewParent, OutlineViewParentProps } from './OutlineViewParent/OutlineViewParent';
 import { CurrentStateTable, StateFieldRow } from './CurrentStateTable/CurrentStateTable';
+import { DebriefActivity, DebriefActivityProps } from './DebriefActivity/DebriefActivity';
 import { CurrentState } from '@debrief/shared-types';
 import './vanilla.css';
 
 // Re-export types for compatibility
-export type { GeoJSONFeature, MapState, TimeControllerProps, PropertiesViewProps, OutlineViewProps, OutlineViewParentProps, StateFieldRow };
+export type { GeoJSONFeature, MapState, TimeControllerProps, PropertiesViewProps, OutlineViewProps, OutlineViewParentProps, StateFieldRow, DebriefActivityProps };
 
 // Wrapper interfaces - maintain API compatibility with manual vanilla.ts
 export interface GeoJSONFeatureCollection {
@@ -134,6 +135,13 @@ class VanillaCurrentStateTableWrapper extends ReactComponentWrapper<VanillaCurre
   }
 }
 
+// DebriefActivity wrapper
+class VanillaDebriefActivityWrapper extends ReactComponentWrapper<DebriefActivityProps> {
+  protected renderComponent(): React.ReactElement {
+    return React.createElement(DebriefActivity, this.currentProps);
+  }
+}
+
 // Factory functions - maintain exact API compatibility with manual vanilla.ts
 export function createMapComponent(container: HTMLElement, props: VanillaMapComponentProps): {
   destroy: () => void;
@@ -212,6 +220,18 @@ export function createCurrentStateTable(container: HTMLElement, props: VanillaCu
   };
 }
 
+export function createDebriefActivity(container: HTMLElement, props: DebriefActivityProps): {
+  destroy: () => void;
+  updateProps: (newProps: Partial<DebriefActivityProps>) => void;
+} {
+  const wrapper = new VanillaDebriefActivityWrapper(container, props);
+
+  return {
+    destroy: () => wrapper.destroy(),
+    updateProps: (newProps: Partial<DebriefActivityProps>) => wrapper.updateProps(newProps)
+  };
+}
+
 // Custom element for CurrentStateTable - maintain compatibility
 class CurrentStateTableElement extends HTMLElement {
   private wrapper: VanillaCurrentStateTableWrapper | null = null;
@@ -265,7 +285,8 @@ if (typeof window !== 'undefined') {
       createMapComponent,
       createOutlineView,
       createOutlineViewParent,
-      createCurrentStateTable
+      createCurrentStateTable,
+      createDebriefActivity
     };
   } else {
     Object.assign(window.DebriefWebComponents, {
@@ -274,7 +295,8 @@ if (typeof window !== 'undefined') {
       createMapComponent,
       createOutlineView,
       createOutlineViewParent,
-      createCurrentStateTable
+      createCurrentStateTable,
+      createDebriefActivity
     });
   }
 }
@@ -289,6 +311,7 @@ declare global {
       createOutlineView: typeof createOutlineView;
       createOutlineViewParent: typeof createOutlineViewParent;
       createCurrentStateTable: typeof createCurrentStateTable;
+      createDebriefActivity: typeof createDebriefActivity;
     };
   }
 }

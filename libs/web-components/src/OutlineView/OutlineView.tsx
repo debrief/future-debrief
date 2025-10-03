@@ -174,7 +174,15 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
 
   return (<div
     data-testid="outline-view"
-    style={{ border: '1px solid var(--vscode-editorWidget-border)', borderRadius: '4px', overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' }}
+    style={{
+      border: '1px solid var(--vscode-editorWidget-border)',
+      borderRadius: '4px',
+      overflow: 'hidden',
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      background: 'var(--vscode-editor-background, #1e1e1e)'
+    }}
   >
       <VscodeToolbarContainer>
         <VscodeToolbarButton 
