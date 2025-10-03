@@ -26,8 +26,8 @@ This architecture enables VS Code-compatible LLM integrations (GitHub Copilot, C
 
 ### For Analysts (End Users)
 
-1. **Phase 1**: [GitHub Copilot Setup](specs/github-copilot-setup.md) - Easy, cloud-based
-2. **Phase 2**: [together.dev Setup](phases/phase-3-together-dev.md) - Offline, local LLMs
+1. **Phase 2**: [GitHub Copilot Setup](specs/github-copilot-setup.md) - Easy, cloud-based
+2. **Phase 3**: [together.dev Setup](phases/phase-3-together-dev.md) - Offline, local LLMs
 
 ### For Reviewers
 
