@@ -408,7 +408,7 @@ class ToolVaultServer:
 
                 # Handle different result types
                 if hasattr(result, "model_dump"):
-                    # It's a Pydantic model (like ToolVaultCommand)
+                    # It's a Pydantic model (like DebriefCommand)
                     command_result = result.model_dump()
                 elif isinstance(result, dict) and "command" in result:
                     # It's already a dict with command structure

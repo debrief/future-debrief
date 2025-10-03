@@ -6,7 +6,7 @@ from typing import List
 # Use hierarchical imports from shared-types
 from debrief.types.features import DebriefFeature
 from debrief.types.states import TimeState
-from debrief.types.tools import SetTimeStateCommand, ShowTextCommand, ToolVaultCommand
+from debrief.types.tools import SetTimeStateCommand, ShowTextCommand, DebriefCommand
 from pydantic import BaseModel, Field
 
 
@@ -42,7 +42,7 @@ class SelectFeatureStartTimeParameters(BaseModel):
     )
 
 
-def select_feature_start_time(params: SelectFeatureStartTimeParameters) -> ToolVaultCommand:
+def select_feature_start_time(params: SelectFeatureStartTimeParameters) -> DebriefCommand:
     """
     Set TimeState current to the earliest timestamp from any feature.
 

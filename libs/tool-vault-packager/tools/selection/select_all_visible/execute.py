@@ -6,7 +6,7 @@ from typing import Any, List, Union
 from debrief.types.features import DebriefFeatureCollection
 from debrief.types.states.selection_state import SelectionState
 from debrief.types.states.viewport_state import ViewportState
-from debrief.types.tools import SetSelectionCommand, ShowTextCommand, ToolVaultCommand
+from debrief.types.tools import SetSelectionCommand, ShowTextCommand, DebriefCommand
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -57,7 +57,7 @@ class SelectAllVisibleParameters(BaseModel):
         return v
 
 
-def select_all_visible(params: SelectAllVisibleParameters) -> ToolVaultCommand:
+def select_all_visible(params: SelectAllVisibleParameters) -> DebriefCommand:
     """
     Select all features that are visible within the current viewport bounds.
 

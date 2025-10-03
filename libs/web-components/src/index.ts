@@ -15,7 +15,7 @@ export { ToolExecutionProvider, useToolExecution } from './contexts/ToolExecutio
 
 // Service exports
 export { ToolParameterService } from './services/toolParameterService';
-export { ToolVaultCommandHandler } from './services/ToolVaultCommandHandler';
+export { DebriefCommandHandler } from './services/DebriefCommandHandler';
 
 // Type exports
 export type { TimeControllerProps } from './TimeController/TimeController';
@@ -47,4 +47,4 @@ export type {
   CommandHandlerOptions
 } from './services/types';
 
-export type { SpecificCommand } from './services/ToolVaultCommandHandler';
+export type { SpecificCommand } from './services/DebriefCommandHandler';

@@ -16,7 +16,7 @@ from debrief.types.tools import (
     ToolCategory,
     ToolIndexNode,
     ToolMetadataModel,
-    ToolVaultCommand,
+    DebriefCommand,
 )
 
 
@@ -539,8 +539,8 @@ def discover_tool_nodes(tools_dir: Path) -> List[ToolIndexNode]:
                     # Create JSONSchemaProperty from the remaining schema
                     json_properties[param_name] = JSONSchemaProperty(**param_copy)
 
-            # Get the ToolVaultCommand schema as the output schema
-            command_schema = ToolVaultCommand.model_json_schema()
+            # Get the DebriefCommand schema as the output schema
+            command_schema = DebriefCommand.model_json_schema()
 
             # Get relative path from tools root for nested categories
             # Calculate relative path from tools root
@@ -841,8 +841,8 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
                 # Create JSONSchemaProperty from the remaining schema
                 json_properties[param_name] = JSONSchemaProperty(**param_copy)
 
-        # Get the ToolVaultCommand schema as the output schema
-        command_schema = ToolVaultCommand.model_json_schema()
+        # Get the DebriefCommand schema as the output schema
+        command_schema = DebriefCommand.model_json_schema()
 
         # Validate and report schema compatibility - using enhanced JSONSchema model
         valid_jsonschema_fields = {
@@ -906,7 +906,7 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
             print(f"   Valid JSONSchema fields are: {sorted(valid_jsonschema_fields)}")
             print(f"   Tool output schema: {command_schema}")
             print("\n💡 To fix this, update the JSONSchema model to support these fields")
-            print("   or modify the ToolVaultCommand schema to only use valid fields.")
+            print("   or modify the DebriefCommand schema to only use valid fields.")
             raise ToolDiscoveryError(
                 f"Tool '{tool.name}' has incompatible output schema. "
                 f"Invalid fields: {sorted(invalid_fields)}. "

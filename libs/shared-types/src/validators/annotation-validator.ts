@@ -172,7 +172,10 @@ export function validateMultiPolygonCoordinates(coordinates: unknown): boolean {
 /**
  * Validates geometry coordinates based on type
  */
-export function validateGeometryCoordinates(geometry: any): boolean {
+export function validateGeometryCoordinates(geometry: { type: string; coordinates: unknown } | null): boolean {
+  if (!geometry) {
+    return false;
+  }
   switch (geometry.type) {
     case 'Point':
       return validatePointCoordinates(geometry.coordinates);

@@ -13,7 +13,7 @@ from debrief.types.tools import (
     ToolFilesCollection,
     ToolIndexModel,
     ToolStatsModel,
-    ToolVaultCommand,
+    DebriefCommand,
 )
 
 try:
@@ -511,7 +511,7 @@ def package_toolvault(
                 )
 
             # Always expose the ToolVault command output schema for reference
-            output_schema = ToolVaultCommand.model_json_schema()
+            output_schema = DebriefCommand.model_json_schema()
             output_schema_path = schemas_dir / "output_schema.json"
             with open(output_schema_path, "w") as f:
                 json.dump(output_schema, f, indent=2)

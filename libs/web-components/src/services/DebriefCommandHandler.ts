@@ -1,8 +1,8 @@
 /**
- * ToolVaultCommand Handler Service - Central command processing for plot state updates
+ * DebriefCommand Handler Service - Central command processing for plot state updates
  *
- * This service bridges the gap between tool vault command execution and plot state management,
- * providing a standardized interface for processing all 12 ToolVaultCommand types and applying
+ * This service bridges the gap between Tool Vault tool execution and Debrief plot state management,
+ * providing a standardized interface for processing all 12 DebriefCommand types and applying
  * their effects to FeatureCollections and document state.
  */
 
@@ -23,8 +23,8 @@ import { ShowDataCommand } from '@debrief/shared-types/derived/typescript/tools/
 import { ShowImageCommand } from '@debrief/shared-types/derived/typescript/tools/show_image_command';
 import { LogMessageCommand } from '@debrief/shared-types/derived/typescript/tools/log_message_command';
 
-// Base ToolVaultCommand type
-import { ToolVaultCommand } from '@debrief/shared-types/derived/typescript/tools/tool_call_response';
+// Base DebriefCommand type
+import { DebriefCommand } from '@debrief/shared-types/derived/typescript/tools/tool_call_response';
 
 import {
   StateSetter,
@@ -51,7 +51,7 @@ export type SpecificCommand =
 // CompositeCommand interface (not yet generated, so defining locally)
 interface CompositeCommand {
   command: 'composite';
-  payload: ToolVaultCommand[];
+  payload: DebriefCommand[];
 }
 
 // SetTimeStateCommand interface (seems missing from generated types)
@@ -61,9 +61,9 @@ interface SetTimeStateCommand {
 }
 
 /**
- * Main service class for processing ToolVaultCommands
+ * Main service class for processing DebriefCommands
  */
-export class ToolVaultCommandHandler {
+export class DebriefCommandHandler {
   private processors: Map<string, CommandProcessor> = new Map();
   private options: CommandHandlerOptions;
 
@@ -83,7 +83,7 @@ export class ToolVaultCommandHandler {
   }
 
   /**
-   * Process a ToolVaultCommand and update plot state
+   * Process a DebriefCommand and update plot state
    */
   public async processCommand(
     command: SpecificCommand,
@@ -509,7 +509,7 @@ class LogMessageProcessor implements CommandProcessor<LogMessageCommand> {
  * Processor for CompositeCommand (recursive command processing)
  */
 class CompositeProcessor implements CommandProcessor<CompositeCommand> {
-  constructor(private handler: ToolVaultCommandHandler) {}
+  constructor(private handler: DebriefCommandHandler) {}
 
   canHandle(command: unknown): command is CompositeCommand {
     return (command as SpecificCommand)?.command === 'composite';
@@ -521,7 +521,7 @@ class CompositeProcessor implements CommandProcessor<CompositeCommand> {
     _stateSetter: StateSetter
   ): Promise<CommandHandlerResult> {
     const commands = Array.isArray(command.payload) ? command.payload : [];
-    // Convert ToolVaultCommand[] to SpecificCommand[] by casting
+    // Convert DebriefCommand[] to SpecificCommand[] by casting
     const specificCommands = commands as SpecificCommand[];
     const results = await this.handler.processCommands(specificCommands, featureCollection);
 

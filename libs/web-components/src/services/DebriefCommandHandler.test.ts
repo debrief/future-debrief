@@ -1,8 +1,8 @@
 /**
- * Unit tests for ToolVaultCommandHandler service
+ * Unit tests for DebriefCommandHandler service
  */
 
-import { ToolVaultCommandHandler } from './ToolVaultCommandHandler';
+import { DebriefCommandHandler } from './DebriefCommandHandler';
 import { StateSetter } from './types';
 import {
   DebriefFeatureCollection,
@@ -114,14 +114,14 @@ const createTestTimeState = (): TimeState => ({
   end: '2024-01-01T01:00:00Z',
 });
 
-describe('ToolVaultCommandHandler', () => {
-  let handler: ToolVaultCommandHandler;
+describe('DebriefCommandHandler', () => {
+  let handler: DebriefCommandHandler;
   let mockStateSetter: MockStateSetter;
   let testFeatureCollection: DebriefFeatureCollection;
 
   beforeEach(() => {
     mockStateSetter = new MockStateSetter();
-    handler = new ToolVaultCommandHandler(mockStateSetter);
+    handler = new DebriefCommandHandler(mockStateSetter);
     testFeatureCollection = createTestFeatureCollection();
   });
 

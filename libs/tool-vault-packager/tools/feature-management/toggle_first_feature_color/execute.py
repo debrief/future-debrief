@@ -3,7 +3,7 @@
 from debrief.types.features import DebriefFeatureCollection
 from debrief.types.tools import (
     ShowTextCommand,
-    ToolVaultCommand,
+    DebriefCommand,
     UpdateFeaturesCommand,
 )
 from pydantic import BaseModel, Field, ValidationError
@@ -30,7 +30,7 @@ class ToggleFirstFeatureColorParameters(BaseModel):
     )
 
 
-def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> ToolVaultCommand:
+def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> DebriefCommand:
     """
     Toggle the color property of the first feature in a GeoJSON FeatureCollection.
 
@@ -44,7 +44,7 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Too
         params: ToggleFirstFeatureColorParameters containing feature_collection
 
     Returns:
-        ToolVaultCommand: Command to update the modified feature (not replace entire collection)
+        DebriefCommand: Command to update the modified feature (not replace entire collection)
 
     Examples:
         >>> from pydantic import ValidationError

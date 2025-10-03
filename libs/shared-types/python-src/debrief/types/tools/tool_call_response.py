@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, model_serializer
 
 
 class CommandType(str, Enum):
-    """Valid ToolVault command types."""
+    """Valid Debrief command types."""
     ADD_FEATURES = "addFeatures"
     UPDATE_FEATURES = "updateFeatures"
     DELETE_FEATURES = "deleteFeatures"
@@ -97,8 +97,8 @@ def _normalise_output(value: Any) -> Any:
     return value
 
 
-class ToolVaultCommand(BaseModel, ABC):
-    """A command returned by a ToolVault tool."""
+class DebriefCommand(BaseModel, ABC):
+    """A command that triggers state changes in Debrief (returned by Tool Vault tools)."""
 
     command: CommandType = Field(
         ...,
@@ -114,8 +114,8 @@ class ToolVaultCommand(BaseModel, ABC):
 
     def __init__(self, **data: Any) -> None:
         """Prevent direct instantiation of the abstract base command."""
-        if self.__class__ is ToolVaultCommand:
-            raise TypeError("ToolVaultCommand is abstract and cannot be instantiated directly")
+        if self.__class__ is DebriefCommand:
+            raise TypeError("DebriefCommand is abstract and cannot be instantiated directly")
         super().__init__(**data)
 
     @model_serializer(mode="plain")
@@ -128,7 +128,7 @@ class ToolVaultCommand(BaseModel, ABC):
         return _normalise_output(data)
 
 
-def _tool_vault_command_model_dump(self: ToolVaultCommand, *args: Any, **kwargs: Any) -> Any:
+def _debrief_command_model_dump(self: DebriefCommand, *args: Any, **kwargs: Any) -> Any:
     """Monkey-patched serializer to match legacy expectations by default."""
     if "mode" not in kwargs:
         kwargs["mode"] = "json"
@@ -138,15 +138,15 @@ def _tool_vault_command_model_dump(self: ToolVaultCommand, *args: Any, **kwargs:
     return _normalise_output(data)
 
 
-ToolVaultCommand.model_dump = _tool_vault_command_model_dump  # type: ignore[attr-defined]
+DebriefCommand.model_dump = _debrief_command_model_dump  # type: ignore[attr-defined]
 
 
 class ToolCallResponse(BaseModel):
-    """Response format for tool execution results containing ToolVault commands."""
+    """Response format for tool execution results containing Debrief commands."""
 
-    result: ToolVaultCommand = Field(
+    result: DebriefCommand = Field(
         ...,
-        description="A command returned by a ToolVault tool"
+        description="A command that triggers state changes in Debrief"
     )
     isError: bool = Field(
         False,

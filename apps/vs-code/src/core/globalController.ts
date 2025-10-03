@@ -4,7 +4,7 @@ import { TimeState, ViewportState, SelectionState, DebriefFeatureCollection, Edi
 import { ToolVaultServerService } from '../services/toolVaultServer';
 import {
   ToolParameterService,
-  ToolVaultCommandHandler,
+  DebriefCommandHandler,
   StateSetter,
   StateProvider,
   ToolSchema,
@@ -62,13 +62,13 @@ export class GlobalController implements StateProvider {
     // Tool Parameter Service for automatic parameter injection
     private toolParameterService: ToolParameterService;
 
-    // Tool Vault Command Handler for processing tool results
-    private toolVaultCommandHandler: ToolVaultCommandHandler;
-    
+    // Debrief Command Handler for processing tool results
+    private debriefCommandHandler: DebriefCommandHandler;
+
     private constructor() {
         this.initializeEventHandlers();
         this.toolParameterService = new ToolParameterService(this);
-        this.toolVaultCommandHandler = new ToolVaultCommandHandler(this.createStateSetter());
+        this.debriefCommandHandler = new DebriefCommandHandler(this.createStateSetter());
     }
     
     /**
@@ -390,9 +390,9 @@ export class GlobalController implements StateProvider {
         console.warn('[GlobalController] Calling toolVaultServer.executeToolCommand for:', toolName);
         const result = await this.toolVaultServer.executeToolCommand(toolName, parameters);
 
-        // If the tool returned ToolVaultCommands, process them
+        // If the tool returned DebriefCommands, process them
         if (result.success && result.result) {
-            await this.processToolVaultCommands(result.result);
+            await this.processDebriefCommands(result.result);
         }
 
         return result;
@@ -538,23 +538,23 @@ export class GlobalController implements StateProvider {
     }
 
     /**
-     * Process ToolVaultCommands returned from tool execution
+     * Process DebriefCommands returned from tool execution
      */
-    public async processToolVaultCommands(result: unknown): Promise<void> {
+    public async processDebriefCommands(result: unknown): Promise<void> {
         try {
             // Handle both single commands and arrays of commands
-            const commands = this.extractToolVaultCommands(result);
+            const commands = this.extractDebriefCommands(result);
             if (commands.length === 0) {
-                console.warn('[GlobalController] No ToolVaultCommands found in result');
+                console.warn('[GlobalController] No DebriefCommands found in result');
                 return;
             }
 
-            console.warn('[GlobalController] Processing', commands.length, 'ToolVaultCommand(s)');
+            console.warn('[GlobalController] Processing', commands.length, 'DebriefCommand(s)');
 
             // Get the current feature collection for the active editor
             const activeEditorId = this._activeEditorId;
             if (!activeEditorId) {
-                console.error('[GlobalController] No active editor for ToolVaultCommand processing');
+                console.error('[GlobalController] No active editor for DebriefCommand processing');
                 return;
             }
 
@@ -567,7 +567,7 @@ export class GlobalController implements StateProvider {
             console.warn('[GlobalController] Commands to process:', JSON.stringify(commands, null, 2));
 
             // Process commands sequentially
-            const results = await this.toolVaultCommandHandler.processCommands(commands, currentFeatureCollection);
+            const results = await this.debriefCommandHandler.processCommands(commands, currentFeatureCollection);
 
             // Log results and find the most recent successful result with a feature collection
             let latestFeatureCollection: DebriefFeatureCollection | undefined;
@@ -590,7 +590,7 @@ export class GlobalController implements StateProvider {
             if (latestFeatureCollection) {
                 console.warn('[GlobalController] Updating state with new FC containing', latestFeatureCollection.features.length, 'features (was', currentFeatureCollection.features.length, ')');
                 this.updateState(activeEditorId, 'featureCollection', latestFeatureCollection);
-                console.warn('[GlobalController] Feature collection updated from ToolVaultCommand results');
+                console.warn('[GlobalController] Feature collection updated from DebriefCommand results');
 
                 // Trigger document update to mark it as dirty and persist changes
                 this.triggerDocumentUpdate(activeEditorId);
@@ -599,15 +599,15 @@ export class GlobalController implements StateProvider {
             }
 
         } catch (error) {
-            console.error('[GlobalController] Error processing ToolVaultCommands:', error);
+            console.error('[GlobalController] Error processing DebriefCommands:', error);
             // Don't throw - we don't want to break the tool execution flow
         }
     }
 
     /**
-     * Extract ToolVaultCommands from tool result
+     * Extract DebriefCommands from tool result
      */
-    private extractToolVaultCommands(result: unknown): SpecificCommand[] {
+    private extractDebriefCommands(result: unknown): SpecificCommand[] {
         if (!result || typeof result !== 'object') {
             return [];
         }
@@ -619,31 +619,31 @@ export class GlobalController implements StateProvider {
             if (!unwrapped) {
                 throw new Error('Server response has "result" field but it is null/undefined');
             }
-            return this.extractToolVaultCommands(unwrapped);
+            return this.extractDebriefCommands(unwrapped);
         }
 
         // Handle array of commands
         if (Array.isArray(result)) {
-            return result.filter(this.isToolVaultCommand);
+            return result.filter(this.isDebriefCommand);
         }
 
         // Handle single command
-        if (this.isToolVaultCommand(result)) {
+        if (this.isDebriefCommand(result)) {
             return [result];
         }
 
         // Handle result object that might contain commands
         if ('commands' in result && Array.isArray((result as Record<string, unknown>).commands)) {
-            return ((result as Record<string, unknown>).commands as unknown[]).filter(this.isToolVaultCommand);
+            return ((result as Record<string, unknown>).commands as unknown[]).filter(this.isDebriefCommand);
         }
 
         return [];
     }
 
     /**
-     * Type guard to check if an object is a ToolVaultCommand
+     * Type guard to check if an object is a DebriefCommand
      */
-    private isToolVaultCommand(obj: unknown): obj is SpecificCommand {
+    private isDebriefCommand(obj: unknown): obj is SpecificCommand {
         return (
             typeof obj === 'object' &&
             obj !== null &&
@@ -654,7 +654,7 @@ export class GlobalController implements StateProvider {
     }
 
     /**
-     * Create StateSetter implementation for ToolVaultCommandHandler
+     * Create StateSetter implementation for DebriefCommandHandler
      */
     private createStateSetter(): StateSetter {
         return {

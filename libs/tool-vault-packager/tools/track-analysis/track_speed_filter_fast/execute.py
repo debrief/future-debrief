@@ -3,7 +3,7 @@
 from typing import List
 
 from debrief.types.features import DebriefTrackFeature
-from debrief.types.tools import ShowDataCommand, ShowTextCommand, ToolVaultCommand
+from debrief.types.tools import ShowDataCommand, ShowTextCommand, DebriefCommand
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
 
@@ -127,7 +127,7 @@ class TrackSpeedFilterFastParameters(BaseModel):
     )
 
 
-def track_speed_filter_fast(params: TrackSpeedFilterFastParameters) -> ToolVaultCommand:
+def track_speed_filter_fast(params: TrackSpeedFilterFastParameters) -> DebriefCommand:
     """
     Filter track timestamps using pre-calculated speeds array for fast processing.
 

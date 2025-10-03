@@ -19,7 +19,6 @@ const colors = {
 };
 
 function log(level, message) {
-  const timestamp = new Date().toISOString();
   const color = colors[level] || colors.reset;
   console.log(`${color}[${level.toUpperCase()}]${colors.reset} ${message}`);
 }
@@ -27,7 +26,7 @@ function log(level, message) {
 function getFileModTime(filePath) {
   try {
     return fs.statSync(filePath).mtime;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -47,7 +46,7 @@ function getNewestFileInDir(dir, pattern = '**/*.py') {
       }
     }
     return { file: newest, mtime: newestTime ? new Date(newestTime) : null };
-  } catch (error) {
+  } catch {
     return { file: null, mtime: null };
   }
 }
