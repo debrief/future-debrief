@@ -666,10 +666,9 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
                 <link href="${styleResetUri}" rel="stylesheet">
                 <link href="${styleVSCodeUri}" rel="stylesheet">
                 <link href="${webComponentsCssUri}" rel="stylesheet">
+                <link id="vscode-codicon-stylesheet" href="vscode-resource://icons/codicon/codicon.css" rel="stylesheet">
                 <title>Debrief Activity</title>
                 <style>
-                    /* VS Code Codicons for vscode-elements */
-                    @import url("vscode-resource://icons/codicon/codicon.css");
                     .codicon {
                         font-family: 'codicon';
                         font-display: block;
