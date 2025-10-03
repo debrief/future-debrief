@@ -89,6 +89,7 @@ USER coder
 RUN mkdir -p /home/coder/workspace /home/coder/project
 
 # Copy the VS Code extension files (including pre-built VSIX)
+# Note: .dockerignore updated to preserve workspace/tests directory (Python examples)
 COPY --chown=coder:coder . /home/coder/project/
 
 # Copy the shared-types wheel produced in the builder stage
