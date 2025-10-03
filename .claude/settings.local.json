@@ -194,7 +194,9 @@
       "Bash(docker stop:*)",
       "Bash(gtimeout:*)",
       "Bash(lsof:*)",
-      "Bash(xargs kill:*)"
+      "Bash(xargs kill:*)",
+      "Bash(xargs cat:*)",
+      "WebFetch(domain:vscode-elements.github.io)"
     ]
   }
 }
