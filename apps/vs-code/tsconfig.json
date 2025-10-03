@@ -13,6 +13,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "types": ["node", "vscode", "jest"],
+    "jsx": "react",
+    "esModuleInterop": true,
     "baseUrl": ".",
     "paths": {
       "@debrief/web-components/services": ["../../libs/web-components/src/services"]
