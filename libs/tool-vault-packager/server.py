@@ -360,6 +360,7 @@ class ToolVaultServer:
                 "status": "running",
                 "tools_count": len(self.tools),
                 "endpoints": {
+                    "mcp": "/mcp",
                     "tools": "/tools/list",
                     "call": "/tools/call",
                     "ui": "/ui/",
@@ -367,6 +368,213 @@ class ToolVaultServer:
                     "shutdown": "/shutdown",
                 },
             }
+
+        @self.app.post("/mcp")
+        async def mcp_endpoint(request: dict[str, Any]):
+            """
+            MCP JSON-RPC 2.0 endpoint for LLM integrations.
+
+            Supports tools/list and tools/call methods per Model Context Protocol spec.
+            """
+            try:
+                # Validate JSON-RPC 2.0 request format
+                if not request or not isinstance(request, dict):
+                    return JSONResponse(
+                        status_code=400,
+                        content={
+                            "jsonrpc": "2.0",
+                            "id": None,
+                            "error": {"code": -32600, "message": "Invalid Request: body must be JSON object"},
+                        },
+                    )
+
+                method = request.get("method")
+                params = request.get("params", {})
+                request_id = request.get("id")
+
+                # Check required fields
+                if not method or not isinstance(method, str):
+                    return JSONResponse(
+                        status_code=400,
+                        content={
+                            "jsonrpc": "2.0",
+                            "id": request_id,
+                            "error": {"code": -32600, "message": 'Invalid Request: "method" field required'},
+                        },
+                    )
+
+                # Route to appropriate method
+                if method == "tools/list":
+                    return await self._handle_mcp_tools_list(request_id)
+                elif method == "tools/call":
+                    return await self._handle_mcp_tools_call(request_id, params)
+                else:
+                    return JSONResponse(
+                        content={
+                            "jsonrpc": "2.0",
+                            "id": request_id,
+                            "error": {"code": -32601, "message": f"Method not found: {method}"},
+                        }
+                    )
+
+            except Exception as e:
+                return JSONResponse(
+                    status_code=500,
+                    content={
+                        "jsonrpc": "2.0",
+                        "id": request.get("id") if isinstance(request, dict) else None,
+                        "error": {"code": -32603, "message": f"Internal error: {str(e)}"},
+                    },
+                )
+
+        async def _handle_mcp_tools_list(request_id: Any) -> JSONResponse:
+            """Handle tools/list MCP method."""
+            try:
+                # Convert internal tool index to MCP format
+                tools_list = []
+
+                # Extract tools from index_data tree structure
+                def extract_tools(nodes):
+                    for node in nodes:
+                        if node.get("type") == "tool":
+                            tools_list.append(
+                                {
+                                    "name": node.get("name"),
+                                    "description": node.get("description", ""),
+                                    "inputSchema": node.get("inputSchema", {}),
+                                }
+                            )
+                        elif node.get("type") == "category":
+                            extract_tools(node.get("children", []))
+
+                extract_tools(self.index_data.get("root", []))
+
+                return JSONResponse(
+                    content={"jsonrpc": "2.0", "id": request_id, "result": {"tools": tools_list}}
+                )
+
+            except Exception as e:
+                return JSONResponse(
+                    content={
+                        "jsonrpc": "2.0",
+                        "id": request_id,
+                        "error": {"code": -32603, "message": f"Failed to list tools: {str(e)}"},
+                    }
+                )
+
+        async def _handle_mcp_tools_call(request_id: Any, params: dict) -> JSONResponse:
+            """Handle tools/call MCP method."""
+            try:
+                tool_name = params.get("name")
+                tool_args = params.get("arguments", {})
+
+                if not tool_name:
+                    return JSONResponse(
+                        content={
+                            "jsonrpc": "2.0",
+                            "id": request_id,
+                            "error": {
+                                "code": -32600,
+                                "message": 'Invalid Request: "name" parameter required in tools/call',
+                            },
+                        }
+                    )
+
+                # In production mode, lazy-load tool if not already loaded
+                if self._running_from_archive and tool_name not in self.tools_by_name:
+                    tool = self._lazy_load_tool(tool_name)
+                    if tool is None:
+                        return JSONResponse(
+                            content={
+                                "jsonrpc": "2.0",
+                                "id": request_id,
+                                "error": {"code": -32601, "message": f"Tool not found: {tool_name}"},
+                            }
+                        )
+                elif tool_name not in self.tools_by_name:
+                    return JSONResponse(
+                        content={
+                            "jsonrpc": "2.0",
+                            "id": request_id,
+                            "error": {"code": -32601, "message": f"Tool not found: {tool_name}"},
+                        }
+                    )
+                else:
+                    tool = self.tools_by_name[tool_name]
+
+                if tool.pydantic_model is None:
+                    return JSONResponse(
+                        content={
+                            "jsonrpc": "2.0",
+                            "id": request_id,
+                            "error": {
+                                "code": -32603,
+                                "message": f"Tool '{tool_name}' is missing its parameter model",
+                            },
+                        }
+                    )
+
+                # Execute tool with arguments
+                try:
+                    # Create Pydantic parameter object and call function
+                    params_obj = tool.pydantic_model(**tool_args)
+                    result = tool.function(params_obj)
+
+                    # Handle different result types
+                    if hasattr(result, "model_dump"):
+                        # It's a Pydantic model (like DebriefCommand)
+                        command_result = result.model_dump()
+                    elif isinstance(result, dict) and "command" in result:
+                        # It's already a dict with command structure
+                        command_result = result
+                    else:
+                        # Wrap non-command results for consistency
+                        if isinstance(result, (str, int, float, bool)):
+                            command_result = {"command": "showText", "payload": str(result)}
+                        else:
+                            command_result = {"command": "showData", "payload": result}
+
+                    return JSONResponse(
+                        content={"jsonrpc": "2.0", "id": request_id, "result": command_result}
+                    )
+
+                except TypeError as e:
+                    return JSONResponse(
+                        content={
+                            "jsonrpc": "2.0",
+                            "id": request_id,
+                            "error": {
+                                "code": -32600,
+                                "message": f"Invalid arguments for tool '{tool_name}': {str(e)}",
+                            },
+                        }
+                    )
+                except Exception as e:
+                    error_details = traceback.format_exc()
+                    return JSONResponse(
+                        content={
+                            "jsonrpc": "2.0",
+                            "id": request_id,
+                            "error": {
+                                "code": -32603,
+                                "message": f"Tool execution failed: {str(e)}",
+                                "data": error_details,
+                            },
+                        }
+                    )
+
+            except Exception as e:
+                return JSONResponse(
+                    content={
+                        "jsonrpc": "2.0",
+                        "id": request_id,
+                        "error": {"code": -32603, "message": f"Internal error: {str(e)}"},
+                    }
+                )
+
+        # Bind helper methods to instance
+        self._handle_mcp_tools_list = _handle_mcp_tools_list.__get__(self, type(self))
+        self._handle_mcp_tools_call = _handle_mcp_tools_call.__get__(self, type(self))
 
         @self.app.get("/tools/list")
         async def list_tools():

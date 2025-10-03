@@ -3,6 +3,7 @@ import * as WebSocket from 'ws';
 import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
+import express, { Request, Response } from 'express';
 import { PlotJsonEditorProvider } from '../providers/editors/plotJsonEditor';
 import { validateFeatureCollectionComprehensive, validateFeatureByType, classifyFeature, TimeState, ViewportState } from '@debrief/shared-types';
 import { GlobalController } from '../core/globalController';
@@ -52,11 +53,13 @@ interface DebriefResponse {
 export class DebriefWebSocketServer {
     private server: WebSocket.WebSocketServer | null = null;
     private httpServer: http.Server | null = null;
+    private expressApp: express.Application | null = null;
     private readonly port = 60123;
     private clients: Set<WebSocket> = new Set();
     private cachedFilename: string | null = null;
     private healthCheckInterval: NodeJS.Timeout | null = null;
-    private httpConnections: Set<any> = new Set(); // Track all HTTP connections for proper cleanup
+    private httpConnections: Set<unknown> = new Set(); // Track all HTTP connections for proper cleanup
+    private mcpToolsCache: Record<string, unknown>[] | null = null; // Cache for MCP tools index
 
     constructor() {}
 
@@ -74,8 +77,17 @@ export class DebriefWebSocketServer {
         }
 
         try {
-            // Create HTTP server first to handle port conflicts
-            this.httpServer = http.createServer();
+            // Create Express app
+            this.expressApp = express();
+
+            // Add JSON parsing middleware for MCP endpoint
+            this.expressApp.use(express.json());
+
+            // Set up MCP endpoints
+            this.setupMcpEndpoints();
+
+            // Create HTTP server with Express app
+            this.httpServer = http.createServer(this.expressApp);
 
             // Handle port conflicts - but try to recover
             this.httpServer.on('error', async (error: NodeJS.ErrnoException) => {
@@ -194,8 +206,11 @@ export class DebriefWebSocketServer {
                 }, 2000);
             });
 
-            console.log(`Debrief WebSocket server started on ws://localhost:${this.port}`);
-            vscode.window.showInformationMessage(`Debrief WebSocket bridge started on port ${this.port}`);
+            console.log(`Debrief server started on port ${this.port}`);
+            console.log(`  - WebSocket: ws://localhost:${this.port}`);
+            console.log(`  - MCP endpoint: http://localhost:${this.port}/mcp`);
+            console.log(`  - Health check: http://localhost:${this.port}/health`);
+            vscode.window.showInformationMessage(`Debrief server started on port ${this.port} (WebSocket + MCP)`);
             
             // Start health check logging every 30 seconds
             this.healthCheckInterval = setInterval(() => {
@@ -240,9 +255,9 @@ export class DebriefWebSocketServer {
         }
 
         // Force-close all HTTP connections to release the port immediately
-        this.httpConnections.forEach((conn) => {
+        this.httpConnections.forEach((conn: unknown) => {
             try {
-                conn.destroy();
+                (conn as { destroy: () => void }).destroy();
             } catch (error) {
                 console.warn('Error destroying HTTP connection:', error);
             }
@@ -287,11 +302,217 @@ export class DebriefWebSocketServer {
             this.httpServer = null;
         }
 
+        // Clear Express app
+        this.expressApp = null;
+        this.mcpToolsCache = null;
+
         console.log('Debrief WebSocket server stopped completely');
     }
 
     isRunning(): boolean {
         return this.server !== null && this.httpServer !== null;
+    }
+
+    /**
+     * Set up MCP endpoints for JSON-RPC 2.0 protocol
+     */
+    private setupMcpEndpoints(): void {
+        if (!this.expressApp) {
+            return;
+        }
+
+        // Health check endpoint
+        this.expressApp.get('/health', (_req: Request, res: Response) => {
+            res.json({ status: 'ok' });
+        });
+
+        // MCP JSON-RPC 2.0 endpoint
+        this.expressApp.post('/mcp', async (req: Request, res: Response) => {
+            try {
+                const jsonRpcRequest = req.body as Record<string, unknown>;
+
+                // Validate JSON-RPC 2.0 request format
+                if (!jsonRpcRequest || typeof jsonRpcRequest !== 'object') {
+                    res.status(400).json({
+                        jsonrpc: '2.0',
+                        id: null,
+                        error: {
+                            code: -32600,
+                            message: 'Invalid Request: request body must be JSON object'
+                        }
+                    });
+                    return;
+                }
+
+                const method = jsonRpcRequest.method as string;
+                const params = (jsonRpcRequest.params || {}) as Record<string, unknown>;
+                const id = jsonRpcRequest.id;
+
+                // Check required fields
+                if (!method || typeof method !== 'string') {
+                    res.status(400).json({
+                        jsonrpc: '2.0',
+                        id,
+                        error: {
+                            code: -32600,
+                            message: 'Invalid Request: "method" field is required'
+                        }
+                    });
+                    return;
+                }
+
+                // Route to appropriate method
+                if (method === 'tools/list') {
+                    await this.handleMcpToolsList(id, res);
+                } else if (method === 'tools/call') {
+                    await this.handleMcpToolsCall(id, params, res);
+                } else {
+                    res.json({
+                        jsonrpc: '2.0',
+                        id,
+                        error: {
+                            code: -32601,
+                            message: `Method not found: ${method}`
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('MCP endpoint error:', error);
+                res.status(500).json({
+                    jsonrpc: '2.0',
+                    id: null,
+                    error: {
+                        code: -32603,
+                        message: error instanceof Error ? error.message : 'Internal error'
+                    }
+                });
+            }
+        });
+
+        console.warn('[MCP] MCP endpoints registered: POST /mcp, GET /health');
+    }
+
+    /**
+     * Handle tools/list MCP method
+     */
+    private async handleMcpToolsList(id: unknown, res: Response): Promise<void> {
+        try {
+            // Load tool index from file (will be generated at build time)
+            if (!this.mcpToolsCache) {
+                const toolsPath = path.join(__dirname, '..', '..', 'mcp-tools.json');
+
+                // Check if tools file exists
+                if (!fs.existsSync(toolsPath)) {
+                    console.warn('[MCP] mcp-tools.json not found, returning empty tools list');
+                    this.mcpToolsCache = [];
+                } else {
+                    const toolsData = fs.readFileSync(toolsPath, 'utf-8');
+                    const parsed = JSON.parse(toolsData) as Record<string, unknown>;
+                    this.mcpToolsCache = (parsed.tools || []) as Record<string, unknown>[];
+                    console.warn(`[MCP] Loaded ${this.mcpToolsCache.length} tools from mcp-tools.json`);
+                }
+            }
+
+            res.json({
+                jsonrpc: '2.0',
+                id,
+                result: {
+                    tools: this.mcpToolsCache
+                }
+            });
+        } catch (error) {
+            console.error('[MCP] Error loading tools list:', error);
+            res.json({
+                jsonrpc: '2.0',
+                id,
+                error: {
+                    code: -32603,
+                    message: 'Failed to load tools list'
+                }
+            });
+        }
+    }
+
+    /**
+     * Handle tools/call MCP method - route to existing command handlers
+     */
+    private async handleMcpToolsCall(id: unknown, params: Record<string, unknown>, res: Response): Promise<void> {
+        try {
+            const toolName = params.name as string;
+            const toolArgs = (params.arguments || {}) as Record<string, unknown>;
+
+            if (!toolName) {
+                res.json({
+                    jsonrpc: '2.0',
+                    id,
+                    error: {
+                        code: -32600,
+                        message: 'Invalid Request: "name" parameter required in tools/call'
+                    }
+                });
+                return;
+            }
+
+            // Map MCP tool names to internal command names
+            const commandMap: Record<string, string> = {
+                'debrief_get_selection': 'get_selected_features',
+                'debrief_get_features': 'get_feature_collection',
+                'debrief_apply_command': 'set_feature_collection',
+                'debrief_get_time': 'get_time',
+                'debrief_set_time': 'set_time',
+                'debrief_get_viewport': 'get_viewport',
+                'debrief_set_viewport': 'set_viewport'
+            };
+
+            const internalCommand = commandMap[toolName];
+            if (!internalCommand) {
+                res.json({
+                    jsonrpc: '2.0',
+                    id,
+                    error: {
+                        code: -32601,
+                        message: `Tool not found: ${toolName}`
+                    }
+                });
+                return;
+            }
+
+            // Call existing command handler
+            const commandMessage: DebriefMessage = {
+                command: internalCommand,
+                params: toolArgs as CommandParams
+            };
+
+            const commandResponse = await this.handleCommand(commandMessage);
+
+            // Convert to JSON-RPC 2.0 response
+            if (commandResponse.error) {
+                res.json({
+                    jsonrpc: '2.0',
+                    id,
+                    error: {
+                        code: -32603,
+                        message: commandResponse.error.message
+                    }
+                });
+            } else {
+                res.json({
+                    jsonrpc: '2.0',
+                    id,
+                    result: commandResponse.result
+                });
+            }
+        } catch (error) {
+            console.error('[MCP] Error executing tool:', error);
+            res.json({
+                jsonrpc: '2.0',
+                id,
+                error: {
+                    code: -32603,
+                    message: error instanceof Error ? error.message : 'Tool execution failed'
+                }
+            });
+        }
     }
 
     private async handleCommand(message: DebriefMessage): Promise<DebriefResponse> {
