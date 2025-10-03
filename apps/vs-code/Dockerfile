@@ -94,6 +94,14 @@ COPY --chown=coder:coder . /home/coder/project/
 # Copy the shared-types wheel produced in the builder stage
 COPY --chown=coder:coder --from=shared-types-builder /tmp/wheels/ /home/coder/project/python/
 
+# Verify wheel was copied successfully
+RUN if ! ls /home/coder/project/python/*.whl 1> /dev/null 2>&1; then \
+        echo "Error: shared-types wheel not found in /home/coder/project/python/" >&2; \
+        echo "COPY from shared-types-builder may have failed" >&2; \
+        ls -la /home/coder/project/python/ >&2 || true; \
+        exit 1; \
+    fi
+
 # Install shared-types and Tool Vault dependencies system-wide for the .pyz runtime
 USER root
 RUN pip3 install --break-system-packages \
@@ -106,7 +114,14 @@ USER coder
 # Tool Vault serves MCP-compatible endpoints on port 60124 for maritime analysis tools
 RUN mkdir -p /home/coder/tool-vault
 COPY --chown=coder:coder --from=tool-vault-builder /tmp/repo/libs/tool-vault-packager/dist/toolvault.pyz /home/coder/tool-vault/toolvault.pyz
-RUN chmod +x /home/coder/tool-vault/toolvault.pyz
+
+# Verify Tool Vault package was copied and is executable
+RUN if [ ! -f /home/coder/tool-vault/toolvault.pyz ]; then \
+        echo "Error: toolvault.pyz not found" >&2; \
+        echo "COPY from tool-vault-builder may have failed" >&2; \
+        exit 1; \
+    fi && \
+    chmod +x /home/coder/tool-vault/toolvault.pyz
 
 # Set Tool Vault configuration for VS Code extension
 ENV DEBRIEF_TOOL_VAULT_PATH=/home/coder/tool-vault/toolvault.pyz
