@@ -1,0 +1,35 @@
+.headed-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.headed-panel-header {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  background: var(--vscode-sideBar-background, #252526);
+  border-bottom: 1px solid var(--vscode-panel-border, #3e3e3e);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+}
+
+.headed-panel-icon {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+}
+
+.headed-panel-title {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.headed-panel-content {
+  flex: 1;
+  overflow: auto;
+  background: var(--vscode-editor-background, #1e1e1e);
+}

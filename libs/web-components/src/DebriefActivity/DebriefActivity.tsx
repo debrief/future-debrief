@@ -7,6 +7,7 @@ import { TimeController } from '../TimeController/TimeController';
 import { OutlineViewParent } from '../OutlineViewParent/OutlineViewParent';
 import { PropertiesView, Property } from '../PropertiesView/PropertiesView';
 import { CurrentStateTable } from '../CurrentStateTable/CurrentStateTable';
+import { HeadedPanel } from '../HeadedPanel/HeadedPanel';
 import { TimeFormat } from '../TimeController/timeUtils';
 import './DebriefActivity.css';
 
@@ -73,28 +74,32 @@ export const DebriefActivity: React.FC<DebriefActivityProps> = ({
     <div className={`debrief-activity ${className}`} data-testid="debrief-activity" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* TimeController - Fixed height, not resizable */}
       <div className="time-controller-panel" data-testid="time-controller-panel">
-        <TimeController
-          timeState={timeState}
-          timeFormat={timeFormat}
-          onTimeChange={onTimeChange}
-          onOpenSettings={onOpenSettings}
-        />
+        <HeadedPanel title="Time Controller">
+          <TimeController
+            timeState={timeState}
+            timeFormat={timeFormat}
+            onTimeChange={onTimeChange}
+            onOpenSettings={onOpenSettings}
+          />
+        </HeadedPanel>
       </div>
 
       {/* Resizable panels using react-resizable-panels */}
       <PanelGroup direction="vertical" style={{ flex: 1 }}>
         <Panel defaultSize={33} minSize={10}>
-          <OutlineViewParent
-            featureCollection={safeFeatureCollection}
-            selectedFeatureIds={selectedFeatureIds}
-            toolList={safeToolList}
-            onSelectionChange={onSelectionChange}
-            onCommandExecute={onCommandExecute}
-            onFeatureVisibilityChange={onFeatureVisibilityChange}
-            onViewFeature={onViewFeature}
-            onDeleteFeatures={onDeleteFeatures}
-            onCollapseAll={onCollapseAll}
-          />
+          <HeadedPanel title="Outline">
+            <OutlineViewParent
+              featureCollection={safeFeatureCollection}
+              selectedFeatureIds={selectedFeatureIds}
+              toolList={safeToolList}
+              onSelectionChange={onSelectionChange}
+              onCommandExecute={onCommandExecute}
+              onFeatureVisibilityChange={onFeatureVisibilityChange}
+              onViewFeature={onViewFeature}
+              onDeleteFeatures={onDeleteFeatures}
+              onCollapseAll={onCollapseAll}
+            />
+          </HeadedPanel>
         </Panel>
         <PanelResizeHandle style={{
           height: '4px',
@@ -102,7 +107,9 @@ export const DebriefActivity: React.FC<DebriefActivityProps> = ({
           cursor: 'row-resize'
         }} />
         <Panel defaultSize={33} minSize={10}>
-          <PropertiesView properties={selectedFeatureProperties} />
+          <HeadedPanel title="Properties">
+            <PropertiesView properties={selectedFeatureProperties} />
+          </HeadedPanel>
         </Panel>
         <PanelResizeHandle style={{
           height: '4px',
@@ -110,7 +117,9 @@ export const DebriefActivity: React.FC<DebriefActivityProps> = ({
           cursor: 'row-resize'
         }} />
         <Panel defaultSize={34} minSize={10}>
-          <CurrentStateTable currentState={currentState} />
+          <HeadedPanel title="Current State">
+            <CurrentStateTable currentState={currentState} />
+          </HeadedPanel>
         </Panel>
       </PanelGroup>
     </div>

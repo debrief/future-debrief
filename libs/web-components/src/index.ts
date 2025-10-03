@@ -8,6 +8,7 @@ export { OutlineView } from './OutlineView/OutlineView';
 export { ToolExecuteButton } from './ToolExecuteButton/ToolExecuteButton';
 export { OutlineViewParent } from './OutlineViewParent/OutlineViewParent';
 export { DebriefActivity } from './DebriefActivity/DebriefActivity';
+export { HeadedPanel } from './HeadedPanel/HeadedPanel';
 
 // Service exports
 export { ToolParameterService } from './services/toolParameterService';
@@ -21,6 +22,7 @@ export type { OutlineViewProps } from './OutlineView/OutlineView';
 export type { ToolExecuteButtonProps } from './ToolExecuteButton/ToolExecuteButton';
 export type { OutlineViewParentProps } from './OutlineViewParent/OutlineViewParent';
 export type { DebriefActivityProps } from './DebriefActivity/DebriefActivity';
+export type { HeadedPanelProps } from './HeadedPanel/HeadedPanel';
 
 // Service type exports
 export type {

@@ -10,9 +10,9 @@
 .time-controller-panel {
   flex-shrink: 0;
   flex-grow: 0;
-  height: 150px;
-  min-height: 150px;
-  max-height: 150px;
+  height: 200px;
+  min-height: 200px;
+  max-height: 200px;
   overflow: hidden;
   border-bottom: 1px solid var(--vscode-panel-border, #ccc);
 }
