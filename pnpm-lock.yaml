@@ -23,6 +23,9 @@ importers:
       '@debrief/web-components':
         specifier: workspace:^1.0.0
         version: link:../../libs/web-components
+      '@vscode/codicons':
+        specifier: ^0.0.40
+        version: 0.0.40
       leaflet:
         specifier: ^1.9.4
         version: 1.9.4

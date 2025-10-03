@@ -54,7 +54,9 @@
           ".plot.json"
         ],
         "configuration": "./language-configuration.json",
-        "mimetypes": ["application/json"]
+        "mimetypes": [
+          "application/json"
+        ]
       }
     ],
     "commands": [
@@ -118,8 +120,7 @@
         }
       ]
     },
-    "menus": {
-    },
+    "menus": {},
     "customEditors": [
       {
         "viewType": "plotJsonEditor",
@@ -171,7 +172,12 @@
         },
         "debrief.timeController.format": {
           "type": "string",
-          "enum": ["rn-short", "plain", "iso", "rn-long"],
+          "enum": [
+            "rn-short",
+            "plain",
+            "iso",
+            "rn-long"
+          ],
           "enumDescriptions": [
             "Royal Navy Short: 151430Z",
             "Plain English: Jan 15, 2024, 14:30:00 UTC",
@@ -204,6 +210,7 @@
   },
   "dependencies": {
     "@debrief/web-components": "workspace:^1.0.0",
+    "@vscode/codicons": "^0.0.40",
     "leaflet": "^1.9.4",
     "ws": "^8.14.2"
   }

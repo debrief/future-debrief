@@ -63,17 +63,20 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
         // Subscribe to GlobalController events
         this._setupGlobalControllerSubscriptions();
 
-        // Initialize HTML content
-        this._initializeWebview().catch(error => {
-            console.error('[DebriefActivityProvider] Failed to initialize webview:', error);
-        });
+        // Initialize HTML content and wait for completion before checking Tool Vault state
+        // This prevents race condition where Tool Vault updates are sent before webview is ready
+        this._initializeWebview()
+            .then(() => {
+                // Check if Tool Vault server is already ready (only after webview is initialized)
+                this._checkInitialToolVaultState();
+            })
+            .catch(error => {
+                console.error('[DebriefActivityProvider] Failed to initialize webview:', error);
+            });
 
         webviewView.onDidDispose(() => {
             this._cleanup();
         });
-
-        // Check if Tool Vault server is already ready (race condition handling)
-        this._checkInitialToolVaultState();
     }
 
     /**
@@ -654,6 +657,9 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
         const webComponentsJsUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'web-components.js'));
         const webComponentsCssUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'web-components.css'));
 
+        // Get codicons URI using the VS Code API
+        const codiconsUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'node_modules', '@vscode', 'codicons', 'dist', 'codicon.css'));
+
         const nonce = getNonce();
         const state = await this._getCurrentState();
 
@@ -666,7 +672,7 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
                 <link href="${styleResetUri}" rel="stylesheet">
                 <link href="${styleVSCodeUri}" rel="stylesheet">
                 <link href="${webComponentsCssUri}" rel="stylesheet">
-                <link id="vscode-codicon-stylesheet" href="vscode-resource://icons/codicon/codicon.css" rel="stylesheet">
+                <link id="vscode-codicon-stylesheet" href="${codiconsUri}" rel="stylesheet">
                 <title>Debrief Activity</title>
                 <style>
                     .codicon {
