@@ -144,11 +144,12 @@ RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: installing 
     if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: Python extension installed" "${STATUS_WEBHOOK}" || true; fi
 
 # Copy workspace files to the workspace directory
-# WORKDIR is /home/coder/project, so use relative path from there
-RUN if [ -d "apps/vs-code/workspace" ]; then \
-        cp -r apps/vs-code/workspace/* /home/coder/workspace/; \
+# Build context is apps/vs-code/, so workspace is at ./workspace
+RUN if [ -d "workspace" ]; then \
+        cp -r workspace/* /home/coder/workspace/; \
     else \
-        echo "Error: workspace directory not found at apps/vs-code/workspace" >&2; \
+        echo "Error: workspace directory not found" >&2; \
+        ls -la . >&2; \
         exit 1; \
     fi
 
