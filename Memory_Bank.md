@@ -49,6 +49,55 @@
 - **File Association**: `.plot.json` files automatically open in custom editor
 - **Error Handling**: Detailed validation errors with feature-level diagnostics
 
+---
+
+**Agent:** Architecture Planning Agent (Issue #205)
+**Task Reference:** Issue #205 - LLM Integration Architecture for Future Debrief
+
+**Summary:**
+Completed comprehensive architectural design for enabling LLM extensions (Claude Code, GitHub Copilot, local LLMs) to orchestrate multi-step maritime analysis workflows through Future Debrief's existing WebSocket and Tool Vault infrastructure.
+
+**Details:**
+- **Research Phase**: Surveyed MCP (Model Context Protocol) architectures, wrapper technologies (HTTP-to-WebSocket proxies, REST gateways, CLI tools), and LLM extension capabilities across all major platforms (Claude Code, GitHub Copilot CLI, Ollama/LM Studio)
+- **Architecture Design**: Created detailed design for dual MCP stdio server approach (Debrief State Server + Debrief Tools Server) to wrap existing WebSocket (:60123) and Tool Vault (:60124) services
+- **Phase 0 Framework**: Added structured decision analysis framework comparing three approaches: (A) MCP Wrapper (2-3 weeks), (B) HTTP Refactoring (6-8 weeks), (C) Hybrid Dual-Protocol (8-10 weeks)
+- **Decision Tree**: Developed comprehensive decision criteria matrix and Mermaid flowchart to guide architectural choice based on timeline, web dashboard requirements, client dependencies, and risk tolerance
+- **Integration Patterns**: Documented multi-step workflow orchestration, ToolVaultCommand handling, multi-plot scenario management, and error handling strategies
+- **Security Model**: Designed authentication/authorization approach, rate limiting (token bucket), resource sandboxing, and audit logging specifications
+- **Implementation Roadmap**: Created phased rollout plan with split Phase 1 options (1.A for wrapper, 1.B for HTTP refactoring), detailed deliverables, and success criteria
+- **POC Specification**: Designed proof-of-concept for delete-selected-feature workflow with sequence diagrams, test scenarios, and multi-platform validation (Claude Code, Copilot CLI, Ollama)
+
+**Output/Result:**
+Created comprehensive architecture document: `docs/llm-integration-architecture.md`
+- **7 major sections**: Technology Research, Wrapper Architecture, Integration Patterns, Security, Implementation Phases (including Phase 0 decision framework), POC Specification, Recommendations
+- **3 Mermaid diagrams**: System architecture, workflow sequence, decision tree
+- **5 comparison matrices**: Technology comparison, LLM platform capabilities, decision criteria, performance benchmarks
+- **Detailed implementation plans**: Both wrapper approach (Phase 1.A) and HTTP refactoring approach (Phase 1.B)
+- **Key recommendation**: Execute Phase 0 (1-week) structured decision analysis before choosing implementation path, with default to MCP wrapper if no web dashboard planned within 6 months
+
+**Key Architectural Decisions:**
+1. **Primary Integration Pattern**: MCP stdio servers (native support in Claude Code, extensible to Copilot and Ollama)
+2. **Wrapper vs Refactoring**: Phase 0 framework defers decision until requirements clarified (web dashboard timeline, client dependencies, team bandwidth)
+3. **Security Model**: Localhost-only with no additional auth for Phase 1 (sufficient for local development), optional API keys for Phase 2+
+4. **Multi-Platform Support**: Designed for Claude Code, GitHub Copilot CLI, and local LLMs (Ollama + ollama-mcp-bridge) simultaneously
+5. **Tool Vault Integration**: Dynamic tool discovery via HTTP, ToolVaultCommand result handling for state updates
+
+**Referenced ADRs:**
+- ADR-015 (VS Code Integration MVP) - WebSocket server context
+- ADR-014 (Persist UI State) - State management patterns
+- ADR-011 (Storage Format) - GeoJSON/FeatureCollection contracts
+
+**Status:** Completed
+
+**Issues/Blockers:**
+None
+
+**Next Steps:**
+1. **Phase 0 Execution** (Week 1): Stakeholder survey, technical spike (prototype minimal HTTP endpoint), risk assessment, decision meeting
+2. **Key Questions to Answer**: Number of external WebSocket clients, web dashboard timeline, team bandwidth availability, risk tolerance
+3. **Decision Milestone**: Create ADR (e.g., ADR-016-llm-integration-protocol.md) documenting Phase 0 decision rationale
+4. **Implementation**: Proceed with Phase 1.A (wrapper) or Phase 1.B (HTTP refactoring) based on Phase 0 outcome
+
 ### ToolVault Pydantic Migration - Issue #113 Phase 2 ✅
 **Decision**: Successfully migrated from pydoc-derived parameter schemas to Pydantic models with JSON Schema generation
 - **Problem**: Generic parameter descriptions, limited validation, no shared-types composition
