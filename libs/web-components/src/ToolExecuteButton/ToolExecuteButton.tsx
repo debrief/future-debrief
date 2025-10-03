@@ -56,7 +56,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [filterWarnings, setFilterWarnings] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showAllState, setShowAllState] = useState(true); // Default to showing all tools
+  const [showAllState, setShowAllState] = useState(false); // Default to showing filtered tools only
   const [showDescriptionsState, setShowDescriptionsState] = useState(true); // Default to showing descriptions
   const [menuRect, setMenuRect] = useState<{ top: number; left: number; width: number } | null>(null);
 
