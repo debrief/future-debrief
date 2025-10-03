@@ -1,5 +1,17 @@
 # LLM Integration Architecture for Future Debrief
 
+> **📍 DOCUMENTATION REFACTORED**: This 2200+ line document has been split into focused, navigable sections.
+>
+> **👉 START HERE**: [LLM Integration Documentation Hub](llm-integration/README.md)
+>
+> This legacy document remains for reference but is no longer the primary source. For easier navigation:
+> - **Key Decisions**: See [ADRs](llm-integration/decisions/)
+> - **Implementation Specs**: See [Specs](llm-integration/specs/)
+> - **Phase Plans**: See [Phases](llm-integration/phases/)
+> - **Main Index**: [llm-integration/README.md](llm-integration/README.md)
+
+---
+
 ## Executive Summary
 
 This document presents a comprehensive architectural plan for enabling VS Code-compatible LLM integrations (such as GitHub Copilot and Claude) to orchestrate multi-step maritime analysis workflows through Future Debrief's existing infrastructure.
