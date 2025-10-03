@@ -2,7 +2,7 @@ import React, { useState, useRef, useCallback, useMemo } from 'react';
 import type { Tool } from '@debrief/shared-types/src/types/tools/tool_list_response';
 import type { GlobalToolIndexModel, Tool as ToolNode, ToolCategory } from '@debrief/shared-types/src/types/tools/global_tool_index';
 import type { DebriefFeature } from '@debrief/shared-types';
-import { ToolFilterService } from '../services/ToolFilterService';
+import { useToolExecution } from '../contexts/ToolExecutionContext';
 import './ToolExecuteButton.css';
 
 // Helper to collect all tools from tree structure
@@ -68,42 +68,31 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const toolFilterService = useMemo(() => new ToolFilterService(), []);
+  // Get applicable tools from context - filtering happens once in the provider
+  const { applicableTools, applicableToolNames, warnings: contextWarnings } = useToolExecution();
 
-  // Get applicable tools from filter service and track which tools are available
-  const { availableTools, applicableToolNames, warnings } = useMemo(() => {
-    // Collect all tools from tree structure
-    const allTools = collectToolsFromTree(toolList.root);
+  // Collect all tools from tree structure for display purposes
+  const allTools = useMemo(() => collectToolsFromTree(toolList.root), [toolList.root]);
 
-    if (!enableSmartFiltering || allTools.length === 0) {
-      // Phase 1: Show all tools, all are considered applicable
-      const toolNames = new Set(allTools.map(tool => tool.name));
-      return { availableTools: allTools, applicableToolNames: toolNames, warnings: [] };
+  // Determine which tools to display based on showAllState and enableSmartFiltering
+  const availableTools = useMemo(() => {
+    if (!enableSmartFiltering || showAllState) {
+      // Show all tools when filtering is disabled or showAll is toggled
+      return allTools;
     }
+    // Show only applicable tools when filtering is enabled and showAll is off
+    return applicableTools;
+  }, [enableSmartFiltering, showAllState, allTools, applicableTools]);
 
-    // Phase 2: Use ToolFilterService
-    try {
-      const toolsData = { tools: allTools };
-      const result = toolFilterService.getApplicableTools(selectedFeatures, toolsData);
-      const applicableNames = new Set(result.tools.map(tool => tool.name));
-
-      // Return filtered tools or all tools based on showAllState
-      const tools = showAllState ? allTools : result.tools;
-
-      // Determine warnings based on filtering state
-      const warnings = !showAllState ? result.warnings : [];
-
-      return { availableTools: tools, applicableToolNames: applicableNames, warnings };
-    } catch (error) {
-      console.error('Error filtering tools:', error);
-      const toolNames = new Set(allTools.map(tool => tool.name));
-      return {
-        availableTools: allTools,
-        applicableToolNames: toolNames,
-        warnings: ['Error filtering tools - showing all available tools']
-      };
+  // Determine warnings to display
+  const warnings = useMemo(() => {
+    if (!enableSmartFiltering || showAllState) {
+      // No warnings when showing all tools
+      return [];
     }
-  }, [toolList, selectedFeatures, enableSmartFiltering, showAllState, toolFilterService]);
+    // Show warnings when filtering is active
+    return contextWarnings;
+  }, [enableSmartFiltering, showAllState, contextWarnings]);
 
   // Update filter warnings based on computed results
   React.useEffect(() => {
@@ -150,14 +139,14 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
   }, []);
 
   const handleCommandSelect = useCallback((tool: Tool, isApplicable: boolean) => {
-    // Only execute if tool is applicable
-    if (!isApplicable) {
+    // Only enforce applicability when smart filtering is enabled AND showAll is off
+    if (enableSmartFiltering && !showAllState && !isApplicable) {
       return;
     }
 
     onCommandExecute(tool);
     setIsMenuOpen(false);
-  }, [onCommandExecute]);
+  }, [onCommandExecute, enableSmartFiltering, showAllState]);
 
   const toggleCategory = useCallback((categoryName: string) => {
     setExpandedCategories(prev => {

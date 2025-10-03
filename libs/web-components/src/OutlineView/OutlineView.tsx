@@ -21,6 +21,10 @@ export interface OutlineViewProps {
   onDeleteFeatures?: (ids: string[]) => void
   onCollapseAll?: () => void
   toolbarItems?: React.ReactNode[]
+  onContextMenu?: (featureId: string, mouseX: number, mouseY: number) => void
+  contextMenuOpen?: boolean
+  contextMenuPosition?: { x: number; y: number }
+  contextMenuContent?: React.ReactNode
 }
 
 // Group features by their dataType
@@ -48,9 +52,13 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
   onSelectionChange,
   onFeatureVisibilityChange,
   onViewFeature,
-  onDeleteFeatures,
-  onCollapseAll,
+  onDeleteFeatures: _onDeleteFeatures,
+  onCollapseAll: _onCollapseAll,
   toolbarItems = [],
+  onContextMenu,
+  contextMenuOpen = false,
+  contextMenuPosition,
+  contextMenuContent,
 }) => {
   const groupedFeatures = groupFeaturesByType(featureCollection.features)
 
@@ -208,10 +216,16 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
           <VscodeTreeItem key={type}>
             <span>{type}</span>
             {features.map((feature: DebriefFeature) => (
-              <VscodeTreeItem 
+              <VscodeTreeItem
                 key={String(feature.id)}
                 id={String(feature.id)}
                 selected={selectedFeatureIds.includes(String(feature.id))}
+                onContextMenu={(e: React.MouseEvent) => {
+                  if (onContextMenu) {
+                    e.preventDefault();
+                    onContextMenu(String(feature.id), e.clientX, e.clientY);
+                  }
+                }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                   <VscodeIcon name={featureIsVisible(feature) ? "eye" : "eye-closed"} />
@@ -219,7 +233,7 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
                     {(feature.properties && 'name' in feature.properties && typeof feature.properties.name === 'string') ? feature.properties.name : 'Unnamed'}
                   </span>
                   {onViewFeature && (
-                    <VscodeToolbarButton 
+                    <VscodeToolbarButton
                       onClick={(e) => {
                         e.stopPropagation() // Prevent tree item selection
                         onViewFeature(String(feature.id))
@@ -235,6 +249,18 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
           </VscodeTreeItem>
         ))}
       </VscodeTree>
+      {contextMenuOpen && contextMenuPosition && contextMenuContent && (
+        <div
+          style={{
+            position: 'fixed',
+            left: `${contextMenuPosition.x}px`,
+            top: `${contextMenuPosition.y}px`,
+            zIndex: 10000,
+          }}
+        >
+          {contextMenuContent}
+        </div>
+      )}
     </div>
   )
 }
