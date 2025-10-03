@@ -2,9 +2,9 @@
 
 ## Executive Summary
 
-This document presents a comprehensive architectural plan for enabling LLM integrations to orchestrate multi-step maritime analysis workflows through Future Debrief's existing infrastructure.
+This document presents a comprehensive architectural plan for enabling VS Code-compatible LLM integrations (such as GitHub Copilot and Claude) to orchestrate multi-step maritime analysis workflows through Future Debrief's existing infrastructure.
 
-**Key Challenge**: LLM extensions require standardized MCP (Model Context Protocol) interfaces to interact with Future Debrief's services. Both the Debrief State Server (port 60123) and Tool Vault server (port 60124) need MCP-compatible endpoints.
+**Key Challenge**: VS Code LLM extensions require standardized MCP (Model Context Protocol) interfaces to interact with Future Debrief's services. Both the Debrief State Server (port 60123) and Tool Vault server (port 60124) need MCP-compatible endpoints.
 
 **Recommended Solution**: Model Context Protocol (MCP) streamable-http transport - a modern HTTP-based protocol that leverages existing HTTP server infrastructure with optional Server-Sent Events (SSE) streaming.
 
@@ -760,7 +760,7 @@ if (selectedIds.length === 0) {
 
 const featureId = selectedIds[0];
 
-// Step 2: Delete feature via Tool Vault CLI
+// Step 2: Delete feature via Tool Vault
 const deleteResult = await callBash(
   `python toolvault.pyz call-tool delete_features '{"ids": ["${featureId}"]}'`
 );
@@ -862,7 +862,7 @@ async function deleteSelectedFeature() {
   const selection = await callTool('debrief_get_selection', {});
   const featureId = selection.selectedIds[0];
 
-  // Step 2: Call Tool Vault via CLI
+  // Step 2: Call Tool Vault
   const deleteResult = await callBash(
     `python toolvault.pyz call-tool delete_features '{"ids": ["${featureId}"]}'`
   );
@@ -1658,20 +1658,20 @@ async def mcp_endpoint(request: dict):
    - Log rotation and retention
    - Performance metrics (latency, success rates)
 
-4. **GitHub Copilot CLI Support**
-   - Test and document integration
-   - Platform-specific examples
-   - Troubleshooting guide
+4. **VS Code LLM Integration Validation**
+   - Test and document GitHub Copilot integration
+   - VS Code extension-specific examples
+   - Troubleshooting guide for analysts
 
 5. **Testing & Validation**
    - Performance benchmarking
    - Stress testing (rate limiting, concurrent requests)
-   - Platform compatibility testing (Claude Code, Copilot CLI)
+   - Platform compatibility testing (GitHub Copilot, together.dev)
 
 **Success Criteria**:
 - ✅ All WebSocket API commands available as MCP tools
 - ✅ Comprehensive audit logging operational
-- ✅ GitHub Copilot CLI integration verified
+- ✅ GitHub Copilot integration verified within VS Code
 - ✅ Performance meets targets (<200ms p95 latency)
 
 ### 5.3 Phase 3: together.dev Integration & Offline Support (2-3 weeks)
@@ -1804,7 +1804,7 @@ async def mcp_endpoint(request: dict):
 ```mermaid
 sequenceDiagram
     actor User
-    participant LLM as LLM Extension<br/>(Claude Code)
+    participant LLM as VS Code LLM<br/>(Copilot/Claude)
     participant State as Debrief State<br/>Server (MCP)
     participant Tools as Debrief Tools<br/>Server (MCP)
     participant WS as WebSocket<br/>Server :60123
@@ -2100,9 +2100,9 @@ describe('MCP Server Performance', () => {
 - [ ] Write unit tests for core functionality
 
 #### Week 2: Integration
-- [ ] End-to-end testing with Claude Code
+- [ ] End-to-end testing with GitHub Copilot in VS Code
 - [ ] Implement retry logic and error handling
-- [ ] Write installation and usage documentation
+- [ ] Write installation and usage documentation for analysts
 - [ ] Create example workflows (delete feature, update selection)
 
 #### Week 3: Validation
@@ -2116,8 +2116,8 @@ describe('MCP Server Performance', () => {
 
 1. **Deployment Strategy**: Should MCP servers be:
    - Published as separate npm package (`@debrief/mcp-servers`)?
-   - Bundled with VS Code extension?
-   - Both (package for CLI users, bundled for extension users)?
+   - Bundled with Future Debrief VS Code extension?
+   - Both (package for standalone use, bundled for extension integration)?
 
 2. **STAC Server Timing**: When should STAC server MCP integration be prioritized?
    - Phase 2 (alongside enhanced features)?
@@ -2197,7 +2197,7 @@ If future requirements demand HTTP access (web dashboards, remote access, multi-
 
 ## Document Metadata
 
-**Author**: Claude Code (APM Architecture Planning Agent)
+**Author**: APM Architecture Planning Agent
 **Date**: 2025-10-03
 **Version**: 1.0
 **Status**: Complete - Pending Review
