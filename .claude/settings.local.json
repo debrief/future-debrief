@@ -196,7 +196,8 @@
       "Bash(lsof:*)",
       "Bash(xargs kill:*)",
       "Bash(xargs cat:*)",
-      "WebFetch(domain:vscode-elements.github.io)"
+      "WebFetch(domain:vscode-elements.github.io)",
+      "Bash(test:*)"
     ]
   }
 }
