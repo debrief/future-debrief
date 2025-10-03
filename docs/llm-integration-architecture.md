@@ -1392,6 +1392,153 @@ This approach combines the best of both previous options:
 
 ---
 
+### 5.0.2 Existing Code Impact Analysis
+
+**CRITICAL**: This section identifies existing code that MUST be refactored for the streamable-http architecture.
+
+#### Current Tool-Vault Integration Code
+
+**Location**: `apps/vs-code/src/core/globalController.ts`
+
+**Existing Flow**:
+1. **Tool Execution**: `executeTool()` method (line 379-399) calls Tool Vault server
+2. **Command Processing**: `processToolVaultCommands()` method (line 543-605) handles results
+3. **State Updates**: Calls `this.updateState()` to modify editor state
+
+**Current Implementation** (lines 543-605):
+```typescript
+public async processToolVaultCommands(result: unknown): Promise<void> {
+    // Extract commands from tool result
+    const commands = this.extractToolVaultCommands(result);
+
+    // Get current feature collection
+    const currentFeatureCollection = this.getFeatureCollection() || {
+        type: 'FeatureCollection' as const,
+        features: []
+    };
+
+    // Process commands using ToolVaultCommandHandler
+    const results = await this.toolVaultCommandHandler.processCommands(
+        commands,
+        currentFeatureCollection
+    );
+
+    // Update state if commands modified features
+    if (latestFeatureCollection) {
+        this.updateState(activeEditorId, 'featureCollection', latestFeatureCollection);
+        this.triggerDocumentUpdate(activeEditorId);
+    }
+}
+```
+
+**ToolVaultCommandHandler Instance** (line 71):
+```typescript
+this.toolVaultCommandHandler = new ToolVaultCommandHandler(this.createStateSetter());
+```
+
+#### Debrief WebSocket Server Code
+
+**Location**: `apps/vs-code/src/services/debriefWebSocketServer.ts`
+
+**Current Commands** (lines 301-343):
+- `get_feature_collection` - Returns active plot's features
+- `set_feature_collection` - Updates active plot's features
+- `get_selected_features` - Returns selected feature IDs
+- `set_selected_features` - Updates selection state
+- `update_features`, `add_features`, `delete_features` - Feature manipulation
+- `get_time`, `set_time` - Time state management
+- `get_viewport`, `set_viewport` - Viewport management
+- `zoom_to_selection` - Viewport adjustment
+- `list_open_plots` - Multi-plot support
+
+**Current Architecture**:
+- WebSocket protocol on port 60123
+- Each command has dedicated handler method
+- Direct state manipulation via GlobalController
+
+#### Required Refactoring Tasks
+
+**1. Debrief State Server Refactoring**:
+- [ ] **Refactor**: `debriefWebSocketServer.ts` → Add HTTP server alongside WebSocket
+- [ ] **Add**: Express.js HTTP server with POST `/mcp` endpoint
+- [ ] **Modify**: `handleCommand()` to be protocol-agnostic (callable from both WebSocket and HTTP)
+- [ ] **Add**: MCP JSON-RPC 2.0 wrapper around existing command handlers
+- [ ] **Test**: Ensure WebSocket commands still work (backward compatibility)
+
+**File to modify**: `apps/vs-code/src/services/debriefWebSocketServer.ts`
+
+**2. GlobalController Integration**:
+- [ ] **Review**: `processToolVaultCommands()` logic (line 543-605)
+- [ ] **Verify**: Existing ToolVaultCommandHandler usage is correct
+- [ ] **NO CHANGE**: This code is already using ToolVaultCommandHandler correctly!
+- [ ] **Test**: Verify command processing still works after server refactoring
+
+**File to review**: `apps/vs-code/src/core/globalController.ts`
+
+**3. Testing Requirements**:
+
+**Unit Tests**:
+- [ ] Test MCP endpoint returns proper JSON-RPC 2.0 responses
+- [ ] Test each command via both WebSocket (legacy) and HTTP (new MCP)
+- [ ] Test error handling for invalid JSON-RPC requests
+
+**Integration Tests**:
+- [ ] Test tool execution → command processing → state update flow
+- [ ] Test ToolVaultCommandHandler processes commands correctly
+- [ ] Test multi-plot scenarios (MULTIPLE_PLOTS error handling)
+- [ ] Test backward compatibility (existing Python scripts via WebSocket)
+
+**End-to-End Tests**:
+- [ ] Test LLM extension connects to MCP endpoint
+- [ ] Test workflow: get selection → call tool → apply command → verify state
+- [ ] Test Continue.dev + Ollama integration
+- [ ] Test error scenarios (server unavailable, invalid commands)
+
+**Playwright Tests** (existing framework):
+- [ ] Add MCP endpoint smoke tests to `apps/vs-code/tests/playwright/`
+- [ ] Test HTTP POST /mcp alongside existing WebSocket tests
+- [ ] Verify both protocols access same underlying state
+
+**Location**: `apps/vs-code/workspace/tests/` (Python integration tests)
+
+#### Code That Does NOT Need Refactoring
+
+✅ **GlobalController.processToolVaultCommands()**: Already using ToolVaultCommandHandler correctly - no changes needed
+
+✅ **ToolVaultCommandHandler** (`libs/web-components/src/services/ToolVaultCommandHandler.ts`): Reusable service works for both WebSocket and MCP - no changes needed
+
+✅ **Tool Vault Server** (`libs/tool-vault-packager/server.py`): Just add `/mcp` endpoint - existing `/tools/call` unchanged
+
+#### Architecture Clarification
+
+**KEY INSIGHT**: The user identified that there's existing code consuming tool-vault output and submitting changes to the debrief state server. This code is in:
+
+1. **GlobalController.executeTool()** → calls Tool Vault
+2. **GlobalController.processToolVaultCommands()** → processes ToolVaultCommands
+3. **ToolVaultCommandHandler.processCommands()** → applies commands to state
+
+**The NEW architecture** adds MCP endpoints but **REUSES** this exact same code path:
+
+```
+LLM Extension
+  ↓ (HTTP POST /mcp)
+Debrief State Server (NEW /mcp endpoint)
+  ↓ (routes to existing command handlers)
+GlobalController.executeTool()
+  ↓
+Tool Vault Server (NEW /mcp endpoint or existing /tools/call)
+  ↓ (returns ToolVaultCommands)
+GlobalController.processToolVaultCommands()
+  ↓
+ToolVaultCommandHandler.processCommands()
+  ↓
+GlobalController.updateState()
+```
+
+**No duplication** - same command handling logic serves both WebSocket and MCP clients!
+
+---
+
 ### 5.1 Phase 1: MCP Endpoint Implementation (3-5 days)
 
 **Goal**: Add streamable-http MCP endpoints to both existing servers
