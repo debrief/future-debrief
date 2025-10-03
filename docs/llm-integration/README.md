@@ -1,6 +1,6 @@
 # LLM Integration Architecture for Future Debrief
 
-**📍 Navigation Hub** | [Full Legacy Doc](../llm-integration-architecture.md) | **Related Issue**: #205
+**📍 Navigation Hub** | **Related Issue**: #205
 
 ---
 
