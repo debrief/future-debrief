@@ -37,7 +37,6 @@ export interface DebriefActivityProps {
 
   // General props
   className?: string;
-  useResizablePanels?: boolean; // Flag to enable VscodeSplitLayout (for VS Code)
 }
 
 export const DebriefActivity: React.FC<DebriefActivityProps> = ({
@@ -67,8 +66,29 @@ export const DebriefActivity: React.FC<DebriefActivityProps> = ({
   // General
   className = ''
 }) => {
-  const safeFeatureCollection: DebriefFeatureCollection = featureCollection || { type: 'FeatureCollection', features: [] };
-  const safeToolList: GlobalToolIndexModel = toolList || { root: [], version: '1.0.0', description: 'No tools available' };
+  // Memoize safe defaults to ensure stable references
+  const defaultFeatureCollection = React.useMemo<DebriefFeatureCollection>(
+    () => ({ type: 'FeatureCollection', features: [] }),
+    []
+  );
+
+  const defaultToolList = React.useMemo<GlobalToolIndexModel>(
+    () => ({ root: [], version: '1.0.0', description: 'No tools available' }),
+    []
+  );
+
+  // Use provided values or memoized defaults
+  const memoizedFeatureCollection = featureCollection || defaultFeatureCollection;
+  const memoizedToolList = toolList || defaultToolList;
+
+  // Memoize callbacks to prevent child re-renders
+  const handleTimeChange = React.useCallback((newTime: string) => {
+    onTimeChange?.(newTime);
+  }, [onTimeChange]);
+
+  const handleSelectionChange = React.useCallback((ids: string[]) => {
+    onSelectionChange?.(ids);
+  }, [onSelectionChange]);
 
   return (
     <div className={`debrief-activity ${className}`} data-testid="debrief-activity" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -78,7 +98,7 @@ export const DebriefActivity: React.FC<DebriefActivityProps> = ({
           <TimeController
             timeState={timeState}
             timeFormat={timeFormat}
-            onTimeChange={onTimeChange}
+            onTimeChange={handleTimeChange}
             onOpenSettings={onOpenSettings}
           />
         </HeadedPanel>
@@ -89,10 +109,10 @@ export const DebriefActivity: React.FC<DebriefActivityProps> = ({
         <Panel defaultSize={33} minSize={10}>
           <HeadedPanel title="Outline">
             <OutlineViewParent
-              featureCollection={safeFeatureCollection}
+              featureCollection={memoizedFeatureCollection}
               selectedFeatureIds={selectedFeatureIds}
-              toolList={safeToolList}
-              onSelectionChange={onSelectionChange}
+              toolList={memoizedToolList}
+              onSelectionChange={handleSelectionChange}
               onCommandExecute={onCommandExecute}
               onFeatureVisibilityChange={onFeatureVisibilityChange}
               onViewFeature={onViewFeature}

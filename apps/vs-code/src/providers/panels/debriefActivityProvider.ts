@@ -16,11 +16,17 @@ import { Property } from '@debrief/web-components';
  * This provider consolidates 4 separate webview providers (TimeController, OutlineView,
  * PropertiesView, CurrentState) into a single webview to improve startup performance.
  *
- * Performance Improvement:
+ * Performance Improvements:
  * - Single HTML generation instead of 4 separate generations
  * - Single web-components.js bundle load instead of 4 loads
  * - Single GlobalController subscription setup instead of 4 setups
  * - Reduced CSP and nonce generation overhead
+ *
+ * State Management:
+ * - HTML is generated once during initialization (_initializeWebview)
+ * - State updates use postMessage to call updateProps() on React component
+ * - This preserves React component tree and internal state (e.g., panel sizes)
+ * - Eliminates flicker and maintains smooth interactions
  */
 export class DebriefActivityProvider implements vscode.WebviewViewProvider {
     public static readonly viewType = 'debrief.activity';
@@ -28,7 +34,6 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
     private _view?: vscode.WebviewView;
     private _globalController: GlobalController;
     private _disposables: vscode.Disposable[] = [];
-    private _isUserDragging = false;
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
@@ -58,8 +63,10 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
         // Subscribe to GlobalController events
         this._setupGlobalControllerSubscriptions();
 
-        // Initialize with current state
-        this._updateView();
+        // Initialize HTML content
+        this._initializeWebview().catch(error => {
+            console.error('[DebriefActivityProvider] Failed to initialize webview:', error);
+        });
 
         webviewView.onDidDispose(() => {
             this._cleanup();
@@ -79,14 +86,6 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
             // TimeController messages
             case 'timeChange':
                 this._handleTimeChange(data.value as string);
-                break;
-            case 'dragStart':
-                this._isUserDragging = true;
-                break;
-            case 'dragEnd':
-                this._isUserDragging = false;
-                // Force update after dragging ends to sync with any missed state changes
-                setTimeout(() => this._updateView(), 100);
                 break;
             case 'openSettings':
                 this._handleOpenSettings();
@@ -153,6 +152,16 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
     }
 
     /**
+     * Initialize webview with HTML content (only called once)
+     */
+    private async _initializeWebview(): Promise<void> {
+        if (!this._view) return;
+
+        const html = await this._getHtmlForWebview(this._view.webview);
+        this._view.webview.html = html;
+    }
+
+    /**
      * Setup subscriptions to GlobalController events
      */
     private _setupGlobalControllerSubscriptions(): void {
@@ -195,24 +204,25 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
     }
 
     /**
-     * Update the webview by regenerating HTML or posting messages
+     * Update the webview by posting state updates (preserves React component state)
+     *
+     * Note: We always use _postStateUpdate() to avoid destroying the React component tree
+     * and losing internal state like panel sizes. HTML is only generated once during
+     * resolveWebviewView().
      */
     private async _updateView(): Promise<void> {
         if (!this._view) return;
 
-        // If user is dragging, try to update via message instead of full HTML regeneration
-        if (this._isUserDragging) {
-            await this._postStateUpdate();
-            return;
-        }
-
-        // Full HTML regeneration
-        const html = await this._getHtmlForWebview(this._view.webview);
-        this._view.webview.html = html;
+        // Always update via message to preserve React component state
+        await this._postStateUpdate();
     }
 
     /**
-     * Post state update message to existing webview (used during dragging)
+     * Post state update message to existing webview
+     *
+     * This sends new props to the React component via updateProps(), preserving
+     * component internal state (like panel sizes) instead of destroying and
+     * recreating the entire component tree.
      */
     private async _postStateUpdate(): Promise<void> {
         if (!this._view) return;
@@ -269,7 +279,7 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
             } else if (!('root' in toolList) || !Array.isArray((toolList as Record<string, unknown>).root)) {
                 toolList = null;
             }
-        } catch (error) {
+        } catch {
             toolList = null;
         }
 
@@ -701,12 +711,7 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
                         }
 
                         try {
-                            let activityInstance = null;
-                            let isDragging = false;
-                            let lastUpdateTime = 0;
-                            const UPDATE_THROTTLE = 50;
-
-                            activityInstance = window.DebriefWebComponents.createDebriefActivity(container, {
+                            const activityInstance = window.DebriefWebComponents.createDebriefActivity(container, {
                                 timeState: initialState.timeState,
                                 timeFormat: timeFormat,
                                 featureCollection: initialState.featureCollection,
@@ -714,15 +719,9 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
                                 toolList: initialState.toolList,
                                 currentState: initialState.currentState,
                                 selectedFeatureProperties: initialState.selectedFeatureProperties,
-                                useResizablePanels: true, // Enable VscodeSplitLayout for resizable panels
 
                                 // TimeController callbacks
                                 onTimeChange: (time) => {
-                                    const now = Date.now();
-                                    if (isDragging && now - lastUpdateTime < UPDATE_THROTTLE) {
-                                        return;
-                                    }
-                                    lastUpdateTime = now;
                                     vscode.postMessage({ type: 'timeChange', value: time });
                                 },
                                 onOpenSettings: () => {
@@ -764,42 +763,6 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
                                     });
                                 }
                             });
-
-                            // Add drag detection for time slider
-                            setTimeout(() => {
-                                const slider = container.querySelector('input[type="range"]');
-                                if (slider) {
-                                    slider.addEventListener('mousedown', () => {
-                                        isDragging = true;
-                                        vscode.postMessage({ type: 'dragStart' });
-                                    });
-
-                                    slider.addEventListener('mouseup', () => {
-                                        isDragging = false;
-                                        vscode.postMessage({ type: 'dragEnd' });
-                                    });
-
-                                    slider.addEventListener('touchstart', () => {
-                                        isDragging = true;
-                                        vscode.postMessage({ type: 'dragStart' });
-                                    });
-
-                                    slider.addEventListener('touchend', () => {
-                                        isDragging = false;
-                                        vscode.postMessage({ type: 'dragEnd' });
-                                    });
-
-                                    document.addEventListener('mouseup', () => {
-                                        isDragging = false;
-                                        vscode.postMessage({ type: 'dragEnd' });
-                                    });
-
-                                    document.addEventListener('touchend', () => {
-                                        isDragging = false;
-                                        vscode.postMessage({ type: 'dragEnd' });
-                                    });
-                                }
-                            }, 100);
 
                         } catch (error) {
                             console.error('DebriefActivity initialization error:', error);
