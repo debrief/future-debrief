@@ -98,6 +98,53 @@
      - Includes SPA dependencies and full build verification
   2. **Dockerfile Changes** (`apps/vs-code/Dockerfile`):
      - Copies pre-built `toolvault.pyz` to `/home/coder/tool-vault/toolvault.pyz`
+
+### Debrief Activity Panel Consolidation - Issue #196 ✅
+**Decision**: Consolidate 4 separate webview providers into single DebriefActivity component for improved startup performance
+- **Problem**: 4 separate webview providers (TimeController, OutlineView, PropertiesView, CurrentState) caused quadruple initialization overhead
+- **Performance Impact**: Each webview incurred separate HTML generation, bundle loading, GlobalController subscriptions, CSP setup
+- **Solution**: Created single consolidated `DebriefActivityProvider` with unified `DebriefActivity` React component
+- **Implementation**:
+  1. **New Web Component** (`libs/web-components/src/DebriefActivity/DebriefActivity.tsx`):
+     - Combined all 4 sub-components into single React component
+     - Used `VscodeSplitLayout` for resizable panels
+     - TimeController maintained fixed height (not vertically resizable)
+     - Outline, Properties, and CurrentState panels are resizable
+     - All callbacks and state management preserved from original components
+  2. **Vanilla Bundle Integration** (`libs/web-components/src/vanilla-generated.tsx`):
+     - Added `createDebriefActivity` factory function
+     - Exposed via `window.DebriefWebComponents.createDebriefActivity`
+     - Exported `DebriefActivityProps` type for VS Code integration
+  3. **VS Code Provider** (`apps/vs-code/src/providers/panels/debriefActivityProvider.ts`):
+     - Consolidated all message handling from 4 separate providers
+     - Single HTML generation with all sub-component state
+     - Unified GlobalController subscription setup
+     - Maintained all existing functionality (time control, feature selection, tool execution, property viewing)
+  4. **Extension Integration** (`apps/vs-code/src/extension.ts`):
+     - Replaced 4 provider registrations with single `DebriefActivityProvider` registration
+     - Updated cleanup logic in `deactivate()` function
+     - Removed imports for old providers
+  5. **Package.json Updates** (`apps/vs-code/package.json`):
+     - Replaced 4 separate view contributions with single `debrief.activity` view
+     - Simplified view configuration (removed individual panel IDs)
+- **Performance Gains**:
+  - Single webview initialization instead of 4 separate initializations
+  - Single web-components.js bundle load (597KB) instead of 4× loads
+  - Single GlobalController subscription setup
+  - Reduced CSP and nonce generation overhead (4→1)
+- **Preserved Functionality**:
+  - Time slider with throttled updates during dragging
+  - Feature selection syncing between outline and map
+  - Tool Vault command execution
+  - Property viewing for selected features
+  - Current state table updates
+  - All keyboard shortcuts and settings integration
+- **Key Files**:
+  - New component: `libs/web-components/src/DebriefActivity/DebriefActivity.tsx`
+  - New provider: `apps/vs-code/src/providers/panels/debriefActivityProvider.ts`
+  - Modified: `apps/vs-code/src/extension.ts` (lines 12, 46, 374-377, 410-413)
+  - Modified: `apps/vs-code/package.json` (lines 112-119)
+- **Testing**: Extension compiles successfully, typecheck passes (JSX warnings are benign)
      - Sets `DEBRIEF_TOOL_VAULT_PATH` environment variable
      - Exposes port 60124 for Tool Vault MCP-compatible REST endpoints
      - Fixed VSIX and workspace paths for monorepo context
