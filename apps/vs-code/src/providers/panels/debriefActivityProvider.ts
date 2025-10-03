@@ -34,6 +34,8 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
     private _view?: vscode.WebviewView;
     private _globalController: GlobalController;
     private _disposables: vscode.Disposable[] = [];
+    private _toolListFailed = false;
+    private _cachedToolList: unknown = null;
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
@@ -200,7 +202,10 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
 
         // Subscribe to Tool Vault server ready events
         const toolVaultReadySubscription = this._globalController.on('toolVaultReady', async () => {
-            console.warn('[DebriefActivityProvider] Tool Vault server ready - refreshing activity panel');
+            console.warn('[DebriefActivityProvider] Tool Vault server ready - resetting failure flag and refreshing activity panel');
+            // Reset failure flag and cache to allow fresh fetch
+            this._toolListFailed = false;
+            this._cachedToolList = null;
             await this._updateView();
         });
         this._disposables.push(toolVaultReadySubscription);
@@ -273,17 +278,31 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
             ? selectionState.selectedIds.map(id => String(id))
             : [];
 
-        // Get tool list
+        // Get tool list (stop trying after first failure until Tool Vault becomes ready)
         let toolList: unknown = null;
-        try {
-            toolList = await this._globalController.getToolIndex();
-            if (!toolList || typeof toolList !== 'object') {
-                toolList = null;
-            } else if (!('root' in toolList) || !Array.isArray((toolList as Record<string, unknown>).root)) {
+        if (this._toolListFailed) {
+            // Tool Vault server failed to load - use cached value (null) until toolVaultReady event
+            toolList = this._cachedToolList;
+        } else if (this._cachedToolList !== null) {
+            // We have a successful cached value
+            toolList = this._cachedToolList;
+        } else {
+            // First attempt or retry after toolVaultReady
+            try {
+                toolList = await this._globalController.getToolIndex();
+                if (!toolList || typeof toolList !== 'object') {
+                    toolList = null;
+                } else if (!('root' in toolList) || !Array.isArray((toolList as Record<string, unknown>).root)) {
+                    toolList = null;
+                }
+                // Cache the successful result
+                this._cachedToolList = toolList;
+            } catch {
+                // Mark as failed to prevent repeated attempts
+                this._toolListFailed = true;
+                this._cachedToolList = null;
                 toolList = null;
             }
-        } catch {
-            toolList = null;
         }
 
         // Get properties for selected feature

@@ -8,8 +8,9 @@ export { OutlineView } from './OutlineView/OutlineView';
 export { OutlineContextMenu } from './OutlineView/OutlineContextMenu';
 export { ToolExecuteButton } from './ToolExecuteButton/ToolExecuteButton';
 export { OutlineViewParent } from './OutlineViewParent/OutlineViewParent';
-export { DebriefActivity } from './DebriefActivity/DebriefActivity';
 export { HeadedPanel } from './HeadedPanel/HeadedPanel';
+export { ActivityBar, ActivityPanel } from './ActivityBar/ActivityBar';
+export { DebriefActivity } from './DebriefActivity/DebriefActivity';
 export { ToolExecutionProvider, useToolExecution } from './contexts/ToolExecutionContext';
 
 // Service exports
@@ -24,8 +25,9 @@ export type { OutlineViewProps } from './OutlineView/OutlineView';
 export type { OutlineContextMenuProps } from './OutlineView/OutlineContextMenu';
 export type { ToolExecuteButtonProps } from './ToolExecuteButton/ToolExecuteButton';
 export type { OutlineViewParentProps } from './OutlineViewParent/OutlineViewParent';
-export type { DebriefActivityProps } from './DebriefActivity/DebriefActivity';
 export type { HeadedPanelProps } from './HeadedPanel/HeadedPanel';
+export type { ActivityBarProps, ActivityPanelProps } from './ActivityBar/ActivityBar';
+export type { DebriefActivityProps } from './DebriefActivity/DebriefActivity';
 export type { ToolExecutionContextValue, ToolExecutionProviderProps, ToolWithCategory } from './contexts/ToolExecutionContext';
 
 // Service type exports
