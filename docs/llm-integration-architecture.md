@@ -182,12 +182,30 @@ Stdio servers are the **primary integration pattern for locally-run MCP servers*
 
 ## 2. Wrapper Architecture Design
 
-### 2.1 Recommended Architecture: Dual MCP Stdio Servers
+### 2.1 Recommended Architecture: Simplified Integration
 
-The recommended approach is to create **two separate MCP stdio servers** that wrap existing services:
+**UPDATED RECOMMENDATION** (Based on Phase 0 findings):
 
-1. **Debrief State Server** (WebSocket adapter)
-2. **Debrief Tools Server** (Tool Vault proxy)
+Given that:
+1. Only `debrief_api.py` uses WebSocket (single client wrapper)
+2. Tool Vault already has CLI support (`python toolvault.pyz call-tool`)
+3. Pre-production status (no external clients)
+
+The recommended approach is **simplified**:
+
+1. **Debrief State Server** (MCP stdio or HTTP) - for plot state management
+2. **Tool Vault** - accessed via CLI (no MCP wrapper needed!)
+
+**Two architectural paths**:
+
+**Path A: MCP Wrapper** (if <4 weeks deadline)
+- MCP State Server (stdio) → WebSocket :60123
+- Tool Vault via Bash tool → `python toolvault.pyz call-tool`
+
+**Path B: HTTP Refactoring** (recommended if 4-6+ weeks)
+- MCP State Server (stdio) → HTTP :60123
+- Tool Vault via Bash tool → `python toolvault.pyz call-tool`
+- Update `debrief_api.py` wrapper (one file change)
 
 #### Architecture Diagram
 
@@ -200,11 +218,15 @@ graph TB
 
     subgraph "MCP Layer"
         MCP1[Debrief State Server<br/>stdio MCP]
-        MCP2[Debrief Tools Server<br/>stdio MCP]
+    end
+
+    subgraph "Command Producers"
+        TVCLI[Tool Vault CLI<br/>python toolvault.pyz]
+        USER[User Scripts<br/>Python/JS/TS]
     end
 
     subgraph "Future Debrief Services"
-        WS[WebSocket Server<br/>:60123]
+        WS[WebSocket/HTTP Server<br/>:60123<br/>Accepts DebriefCommands]
         TV[Tool Vault Server<br/>:60124]
     end
 
@@ -214,19 +236,22 @@ graph TB
     end
 
     CONT -->|stdio JSON-RPC| MCP1
-    CONT -->|stdio JSON-RPC| MCP2
+    CONT -->|Bash tool| TVCLI
+    CONT -->|Execute code| USER
     GH -->|stdio JSON-RPC| MCP1
-    GH -->|stdio JSON-RPC| MCP2
+    GH -->|Bash tool| TVCLI
+    GH -->|Execute code| USER
 
-    MCP1 -->|WebSocket| WS
-    MCP2 -->|HTTP REST| TV
+    MCP1 -->|DebriefCommand| WS
+    TVCLI -->|DebriefCommand via HTTP| TV
+    USER -->|DebriefCommand| WS
 
     WS --> PE
     WS --> GM
-    TV -.->|Tool execution| PE
 
     style MCP1 fill:#e1f5ff
-    style MCP2 fill:#e1f5ff
+    style TVCLI fill:#d4edda
+    style USER fill:#d4edda
     style WS fill:#fff4e1
     style TV fill:#fff4e1
 ```
@@ -267,6 +292,28 @@ graph TB
   }
 }
 
+// Tool: apply_debrief_command (NEW - KEY INTEGRATION POINT)
+{
+  name: "debrief_apply_command",
+  description: "Apply a DebriefCommand result to update plot state",
+  inputSchema: {
+    type: "object",
+    properties: {
+      command: {
+        type: "object",
+        description: "DebriefCommand object from Tool Vault execution (currently named ToolVaultCommand in schemas - to be refactored)",
+        properties: {
+          command: { type: "string", enum: ["setFeatureCollection", "showText", "highlightFeatures", "updateViewport"] },
+          payload: { type: "object", description: "Command-specific payload" }
+        },
+        required: ["command", "payload"]
+      },
+      filename: { type: "string", description: "Optional plot filename" }
+    },
+    required: ["command"]
+  }
+}
+
 // Tool: set_selected_features
 {
   name: "debrief_set_selection",
@@ -285,27 +332,20 @@ graph TB
   }
 }
 
-// Tool: update_features
-{
-  name: "debrief_update_features",
-  description: "Update existing features",
-  inputSchema: {
-    type: "object",
-    properties: {
-      features: {
-        type: "array",
-        items: { type: "object" },
-        description: "Array of GeoJSON features to update"
-      },
-      filename: { type: "string" }
-    },
-    required: ["features"]
-  }
-}
-
-// Additional tools: delete_features, add_features, get_time, set_time,
-// get_viewport, set_viewport, zoom_to_selection, list_open_plots
+// Additional tools: get_time, set_time, get_viewport, set_viewport,
+// zoom_to_selection, list_open_plots
 ```
+
+**Key Design**: The `debrief_apply_command` tool is the **universal integration point** for plot manipulation. Any code can produce `DebriefCommand` objects (currently named `ToolVaultCommand` in schemas), which the State Server executes to update plot state.
+
+**Schema Refactoring**: A separate task will rename `ToolVaultCommand` → `DebriefCommand` in `libs/shared-types/` to reflect accurate terminology.
+
+**Architectural Benefit**: Once the Debrief server accepts `DebriefCommand`, it becomes a universal protocol:
+- Tool Vault tools produce commands
+- User Python scripts produce commands (via `debrief_api.py`)
+- User TypeScript/JavaScript produces commands
+- LLM-generated code produces commands
+- **Single command format, multiple producers**
 
 **Connection Management**:
 - Establish persistent WebSocket connection on server startup
@@ -528,10 +568,10 @@ function translateDebriefError(error: DebriefAPIError): MCPError {
 
 **Steps**:
 1. **Retrieve**: Get first selected feature ID from State Server
-2. **Process**: Pass feature ID to Tool Vault's `delete-features` tool
-3. **Update**: Refresh feature collection from State Server
+2. **Process**: Pass feature ID to Tool Vault's `delete-features` tool (returns `ToolVaultCommand`)
+3. **Apply**: Pass `ToolVaultCommand` directly to State Server (no redundant fetch!)
 
-**LLM Orchestration (Claude Code Example)**:
+**LLM Orchestration (Continue.dev Example)**:
 
 ```typescript
 // Step 1: Get selection
@@ -544,21 +584,23 @@ if (selectedIds.length === 0) {
 
 const featureId = selectedIds[0];
 
-// Step 2: Delete feature via Tool Vault
-const deleteResult = await callTool('toolvault_delete_features', {
-  ids: [featureId]
-});
+// Step 2: Delete feature via Tool Vault CLI
+const deleteResult = await callBash(
+  `python toolvault.pyz call-tool delete_features '{"ids": ["${featureId}"]}'`
+);
 
-// Step 3: Handle ToolVaultCommand result
+// Step 3: Apply ToolVaultCommand directly to State Server
 if (deleteResult.command === 'setFeatureCollection') {
-  // Tool Vault returns updated feature collection
-  await callTool('debrief_update_features', {
-    features: deleteResult.payload.features
+  // Pass the ToolVaultCommand to State Server for execution
+  await callTool('debrief_apply_command', {
+    command: deleteResult
   });
 }
 
 return { success: true, deletedId: featureId };
 ```
+
+**Key Efficiency**: Tool Vault returns the **new state** (updated feature collection), which we pass directly to the State Server. No need to fetch the feature collection again!
 
 ### 3.2 Standardized Request/Response Formats
 
@@ -611,9 +653,23 @@ return { success: true, deletedId: featureId };
 }
 ```
 
-### 3.3 ToolVaultCommand Result Handling
+### 3.3 DebriefCommand Result Handling
 
-**Pattern**: Tool Vault tools may return `ToolVaultCommand` objects that instruct the UI to perform actions.
+**Pattern**: `DebriefCommand` is a **universal command protocol** for plot manipulation.
+
+**TERMINOLOGY NOTE**: These commands are currently called `ToolVaultCommand` in the codebase, but **should be renamed to `DebriefCommand`** to reflect their true purpose:
+- ✅ **Produced by**: Tool Vault tools, user Python scripts, user TypeScript/JavaScript code, LLM-generated code
+- ✅ **Applied to**: Debrief State Server
+- ✅ **Schema location**: `libs/shared-types/` (affects both systems)
+- ✅ **Universal interface**: Any code can generate DebriefCommands to manipulate plots
+
+**Prerequisite Task**: Refactor `ToolVaultCommand` → `DebriefCommand` in shared-types schemas (separate issue to be created).
+
+**Command Producers** (multiple sources):
+1. **Tool Vault tools**: Maritime analysis tools returning plot updates
+2. **User workspace scripts**: Python/JavaScript scripts in `workspace/` directory
+3. **VS Code extensions**: User-authored extensions manipulating plots
+4. **LLM-generated code**: Code written by LLMs and executed in workspace
 
 **Command Types**:
 - `setFeatureCollection`: Update entire feature collection
@@ -621,54 +677,96 @@ return { success: true, deletedId: featureId };
 - `highlightFeatures`: Select/highlight specific features
 - `updateViewport`: Adjust map viewport
 
-**Integration Pattern**:
+**Efficient Integration Pattern** (Direct pass-through):
 
 ```typescript
-async function executeToolVaultTool(
-  name: string,
-  args: Record<string, unknown>
-): Promise<MCPResult> {
-  const result = await callToolVault(name, args);
+// LLM Extension orchestrates the workflow
+async function deleteSelectedFeature() {
+  // Step 1: Get selection
+  const selection = await callTool('debrief_get_selection', {});
+  const featureId = selection.selectedIds[0];
 
-  // Check if result contains ToolVaultCommand
-  if (result.command) {
-    switch (result.command) {
-      case 'setFeatureCollection':
-        // Update feature collection via State Server
-        await callTool('debrief_update_features', {
-          features: result.payload.features
-        });
-        return {
-          content: [{
-            type: "text",
-            text: `Updated feature collection with ${result.payload.features.length} features`
-          }]
-        };
+  // Step 2: Call Tool Vault via CLI
+  const deleteResult = await callBash(
+    `python toolvault.pyz call-tool delete_features '{"ids": ["${featureId}"]}'`
+  );
+  // Returns: { command: "setFeatureCollection", payload: { features: [...] } }
+  // Note: This is a DebriefCommand (currently named ToolVaultCommand in schemas)
 
-      case 'showText':
-        return {
-          content: [{
-            type: "text",
-            text: result.payload
-          }]
-        };
+  // Step 3: Pass DebriefCommand directly to State Server
+  await callTool('debrief_apply_command', {
+    command: deleteResult
+  });
 
-      default:
-        return {
-          content: [{
-            type: "text",
-            text: `Command: ${result.command}`
-          }, {
-            type: "resource",
-            resource: { uri: "tool://vault/command", data: result }
-          }]
-        };
-    }
-  }
-
-  return result;
+  return { success: true };
 }
 ```
+
+**State Server Implementation** (`debrief_apply_command` tool):
+
+```typescript
+async function applyDebriefCommand(command: DebriefCommand, filename?: string) {
+  switch (command.command) {
+    case 'setFeatureCollection':
+      // Apply feature collection update to plot
+      await sendToDebriefAPI('set_feature_collection', {
+        data: command.payload,
+        filename
+      });
+      return { success: true, message: `Updated ${command.payload.features.length} features` };
+
+    case 'highlightFeatures':
+      // Update selection
+      await sendToDebriefAPI('set_selected_features', {
+        ids: command.payload.featureIds,
+        filename
+      });
+      return { success: true, message: `Highlighted ${command.payload.featureIds.length} features` };
+
+    case 'showText':
+      // Return text for LLM to display
+      return { success: true, message: command.payload };
+
+    case 'updateViewport':
+      // Update map viewport
+      await sendToDebriefAPI('set_viewport', {
+        viewportState: command.payload,
+        filename
+      });
+      return { success: true, message: 'Viewport updated' };
+
+    default:
+      throw new Error(`Unknown DebriefCommand: ${command.command}`);
+  }
+}
+```
+
+**Key Efficiency**: Tool Vault returns the **new state** (as a `DebriefCommand`), State Server applies it directly. No redundant fetches!
+
+**Implementation Note**: The current schemas use `ToolVaultCommand` - this will be refactored to `DebriefCommand` as a prerequisite or parallel task.
+
+**Future Workflow Example** (User Python script):
+
+```python
+# User script in workspace/
+from debrief_api import debrief
+
+# Execute some analysis
+analysis_result = analyze_track_data()
+
+# Generate DebriefCommand to highlight results
+highlight_command = {
+    "command": "highlightFeatures",
+    "payload": {
+        "featureIds": analysis_result.interesting_features
+    }
+}
+
+# Apply command via debrief_api
+debrief.apply_command(highlight_command)
+```
+
+This makes `DebriefCommand` a **first-class API** for plot manipulation, not just an internal Tool Vault implementation detail.
 
 ### 3.4 Multi-Plot Scenario Handling
 
@@ -1101,26 +1199,36 @@ function validateFeatureCollection(data: unknown): FeatureCollection {
 
 **Critical Question**: Should we wrap the existing WebSocket server with MCP adapters, or refactor the WebSocket server to HTTP/REST?
 
-#### 5.0.1 Decision Criteria Matrix
+**IMPORTANT CONTEXT** (Discovered during planning):
+1. **Single WebSocket client**: Only `apps/vs-code/workspace/tests/debrief_api.py` uses WebSocket - all test scripts go through this wrapper
+2. **Tool Vault has CLI**: `python toolvault.pyz list-tools` and `call-tool` already work - no MCP wrapper needed for Tool Vault
+3. **Simplified architecture**: Only need ONE MCP server (State Server), Tool Vault accessed via Bash/CLI
+
+This **dramatically changes** the decision criteria - HTTP refactoring is much lower risk than originally assessed.
+
+#### 5.0.1 Decision Criteria Matrix (REVISED)
 
 | Criteria | Weight | MCP Wrapper | HTTP Refactoring | Winner |
 |----------|--------|-------------|------------------|--------|
-| **Time to Market** | High | ✅ 2-3 weeks | ❌ 6-8 weeks | Wrapper |
-| **Breaking Changes** | High | ✅ None (additive) | ❌ Python clients break | Wrapper |
+| **Time to Market** | High | ✅ 2-3 weeks | ⚠️ 4-6 weeks | Wrapper |
+| **Breaking Changes** | High | ✅ None (additive) | ✅ **One file** (debrief_api.py) | **TIE** |
 | **Long-term Maintainability** | Medium | ⚠️ Extra layer | ✅ Cleaner architecture | Refactor |
-| **Architecture Simplicity** | Medium | ⚠️ Wrapper + original | ✅ Single HTTP service | Refactor |
-| **Future Web Access** | Medium | ❌ Requires HTTP anyway | ✅ Native HTTP | Refactor |
-| **Risk Level** | High | ✅ Low (can disable) | ❌ High (core service) | Wrapper |
-| **Testing Burden** | Medium | ⚠️ Wrapper + integration | ❌ Full regression | Wrapper |
-| **Bidirectional Sync** | Medium | ✅ WebSocket native | ⚠️ Polling/SSE needed | Wrapper |
+| **Architecture Simplicity** | High | ⚠️ Wrapper + original | ✅ Single HTTP service | **Refactor** |
+| **Future Web Access** | High | ❌ Requires HTTP anyway | ✅ Native HTTP | **Refactor** |
+| **Risk Level** | High | ✅ Low (can disable) | ✅ **Low (one client)** | **TIE** |
+| **Testing Burden** | Medium | ⚠️ Wrapper + integration | ⚠️ Update one wrapper | **TIE** |
+| **Tool Vault Integration** | High | ⚠️ Need MCP wrapper | ✅ **CLI already works** | **Refactor** |
+
+**Key Insight**: With only one client wrapper (`debrief_api.py`) and Tool Vault CLI support, **HTTP refactoring is now the recommended approach** unless extreme time pressure (<4 weeks).
 
 #### 5.0.2 Architectural Options Detailed Comparison
 
-##### Option A: MCP Wrapper Approach (Original Recommendation)
+##### Option A: MCP Wrapper Approach
 
 **Architecture**:
 ```
-LLM Extension → MCP Stdio Server → WebSocket Client → WebSocket Server (existing)
+LLM Extension → MCP State Server (stdio) → WebSocket Client → WebSocket Server (existing)
+LLM Extension → Bash Tool → Tool Vault CLI (python toolvault.pyz call-tool)
 ```
 
 **Pros**:
@@ -1128,39 +1236,44 @@ LLM Extension → MCP Stdio Server → WebSocket Client → WebSocket Server (ex
 - ✅ **Zero breaking changes**: Python clients continue working
 - ✅ **Low risk**: Can disable MCP servers without affecting core
 - ✅ **Incremental**: Can still refactor later if HTTP needed
-- ✅ **Bidirectional sync**: WebSocket push notifications work natively
+- ✅ **Tool Vault simple**: Just use CLI, no MCP wrapper needed
 
 **Cons**:
 - ❌ **Extra layer**: Adds complexity with wrapper maintenance
 - ❌ **Doesn't eliminate WebSocket**: Still need WebSocket server
 - ❌ **Future HTTP needs**: If web dashboard needed, requires refactor anyway
 - ❌ **Performance overhead**: Extra hop in communication chain
+- ❌ **Temporary solution**: Likely to be replaced within 12 months
 
-**Best for**: Quick LLM integration with minimal disruption
+**Best for**: Extreme time pressure (<4 weeks), deferring architectural decisions
 
-##### Option B: HTTP Refactoring Approach
+##### Option B: HTTP Refactoring Approach (NOW RECOMMENDED)
 
 **Architecture**:
 ```
-LLM Extension → MCP Stdio Server → HTTP Client → HTTP/REST Server (new)
-Python Clients → HTTP Client → HTTP/REST Server (new)
+LLM Extension → MCP State Server (stdio) → HTTP Client → HTTP/REST Server (new)
+LLM Extension → Bash Tool → Tool Vault CLI (python toolvault.pyz call-tool)
+Python Test Scripts → debrief_api.py (HTTP wrapper) → HTTP/REST Server (new)
+VS Code Extension → HTTP Client → HTTP/REST Server (new)
 ```
 
 **Pros**:
 - ✅ **Cleaner architecture**: Single service, no wrapper layer
 - ✅ **Future-proof**: Enables web dashboards, remote access, multi-user
-- ✅ **Matches Tool Vault**: Consistent HTTP pattern across services
+- ✅ **Matches Tool Vault**: Consistent HTTP pattern across services (both :60123 and :60124 are HTTP)
 - ✅ **LLM-friendly**: HTTP is universal, no special adapters needed
 - ✅ **Simpler MCP servers**: Direct HTTP calls, less translation
+- ✅ **Low client impact**: Only `debrief_api.py` wrapper needs updating (one file!)
+- ✅ **Test scripts unchanged**: They use the wrapper, so they just work
+- ✅ **No external clients**: Pre-production, so no third-party integrations to break
 
 **Cons**:
-- ❌ **Time investment**: 6-8 weeks for implementation + testing
-- ❌ **Breaking changes**: Existing Python `debrief_api.py` must be rewritten
-- ❌ **Testing burden**: Full regression testing of VS Code extension
-- ❌ **Bidirectional sync**: Need polling, SSE, or WebSocket fallback for push
-- ❌ **Higher risk**: Core service refactoring affects all clients
+- ❌ **Time investment**: 4-6 weeks for implementation + testing (reduced from 6-8 weeks)
+- ⚠️ **Breaking changes**: One file (`debrief_api.py`) needs rewriting (low impact)
+- ⚠️ **Testing burden**: VS Code extension regression testing (manageable)
+- ⚠️ **Bidirectional sync**: Need polling, SSE, or WebSocket fallback for push (acceptable)
 
-**Best for**: Long-term architectural improvement with broader access patterns
+**Best for**: Long-term architectural improvement, **especially given single client wrapper and pre-production status**
 
 ##### Option C: Hybrid Approach (Dual Protocol)
 
@@ -1185,23 +1298,24 @@ VS Code Extension → Direct HTTP or WebSocket (configurable)
 
 **Best for**: Large codebases with many WebSocket clients requiring gradual migration
 
-#### 5.0.3 Decision Factors
+#### 5.0.3 Decision Factors (REVISED)
 
 **Choose MCP Wrapper (Option A) if**:
-- ✅ Fast time-to-market is critical (3-4 weeks vs 6-8 weeks)
-- ✅ Python WebSocket clients must continue working unchanged
-- ✅ LLM integration is primary/only new use case
-- ✅ VS Code extension bidirectional sync is critical
-- ✅ Low risk tolerance for core service changes
-- ✅ Team bandwidth is limited
+- ✅ Extreme time pressure (<4 weeks deadline)
+- ✅ Want to defer architectural decisions to Phase 4
+- ✅ Need proof-of-concept before committing to HTTP
+- ✅ Very limited team bandwidth (1-2 weeks max)
 
-**Choose HTTP Refactoring (Option B) if**:
-- ✅ Web dashboard or remote access is planned within 6 months
-- ✅ Willing to update Python clients as part of the work
+**Choose HTTP Refactoring (Option B) if** (**NOW RECOMMENDED**):
+- ✅ Web dashboard or remote access is a possibility within 12 months
+- ✅ Willing to update one Python wrapper file (`debrief_api.py`)
 - ✅ Long-term architecture cleanliness is priority
-- ✅ Multiple new access patterns expected (CLI, web, mobile)
-- ✅ Team has 6-8 weeks for implementation + testing
-- ✅ Higher risk tolerance acceptable for better architecture
+- ✅ Team has 4-6 weeks for implementation + testing
+- ✅ Pre-production status (no external clients to break)
+- ✅ Want consistent HTTP pattern across both services (:60123 and :60124)
+- ✅ Value eliminating wrapper layer complexity
+
+**Key Change**: With only **one client wrapper** (`debrief_api.py`) and **Tool Vault CLI support**, HTTP refactoring is now **significantly lower risk** and **recommended** unless extreme time pressure exists.
 
 **Choose Hybrid Approach (Option C) if**:
 - ✅ Many external WebSocket clients exist (beyond Python test clients)
@@ -1288,29 +1402,34 @@ graph TD
 Before proceeding to Phase 1, answer these questions:
 
 1. **Client Dependencies**: How many external WebSocket clients exist beyond `debrief_api.py`?
-   - If 0-1: Strongly favor HTTP refactoring
-   - If 2-5: Consider wrapper or hybrid
-   - If 6+: Favor wrapper or hybrid
+   - **Answer**: Zero external clients (pre-production)
+   - **Impact**: ✅ Strongly favors HTTP refactoring
 
-2. **Future Features**: Is web dashboard, remote access, or mobile app planned?
-   - If yes within 6 months: Strongly favor HTTP refactoring
-   - If yes within 12 months: Consider HTTP or hybrid
-   - If no plans: Wrapper acceptable
+2. **Tool Vault Integration**: Does Tool Vault have CLI/stdio support?
+   - **Answer**: Yes - `python toolvault.pyz list-tools` and `call-tool` work
+   - **Impact**: ✅ No need for "Debrief Tools Server" MCP wrapper - use Bash tool directly
 
-3. **Timeline Pressure**: What's the deadline for LLM integration?
-   - If <4 weeks: Must use wrapper
-   - If 4-8 weeks: Both options viable
-   - If >8 weeks: Favor HTTP refactoring
+3. **Future Features**: Is web dashboard, remote access, or mobile app planned?
+   - **If yes within 12 months**: ✅ Strongly favor HTTP refactoring
+   - **If no plans**: Wrapper acceptable (but HTTP still cleaner)
 
-4. **Team Bandwidth**: How many engineering weeks available?
-   - If <3 weeks: Must use wrapper
-   - If 3-6 weeks: Wrapper recommended
-   - If 6-10 weeks: HTTP refactoring viable
+4. **Timeline Pressure**: What's the deadline for LLM integration?
+   - **If <4 weeks**: Must use wrapper
+   - **If 4-6 weeks**: HTTP refactoring recommended (revised estimate)
+   - **If >6 weeks**: Strongly favor HTTP refactoring
 
-5. **Risk Tolerance**: How critical is the WebSocket server to daily operations?
-   - If business-critical: Favor wrapper (lower risk)
-   - If development tool: HTTP refactoring acceptable
-   - If frequently changing: Favor wrapper (easier rollback)
+5. **Team Bandwidth**: How many engineering weeks available?
+   - **If <3 weeks**: Must use wrapper
+   - **If 3-6 weeks**: HTTP refactoring viable (single client reduces effort)
+   - **If 6+ weeks**: Strongly favor HTTP refactoring
+
+**Critical Findings**:
+- ✅ **Only one client wrapper** to update (`debrief_api.py`)
+- ✅ **Tool Vault CLI already works** (no wrapper needed)
+- ✅ **Pre-production status** (no external clients)
+- ✅ **HTTP refactoring is now significantly lower risk**
+
+**Updated Recommendation**: **HTTP Refactoring (Option B)** unless deadline is <4 weeks.
 
 ---
 
@@ -1869,10 +1988,11 @@ describe('MCP Server Performance', () => {
 
 ### 7.3 Immediate Next Steps
 
-#### Week 1: Foundation
+#### Week 1: Foundation & Prerequisites
+- [ ] **Prerequisite**: Refactor `ToolVaultCommand` → `DebriefCommand` in `libs/shared-types/` (separate task)
 - [ ] Create `libs/mcp-servers` package structure
-- [ ] Implement Debrief State Server (WebSocket adapter)
-- [ ] Implement Debrief Tools Server (Tool Vault proxy)
+- [ ] Implement Debrief State Server (HTTP or WebSocket adapter based on Phase 0 decision)
+- [ ] Implement `debrief_apply_command` tool (DebriefCommand interpreter)
 - [ ] Write unit tests for core functionality
 
 #### Week 2: Integration
