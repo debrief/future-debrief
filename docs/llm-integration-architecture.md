@@ -2,13 +2,15 @@
 
 ## Executive Summary
 
-This document presents a comprehensive architectural plan for enabling LLM extensions (Claude Code, GitHub Copilot, local LLMs via Ollama/LM Studio) to orchestrate multi-step maritime analysis workflows through Future Debrief's existing infrastructure.
+This document presents a comprehensive architectural plan for enabling LLM integrations to orchestrate multi-step maritime analysis workflows through Future Debrief's existing infrastructure.
 
 **Key Challenge**: LLM extensions require standardized MCP (Model Context Protocol) interfaces to interact with Future Debrief's services. Both the Debrief State Server (port 60123) and Tool Vault server (port 60124) need MCP-compatible endpoints.
 
 **Recommended Solution**: Model Context Protocol (MCP) streamable-http transport - a modern HTTP-based protocol that leverages existing HTTP server infrastructure with optional Server-Sent Events (SSE) streaming.
 
-**Target Platforms**: VS Code extensions (Continue.dev with Ollama, GitHub Copilot) - designed for naval analysts working within VS Code, not CLI developers.
+**Target Platforms**: VS Code-native LLM integrations - designed for naval analysts working within VS Code:
+- **Phase 1 (Initial)**: GitHub Copilot - easy setup, built into VS Code
+- **Phase 2 (Offline)**: together.dev - local LLM support, offline-capable, VS Code integration
 
 ---
 
@@ -87,72 +89,94 @@ The Model Context Protocol (MCP) is an open-source standard for AI-tool integrat
 
 | Technology | Pros | Cons | LLM Compatibility | Effort |
 |------------|------|------|------------------|--------|
-| **MCP streamable-http** | ✅ **RECOMMENDED**<br>Leverages existing HTTP servers<br>Multiple concurrent clients<br>Production-ready | Slightly more complex than stdio | ✅ Continue.dev<br>✅ GitHub Copilot<br>✅ All MCP clients | **Low**<br>(add endpoints to existing servers) |
-| **MCP stdio** | Simple for single-client desktop apps | 1:1 client-server only<br>Requires process management | ✅ Continue.dev<br>✅ GitHub Copilot | Medium |
+| **MCP streamable-http** | ✅ **RECOMMENDED**<br>Leverages existing HTTP servers<br>Multiple concurrent clients<br>Production-ready | Slightly more complex than stdio | ✅ GitHub Copilot<br>✅ together.dev<br>✅ All MCP clients | **Low**<br>(add endpoints to existing servers) |
+| **MCP stdio** | Simple for single-client desktop apps | 1:1 client-server only<br>Requires process management | ✅ GitHub Copilot<br>✅ together.dev | Medium |
 | **HTTP REST (non-MCP)** | Universal access, language agnostic | No standardized schema discovery | ⚠️ Via HTTP tool<br>(less efficient) | Medium |
 | **CLI Tool Wrapper** | Simple bash integration | Limited state management, text parsing | ⚠️ Via Bash tool<br>(inefficient) | Low |
 
-### 1.3 VS Code Extension Capabilities Matrix
+### 1.3 VS Code LLM Integration Platforms
 
-**Context**: Naval analysts will interact with LLMs through VS Code extensions, not CLI tools. Focus on extension-based integration.
+**Context**: Naval analysts will interact with LLMs from INSIDE VS Code (Future Debrief extension), not external tools. All platforms must integrate natively within VS Code.
 
-| Capability | GitHub Copilot (Extension) | Continue.dev + Ollama | Cline (Claude Dev) |
-|------------|---------------------------|----------------------|-------------------|
-| **MCP streamable-http** | ✅ Native support (2025+) | ✅ Native support | ✅ Native support |
+| Capability | GitHub Copilot | together.dev | Cline (Claude Dev) |
+|------------|----------------|--------------|-------------------|
+| **MCP streamable-http** | ✅ Native support | ✅ Native support | ✅ Native support |
 | **MCP stdio** | ✅ Native support | ✅ Native support | ✅ Native support |
-| **VS Code Integration** | ✅ Native extension | ✅ Native extension | ✅ Native extension |
-| **Local Operation** | ❌ Cloud-only | ✅ 100% local | ⚠️ API key required |
+| **VS Code Integration** | ✅ Built-in extension | ✅ VS Code extension | ✅ VS Code extension |
+| **Local Operation** | ❌ Cloud-only | ✅ 100% local/offline | ⚠️ API key required |
 | **Multi-step Workflows** | ✅ Agentic mode | ✅ Tool orchestration | ✅ Agentic mode |
 | **User Experience** | Chat panel + inline | Chat panel + inline | Chat panel + commands |
-| **Setup Complexity** | Low (built-in) | Low (+ Ollama install) | Medium (API setup) |
+| **Setup Complexity** | **Low** (built-in) | Medium (local LLM config) | Medium (API setup) |
 | **Cost** | Subscription | Free (local) | Usage-based |
+| **Data Privacy** | ⚠️ Cloud (data leaves machine) | ✅ 100% local | ⚠️ Cloud |
 
-#### Recommended Platform: Continue.dev + Ollama
+#### Phase 1 (Initial): GitHub Copilot
 
-**Why Continue.dev for Naval Analysts**:
-- ✅ **100% local operation**: No data leaves the machine (security/privacy)
-- ✅ **Free and open source**: No subscription costs
-- ✅ **Simple setup**: Extension + Ollama installation
-- ✅ **Native MCP support**: Works with our MCP servers out of the box
-- ✅ **Good UX**: Chat panel familiar to GitHub Copilot users
-- ✅ **Multiple models**: Easy to switch between Qwen, Llama, etc.
+**Why GitHub Copilot First**:
+- ✅ **Built into VS Code**: Already installed for most developers
+- ✅ **Easy setup**: Just authenticate with GitHub account
+- ✅ **Native MCP support**: streamable-http endpoints work out of the box
+- ✅ **Good UX**: Familiar chat panel + inline suggestions
+- ✅ **Fast testing**: Quick validation of MCP server integration
+- ⚠️ **Trade-off**: Cloud-based, requires internet connection, subscription cost
 
 **Setup for Naval Analysts**:
-1. Install Continue.dev extension in VS Code
-2. Install Ollama: `curl -fsSL https://ollama.com/install.sh | sh`
-3. Pull recommended model: `ollama pull qwen2.5:7b-instruct`
-4. Configure MCP servers (automatic via workspace settings)
+1. Ensure GitHub Copilot extension is installed (built into VS Code)
+2. Authenticate with GitHub account (requires Copilot subscription)
+3. Configure MCP servers in VS Code settings
+4. Start using LLM within Future Debrief!
 
-**Continue.dev Configuration**:
+**GitHub Copilot Configuration** (VS Code settings.json):
 ```json
-// ~/.continue/config.json (auto-configured by workspace)
 {
-  "models": [
-    {
-      "title": "Qwen 2.5 (Recommended)",
-      "provider": "ollama",
-      "model": "qwen2.5:7b-instruct",
-      "apiBase": "http://localhost:11434"
-    }
-  ],
-  "mcpServers": {
-    "debrief-state": {
-      "type": "streamable-http",
-      "url": "http://localhost:60123/mcp"
-    },
-    "tool-vault": {
-      "type": "streamable-http",
-      "url": "http://localhost:60124/mcp"
+  "github.copilot.advanced": {
+    "mcpServers": {
+      "debrief-state": {
+        "type": "streamable-http",
+        "url": "http://localhost:60123/mcp"
+      },
+      "tool-vault": {
+        "type": "streamable-http",
+        "url": "http://localhost:60124/mcp"
+      }
     }
   }
 }
 ```
 
-**Alternative: GitHub Copilot (Extension)**
-- **For users with GitHub Copilot subscription**
-- **Setup**: Install extension, authenticate with GitHub
-- **MCP Support**: Coming in 2025 (currently in preview)
-- **Trade-off**: Cloud-based (data leaves machine) but more capable model
+#### Phase 2 (Offline): together.dev
+
+**Why together.dev for Offline/Local**:
+- ✅ **100% local operation**: No data leaves the machine (security/privacy)
+- ✅ **Offline-capable**: Works without internet connection
+- ✅ **VS Code integration**: Native extension for Future Debrief
+- ✅ **MCP streamable-http support**: Works with our MCP servers
+- ✅ **Local LLM support**: Connect to locally-running LLMs
+- ✅ **Multiple models**: Easy to switch between different local models
+
+**Setup for Naval Analysts** (TBD - Phase 2):
+1. Install together.dev extension in VS Code
+2. Configure local LLM backend (details TBD based on together.dev documentation)
+3. Configure MCP servers (similar to Copilot)
+4. Fully offline LLM orchestration within Future Debrief!
+
+**together.dev Configuration** (expected format):
+```json
+{
+  "together": {
+    "mcpServers": {
+      "debrief-state": {
+        "type": "streamable-http",
+        "url": "http://localhost:60123/mcp"
+      },
+      "tool-vault": {
+        "type": "streamable-http",
+        "url": "http://localhost:60124/mcp"
+      }
+    }
+  }
+}
+```
 
 ### 1.4 Authentication Patterns
 
@@ -207,7 +231,7 @@ The recommended approach is **maximally simplified**:
 ✅ **Minimal code changes** - Add one endpoint to each existing server
 ✅ **No new processes** - Servers already running on ports 60123 and 60124
 ✅ **Production-ready** - streamable-http designed for web deployments
-✅ **Multiple clients** - Continue.dev + GitHub Copilot + custom scripts simultaneously
+✅ **Multiple clients** - GitHub Copilot + together.dev + custom scripts simultaneously
 ✅ **Future-proof** - HTTP-based protocol supports remote deployments if needed
 
 **Key Insight**: Both servers already have the infrastructure needed. Just add MCP-compliant `/mcp` POST endpoint that speaks JSON-RPC 2.0.
@@ -216,9 +240,9 @@ The recommended approach is **maximally simplified**:
 
 ```mermaid
 graph TB
-    subgraph "VS Code Extensions"
-        CONT[Continue.dev + Ollama]
-        GH[GitHub Copilot]
+    subgraph "VS Code LLM Integrations"
+        GH[GitHub Copilot<br/>Phase 1: Initial]
+        TOG[together.dev<br/>Phase 2: Offline]
     end
 
     subgraph "Debrief State Server :60123"
@@ -243,10 +267,10 @@ graph TB
         TSCODE[TypeScript/JS<br/>Custom tools]
     end
 
-    CONT -->|HTTP POST /mcp| MCP_DS
-    CONT -->|HTTP POST /mcp| MCP_TV
     GH -->|HTTP POST /mcp| MCP_DS
     GH -->|HTTP POST /mcp| MCP_TV
+    TOG -->|HTTP POST /mcp| MCP_DS
+    TOG -->|HTTP POST /mcp| MCP_TV
 
     MCP_DS --> HANDLER_DS
     WS --> HANDLER_DS
@@ -623,30 +647,11 @@ With the discovery of streamable-http transport, the architectural decision is s
 
 #### User Configuration
 
-**Continue.dev Configuration** (`~/.continue/config.json`):
-```json
-{
-  "models": [
-    {
-      "title": "Qwen 2.5 7B",
-      "provider": "ollama",
-      "model": "qwen2.5:7b-instruct"
-    }
-  ],
-  "mcpServers": {
-    "debrief-state": {
-      "type": "streamable-http",
-      "url": "http://localhost:60123/mcp"
-    },
-    "tool-vault": {
-      "type": "streamable-http",
-      "url": "http://localhost:60124/mcp"
-    }
-  }
-}
-```
+**Workspace Configuration** (auto-configured when Future Debrief extension activates):
 
-**GitHub Copilot Configuration** (VS Code settings.json):
+VS Code will automatically configure MCP servers in workspace settings when the Future Debrief extension starts. Analysts don't need to manually configure these endpoints.
+
+**Manual Configuration** (if needed - VS Code settings.json):
 ```json
 {
   "github.copilot.advanced": {
@@ -742,7 +747,7 @@ app.get('/health', (req, res) => {
 2. **Process**: Pass feature ID to Tool Vault's `delete-features` tool (returns `ToolVaultCommand`)
 3. **Apply**: Pass `ToolVaultCommand` directly to State Server (no redundant fetch!)
 
-**LLM Orchestration (Continue.dev Example)**:
+**LLM Orchestration Example** (applies to both GitHub Copilot and together.dev):
 
 ```typescript
 // Step 1: Get selection
@@ -1491,7 +1496,7 @@ this.toolVaultCommandHandler = new ToolVaultCommandHandler(this.createStateSette
 **End-to-End Tests**:
 - [ ] Test LLM extension connects to MCP endpoint
 - [ ] Test workflow: get selection → call tool → apply command → verify state
-- [ ] Test Continue.dev + Ollama integration
+- [ ] Test GitHub Copilot + together.dev integration
 - [ ] Test error scenarios (server unavailable, invalid commands)
 
 **Playwright Tests** (existing framework):
@@ -1565,13 +1570,13 @@ GlobalController.updateState()
 - [ ] Update server startup to log MCP endpoint availability
 
 **Documentation**:
-- [ ] Update Continue.dev configuration guide for streamable-http
-- [ ] Update GitHub Copilot configuration (when available)
+- [ ] Update GitHub Copilot configuration guide for streamable-http
+- [ ] Document together.dev setup for Phase 2
 - [ ] Example workflows: delete feature, filter features, update selection
 - [ ] Troubleshooting guide for MCP connection issues
 
 **Testing**:
-- [ ] Manual testing with Continue.dev + Ollama
+- [ ] Manual testing with GitHub Copilot
 - [ ] Test each MCP tool individually
 - [ ] End-to-end workflow testing (multi-step operations)
 - [ ] Error scenario testing (invalid requests, server unavailable)
@@ -1580,7 +1585,7 @@ GlobalController.updateState()
 #### Success Criteria
 
 - ✅ Both servers expose `/mcp` endpoints responding to JSON-RPC 2.0
-- ✅ Continue.dev can discover and call all tools
+- ✅ GitHub Copilot can discover and call all tools
 - ✅ Multi-step workflows execute successfully (e.g., get selection → delete → verify)
 - ✅ Error responses use proper JSON-RPC error format
 - ✅ Multiple LLM clients can connect simultaneously
@@ -1669,15 +1674,15 @@ async def mcp_endpoint(request: dict):
 - ✅ GitHub Copilot CLI integration verified
 - ✅ Performance meets targets (<200ms p95 latency)
 
-### 5.3 Phase 3: Local LLM Support & Optimization (2-3 weeks)
+### 5.3 Phase 3: together.dev Integration & Offline Support (2-3 weeks)
 
-**Goal**: Enable Ollama/LM Studio integration and optimize performance
+**Goal**: Enable offline local LLM support via together.dev VS Code extension
 
 **Deliverables**:
-1. **Ollama MCP Bridge Integration**
-   - Documentation for ollama-mcp-bridge setup
-   - Test with Qwen2.5-7B-Instruct model
-   - Example workflows for local LLM usage
+1. **together.dev VS Code Extension Integration**
+   - Documentation for together.dev installation and configuration
+   - Test with local LLM backends
+   - Example workflows for offline LLM usage within VS Code
 
 2. **Performance Optimization**
    - Connection pooling for multiple plots
@@ -1695,7 +1700,8 @@ async def mcp_endpoint(request: dict):
    - Video tutorials for common workflows
 
 **Success Criteria**:
-- ✅ Local LLMs (Ollama) can orchestrate workflows
+- ✅ together.dev can orchestrate workflows with local LLMs
+- ✅ Fully offline operation (no internet required)
 - ✅ Tool call latency <100ms p95 (cached)
 - ✅ VS Code extension auto-configures MCP servers
 - ✅ Comprehensive documentation published
@@ -1783,7 +1789,7 @@ async def mcp_endpoint(request: dict):
 
 **Demonstrate**: Complete LLM-orchestrated workflow for deleting a selected maritime feature
 
-**Target Platforms**: Claude Code, GitHub Copilot CLI, Ollama (Qwen2.5-7B)
+**Target Platforms**: GitHub Copilot (Phase 1), together.dev (Phase 2)
 
 **Success Metrics**:
 - ✅ Workflow completes end-to-end without manual intervention
@@ -1966,85 +1972,89 @@ describe('MCP Server Performance', () => {
 
 ### 6.5 VS Code Extension Testing Plan
 
-**User Context**: Naval analysts testing within VS Code environment
+**User Context**: Naval analysts testing within VS Code environment (Future Debrief extension)
 
-#### Continue.dev + Ollama Testing (Recommended)
+#### GitHub Copilot Testing (Phase 1 - Recommended for Initial Testing)
 
 **Environment**:
-- VS Code with Continue.dev extension installed
-- Ollama running locally (port 11434)
-- Qwen2.5-7B-Instruct model
+- VS Code with GitHub Copilot extension (built-in)
+- GitHub account with Copilot subscription
+- Future Debrief extension running
 
 **Setup Steps for Analysts**:
-1. Install Continue.dev extension from VS Code marketplace
-2. Install Ollama (one-time): `curl -fsSL https://ollama.com/install.sh | sh`
-3. Pull model (one-time): `ollama pull qwen2.5:7b-instruct`
-4. Open Future Debrief workspace in VS Code (auto-configures MCP servers)
+1. Ensure GitHub Copilot extension is installed (usually built into VS Code)
+2. Authenticate with GitHub account (requires Copilot subscription)
+3. Open Future Debrief workspace in VS Code (auto-configures MCP servers)
 
 **Test Workflow**:
 1. Open a `.plot.json` file in VS Code
 2. Select a feature in the Plot Editor
-3. Open Continue.dev chat panel (Cmd+L or Ctrl+L)
+3. Open GitHub Copilot chat panel
 4. Type: "Delete the selected feature"
-5. Continue.dev orchestrates via MCP servers
+5. GitHub Copilot orchestrates via MCP servers
 6. Verify feature deleted from plot
 
 **Validation Checklist**:
 - ✅ MCP servers start automatically when workspace opens
-- ✅ Continue.dev can list available Debrief tools
+- ✅ GitHub Copilot can list available Debrief tools
 - ✅ Multi-step workflow executes (get selection → delete → update plot)
 - ✅ Map updates in real-time
 - ✅ Error messages displayed clearly in chat panel
-- ✅ No data leaves local machine (100% local operation)
+- ✅ Works with internet connection
 
 **Troubleshooting for Analysts**:
-- If Ollama not responding: Check `ollama serve` is running
 - If MCP servers not found: Verify workspace opened at repository root
-- If tools not working: Ensure VS Code extension running (check Debug Console)
+- If tools not working: Ensure Future Debrief extension running (check Debug Console)
+- If Copilot not responding: Check internet connection and GitHub authentication
 
-#### GitHub Copilot Extension Testing (Alternative)
+#### together.dev Testing (Phase 2 - Offline/Local LLM Support)
 
 **Environment**:
-- VS Code with GitHub Copilot extension
-- GitHub account with Copilot subscription
-- MCP support (requires Copilot with MCP preview enabled)
+- VS Code with together.dev extension installed
+- Local LLM backend configured (details TBD)
+- Future Debrief extension running
+- **NO internet connection required**
 
-**Setup Steps for Analysts**:
-1. Install GitHub Copilot extension
-2. Authenticate with GitHub
-3. Enable MCP preview in Copilot settings
-4. Open Future Debrief workspace (auto-configures MCP servers)
+**Setup Steps for Analysts** (TBD - Phase 2):
+1. Install together.dev extension in VS Code
+2. Configure local LLM backend (specific steps to be documented in Phase 2)
+3. Open Future Debrief workspace (auto-configures MCP servers)
 
 **Test Workflow**:
 1. Open a `.plot.json` file
 2. Select a feature
-3. Open Copilot chat panel
+3. Open together.dev chat panel
 4. Type: "Delete the selected feature"
-5. Copilot orchestrates via MCP servers
+5. together.dev orchestrates via MCP servers (fully offline)
 6. Verify feature deleted
 
 **Validation Checklist**:
-- ✅ Copilot recognizes Debrief-specific tools
+- ✅ together.dev recognizes Debrief-specific tools
 - ✅ Multi-step workflows execute
+- ✅ Fully offline operation (no internet needed)
 - ✅ Error handling works
-- ✅ More capable than local LLM (better reasoning)
+- ✅ 100% local data privacy
 
-**Trade-offs**:
-- ⚠️ Requires internet connection
-- ⚠️ Data sent to GitHub/OpenAI (consider security policy)
-- ⚠️ Requires paid subscription
+**Advantages over GitHub Copilot**:
+- ✅ No internet connection required
+- ✅ No data sent to cloud services (100% local)
+- ✅ No subscription costs
+- ✅ Works in classified/offline environments
 
 #### Performance Benchmarks (From Analyst Perspective)
 
-| Operation | Continue.dev (Local) | GitHub Copilot (Cloud) |
+| Operation | together.dev (Local) | GitHub Copilot (Cloud) |
 |-----------|---------------------|------------------------|
-| First response | 5-10s | 2-5s |
-| Simple tool call | 1-2s | 0.5-1s |
-| Multi-step workflow | 10-20s | 5-10s |
-| Cold start | 15-30s (model load) | <1s |
+| First response | TBD (Phase 2) | 2-5s |
+| Simple tool call | TBD (Phase 2) | 0.5-1s |
+| Multi-step workflow | TBD (Phase 2) | 5-10s |
+| Cold start | TBD (Phase 2) | <1s |
 | Network required | ❌ No | ✅ Yes |
+| Data privacy | ✅ 100% local | ⚠️ Cloud-based |
 
-**Recommendation for Analysts**: Start with Continue.dev (local, private, free). Switch to Copilot if response time or capability becomes limiting.
+**Recommendation for Analysts**:
+- **Phase 1**: Start with GitHub Copilot (easy setup, fast validation of MCP integration)
+- **Phase 2**: Switch to together.dev for offline/classified environments (100% local, no internet required)
 
 ---
 
@@ -2116,7 +2126,7 @@ describe('MCP Server Performance', () => {
 
 3. **Security Depth**: Is Phase 1 localhost-only security sufficient, or should API key authentication be implemented from the start?
 
-4. **Platform Priority**: Should all platforms (Claude Code, Copilot CLI, Ollama) be supported in Phase 1, or focus on Claude Code first?
+4. **Platform Priority**: Should GitHub Copilot be fully validated in Phase 1 before starting together.dev integration in Phase 2?
 
 ### 7.5 Future Architectural Considerations
 
@@ -2152,10 +2162,8 @@ If future requirements demand HTTP access (web dashboards, remote access, multi-
 - **MCP SDK (Python)**: https://github.com/modelcontextprotocol/python-sdk
 
 ### LLM Platform Documentation
-- **Claude Code MCP Integration**: https://docs.claude.com/en/docs/claude-code/mcp
-- **GitHub Copilot CLI**: https://github.com/features/copilot/cli/
-- **Ollama MCP Bridge**: https://github.com/patruff/ollama-mcp-bridge
-- **MCP Client for Ollama**: https://github.com/jonigl/mcp-client-for-ollama
+- **GitHub Copilot**: https://github.com/features/copilot
+- **together.dev**: Documentation TBD (Phase 2)
 
 ### Wrapper Technologies
 - **WebSocket Node.js Client**: https://github.com/websockets/ws
