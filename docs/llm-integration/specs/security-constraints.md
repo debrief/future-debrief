@@ -4,14 +4,33 @@
 
 ---
 
-## Content Available
+## Current Architecture
 
-This section is documented in the original architecture document.
+### Localhost-Only Services
 
-**See**: [Original Document - Section 4](../../llm-integration-architecture.md)
+**Security Model**:
+- Services bound to localhost interface only
+- VS Code extension manages service lifecycle
+- Network isolation provides security boundary
 
-For the complete refactored documentation structure, return to the [Main Index](../README.md).
+**Ports**:
+- Debrief State Server: `localhost:60123`
+- Tool Vault Server: `localhost:60124`
+
+### Phase 1: No Authentication
+
+**Rationale**:
+1. LLM extensions run in user's environment with full user privileges
+2. Services already localhost-only with no external exposure
+3. Operational simplicity for initial rollout
+4. VS Code extension controls service lifecycle
+
+### Future Enhancements (Phase 2+)
+
+- API key authentication for multi-user scenarios
+- Request rate limiting
+- Audit logging for compliance
 
 ---
 
-**Note**: This is a placeholder. Full content will be extracted in future iterations.
+**Back to**: [Main Index](../README.md)
