@@ -8,6 +8,8 @@ export { OutlineView } from './OutlineView/OutlineView';
 export { OutlineContextMenu } from './OutlineView/OutlineContextMenu';
 export { ToolExecuteButton } from './ToolExecuteButton/ToolExecuteButton';
 export { OutlineViewParent } from './OutlineViewParent/OutlineViewParent';
+export { DebriefActivity } from './DebriefActivity/DebriefActivity';
+export { HeadedPanel } from './HeadedPanel/HeadedPanel';
 export { ToolExecutionProvider, useToolExecution } from './contexts/ToolExecutionContext';
 
 // Service exports
@@ -16,12 +18,14 @@ export { ToolVaultCommandHandler } from './services/ToolVaultCommandHandler';
 
 // Type exports
 export type { TimeControllerProps } from './TimeController/TimeController';
-export type { PropertiesViewProps } from './PropertiesView/PropertiesView';
+export type { PropertiesViewProps, Property } from './PropertiesView/PropertiesView';
 export type { MapComponentProps, GeoJSONFeature, GeoJSONFeatureCollection, MapState } from './MapComponent/MapComponent';
 export type { OutlineViewProps } from './OutlineView/OutlineView';
 export type { OutlineContextMenuProps } from './OutlineView/OutlineContextMenu';
 export type { ToolExecuteButtonProps } from './ToolExecuteButton/ToolExecuteButton';
 export type { OutlineViewParentProps } from './OutlineViewParent/OutlineViewParent';
+export type { DebriefActivityProps } from './DebriefActivity/DebriefActivity';
+export type { HeadedPanelProps } from './HeadedPanel/HeadedPanel';
 export type { ToolExecutionContextValue, ToolExecutionProviderProps, ToolWithCategory } from './contexts/ToolExecutionContext';
 
 // Service type exports

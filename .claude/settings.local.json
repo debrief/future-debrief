@@ -198,7 +198,12 @@
       "Bash(gtimeout:*)",
       "Bash(lsof:*)",
       "Bash(xargs kill:*)",
-      "Bash(gh run view:*)"
+      "Bash(xargs cat:*)",
+      "WebFetch(domain:vscode-elements.github.io)",
+      "Bash(test:*)"
+    ],
+    "deny": [
+      "Bash(git add:*)"
     ]
   }
 }

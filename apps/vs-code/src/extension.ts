@@ -9,10 +9,7 @@ import { HistoryManager } from './core/historyManager';
 
 // UI Providers
 import { PlotJsonEditorProvider } from './providers/editors/plotJsonEditor';
-import { TimeControllerProvider } from './providers/panels/timeControllerProvider';
-import { DebriefOutlineProvider } from './providers/panels/debriefOutlineProvider';
-import { PropertiesViewProvider } from './providers/panels/propertiesViewProvider';
-import { CurrentStateProvider } from './providers/panels/currentStateProvider';
+import { DebriefActivityProvider } from './providers/panels/debriefActivityProvider';
 import { CustomOutlineTreeProvider } from './providers/outlines/customOutlineTreeProvider';
 
 // External services
@@ -45,11 +42,8 @@ let statePersistence: StatePersistence | null = null;
 let historyManager: HistoryManager | null = null;
 let toolVaultServer: ToolVaultServerService | null = null;
 
-// Store references to the Debrief activity panel providers
-let timeControllerProvider: TimeControllerProvider | null = null;
-let debriefOutlineProvider: DebriefOutlineProvider | null = null;
-let propertiesViewProvider: PropertiesViewProvider | null = null;
-let currentStateProvider: CurrentStateProvider | null = null;
+// Store reference to the consolidated Debrief activity panel provider
+let debriefActivityProvider: DebriefActivityProvider | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
     console.warn('Debrief Extension is now active!');
@@ -374,35 +368,15 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(historyManager);
 
 
-    // Register Debrief Activity Panel providers
-    timeControllerProvider = new TimeControllerProvider(context.extensionUri);
-    debriefOutlineProvider = new DebriefOutlineProvider();
-    propertiesViewProvider = new PropertiesViewProvider(context.extensionUri);
-
-    // Feature visibility is now handled internally by the OutlineView webview component
-
-    // Register the webview view providers
+    // Register consolidated Debrief Activity Panel provider
+    // This replaces the previous 4 separate providers (TimeController, OutlineView, PropertiesView, CurrentState)
+    // Performance improvement: Single webview load instead of 4 separate webview loads
+    debriefActivityProvider = new DebriefActivityProvider(context.extensionUri);
     context.subscriptions.push(
-        vscode.window.registerWebviewViewProvider(TimeControllerProvider.viewType, timeControllerProvider)
-    );
-
-    context.subscriptions.push(
-        vscode.window.registerWebviewViewProvider(DebriefOutlineProvider.viewType, debriefOutlineProvider)
-    );
-
-    context.subscriptions.push(
-        vscode.window.registerWebviewViewProvider(PropertiesViewProvider.viewType, propertiesViewProvider)
-    );
-
-    // Register the Current State panel
-    currentStateProvider = new CurrentStateProvider();
-    context.subscriptions.push(
-        vscode.window.registerWebviewViewProvider(CurrentStateProvider.viewType, currentStateProvider)
+        vscode.window.registerWebviewViewProvider(DebriefActivityProvider.viewType, debriefActivityProvider)
     );
 
     // Panel connections are handled automatically through GlobalController subscriptions
-
-    // Feature selection is now handled internally by the OutlineView webview component
 
     context.subscriptions.push(disposable);
 }
@@ -432,20 +406,10 @@ export async function deactivate() {
         webSocketServer = null;
     }
 
-    // Cleanup panel providers
-    if (timeControllerProvider) {
-        timeControllerProvider.dispose();
-        timeControllerProvider = null;
-    }
-
-    if (debriefOutlineProvider) {
-        debriefOutlineProvider.dispose();
-        debriefOutlineProvider = null;
-    }
-
-    if (propertiesViewProvider) {
-        propertiesViewProvider.dispose();
-        propertiesViewProvider = null;
+    // Cleanup consolidated activity panel provider
+    if (debriefActivityProvider) {
+        debriefActivityProvider.dispose();
+        debriefActivityProvider = null;
     }
 
     // Cleanup state persistence
@@ -472,10 +436,7 @@ export async function deactivate() {
     // Clear editor ID manager
     EditorIdManager.clear();
 
-    // Clear provider references
-    timeControllerProvider = null;
-    debriefOutlineProvider = null;
-    propertiesViewProvider = null;
+    // Clear tool vault server reference
     toolVaultServer = null;
 
     console.warn('Debrief Extension deactivation complete');

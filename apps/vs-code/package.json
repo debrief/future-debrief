@@ -117,28 +117,10 @@
       ],
       "debrief": [
         {
-          "id": "debrief.timeController",
-          "name": "Time Controller",
-          "type": "webview",
-          "when": "!config.debrief.development.mode"
-        },
-        {
-          "id": "debrief.outline",
-          "name": "Outline",
+          "id": "debrief.activity",
+          "name": "Activity",
           "type": "webview",
           "when": "true"
-        },
-        {
-          "id": "debrief.propertiesView",
-          "name": "Properties View",
-          "type": "webview",
-          "when": "!config.debrief.development.mode"
-        },
-        {
-          "id": "debrief.currentState",
-          "name": "Current State",
-          "type": "webview",
-          "when": "!config.debrief.development.mode"
         }
       ]
     },
@@ -194,7 +176,12 @@
         },
         "debrief.timeController.format": {
           "type": "string",
-          "enum": ["rn-short", "plain", "iso", "rn-long"],
+          "enum": [
+            "rn-short",
+            "plain",
+            "iso",
+            "rn-long"
+          ],
           "enumDescriptions": [
             "Royal Navy Short: 151430Z",
             "Plain English: Jan 15, 2024, 14:30:00 UTC",
@@ -228,6 +215,7 @@
   },
   "dependencies": {
     "@debrief/web-components": "workspace:^1.0.0",
+    "@vscode/codicons": "^0.0.40",
     "leaflet": "^1.9.4",
     "ws": "^8.14.2"
   }
