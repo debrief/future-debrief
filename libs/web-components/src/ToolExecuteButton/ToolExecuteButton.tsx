@@ -66,6 +66,12 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
   }, [toolList.root]);
 
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(initialExpandedCategories);
+
+  // Sync expanded categories when toolList changes
+  React.useEffect(() => {
+    setExpandedCategories(new Set(collectCategoryKeys(toolList.root)));
+  }, [toolList.root]);
+
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
