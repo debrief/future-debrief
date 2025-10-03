@@ -49,6 +49,24 @@
 - **File Association**: `.plot.json` files automatically open in custom editor
 - **Error Handling**: Detailed validation errors with feature-level diagnostics
 
+### ToolVault Commands vs WebSocket Endpoints - Issue #206 ✅
+**Decision**: Maintain both systems as complementary integration patterns (ADR-016)
+- **ToolVaultCommands**: Asynchronous response channel for packaged tools (.pyz)
+  - Tools return declarative commands (AddFeaturesCommand, SetViewportCommand, etc.)
+  - Processed by ToolVaultCommandHandler in web-components library
+  - Integrated with GlobalController state management and event system
+  - 12 total commands: 4 feature ops, 3 state ops, 3 UI display, 2 utility
+- **WebSocket Endpoints**: Synchronous request API for development scripts
+  - Direct JSON-RPC calls to localhost:60123 inside VS Code extension
+  - Supports state getters (get_feature_collection, get_selected_features, etc.)
+  - Optional filename parameter for multi-plot scenarios
+  - 16 total endpoints: 5 feature ops, 2 selection ops, 2 time ops, 3 viewport ops, 3 utility
+- **89% Capability Overlap**: Intentional by design - different execution contexts justify different APIs
+- **Key Distinction**: ToolVault = packaged MCP tools, WebSocket = local development scripts
+- **Recommendation**: No consolidation needed - systems serve distinct architectural purposes
+- **Documentation**: Created comprehensive analysis in `docs/architecture/toolvault-vs-websocket-analysis.md`
+- **ADR**: ADR-016 documents decision to maintain dual-API strategy
+
 ### ToolVault Pydantic Migration - Issue #113 Phase 2 ✅
 **Decision**: Successfully migrated from pydoc-derived parameter schemas to Pydantic models with JSON Schema generation
 - **Problem**: Generic parameter descriptions, limited validation, no shared-types composition

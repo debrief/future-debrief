@@ -19,5 +19,6 @@ This index summarises each ADR for the Debrief ecosystem. Each entry includes a 
 | [ADR-013](ADR-013-validation-policy.md) | Strict in CI, Tolerant at Runtime | Accepted | 2025-08-20 | CI enforces strict schema validation; runtime libraries load tolerantly, logging warnings. |
 | [ADR-014](ADR-014-persist-ui-state.md) | Persist Viewport and Time Window in FeatureCollection | Accepted | 2025-08-20 | Persist viewport/timeWindow in featureCollection properties for reproducibility. |
 | [ADR-015](ADR-015-vscode-integration-mvp.md) | VS Code Integration MVP | Accepted | 2025-08-20 | Custom Editor and Debrief Side Bar for VS Code; MVP uses Leaflet and hybrid state model. |
+| [ADR-016](ADR-016-toolvault-websocket-strategy.md) | ToolVault Commands vs WebSocket Endpoints: Dual-API Strategy | Accepted | 2025-10-03 | Maintain both ToolVaultCommands (asynchronous tool responses) and WebSocket endpoints (synchronous script API) as complementary integration patterns. |
 
 *For full details, read each ADR file linked above.*
