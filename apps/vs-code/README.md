@@ -156,7 +156,7 @@ When you create a Pull Request:
 ## Build Commands
 
 - `pnpm compile` - Fast esbuild compilation with sourcemaps (~20ms) + copies schemas
-- `pnpm watch` - Watch mode compilation for development  
+- `pnpm watch` - Watch mode compilation for development
 - `pnpm dev` - Alias for watch mode
 - `pnpm build` - Production build (alias for compile)
 - `pnpm vscode:prepublish` - Minified build for publishing + schema bundling
@@ -165,6 +165,47 @@ When you create a Pull Request:
 - `pnpm lint` - ESLint + TypeScript checking
 
 **Note**: This extension is part of a pnpm monorepo. Install dependencies from the root directory with `pnpm install`.
+
+## Automated Testing
+
+### Playwright End-to-End Tests
+
+Automated tests validate the Docker deployment with real browser interactions:
+
+```bash
+# Prerequisites (one-time or when dependencies change)
+pnpm --filter @debrief/shared-types build
+pnpm --filter @debrief/web-components build
+
+# Run all tests
+pnpm test:playwright
+
+# Interactive test development
+pnpm test:playwright:ui
+
+# Debug mode
+pnpm test:playwright:debug
+```
+
+**Performance:**
+- **First run:** ~3-5 minutes (builds Docker image once)
+- **Subsequent runs:** ~20ms VSIX build only (**99%+ faster!**)
+
+**How it works:**
+- Docker image is cached and reused across test runs
+- Only your extension code (VSIX) rebuilds between runs
+- Container uses volume mount for instant VSIX updates
+
+**When to rebuild Docker image:**
+```bash
+# Only needed when shared dependencies change:
+docker rmi debrief-playwright-test  # Force rebuild
+pnpm test:playwright                # Next run rebuilds automatically
+```
+
+Rebuild triggers: shared-types changes, web-components changes, Tool Vault changes, Dockerfile changes. Extension code changes **never** require a Docker rebuild.
+
+For complete testing documentation, see [docs/local-docker-testing.md](docs/local-docker-testing.md#playwright-testing).
 
 ## Troubleshooting
 

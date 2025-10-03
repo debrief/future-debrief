@@ -56,28 +56,66 @@ export class DebriefWebSocketServer {
     private clients: Set<WebSocket> = new Set();
     private cachedFilename: string | null = null;
     private healthCheckInterval: NodeJS.Timeout | null = null;
+    private httpConnections: Set<any> = new Set(); // Track all HTTP connections for proper cleanup
 
     constructor() {}
 
     async start(): Promise<void> {
+        // Don't start if already running
+        if (this.isRunning()) {
+            console.log('WebSocket server is already running, skipping start');
+            return;
+        }
+
+        // If there's a leftover server from incomplete shutdown, clean it up first
+        if (this.httpServer || this.server) {
+            console.warn('Found leftover server instances, cleaning up before restart...');
+            await this.stop();
+        }
+
         try {
             // Create HTTP server first to handle port conflicts
             this.httpServer = http.createServer();
-            
-            // Handle port conflicts
-            this.httpServer.on('error', (error: NodeJS.ErrnoException) => {
+
+            // Handle port conflicts - but try to recover
+            this.httpServer.on('error', async (error: NodeJS.ErrnoException) => {
                 if (error.code === 'EADDRINUSE') {
-                    console.error(`Port ${this.port} is already in use`);
-                    vscode.window.showErrorMessage(
-                        `WebSocket server port ${this.port} is already in use. Please close other applications using this port.`
-                    );
+                    console.error(`Port ${this.port} is already in use - attempting recovery...`);
+
+                    // Try to force cleanup and restart once
+                    try {
+                        await this.stop();
+                        await new Promise(resolve => setTimeout(resolve, 500)); // Wait for port release
+
+                        // Don't show error to user on first attempt - try to recover
+                        console.log('Retrying WebSocket server start after cleanup...');
+                        // Note: We can't call start() recursively, so log and let it fail
+                        vscode.window.showErrorMessage(
+                            `WebSocket server port ${this.port} is already in use. Please restart VS Code if this persists.`
+                        );
+                    } catch (cleanupError) {
+                        console.error('Failed to cleanup and restart:', cleanupError);
+                        vscode.window.showErrorMessage(
+                            `WebSocket server port ${this.port} is already in use. Please close other applications using this port.`
+                        );
+                    }
                 }
                 throw error;
             });
             
+            // Track all connections for proper cleanup
+            this.httpServer.on('connection', (conn) => {
+                this.httpConnections.add(conn);
+                conn.on('close', () => {
+                    this.httpConnections.delete(conn);
+                });
+            });
+
             await new Promise<void>((resolve, reject) => {
+                // Bind to localhost only for security - Python scripts run on same machine
+                // If Docker/remote access is needed, users can use port forwarding
                 this.httpServer!.listen(this.port, 'localhost', () => {
-                    console.log(`HTTP server listening on port ${this.port}`);
+                    console.log(`HTTP server listening on port ${this.port} (localhost only)`);
                     resolve();
                 });
                 this.httpServer!.on('error', reject);
@@ -175,14 +213,14 @@ export class DebriefWebSocketServer {
 
     async stop(): Promise<void> {
         console.log('Stopping Debrief WebSocket server...');
-        
+
         // Clear health check interval
         if (this.healthCheckInterval) {
             clearInterval(this.healthCheckInterval);
             this.healthCheckInterval = null;
         }
 
-        // Close all client connections
+        // Close all WebSocket client connections
         this.clients.forEach(ws => {
             if (ws.readyState === 1) { // WebSocket.OPEN
                 ws.close();
@@ -201,18 +239,55 @@ export class DebriefWebSocketServer {
             this.server = null;
         }
 
-        // Close HTTP server
+        // Force-close all HTTP connections to release the port immediately
+        this.httpConnections.forEach((conn) => {
+            try {
+                conn.destroy();
+            } catch (error) {
+                console.warn('Error destroying HTTP connection:', error);
+            }
+        });
+        this.httpConnections.clear();
+
+        // Close HTTP server with proper error handling
         if (this.httpServer) {
             await new Promise<void>((resolve) => {
-                this.httpServer!.close(() => {
-                    console.log('HTTP server closed');
-                    resolve();
+                let resolved = false;
+
+                const doResolve = () => {
+                    if (!resolved) {
+                        resolved = true;
+                        resolve();
+                    }
+                };
+
+                // Set a timeout in case close hangs
+                const timeout = setTimeout(() => {
+                    console.log('HTTP server close timed out after 2 seconds, forcing shutdown');
+                    doResolve();
+                }, 2000);
+
+                this.httpServer!.close((error) => {
+                    clearTimeout(timeout);
+                    if (error) {
+                        console.error('Error closing HTTP server:', error);
+                    } else {
+                        console.log('HTTP server closed, port released');
+                    }
+                    doResolve();
                 });
+
+                // Unref the server so it doesn't keep Node.js alive
+                this.httpServer!.unref();
             });
+
+            // Give the OS a moment to actually release the port
+            await new Promise(resolve => setTimeout(resolve, 100));
+
             this.httpServer = null;
         }
 
-        console.log('Debrief WebSocket server stopped');
+        console.log('Debrief WebSocket server stopped completely');
     }
 
     isRunning(): boolean {

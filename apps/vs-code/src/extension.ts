@@ -414,18 +414,18 @@ export async function deactivate() {
     if (toolVaultServer) {
         try {
             await toolVaultServer.stopServer();
-            console.warn('Tool Vault server stopped');
+            console.log('✅ Tool Vault server stopped');
         } catch (error) {
             console.error('Error stopping Tool Vault server:', error);
         }
         toolVaultServer = null;
     }
 
-    // Stop WebSocket server
+    // Stop WebSocket server and wait for it to fully shut down
     if (webSocketServer) {
         try {
             await webSocketServer.stop();
-            console.warn('WebSocket server stopped');
+            console.log('✅ WebSocket server stopped');
         } catch (error) {
             console.error('Error stopping WebSocket server:', error);
         }
@@ -478,5 +478,5 @@ export async function deactivate() {
     propertiesViewProvider = null;
     toolVaultServer = null;
 
-    console.warn('Debrief Extension deactivated');
+    console.warn('Debrief Extension deactivation complete');
 }

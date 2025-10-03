@@ -31,9 +31,9 @@ out/
 # Lock files (package-lock.json will be copied, but not yarn.lock if present)
 yarn.lock
 
-# Test files
+# Test files (but exclude workspace/tests which contains Python examples)
 test/
-tests/
+tests/playwright/
 *.test.js
 *.test.ts
 

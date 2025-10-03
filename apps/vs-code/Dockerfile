@@ -89,10 +89,19 @@ USER coder
 RUN mkdir -p /home/coder/workspace /home/coder/project
 
 # Copy the VS Code extension files (including pre-built VSIX)
+# Note: .dockerignore updated to preserve workspace/tests directory (Python examples)
 COPY --chown=coder:coder . /home/coder/project/
 
 # Copy the shared-types wheel produced in the builder stage
 COPY --chown=coder:coder --from=shared-types-builder /tmp/wheels/ /home/coder/project/python/
+
+# Verify wheel was copied successfully
+RUN if ! ls /home/coder/project/python/*.whl 1> /dev/null 2>&1; then \
+        echo "Error: shared-types wheel not found in /home/coder/project/python/" >&2; \
+        echo "COPY from shared-types-builder may have failed" >&2; \
+        ls -la /home/coder/project/python/ >&2 || true; \
+        exit 1; \
+    fi
 
 # Install shared-types and Tool Vault dependencies system-wide for the .pyz runtime
 USER root
@@ -106,7 +115,14 @@ USER coder
 # Tool Vault serves MCP-compatible endpoints on port 60124 for maritime analysis tools
 RUN mkdir -p /home/coder/tool-vault
 COPY --chown=coder:coder --from=tool-vault-builder /tmp/repo/libs/tool-vault-packager/dist/toolvault.pyz /home/coder/tool-vault/toolvault.pyz
-RUN chmod +x /home/coder/tool-vault/toolvault.pyz
+
+# Verify Tool Vault package was copied and is executable
+RUN if [ ! -f /home/coder/tool-vault/toolvault.pyz ]; then \
+        echo "Error: toolvault.pyz not found" >&2; \
+        echo "COPY from tool-vault-builder may have failed" >&2; \
+        exit 1; \
+    fi && \
+    chmod +x /home/coder/tool-vault/toolvault.pyz
 
 # Set Tool Vault configuration for VS Code extension
 ENV DEBRIEF_TOOL_VAULT_PATH=/home/coder/tool-vault/toolvault.pyz
@@ -128,14 +144,27 @@ RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: installing 
     if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: Python extension installed" "${STATUS_WEBHOOK}" || true; fi
 
 # Copy workspace files to the workspace directory
-RUN cp -r workspace/* /home/coder/workspace/ 2>/dev/null || true
+# Build context is apps/vs-code/, so workspace is at ./workspace
+RUN if [ -d "workspace" ]; then \
+        cp -r workspace/* /home/coder/workspace/; \
+    else \
+        echo "Error: workspace directory not found" >&2; \
+        ls -la . >&2; \
+        exit 1; \
+    fi
 
 # Create VS Code settings to use virtual environment Python
 RUN mkdir -p /home/coder/workspace/.vscode && \
     echo '{\n  "python.defaultInterpreterPath": "/home/coder/workspace/tests/venv/bin/python"\n}' > /home/coder/workspace/.vscode/settings.json
 
 # Create and activate virtual environment, then install Python test requirements
-RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: creating workspace venv" "${STATUS_WEBHOOK}" || true; fi && \
+# First verify the tests directory exists
+RUN if [ ! -d "/home/coder/workspace/tests" ]; then \
+        echo "Error: /home/coder/workspace/tests directory not found after workspace copy" >&2; \
+        ls -la /home/coder/workspace/ >&2; \
+        exit 1; \
+    fi && \
+    if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: creating workspace venv" "${STATUS_WEBHOOK}" || true; fi && \
     cd /home/coder/workspace/tests && \
     python3 -m venv venv && \
     venv/bin/pip install -r requirements.txt && \
