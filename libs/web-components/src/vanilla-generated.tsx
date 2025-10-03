@@ -9,12 +9,13 @@ import { PropertiesView, PropertiesViewProps } from './PropertiesView/Properties
 import { OutlineView, OutlineViewProps } from './OutlineView/OutlineView';
 import { OutlineViewParent, OutlineViewParentProps } from './OutlineViewParent/OutlineViewParent';
 import { CurrentStateTable, StateFieldRow } from './CurrentStateTable/CurrentStateTable';
+import { ActivityBar, ActivityBarProps } from './ActivityBar/ActivityBar';
 import { DebriefActivity, DebriefActivityProps } from './DebriefActivity/DebriefActivity';
 import { CurrentState } from '@debrief/shared-types';
 import './vanilla.css';
 
 // Re-export types for compatibility
-export type { GeoJSONFeature, MapState, TimeControllerProps, PropertiesViewProps, OutlineViewProps, OutlineViewParentProps, StateFieldRow, DebriefActivityProps };
+export type { GeoJSONFeature, MapState, TimeControllerProps, PropertiesViewProps, OutlineViewProps, OutlineViewParentProps, StateFieldRow, ActivityBarProps, DebriefActivityProps };
 
 // Wrapper interfaces - maintain API compatibility with manual vanilla.ts
 export interface GeoJSONFeatureCollection {
@@ -135,6 +136,13 @@ class VanillaCurrentStateTableWrapper extends ReactComponentWrapper<VanillaCurre
   }
 }
 
+// ActivityBar wrapper
+class VanillaActivityBarWrapper extends ReactComponentWrapper<ActivityBarProps> {
+  protected renderComponent(): React.ReactElement {
+    return React.createElement(ActivityBar, this.currentProps);
+  }
+}
+
 // DebriefActivity wrapper
 class VanillaDebriefActivityWrapper extends ReactComponentWrapper<DebriefActivityProps> {
   protected renderComponent(): React.ReactElement {
@@ -220,6 +228,18 @@ export function createCurrentStateTable(container: HTMLElement, props: VanillaCu
   };
 }
 
+export function createActivityBar(container: HTMLElement, props: ActivityBarProps): {
+  destroy: () => void;
+  updateProps: (newProps: Partial<ActivityBarProps>) => void;
+} {
+  const wrapper = new VanillaActivityBarWrapper(container, props);
+
+  return {
+    destroy: () => wrapper.destroy(),
+    updateProps: (newProps: Partial<ActivityBarProps>) => wrapper.updateProps(newProps)
+  };
+}
+
 export function createDebriefActivity(container: HTMLElement, props: DebriefActivityProps): {
   destroy: () => void;
   updateProps: (newProps: Partial<DebriefActivityProps>) => void;
@@ -286,6 +306,7 @@ if (typeof window !== 'undefined') {
       createOutlineView,
       createOutlineViewParent,
       createCurrentStateTable,
+      createActivityBar,
       createDebriefActivity
     };
   } else {
@@ -296,6 +317,7 @@ if (typeof window !== 'undefined') {
       createOutlineView,
       createOutlineViewParent,
       createCurrentStateTable,
+      createActivityBar,
       createDebriefActivity
     });
   }
@@ -311,6 +333,7 @@ declare global {
       createOutlineView: typeof createOutlineView;
       createOutlineViewParent: typeof createOutlineViewParent;
       createCurrentStateTable: typeof createCurrentStateTable;
+      createActivityBar: typeof createActivityBar;
       createDebriefActivity: typeof createDebriefActivity;
     };
   }

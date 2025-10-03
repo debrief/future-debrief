@@ -1,147 +1,102 @@
 import React from 'react';
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import { TimeState, DebriefFeatureCollection, CurrentState, DebriefFeature } from '@debrief/shared-types';
-import type { GlobalToolIndexModel } from '@debrief/shared-types/src/types/tools/global_tool_index';
-import type { Tool } from '@debrief/shared-types/src/types/tools/tool_list_response';
-import { TimeController } from '../TimeController/TimeController';
-import { OutlineViewParent } from '../OutlineViewParent/OutlineViewParent';
-import { PropertiesView, Property } from '../PropertiesView/PropertiesView';
+import { ActivityBar, ActivityPanel } from '../ActivityBar/ActivityBar';
+import { TimeController, TimeControllerProps } from '../TimeController/TimeController';
+import { OutlineView, OutlineViewProps } from '../OutlineView/OutlineView';
+import { PropertiesView, PropertiesViewProps } from '../PropertiesView/PropertiesView';
 import { CurrentStateTable } from '../CurrentStateTable/CurrentStateTable';
-import { HeadedPanel } from '../HeadedPanel/HeadedPanel';
-import { TimeFormat } from '../TimeController/timeUtils';
-import './DebriefActivity.css';
+import { CurrentState } from '@debrief/shared-types';
 
+/**
+ * DebriefActivity - Composite component that combines all activity panels
+ *
+ * This component wraps ActivityBar and composes the individual panels:
+ * - TimeController
+ * - OutlineView
+ * - PropertiesView
+ * - CurrentStateTable
+ */
 export interface DebriefActivityProps {
   // TimeController props
-  timeState?: TimeState;
-  timeFormat?: TimeFormat;
-  onTimeChange?: (newTime: string) => void;
-  onOpenSettings?: () => void;
+  timeState?: TimeControllerProps['timeState'];
+  timeFormat?: TimeControllerProps['timeFormat'];
+  onTimeChange?: TimeControllerProps['onTimeChange'];
+  onOpenSettings?: TimeControllerProps['onOpenSettings'];
 
-  // OutlineViewParent props
-  featureCollection: DebriefFeatureCollection | null;
+  // OutlineView props
+  featureCollection?: { type: 'FeatureCollection'; features: unknown[] };
   selectedFeatureIds?: string[];
-  toolList: GlobalToolIndexModel | null;
+  toolList?: unknown; // Not used by OutlineView, kept for backwards compatibility
   onSelectionChange?: (ids: string[]) => void;
-  onCommandExecute?: (tool: Tool, selectedFeatures: DebriefFeature[]) => void;
+  onCommandExecute?: (tool: unknown, selectedFeatures: unknown[]) => void; // Not used by OutlineView
   onFeatureVisibilityChange?: (id: string, visible: boolean) => void;
-  onViewFeature?: (id: string) => void;
+  onViewFeature?: (featureId: string) => void;
   onDeleteFeatures?: (ids: string[]) => void;
   onCollapseAll?: () => void;
 
   // PropertiesView props
-  selectedFeatureProperties?: Property[];
+  selectedFeatureProperties?: PropertiesViewProps['properties'];
 
   // CurrentStateTable props
-  currentState: CurrentState | undefined;
-
-  // General props
-  className?: string;
+  currentState?: CurrentState;
 }
 
 export const DebriefActivity: React.FC<DebriefActivityProps> = ({
-  // TimeController
+  // TimeController props
   timeState,
-  timeFormat = 'rn-short',
+  timeFormat,
   onTimeChange,
   onOpenSettings,
 
-  // OutlineViewParent
+  // OutlineView props
   featureCollection,
   selectedFeatureIds = [],
-  toolList,
-  onSelectionChange,
-  onCommandExecute,
+  onSelectionChange = () => {},
   onFeatureVisibilityChange,
   onViewFeature,
   onDeleteFeatures,
   onCollapseAll,
 
-  // PropertiesView
-  selectedFeatureProperties = [],
+  // PropertiesView props
+  selectedFeatureProperties,
 
-  // CurrentStateTable
-  currentState,
-
-  // General
-  className = ''
+  // CurrentStateTable props
+  currentState
 }) => {
-  // Memoize safe defaults to ensure stable references
-  const defaultFeatureCollection = React.useMemo<DebriefFeatureCollection>(
-    () => ({ type: 'FeatureCollection', features: [] }),
-    []
-  );
-
-  const defaultToolList = React.useMemo<GlobalToolIndexModel>(
-    () => ({ root: [], version: '1.0.0', description: 'No tools available' }),
-    []
-  );
-
-  // Use provided values or memoized defaults
-  const memoizedFeatureCollection = featureCollection || defaultFeatureCollection;
-  const memoizedToolList = toolList || defaultToolList;
-
-  // Memoize callbacks to prevent child re-renders
-  const handleTimeChange = React.useCallback((newTime: string) => {
-    onTimeChange?.(newTime);
-  }, [onTimeChange]);
-
-  const handleSelectionChange = React.useCallback((ids: string[]) => {
-    onSelectionChange?.(ids);
-  }, [onSelectionChange]);
+  // Provide defaults for required OutlineView props
+  const defaultFeatureCollection = { type: 'FeatureCollection' as const, features: [] };
 
   return (
-    <div className={`debrief-activity ${className}`} data-testid="debrief-activity" style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
-      {/* TimeController - Fixed height, not resizable */}
-      <div className="time-controller-panel" data-testid="time-controller-panel">
-        <HeadedPanel title="Time Controller">
-          <TimeController
-            timeState={timeState}
-            timeFormat={timeFormat}
-            onTimeChange={handleTimeChange}
-            onOpenSettings={onOpenSettings}
-          />
-        </HeadedPanel>
-      </div>
+    <ActivityBar>
+      <ActivityPanel title="Time Controller" collapsible={true} resizable={false}>
+        <TimeController
+          timeState={timeState}
+          timeFormat={timeFormat}
+          onTimeChange={onTimeChange}
+          onOpenSettings={onOpenSettings}
+        />
+      </ActivityPanel>
 
-      {/* Resizable panels using react-resizable-panels */}
-      <PanelGroup direction="vertical" style={{ flex: 1 }}>
-        <Panel defaultSize={33} minSize={10}>
-          <HeadedPanel title="Outline">
-            <OutlineViewParent
-              featureCollection={memoizedFeatureCollection}
-              selectedFeatureIds={selectedFeatureIds}
-              toolList={memoizedToolList}
-              onSelectionChange={handleSelectionChange}
-              onCommandExecute={onCommandExecute}
-              onFeatureVisibilityChange={onFeatureVisibilityChange}
-              onViewFeature={onViewFeature}
-              onDeleteFeatures={onDeleteFeatures}
-              onCollapseAll={onCollapseAll}
-            />
-          </HeadedPanel>
-        </Panel>
-        <PanelResizeHandle style={{
-          height: '4px',
-          background: 'var(--vscode-panel-border, #ccc)',
-          cursor: 'row-resize'
-        }} />
-        <Panel defaultSize={33} minSize={10}>
-          <HeadedPanel title="Properties">
-            <PropertiesView properties={selectedFeatureProperties} />
-          </HeadedPanel>
-        </Panel>
-        <PanelResizeHandle style={{
-          height: '4px',
-          background: 'var(--vscode-panel-border, #ccc)',
-          cursor: 'row-resize'
-        }} />
-        <Panel defaultSize={34} minSize={10}>
-          <HeadedPanel title="Current State">
-            <CurrentStateTable currentState={currentState} />
-          </HeadedPanel>
-        </Panel>
-      </PanelGroup>
-    </div>
+      <ActivityPanel title="Outline" collapsible={true} resizable={true}>
+        <OutlineView
+          featureCollection={featureCollection as OutlineViewProps['featureCollection'] || defaultFeatureCollection}
+          selectedFeatureIds={selectedFeatureIds}
+          onSelectionChange={onSelectionChange}
+          onFeatureVisibilityChange={onFeatureVisibilityChange}
+          onViewFeature={onViewFeature}
+          onDeleteFeatures={onDeleteFeatures}
+          onCollapseAll={onCollapseAll}
+        />
+      </ActivityPanel>
+
+      <ActivityPanel title="Properties" collapsible={true} resizable={true}>
+        <PropertiesView
+          properties={selectedFeatureProperties || []}
+        />
+      </ActivityPanel>
+
+      <ActivityPanel title="Current State" collapsible={true} resizable={true}>
+        <CurrentStateTable currentState={currentState} />
+      </ActivityPanel>
+    </ActivityBar>
   );
 };
