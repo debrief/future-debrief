@@ -201,7 +201,9 @@
       "Bash(xargs cat:*)",
       "WebFetch(domain:vscode-elements.github.io)",
       "Bash(test:*)",
-      "WebFetch(domain:leafletjs.com)"
+      "WebFetch(domain:leafletjs.com)",
+      "WebFetch(domain:levelup.gitconnected.com)",
+      "WebFetch(domain:medium.com)"
     ],
     "deny": [
       "Bash(git add:*)"
