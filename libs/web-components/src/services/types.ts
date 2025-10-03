@@ -1,5 +1,5 @@
 /**
- * Service-specific TypeScript interfaces for ToolVaultCommandHandler
+ * Service-specific TypeScript interfaces for DebriefCommandHandler
  */
 
 import {
@@ -11,7 +11,7 @@ import {
 } from '@debrief/shared-types';
 
 /**
- * State setter interface for dependency injection into ToolVaultCommandHandler
+ * State setter interface for dependency injection into DebriefCommandHandler
  * Provides a unified interface for document state updates
  */
 export interface StateSetter {
@@ -82,7 +82,7 @@ export interface CommandProcessor<TCommand = unknown> {
 }
 
 /**
- * Configuration options for the ToolVaultCommandHandler
+ * Configuration options for the DebriefCommandHandler
  */
 export interface CommandHandlerOptions {
   /** Enable rollback capability for failed composite commands */

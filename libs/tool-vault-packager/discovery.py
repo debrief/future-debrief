@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Protocol, Union, cast, get_type_hints
 
 from debrief.types.tools import (
+    DebriefCommand,
     GitHistoryEntry,
     GlobalToolIndexModel,
     JSONSchemaType,
@@ -16,7 +17,6 @@ from debrief.types.tools import (
     ToolCategory,
     ToolIndexNode,
     ToolMetadataModel,
-    ToolVaultCommand,
 )
 
 
@@ -507,7 +507,9 @@ def discover_tool_nodes(tools_dir: Path) -> List[ToolIndexNode]:
             ]
 
             if len(public_functions) != 1:
-                print(f"Warning: Tool '{tool_name}' must have exactly one public function, skipping")
+                print(
+                    f"Warning: Tool '{tool_name}' must have exactly one public function, skipping"
+                )
                 continue
 
             func_name, func = public_functions[0]
@@ -539,8 +541,8 @@ def discover_tool_nodes(tools_dir: Path) -> List[ToolIndexNode]:
                     # Create JSONSchemaProperty from the remaining schema
                     json_properties[param_name] = JSONSchemaProperty(**param_copy)
 
-            # Get the ToolVaultCommand schema as the output schema
-            command_schema = ToolVaultCommand.model_json_schema()
+            # Get the DebriefCommand schema as the output schema
+            command_schema = DebriefCommand.model_json_schema()
 
             # Get relative path from tools root for nested categories
             # Calculate relative path from tools root
@@ -581,11 +583,7 @@ def discover_tool_nodes(tools_dir: Path) -> List[ToolIndexNode]:
             # This is a category folder - recurse
             children = discover_tool_nodes(item)
             if children:  # Only add category if it has children
-                nodes.append(ToolCategory(
-                    type="category",
-                    name=item.name,
-                    children=children
-                ))
+                nodes.append(ToolCategory(type="category", name=item.name, children=children))
 
     return nodes
 
@@ -799,7 +797,7 @@ def generate_tool_list_response_tree(tools_dir: Path) -> GlobalToolIndexModel:
         root=root_nodes,
         version="1.0.0",
         description="ToolVault packaged tools with hierarchical structure",
-        packageInfo=None
+        packageInfo=None,
     )
 
 
@@ -841,8 +839,8 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
                 # Create JSONSchemaProperty from the remaining schema
                 json_properties[param_name] = JSONSchemaProperty(**param_copy)
 
-        # Get the ToolVaultCommand schema as the output schema
-        command_schema = ToolVaultCommand.model_json_schema()
+        # Get the DebriefCommand schema as the output schema
+        command_schema = DebriefCommand.model_json_schema()
 
         # Validate and report schema compatibility - using enhanced JSONSchema model
         valid_jsonschema_fields = {
@@ -906,7 +904,7 @@ def generate_tool_list_response(tools: List[ToolMetadata]) -> GlobalToolIndexMod
             print(f"   Valid JSONSchema fields are: {sorted(valid_jsonschema_fields)}")
             print(f"   Tool output schema: {command_schema}")
             print("\n💡 To fix this, update the JSONSchema model to support these fields")
-            print("   or modify the ToolVaultCommand schema to only use valid fields.")
+            print("   or modify the DebriefCommand schema to only use valid fields.")
             raise ToolDiscoveryError(
                 f"Tool '{tool.name}' has incompatible output schema. "
                 f"Invalid fields: {sorted(invalid_fields)}. "

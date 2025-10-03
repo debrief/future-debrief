@@ -7,7 +7,7 @@ from .tool_index_node import ToolIndexNode
 from .tool_call_request import ToolCallRequest, ToolArgument
 from .tool_call_response import (
     ToolCallResponse,
-    ToolVaultCommand,
+    DebriefCommand,
     CommandType,
     MediaType,
     DataAxis,
@@ -52,7 +52,7 @@ __all__ = [
     "ToolCallRequest",
     "ToolArgument",
     "ToolCallResponse",
-    "ToolVaultCommand",
+    "DebriefCommand",
     "CommandType",
     "ToolListResponse",
 

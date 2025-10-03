@@ -1,6 +1,6 @@
 """Word counting tool for text analysis."""
 
-from debrief.types.tools import ShowTextCommand, ToolVaultCommand
+from debrief.types.tools import DebriefCommand, ShowTextCommand
 from pydantic import BaseModel, Field
 
 
@@ -19,7 +19,7 @@ class WordCountParameters(BaseModel):
     )
 
 
-def word_count(params: WordCountParameters) -> ToolVaultCommand:
+def word_count(params: WordCountParameters) -> DebriefCommand:
     """
     Count the number of words in a given block of text.
 
@@ -31,7 +31,7 @@ def word_count(params: WordCountParameters) -> ToolVaultCommand:
         params: WordCountParameters object with text field
 
     Returns:
-        ToolVaultCommand: ToolVault command object with word count result
+        DebriefCommand: ToolVault command object with word count result
 
     Examples:
         >>> params = WordCountParameters(text="Hello world")

@@ -141,7 +141,7 @@ def call_tool_command(tools_path: str, tool_name: str, arguments: Dict[str, Any]
         # Convert Pydantic models to dictionaries for proper JSON serialization
         if hasattr(result, "model_dump"):
             # Pydantic v2 - use mode='json' to handle datetime serialization
-            result_data = result.model_dump(mode='json')
+            result_data = result.model_dump(mode="json")
         elif hasattr(result, "dict"):
             # Pydantic v1
             result_data = result.dict()

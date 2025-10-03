@@ -507,10 +507,10 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
   private _handleToolExecutionSuccess(commandName: string, result: unknown): void {
     console.warn('[DebriefOutlineProvider] Tool execution success:', result);
 
-    // Check if the result contains ToolVaultCommands
-    const hasToolVaultCommands = this._containsToolVaultCommands(result);
+    // Check if the result contains DebriefCommands
+    const hasDebriefCommands = this._containsDebriefCommands(result);
 
-    if (hasToolVaultCommands) {
+    if (hasDebriefCommands) {
       // If tool returned commands, those were processed by GlobalController
       const successMessage = `Tool "${commandName}" executed successfully and plot updated`;
       vscode.window.showInformationMessage(successMessage);
@@ -574,35 +574,35 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
   }
 
   /**
-   * Check if result contains ToolVaultCommands
+   * Check if result contains DebriefCommands
    */
-  private _containsToolVaultCommands(result: unknown): boolean {
+  private _containsDebriefCommands(result: unknown): boolean {
     if (!result || typeof result !== 'object') {
       return false;
     }
 
-    // Check if it's a single ToolVaultCommand
-    if (this._isToolVaultCommand(result)) {
+    // Check if it's a single DebriefCommand
+    if (this._isDebriefCommand(result)) {
       return true;
     }
 
-    // Check if it's an array of ToolVaultCommands
+    // Check if it's an array of DebriefCommands
     if (Array.isArray(result)) {
-      return result.some(item => this._isToolVaultCommand(item));
+      return result.some(item => this._isDebriefCommand(item));
     }
 
     // Check if it's an object containing a commands array
     if ('commands' in result && Array.isArray((result as Record<string, unknown>).commands)) {
-      return ((result as Record<string, unknown>).commands as unknown[]).some(item => this._isToolVaultCommand(item));
+      return ((result as Record<string, unknown>).commands as unknown[]).some(item => this._isDebriefCommand(item));
     }
 
     return false;
   }
 
   /**
-   * Type guard to check if an object is a ToolVaultCommand
+   * Type guard to check if an object is a DebriefCommand
    */
-  private _isToolVaultCommand(obj: unknown): boolean {
+  private _isDebriefCommand(obj: unknown): boolean {
     return (
       typeof obj === 'object' &&
       obj !== null &&

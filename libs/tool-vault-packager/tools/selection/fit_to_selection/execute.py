@@ -5,7 +5,7 @@ from typing import List
 # Use hierarchical imports from shared-types
 from debrief.types.features import DebriefFeature
 from debrief.types.states.viewport_state import ViewportState
-from debrief.types.tools import SetViewportCommand, ShowTextCommand, ToolVaultCommand
+from debrief.types.tools import DebriefCommand, SetViewportCommand, ShowTextCommand
 from pydantic import BaseModel, Field
 
 
@@ -33,7 +33,7 @@ class FitToSelectionParameters(BaseModel):
     )
 
 
-def fit_to_selection(params: FitToSelectionParameters) -> ToolVaultCommand:
+def fit_to_selection(params: FitToSelectionParameters) -> DebriefCommand:
     """
     Calculate bounds of features and set viewport to fit them.
 

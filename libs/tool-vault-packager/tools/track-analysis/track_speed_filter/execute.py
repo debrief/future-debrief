@@ -3,7 +3,7 @@
 import math
 
 from debrief.types.features import DebriefTrackFeature
-from debrief.types.tools import ShowDataCommand, ShowTextCommand, ToolVaultCommand
+from debrief.types.tools import DebriefCommand, ShowDataCommand, ShowTextCommand
 from pydantic import BaseModel, Field, ValidationError
 
 
@@ -42,7 +42,7 @@ class TrackSpeedFilterParameters(BaseModel):
     )
 
 
-def track_speed_filter(params: TrackSpeedFilterParameters) -> ToolVaultCommand:
+def track_speed_filter(params: TrackSpeedFilterParameters) -> DebriefCommand:
     """
     Find timestamps where track speed equals or exceeds a minimum threshold.
 

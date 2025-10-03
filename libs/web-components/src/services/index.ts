@@ -5,7 +5,7 @@
 
 // Service exports
 export { ToolParameterService } from './toolParameterService';
-export { ToolVaultCommandHandler } from './ToolVaultCommandHandler';
+export { DebriefCommandHandler } from './DebriefCommandHandler';
 
 // Service type exports
 export type {
@@ -24,4 +24,4 @@ export type {
   CommandHandlerOptions
 } from './types';
 
-export type { SpecificCommand } from './ToolVaultCommandHandler';
+export type { SpecificCommand } from './DebriefCommandHandler';

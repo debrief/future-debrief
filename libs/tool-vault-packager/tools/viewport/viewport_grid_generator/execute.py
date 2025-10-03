@@ -1,7 +1,7 @@
 """Viewport grid generator tool for maritime analysis."""
 
 from debrief.types.states.viewport_state import ViewportState
-from debrief.types.tools import AddFeaturesCommand, ShowTextCommand, ToolVaultCommand
+from debrief.types.tools import AddFeaturesCommand, DebriefCommand, ShowTextCommand
 from pydantic import BaseModel, Field, ValidationError
 
 
@@ -30,7 +30,7 @@ class ViewportGridGeneratorParameters(BaseModel):
     )
 
 
-def viewport_grid_generator(params: ViewportGridGeneratorParameters) -> ToolVaultCommand:
+def viewport_grid_generator(params: ViewportGridGeneratorParameters) -> DebriefCommand:
     """
     Generate a grid of points within a viewport area at specified intervals.
 

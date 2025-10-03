@@ -2,8 +2,8 @@
 
 from debrief.types.features import DebriefFeatureCollection
 from debrief.types.tools import (
+    DebriefCommand,
     ShowTextCommand,
-    ToolVaultCommand,
     UpdateFeaturesCommand,
 )
 from pydantic import BaseModel, Field, ValidationError
@@ -30,7 +30,7 @@ class ToggleFirstFeatureColorParameters(BaseModel):
     )
 
 
-def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> ToolVaultCommand:
+def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> DebriefCommand:
     """
     Toggle the color property of the first feature in a GeoJSON FeatureCollection.
 
@@ -44,7 +44,7 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Too
         params: ToggleFirstFeatureColorParameters containing feature_collection
 
     Returns:
-        ToolVaultCommand: Command to update the modified feature (not replace entire collection)
+        DebriefCommand: Command to update the modified feature (not replace entire collection)
 
     Examples:
         >>> from pydantic import ValidationError
@@ -142,11 +142,10 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Too
 
         # Return UpdateFeaturesCommand with the validated feature
         # We need to serialize with aliases and re-parse to get proper JSON keys
-        feature_json = validated_feature.model_dump(by_alias=True, mode='json')
+        feature_json = validated_feature.model_dump(by_alias=True, mode="json")
 
         return UpdateFeaturesCommand.model_construct(
-            command="updateFeatures",
-            payload=[feature_json]
+            command="updateFeatures", payload=[feature_json]
         )
 
     except ValidationError as e:
