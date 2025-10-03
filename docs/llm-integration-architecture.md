@@ -4,9 +4,9 @@
 
 This document presents a comprehensive architectural plan for enabling LLM extensions (Claude Code, GitHub Copilot, local LLMs via Ollama/LM Studio) to orchestrate multi-step maritime analysis workflows through Future Debrief's existing infrastructure.
 
-**Key Challenge**: LLM extensions cannot directly interact with WebSockets, requiring adapter/wrapper technologies to expose Future Debrief's WebSocket server (port 60123) and Tool Vault server (port 60124) through LLM-accessible interfaces.
+**Key Challenge**: LLM extensions require standardized MCP (Model Context Protocol) interfaces to interact with Future Debrief's services. Both the Debrief State Server (port 60123) and Tool Vault server (port 60124) need MCP-compatible endpoints.
 
-**Recommended Solution**: Model Context Protocol (MCP) stdio-based server architecture with dual-service integration pattern.
+**Recommended Solution**: Model Context Protocol (MCP) streamable-http transport - a modern HTTP-based protocol that leverages existing HTTP server infrastructure with optional Server-Sent Events (SSE) streaming.
 
 **Target Platforms**: VS Code extensions (Continue.dev with Ollama, GitHub Copilot) - designed for naval analysts working within VS Code, not CLI developers.
 
@@ -33,54 +33,64 @@ This document presents a comprehensive architectural plan for enabling LLM exten
 The Model Context Protocol (MCP) is an open-source standard for AI-tool integrations that enables LLM extensions to access external tools, databases, and APIs. As of 2025, MCP has become the de facto standard for LLM extension integration.
 
 **Key Characteristics:**
-- **Transport Protocols**: stdio (local processes), SSE (Server-Sent Events), HTTP (request/response)
+- **Transport Protocols**: streamable-http (modern, HTTP-based), stdio (local processes), SSE (legacy, deprecated)
 - **Message Format**: JSON-RPC 2.0 for command/response patterns
 - **Tool Interface**: Standardized schema-based tool discovery and execution
 - **State Management**: Supports both stateless and stateful interactions
 
-#### Stdio-Based MCP Servers
+**Transport Protocol Evolution:**
+- **stdio**: Original transport for local processes (1:1 client-server, desktop apps)
+- **SSE**: Early HTTP transport (deprecated as of 2025-03-26)
+- **streamable-http**: Modern HTTP transport (introduced 2025-03-26) - **recommended for production**
 
-Stdio servers are the **primary integration pattern for locally-run MCP servers**:
+#### Streamable-HTTP MCP Transport
+
+**Introduced 2025-03-26** as the modern replacement for SSE transport. Streamable-http is the **recommended transport for production deployments**.
 
 **Advantages:**
-- ✅ Native support in Claude Code (`claude mcp add`)
-- ✅ Direct process spawning with full lifecycle control
-- ✅ Secure by default (local-only, no network exposure)
-- ✅ Simple configuration in `.claude.json`
-- ✅ Minimal latency (IPC vs network overhead)
+- ✅ **Production-ready**: Designed for web applications and remote deployments
+- ✅ **Multiple concurrent clients**: Unlike stdio (1:1), supports many clients simultaneously
+- ✅ **Leverages existing infrastructure**: Uses standard HTTP servers (Express, FastAPI, etc.)
+- ✅ **Optional SSE streaming**: Server-to-client notifications and multi-message responses
+- ✅ **Native VS Code extension support**: Continue.dev, GitHub Copilot (2025+)
+- ✅ **Simple configuration**: Just a URL endpoint
+- ✅ **Language agnostic**: Any HTTP server can implement it
 
 **Configuration Example:**
 ```json
 {
   "mcpServers": {
-    "debrief-bridge": {
-      "type": "stdio",
-      "command": "node",
-      "args": ["/path/to/debrief-mcp-server.js"],
-      "env": {
-        "WEBSOCKET_PORT": "60123",
-        "TOOLVAULT_PORT": "60124"
-      }
+    "debrief-state": {
+      "type": "streamable-http",
+      "url": "http://localhost:60123/mcp"
+    },
+    "tool-vault": {
+      "type": "streamable-http",
+      "url": "http://localhost:60124/mcp"
     }
   }
 }
 ```
 
-**Process Lifecycle:**
-- Extension spawns server process with specified command
-- Server communicates via stdin/stdout using JSON-RPC
-- Extension manages server lifecycle (start/stop/restart)
-- Automatic cleanup on extension shutdown
+**Protocol Flow:**
+- **POST /mcp**: Client sends JSON-RPC 2.0 request
+- **GET /mcp**: Optional SSE endpoint for server-initiated messages
+- **Response**: JSON-RPC 2.0 response (immediate or streamed)
+- **Lifecycle**: Server runs independently, clients connect via HTTP
+
+**Key Architectural Fit:**
+- ✅ Debrief State Server (60123) is already HTTP-based
+- ✅ Tool Vault server (60124) already runs FastAPI
+- ✅ **No additional processes needed** - just add MCP endpoints to existing servers!
 
 ### 1.2 Wrapper Technologies Comparison
 
 | Technology | Pros | Cons | LLM Compatibility | Effort |
 |------------|------|------|------------------|--------|
-| **MCP Stdio Server** | Native integration, secure, simple config | Requires Node.js/Python runtime | ✅ Claude Code<br>✅ GitHub Copilot CLI<br>✅ Ollama (via bridge) | Medium |
-| **HTTP REST Gateway** | Universal access, language agnostic | Network overhead, auth complexity | ✅ All platforms<br>(via HTTP tool) | Medium-High |
-| **CLI Tool Wrapper** | Simple bash integration | Limited state management, text parsing | ✅ All platforms<br>(via Bash tool) | Low-Medium |
-| **WebSocket Proxy** | Direct protocol translation | Additional service, port management | ❌ Not directly accessible | High |
-| **Refactoring Services** | Native HTTP support, cleaner architecture | Major code changes, testing burden | ✅ All platforms | Very High |
+| **MCP streamable-http** | ✅ **RECOMMENDED**<br>Leverages existing HTTP servers<br>Multiple concurrent clients<br>Production-ready | Slightly more complex than stdio | ✅ Continue.dev<br>✅ GitHub Copilot<br>✅ All MCP clients | **Low**<br>(add endpoints to existing servers) |
+| **MCP stdio** | Simple for single-client desktop apps | 1:1 client-server only<br>Requires process management | ✅ Continue.dev<br>✅ GitHub Copilot | Medium |
+| **HTTP REST (non-MCP)** | Universal access, language agnostic | No standardized schema discovery | ⚠️ Via HTTP tool<br>(less efficient) | Medium |
+| **CLI Tool Wrapper** | Simple bash integration | Limited state management, text parsing | ⚠️ Via Bash tool<br>(inefficient) | Low |
 
 ### 1.3 VS Code Extension Capabilities Matrix
 
@@ -88,7 +98,8 @@ Stdio servers are the **primary integration pattern for locally-run MCP servers*
 
 | Capability | GitHub Copilot (Extension) | Continue.dev + Ollama | Cline (Claude Dev) |
 |------------|---------------------------|----------------------|-------------------|
-| **MCP Stdio Servers** | ✅ Native support (coming) | ✅ Native support | ✅ Native support |
+| **MCP streamable-http** | ✅ Native support (2025+) | ✅ Native support | ✅ Native support |
+| **MCP stdio** | ✅ Native support | ✅ Native support | ✅ Native support |
 | **VS Code Integration** | ✅ Native extension | ✅ Native extension | ✅ Native extension |
 | **Local Operation** | ❌ Cloud-only | ✅ 100% local | ⚠️ API key required |
 | **Multi-step Workflows** | ✅ Agentic mode | ✅ Tool orchestration | ✅ Agentic mode |
@@ -126,18 +137,12 @@ Stdio servers are the **primary integration pattern for locally-run MCP servers*
   ],
   "mcpServers": {
     "debrief-state": {
-      "command": "node",
-      "args": ["${workspaceFolder}/node_modules/@debrief/mcp-servers/dist/debrief-state-server/index.js"],
-      "env": {
-        "DEBRIEF_WS_PORT": "60123"
-      }
+      "type": "streamable-http",
+      "url": "http://localhost:60123/mcp"
     },
-    "debrief-tools": {
-      "command": "node",
-      "args": ["${workspaceFolder}/node_modules/@debrief/mcp-servers/dist/debrief-tools-server/index.js"],
-      "env": {
-        "TOOLVAULT_PORT": "60124"
-      }
+    "tool-vault": {
+      "type": "streamable-http",
+      "url": "http://localhost:60124/mcp"
     }
   }
 }
@@ -182,30 +187,30 @@ Stdio servers are the **primary integration pattern for locally-run MCP servers*
 
 ## 2. Wrapper Architecture Design
 
-### 2.1 Recommended Architecture: Simplified Integration
+### 2.1 Recommended Architecture: Native streamable-http MCP Endpoints
 
-**UPDATED RECOMMENDATION** (Based on Phase 0 findings):
+**UPDATED RECOMMENDATION** (Based on streamable-http discovery):
 
 Given that:
-1. Only `debrief_api.py` uses WebSocket (single client wrapper)
-2. Tool Vault already has CLI support (`python toolvault.pyz call-tool`)
-3. Pre-production status (no external clients)
+1. Both servers (Debrief State :60123, Tool Vault :60124) already run HTTP
+2. streamable-http is the modern, production-ready MCP transport (introduced 2025-03-26)
+3. No process management needed - just add `/mcp` endpoints to existing servers
+4. Supports multiple concurrent LLM clients (unlike stdio's 1:1 limitation)
 
-The recommended approach is **simplified**:
+The recommended approach is **maximally simplified**:
 
-1. **Debrief State Server** (MCP stdio or HTTP) - for plot state management
-2. **Tool Vault** - accessed via CLI (no MCP wrapper needed!)
+1. **Debrief State Server** - Add `/mcp` endpoint to existing HTTP/WebSocket server
+2. **Tool Vault Server** - Add `/mcp` endpoint to existing FastAPI server
 
-**Two architectural paths**:
+**Architecture Benefits**:
 
-**Path A: MCP Wrapper** (if <4 weeks deadline)
-- MCP State Server (stdio) → WebSocket :60123
-- Tool Vault via Bash tool → `python toolvault.pyz call-tool`
+✅ **Minimal code changes** - Add one endpoint to each existing server
+✅ **No new processes** - Servers already running on ports 60123 and 60124
+✅ **Production-ready** - streamable-http designed for web deployments
+✅ **Multiple clients** - Continue.dev + GitHub Copilot + custom scripts simultaneously
+✅ **Future-proof** - HTTP-based protocol supports remote deployments if needed
 
-**Path B: HTTP Refactoring** (recommended if 4-6+ weeks)
-- MCP State Server (stdio) → HTTP :60123
-- Tool Vault via Bash tool → `python toolvault.pyz call-tool`
-- Update `debrief_api.py` wrapper (one file change)
+**Key Insight**: Both servers already have the infrastructure needed. Just add MCP-compliant `/mcp` POST endpoint that speaks JSON-RPC 2.0.
 
 #### Architecture Diagram
 
@@ -216,18 +221,16 @@ graph TB
         GH[GitHub Copilot]
     end
 
-    subgraph "MCP Layer"
-        MCP1[Debrief State Server<br/>stdio MCP]
+    subgraph "Debrief State Server :60123"
+        MCP_DS[/mcp endpoint<br/>MCP JSON-RPC 2.0]
+        WS[WebSocket<br/>Legacy API]
+        HANDLER_DS[Command Handler<br/>Shared Logic]
     end
 
-    subgraph "Command Producers"
-        TVCLI[Tool Vault CLI<br/>python toolvault.pyz]
-        USER[User Scripts<br/>Python/JS/TS]
-    end
-
-    subgraph "Future Debrief Services"
-        WS[WebSocket/HTTP Server<br/>:60123<br/>Accepts DebriefCommands]
-        TV[Tool Vault Server<br/>:60124]
+    subgraph "Tool Vault Server :60124"
+        MCP_TV[/mcp endpoint<br/>MCP JSON-RPC 2.0]
+        REST_TV[REST API<br/>Legacy endpoints]
+        HANDLER_TV[Tool Execution<br/>Handler]
     end
 
     subgraph "VS Code Extension"
@@ -235,32 +238,49 @@ graph TB
         GM[Global Controller]
     end
 
-    CONT -->|stdio JSON-RPC| MCP1
-    CONT -->|Bash tool| TVCLI
-    CONT -->|Execute code| USER
-    GH -->|stdio JSON-RPC| MCP1
-    GH -->|Bash tool| TVCLI
-    GH -->|Execute code| USER
+    subgraph "User Code"
+        PYSCRIPT[Python Scripts<br/>debrief_api.py]
+        TSCODE[TypeScript/JS<br/>Custom tools]
+    end
 
-    MCP1 -->|DebriefCommand| WS
-    TVCLI -->|DebriefCommand via HTTP| TV
-    USER -->|DebriefCommand| WS
+    CONT -->|HTTP POST /mcp| MCP_DS
+    CONT -->|HTTP POST /mcp| MCP_TV
+    GH -->|HTTP POST /mcp| MCP_DS
+    GH -->|HTTP POST /mcp| MCP_TV
 
-    WS --> PE
-    WS --> GM
+    MCP_DS --> HANDLER_DS
+    WS --> HANDLER_DS
+    PYSCRIPT -->|WebSocket or HTTP| WS
+    TSCODE -->|HTTP| MCP_DS
 
-    style MCP1 fill:#e1f5ff
-    style TVCLI fill:#d4edda
-    style USER fill:#d4edda
-    style WS fill:#fff4e1
-    style TV fill:#fff4e1
+    MCP_TV --> HANDLER_TV
+    REST_TV --> HANDLER_TV
+
+    HANDLER_DS -->|Update state| PE
+    HANDLER_DS -->|Update state| GM
+
+    style MCP_DS fill:#90EE90
+    style MCP_TV fill:#90EE90
+    style HANDLER_DS fill:#e1f5ff
+    style HANDLER_TV fill:#e1f5ff
+    style WS fill:#FFE4B5
+    style REST_TV fill:#FFE4B5
+    style PE fill:#fff4e1
+    style GM fill:#fff4e1
 ```
 
-### 2.2 Debrief State Server (WebSocket Adapter)
+### 2.2 Debrief State Server (Native MCP streamable-http)
 
-**Purpose**: Wrap WebSocket server to provide LLM-accessible state management.
+**Purpose**: Plot state management server with MCP endpoint.
 
-**Implementation Language**: TypeScript/Node.js (matches existing codebase)
+**Implementation Language**: TypeScript/Node.js (matches existing codebase in `apps/vs-code/src/services/debriefWebSocketServer.ts`)
+
+**Architecture**: Single server with dual interfaces:
+- **`POST /mcp` endpoint**: For LLM extensions (MCP JSON-RPC 2.0 over streamable-http)
+- **WebSocket/HTTP interface**: For existing clients (`debrief_api.py`, VS Code extension)
+- **Shared command handler**: Same logic for both interfaces
+
+**Key Simplification**: No separate MCP server package needed - just add one endpoint to existing server.
 
 **MCP Tool Schema**:
 
@@ -347,213 +367,351 @@ graph TB
 - LLM-generated code produces commands
 - **Single command format, multiple producers**
 
-**Connection Management**:
-- Establish persistent WebSocket connection on server startup
-- Implement reconnection logic with exponential backoff
-- Handle MULTIPLE_PLOTS errors gracefully with user prompts
-- Maintain connection pool for multiple plot files
+**Implementation Details**:
 
-### 2.3 Debrief Tools Server (Tool Vault Proxy)
-
-**Purpose**: Expose Tool Vault's maritime analysis tools through MCP interface.
-
-**Implementation Language**: TypeScript/Node.js (consistency with State Server)
-
-**Tool Discovery Pattern**:
 ```typescript
-// Dynamic tool discovery from Tool Vault
-async function discoverTools(): Promise<MCPTool[]> {
-  const response = await fetch('http://localhost:60124/tools/list');
-  const { tools } = await response.json();
+// apps/vs-code/src/services/debriefStateServer.ts
 
-  // Transform Tool Vault schema to MCP schema
-  return tools.map(tool => ({
-    name: `toolvault_${tool.name}`,
-    description: tool.description,
-    inputSchema: tool.inputSchema
-  }));
-}
-```
+import express from 'express';
+import { handleCommand } from './commandHandler';
+import toolIndex from '../../dist/mcp-tools.json'; // Pre-cached at build
 
-**Tool Execution Pattern**:
-```typescript
-async function executeTool(name: string, args: Record<string, unknown>) {
-  const toolName = name.replace('toolvault_', '');
+const app = express();
+app.use(express.json());
 
-  const response = await fetch('http://localhost:60124/tools/call', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: toolName, arguments: args })
-  });
+// MCP streamable-http endpoint (for LLM extensions)
+app.post('/mcp', async (req, res) => {
+  const request = req.body; // JSON-RPC 2.0 request
 
-  const result = await response.json();
+  try {
+    switch (request.method) {
+      case 'tools/list':
+        // Return pre-cached tool index
+        res.json({
+          jsonrpc: '2.0',
+          id: request.id,
+          result: { tools: toolIndex.tools }
+        });
+        break;
 
-  // Handle ToolVaultCommand results
-  if (result.result?.command) {
-    return {
-      content: [
-        {
-          type: "text",
-          text: `Tool executed: ${result.result.command}`
-        },
-        {
-          type: "resource",
-          resource: {
-            uri: "tool://vault/command",
-            data: result.result
+      case 'tools/call':
+        // Route to shared command handler
+        const result = await handleCommand(
+          request.params.name,
+          request.params.arguments
+        );
+        res.json({
+          jsonrpc: '2.0',
+          id: request.id,
+          result
+        });
+        break;
+
+      default:
+        res.status(400).json({
+          jsonrpc: '2.0',
+          id: request.id,
+          error: {
+            code: -32601,
+            message: `Method not found: ${request.method}`
           }
-        }
-      ]
-    };
+        });
+    }
+  } catch (error) {
+    res.status(500).json({
+      jsonrpc: '2.0',
+      id: request.id,
+      error: {
+        code: -32603,
+        message: error.message
+      }
+    });
   }
+});
 
-  return result;
+// Legacy WebSocket/HTTP interface (for existing clients)
+app.post('/api/command', async (req, res) => {
+  const result = await handleCommand(req.body.command, req.body.params);
+  res.json(result);
+});
+
+app.listen(60123, () => console.log('Debrief State Server on :60123 (MCP + WebSocket)'));
+```
+
+**Pre-cached Tool Index** (generated during build):
+```typescript
+// Build script: apps/vs-code/scripts/generate-mcp-tools.ts
+const tools = [
+  {
+    name: "debrief_get_selection",
+    description: "Get currently selected feature IDs",
+    inputSchema: { /* ... */ }
+  },
+  {
+    name: "debrief_apply_command",
+    description: "Apply a DebriefCommand to update plot state",
+    inputSchema: { /* ... */ }
+  },
+  // ... all tools
+];
+
+fs.writeFileSync('dist/mcp-tools.json', JSON.stringify({ tools }));
+```
+
+**Shared Command Handler**:
+```typescript
+// apps/vs-code/src/services/commandHandler.ts
+export async function handleCommand(command: string, params: any) {
+  switch (command) {
+    case 'debrief_get_selection':
+      return globalController.getSelection(params.filename);
+
+    case 'debrief_apply_command':
+      return globalController.applyDebriefCommand(
+        params.command,
+        params.filename
+      );
+
+    case 'debrief_get_features':
+      return globalController.getFeatureCollection(params.filename);
+
+    // ... all other commands
+  }
 }
 ```
 
-### 2.4 Refactoring vs Wrapping Trade-Off Analysis
+**Benefits**:
+- ✅ **No wrapper layer** - Single server with dual interface
+- ✅ **Shared handlers** - Same logic for MCP and legacy APIs
+- ✅ **Pre-cached index** - Tool list generated at build time (fast startup)
+- ✅ **Minimal new code** - Just one POST endpoint with JSON-RPC routing
+- ✅ **No separate package** - Part of VS Code extension
+- ✅ **Multiple clients** - LLM extensions + scripts + VS Code all access same server
 
-| Aspect | Refactoring to HTTP | MCP Wrapper Approach |
-|--------|-------------------|---------------------|
-| **Implementation Effort** | Very High (6-8 weeks) | Medium (2-3 weeks) |
-| **Breaking Changes** | High (existing Python clients) | None (wrapper is additive) |
-| **Testing Burden** | High (full regression) | Medium (wrapper + integration) |
-| **Architecture Cleanliness** | Better (native HTTP) | Good (clean abstraction) |
-| **Multi-Platform Support** | Immediate | Immediate |
-| **Maintenance** | Single codebase | Additional layer |
-| **Deployment** | Replace existing service | Add new service |
-| **Rollback Risk** | High | Low (disable MCP server) |
+### 2.3 Tool Vault Server (Native MCP streamable-http)
 
-**Recommendation**: **MCP Wrapper Approach** for Phase 1
+**Purpose**: Expose Tool Vault's maritime analysis tools through MCP endpoint.
+
+**Implementation Language**: Python/FastAPI (existing codebase in `libs/tool-vault-packager/server.py`)
+
+**Architecture**: Add `/mcp` endpoint to existing FastAPI server (port 60124)
+
+**Key Advantage**: Tool Vault already has `/tools/list` and `/tools/call` endpoints - MCP endpoint just wraps them in JSON-RPC 2.0 format!
+
+**Implementation Details**:
+
+```python
+# libs/tool-vault-packager/server.py
+
+from fastapi import FastAPI
+from discovery import discover_tools
+
+app = FastAPI()
+tools_cache = discover_tools("./tools")  # Load once at startup
+
+# MCP streamable-http endpoint (NEW)
+@app.post("/mcp")
+async def mcp_endpoint(request: dict):
+    """MCP JSON-RPC 2.0 endpoint for LLM extensions."""
+    try:
+        method = request.get("method")
+        request_id = request.get("id")
+
+        if method == "tools/list":
+            # Return tools in MCP format (already compatible!)
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "result": {
+                    "tools": [
+                        {
+                            "name": tool["name"],
+                            "description": tool["description"],
+                            "inputSchema": tool["inputSchema"]
+                        }
+                        for tool in tools_cache
+                    ]
+                }
+            }
+
+        elif method == "tools/call":
+            # Call tool and return result
+            tool_name = request["params"]["name"]
+            arguments = request["params"]["arguments"]
+
+            result = await call_tool(tool_name, arguments)
+
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "result": result
+            }
+
+        else:
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "error": {
+                    "code": -32601,
+                    "message": f"Method not found: {method}"
+                }
+            }
+
+    except Exception as e:
+        return {
+            "jsonrpc": "2.0",
+            "id": request.get("id"),
+            "error": {
+                "code": -32603,
+                "message": str(e)
+            }
+        }
+
+# Existing REST endpoints (unchanged)
+@app.get("/tools/list")
+async def list_tools():
+    return {"tools": tools_cache}
+
+@app.post("/tools/call")
+async def call_tool_rest(request: dict):
+    return await call_tool(request["name"], request["arguments"])
+```
+
+**Benefits**:
+- ✅ **Minimal code** - Just one new endpoint wrapping existing logic
+- ✅ **No transformation needed** - Tool Vault schema already MCP-compatible
+- ✅ **Existing infrastructure** - FastAPI server already running
+- ✅ **Zero downtime** - Add MCP without touching existing endpoints
+
+### 2.4 Architectural Decision: streamable-http vs stdio
+
+With the discovery of streamable-http transport, the architectural decision is simplified:
+
+| Aspect | streamable-http (CHOSEN) | stdio |
+|--------|--------------------------|-------|
+| **Implementation Effort** | **Low** (add endpoints to existing servers) | Medium (new stdio wrappers) |
+| **Server Infrastructure** | ✅ Use existing HTTP servers | ❌ Requires new process management |
+| **Multiple Clients** | ✅ Supports concurrent clients | ❌ 1:1 client-server only |
+| **Production Readiness** | ✅ Designed for web deployments | ⚠️ Desktop app focused |
+| **Code Changes** | ✅ Additive only (new endpoints) | Additive (new processes) |
+| **Deployment** | ✅ No new services | Requires process lifecycle management |
+| **Future-Proof** | ✅ Supports remote access | Local-only |
+
+**Recommendation**: **streamable-http for both servers**
 
 **Rationale**:
-1. **Non-Breaking**: Preserves existing Python WebSocket clients
-2. **Faster Time-to-Market**: 2-3 weeks vs 6-8 weeks
-3. **Lower Risk**: Wrapper can be disabled without affecting core services
-4. **Incremental**: Can still refactor services later if needed
-5. **Separation of Concerns**: MCP logic separate from core services
+1. **Minimal effort**: Both servers already run HTTP - just add `/mcp` endpoint
+2. **Production-ready**: Modern transport designed for web applications
+3. **No new infrastructure**: Uses existing FastAPI (Tool Vault) and Express (Debrief State)
+4. **Multiple clients**: LLM extensions can connect simultaneously
+5. **Non-breaking**: Legacy APIs remain unchanged
 
-**Future Consideration**: If HTTP becomes a requirement for other use cases (remote access, web dashboards), refactoring the WebSocket server to HTTP+WebSocket could be evaluated in Phase 2+.
+### 2.5 MCP Configuration and Deployment
 
-### 2.5 MCP Server Implementation Details
+#### User Configuration
 
-#### Package Structure
-
-```
-libs/mcp-servers/
-├── package.json
-├── tsconfig.json
-├── src/
-│   ├── debrief-state-server/
-│   │   ├── index.ts           # MCP server entry point
-│   │   ├── websocket-client.ts # WebSocket connection manager
-│   │   ├── tools.ts            # Tool definitions
-│   │   └── error-handler.ts    # Error translation
-│   ├── debrief-tools-server/
-│   │   ├── index.ts           # MCP server entry point
-│   │   ├── toolvault-client.ts # HTTP client for Tool Vault
-│   │   ├── tool-discovery.ts  # Dynamic tool loading
-│   │   └── command-handler.ts # ToolVaultCommand processor
-│   └── shared/
-│       ├── types.ts           # Shared type definitions
-│       └── logging.ts         # Structured logging
-└── dist/                      # Compiled output
-```
-
-#### Configuration Management
-
-**User Configuration** (`.claude.json`):
+**Continue.dev Configuration** (`~/.continue/config.json`):
 ```json
 {
+  "models": [
+    {
+      "title": "Qwen 2.5 7B",
+      "provider": "ollama",
+      "model": "qwen2.5:7b-instruct"
+    }
+  ],
   "mcpServers": {
     "debrief-state": {
-      "type": "stdio",
-      "command": "node",
-      "args": [
-        "${workspaceFolder}/node_modules/@debrief/mcp-servers/dist/debrief-state-server/index.js"
-      ],
-      "env": {
-        "DEBRIEF_WS_PORT": "60123",
-        "LOG_LEVEL": "info"
-      }
+      "type": "streamable-http",
+      "url": "http://localhost:60123/mcp"
     },
-    "debrief-tools": {
-      "type": "stdio",
-      "command": "node",
-      "args": [
-        "${workspaceFolder}/node_modules/@debrief/mcp-servers/dist/debrief-tools-server/index.js"
-      ],
-      "env": {
-        "TOOLVAULT_PORT": "60124",
-        "LOG_LEVEL": "info"
+    "tool-vault": {
+      "type": "streamable-http",
+      "url": "http://localhost:60124/mcp"
+    }
+  }
+}
+```
+
+**GitHub Copilot Configuration** (VS Code settings.json):
+```json
+{
+  "github.copilot.advanced": {
+    "mcpServers": {
+      "debrief-state": {
+        "type": "streamable-http",
+        "url": "http://localhost:60123/mcp"
+      },
+      "tool-vault": {
+        "type": "streamable-http",
+        "url": "http://localhost:60124/mcp"
       }
     }
   }
 }
 ```
+
+#### Deployment Architecture
+
+**No additional services needed!** Both servers already running:
+- Debrief State Server (port 60123) - Started by VS Code extension
+- Tool Vault Server (port 60124) - Started by VS Code extension or standalone
+
+**Startup sequence**:
+1. VS Code extension activates
+2. Starts Debrief State Server with `/mcp` endpoint
+3. Starts Tool Vault Server (if not already running) with `/mcp` endpoint
+4. LLM extensions connect via HTTP to both endpoints
+5. Ready to orchestrate maritime workflows!
 
 #### Error Handling Strategy
 
-**WebSocket Connection Errors**:
+**JSON-RPC 2.0 Error Codes**:
 ```typescript
-class WebSocketConnectionError extends Error {
-  constructor(message: string, public code: string) {
-    super(message);
-    this.name = 'WebSocketConnectionError';
-  }
-}
+// Standard JSON-RPC error codes
+const JSON_RPC_ERRORS = {
+  PARSE_ERROR: -32700,      // Invalid JSON
+  INVALID_REQUEST: -32600,  // Invalid request object
+  METHOD_NOT_FOUND: -32601, // Method does not exist
+  INVALID_PARAMS: -32602,   // Invalid method parameters
+  INTERNAL_ERROR: -32603,   // Internal server error
 
-async function connectWithRetry(
-  url: string,
-  maxRetries: number = 3
-): Promise<WebSocket> {
-  let lastError: Error;
+  // Application-specific codes
+  MULTIPLE_PLOTS: -32001,   // Multiple plots open (user must specify)
+  PLOT_NOT_FOUND: -32002,   // Plot file not found or not open
+  FEATURE_NOT_FOUND: -32003 // Feature ID not found
+};
+```
 
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await connect(url);
-    } catch (error) {
-      lastError = error;
-      await sleep(Math.pow(2, i) * 1000); // Exponential backoff
+**Error Response Format**:
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": -32001,
+    "message": "Multiple plots open, please specify filename",
+    "data": {
+      "available_plots": [
+        {"filename": "mission1.plot.json", "title": "Mission 1"},
+        {"filename": "mission2.plot.json", "title": "Mission 2"}
+      ]
     }
   }
-
-  throw new WebSocketConnectionError(
-    `Failed to connect after ${maxRetries} attempts: ${lastError.message}`,
-    'CONNECTION_FAILED'
-  );
 }
 ```
 
-**Tool Execution Errors**:
+**Server Health Checks**:
 ```typescript
-interface MCPError {
-  code: number;
-  message: string;
-  data?: unknown;
-}
-
-function translateDebriefError(error: DebriefAPIError): MCPError {
-  if (error.code === 'MULTIPLE_PLOTS') {
-    return {
-      code: -32001,
-      message: error.message,
-      data: error.available_plots
-    };
-  }
-
-  if (error.code === 404) {
-    return {
-      code: -32002,
-      message: 'Plot file not found or not open'
-    };
-  }
-
-  return {
-    code: -32000,
-    message: error.message
-  };
-}
+// Health check endpoint for both servers
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    server: 'debrief-state',
+    mcp_endpoint: '/mcp',
+    port: 60123
+  });
+});
 ```
 
 ---
@@ -1193,22 +1351,35 @@ function validateFeatureCollection(data: unknown): FeatureCollection {
 
 ## 5. Implementation Phases & Rollout
 
-### 5.0 Phase 0: Architectural Decision Analysis (1 week)
+### 5.0 Phase 0: ~~Architectural Decision Analysis~~ (OBSOLETE)
 
-**Goal**: Evaluate and decide between MCP wrapper approach vs HTTP refactoring approach
+**Status**: ✅ **DECISION MADE** - streamable-http transport eliminates wrapper vs refactoring debate
 
-**Critical Question**: Should we wrap the existing WebSocket server with MCP adapters, or refactor the WebSocket server to HTTP/REST?
+**Discovery**: MCP's streamable-http transport (introduced 2025-03-26) fundamentally changes the architecture:
+1. **No wrappers needed**: Both servers already run HTTP - just add `/mcp` POST endpoint
+2. **No refactoring needed**: Keep existing WebSocket/REST APIs alongside MCP endpoint
+3. **Minimal effort**: ~2-3 days per server (vs weeks for wrapper/refactoring approaches)
+4. **Production-ready**: Modern transport designed for web applications
 
-**IMPORTANT CONTEXT** (Discovered during planning):
-1. **Single WebSocket client**: Only `apps/vs-code/workspace/tests/debrief_api.py` uses WebSocket - all test scripts go through this wrapper
-2. **Tool Vault has CLI**: `python toolvault.pyz list-tools` and `call-tool` already work - no MCP wrapper needed for Tool Vault
-3. **Simplified architecture**: Only need ONE MCP server (State Server), Tool Vault accessed via Bash/CLI
+**Decision**: **Add native streamable-http endpoints to both existing servers**
 
-This **dramatically changes** the decision criteria - HTTP refactoring is much lower risk than originally assessed.
+This approach combines the best of both previous options:
+- ✅ **Fast delivery** (like wrapper approach): Just add one endpoint
+- ✅ **Clean architecture** (like refactoring): No extra layers
+- ✅ **Non-breaking** (like wrapper): Existing APIs unchanged
+- ✅ **Future-proof** (like HTTP refactoring): Production-ready HTTP transport
 
-#### 5.0.1 Decision Criteria Matrix (REVISED)
+#### 5.0.1 Historical Context (For Reference)
 
-| Criteria | Weight | MCP Wrapper | HTTP Refactoring | Winner |
+**Previous Debate**: This document originally presented a detailed analysis of MCP wrapper vs HTTP refactoring approaches, with decision matrices, timelines, and trade-off comparisons.
+
+**Resolution**: Discovery of streamable-http transport made this entire debate obsolete. Both approaches assumed either stdio wrappers or major refactoring was needed - streamable-http requires neither.
+
+**Lesson**: Always research latest transport options before designing wrapper architectures!
+
+---
+
+### 5.1 Phase 1: Implementation (1-2 weeks)
 |----------|--------|-------------|------------------|--------|
 | **Time to Market** | High | ✅ 2-3 weeks | ⚠️ 4-6 weeks | Wrapper |
 | **Breaking Changes** | High | ✅ None (additive) | ✅ **One file** (debrief_api.py) | **TIE** |
