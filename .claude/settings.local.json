@@ -200,7 +200,8 @@
       "Bash(xargs kill:*)",
       "Bash(xargs cat:*)",
       "WebFetch(domain:vscode-elements.github.io)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "WebFetch(domain:leafletjs.com)"
     ],
     "deny": [
       "Bash(git add:*)"
