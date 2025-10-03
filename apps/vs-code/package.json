@@ -111,28 +111,10 @@
       ],
       "debrief": [
         {
-          "id": "debrief.timeController",
-          "name": "Time Controller",
-          "type": "webview",
-          "when": "!config.debrief.development.mode"
-        },
-        {
-          "id": "debrief.outline",
-          "name": "Outline",
+          "id": "debrief.activity",
+          "name": "Activity",
           "type": "webview",
           "when": "true"
-        },
-        {
-          "id": "debrief.propertiesView",
-          "name": "Properties View",
-          "type": "webview",
-          "when": "!config.debrief.development.mode"
-        },
-        {
-          "id": "debrief.currentState",
-          "name": "Current State",
-          "type": "webview",
-          "when": "!config.debrief.development.mode"
         }
       ]
     },
