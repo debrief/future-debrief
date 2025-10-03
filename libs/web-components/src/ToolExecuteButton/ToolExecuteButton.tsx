@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import type { Tool } from '@debrief/shared-types/src/types/tools/tool_list_response';
 import type { GlobalToolIndexModel, Tool as ToolNode, ToolCategory } from '@debrief/shared-types/src/types/tools/global_tool_index';
 import type { DebriefFeature } from '@debrief/shared-types';
@@ -57,6 +58,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [showAllState, setShowAllState] = useState(true); // Default to showing all tools
   const [showDescriptionsState, setShowDescriptionsState] = useState(true); // Default to showing descriptions
+  const [menuRect, setMenuRect] = useState<{ top: number; left: number; width: number } | null>(null);
 
   // Initialize with all categories expanded
   const initialExpandedCategories = useMemo(() => {
@@ -67,6 +69,20 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Calculate menu position when opened
+  React.useEffect(() => {
+    if (isMenuOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setMenuRect({
+        top: menuPosition === 'bottom' ? rect.bottom + 4 : rect.top,
+        left: rect.left,
+        width: rect.width
+      });
+    } else {
+      setMenuRect(null);
+    }
+  }, [isMenuOpen, menuPosition]);
 
   // Get applicable tools from context - filtering happens once in the provider
   const { applicableTools, applicableToolNames, warnings: contextWarnings } = useToolExecution();
@@ -235,24 +251,21 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
 
   const menuClassName = `tool-execute-menu ${menuPosition === 'top' ? 'menu-top' : 'menu-bottom'}`;
 
-  return (
-    <div className="tool-execute-button-container">
-      <button
-        ref={buttonRef}
-        className={`tool-execute-button ${disabled ? 'disabled' : ''}`}
-        onClick={handleButtonClick}
-        disabled={disabled}
-        aria-expanded={isMenuOpen}
-        aria-haspopup="menu"
-      >
-        {buttonText}
-        <span className="dropdown-arrow" aria-hidden="true">
-          ▼
-        </span>
-      </button>
+  // Render menu content
+  const renderMenu = () => {
+    if (!isMenuOpen || !menuRect) return null;
 
-      {isMenuOpen && (
-        <div ref={menuRef} className={menuClassName} role="menu">
+    const menuStyle: React.CSSProperties = {
+      position: 'fixed',
+      top: menuPosition === 'bottom' ? menuRect.top : undefined,
+      bottom: menuPosition === 'top' ? `calc(100vh - ${menuRect.top}px + 4px)` : undefined,
+      left: menuRect.left,
+      minWidth: Math.max(menuRect.width, 200),
+      zIndex: 10000
+    };
+
+    return createPortal(
+      <div ref={menuRef} className={menuClassName} style={menuStyle} role="menu">
           {/* Search box at the top */}
           <div className="search-box">
             <input
@@ -321,8 +334,28 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
               Select features to see filtered tools
             </div>
           )}
-        </div>
-      )}
+        </div>,
+      document.body
+    );
+  };
+
+  return (
+    <div className="tool-execute-button-container">
+      <button
+        ref={buttonRef}
+        className={`tool-execute-button ${disabled ? 'disabled' : ''}`}
+        onClick={handleButtonClick}
+        disabled={disabled}
+        aria-expanded={isMenuOpen}
+        aria-haspopup="menu"
+      >
+        {buttonText}
+        <span className="dropdown-arrow" aria-hidden="true">
+          ▼
+        </span>
+      </button>
+
+      {renderMenu()}
     </div>
   );
 };

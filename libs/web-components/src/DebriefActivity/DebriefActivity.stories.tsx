@@ -85,14 +85,21 @@ export const Default: Story = {
 export const WithLargeSample: Story = {
   render: () => {
     const [largeSampleData, setLargeSampleData] = React.useState<any>(null);
+    const [toolList, setToolList] = React.useState<any>(mockToolList);
     const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
     const [currentTime, setCurrentTime] = React.useState('2024-11-14T22:00:00Z');
 
     React.useEffect(() => {
-      fetch('/large-sample.plot.json')
-        .then(res => res.json())
-        .then(data => setLargeSampleData(data))
-        .catch(err => console.error('Failed to load large-sample.plot.json:', err));
+      // Load both the large sample data and the tool index
+      Promise.all([
+        fetch('/large-sample.plot.json').then(res => res.json()),
+        fetch('/tool-index.json').then(res => res.json()),
+      ])
+        .then(([plotData, tools]) => {
+          setLargeSampleData(plotData);
+          setToolList(tools);
+        })
+        .catch(err => console.error('Failed to load data:', err));
     }, []);
 
     if (!largeSampleData) {
@@ -133,7 +140,7 @@ export const WithLargeSample: Story = {
         timeState={timeState}
         featureCollection={largeSampleData}
         selectedFeatureIds={selectedIds}
-        toolList={mockToolList}
+        toolList={toolList}
         currentState={currentState}
         selectedFeatureProperties={selectedFeatureProperties}
         onTimeChange={(time: string) => {
