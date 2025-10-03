@@ -128,14 +128,26 @@ RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: installing 
     if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: Python extension installed" "${STATUS_WEBHOOK}" || true; fi
 
 # Copy workspace files to the workspace directory
-RUN cp -r apps/vs-code/workspace/* /home/coder/workspace/ 2>/dev/null || true
+# WORKDIR is /home/coder/project, so use relative path from there
+RUN if [ -d "apps/vs-code/workspace" ]; then \
+        cp -r apps/vs-code/workspace/* /home/coder/workspace/; \
+    else \
+        echo "Error: workspace directory not found at apps/vs-code/workspace" >&2; \
+        exit 1; \
+    fi
 
 # Create VS Code settings to use virtual environment Python
 RUN mkdir -p /home/coder/workspace/.vscode && \
     echo '{\n  "python.defaultInterpreterPath": "/home/coder/workspace/tests/venv/bin/python"\n}' > /home/coder/workspace/.vscode/settings.json
 
 # Create and activate virtual environment, then install Python test requirements
-RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: creating workspace venv" "${STATUS_WEBHOOK}" || true; fi && \
+# First verify the tests directory exists
+RUN if [ ! -d "/home/coder/workspace/tests" ]; then \
+        echo "Error: /home/coder/workspace/tests directory not found after workspace copy" >&2; \
+        ls -la /home/coder/workspace/ >&2; \
+        exit 1; \
+    fi && \
+    if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: creating workspace venv" "${STATUS_WEBHOOK}" || true; fi && \
     cd /home/coder/workspace/tests && \
     python3 -m venv venv && \
     venv/bin/pip install -r requirements.txt && \
