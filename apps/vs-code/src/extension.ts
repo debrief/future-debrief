@@ -13,7 +13,7 @@ import { DebriefActivityProvider } from './providers/panels/debriefActivityProvi
 import { CustomOutlineTreeProvider } from './providers/outlines/customOutlineTreeProvider';
 
 // External services
-import { DebriefWebSocketServer } from './services/debriefWebSocketServer';
+import { DebriefWebSocketServer } from './services/debriefHttpServer';
 import { PythonWheelInstaller } from './services/pythonWheelInstaller';
 import { ToolVaultServerService } from './services/toolVaultServer';
 import { ToolVaultConfigService } from './services/toolVaultConfig';
