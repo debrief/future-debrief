@@ -1,22 +1,20 @@
 """
-Debrief WebSocket Bridge - Python Client API (Simplified Version)
+Debrief HTTP Bridge - Python Client API (Simplified Version)
 
 This module provides a Python interface to communicate with the Debrief VS Code extension
-through WebSocket messages. It allows Python scripts to interact with open Debrief plots.
+through HTTP messages. It allows Python scripts to interact with open Debrief plots.
 """
 
 import json
 import logging
-import threading
-import atexit
 import sys
 from typing import Optional, Dict, Any, List, Union
 
 try:
-    import websocket
+    import requests
 except ImportError:
     raise ImportError(
-        "websocket-client library is required. Install it with: pip install websocket-client"
+        "requests library is required. Install it with: pip install requests"
     )
 
 # Import State classes from the debrief-types package
@@ -38,118 +36,109 @@ class DebriefAPIError(Exception):
 
 
 
-class DebriefWebSocketClient:
-    """Singleton WebSocket client for communicating with Debrief VS Code extension."""
-    
-    _instance: Optional['DebriefWebSocketClient'] = None
-    _lock = threading.Lock()
-    
-    def __new__(cls) -> 'DebriefWebSocketClient':
-        if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:
-                    cls._instance = super().__new__(cls)
-        return cls._instance
-    
+class DebriefHTTPClient:
+    """HTTP client for communicating with Debrief VS Code extension."""
+
     def __init__(self):
-        if hasattr(self, '_initialized'):
-            return
-            
-        self._initialized = True
-        self.url = "ws://localhost:60123"
-        self.ws: Optional[websocket.WebSocket] = None
-        self.connected = False
+        self.url = "http://localhost:60123"
         self.logger = logging.getLogger(__name__)
-        
-        # Register cleanup
-        atexit.register(self.cleanup)
-    
+        self.session = requests.Session()
+        # Set timeout for all requests
+        self.session.timeout = 10
+
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - ensures session is closed."""
+        self.cleanup()
+        return False
+
+    def cleanup(self) -> None:
+        """
+        Clean up HTTP session resources.
+
+        Should be called when done using the client, or use the client
+        as a context manager to ensure automatic cleanup.
+        """
+        if self.session:
+            self.session.close()
+
     def connect(self) -> None:
         """
-        Establish connection to the WebSocket server.
-        
+        Test connection to the HTTP server.
+
         Returns:
             None: Method returns nothing but raises DebriefAPIError on connection failure
-        
+
         Raises:
-            DebriefAPIError: When connection to WebSocket server fails
+            DebriefAPIError: When connection to HTTP server fails
         """
-        if self.connected and self.ws:
-            return
-            
         try:
-            self.logger.info("Connecting to Debrief...")
-            self.ws = websocket.create_connection(self.url, timeout=10)
-            self.connected = True
-            self.logger.info("Connected successfully!")
-            
-            # Read the welcome message
-            try:
-                welcome = self.ws.recv()
-                self.logger.debug(f"Welcome message: {welcome}")
-            except Exception:
-                pass  # Welcome message is optional
-                
+            self.logger.info("Testing connection to Debrief...")
+            # Send a simple notify command to test connection
+            test_message = {
+                "command": "list_open_plots",
+                "params": {}
+            }
+            response = self.session.post(self.url, json=test_message, timeout=10)
+            if response.status_code == 200:
+                self.logger.info("Connected successfully!")
+            else:
+                raise DebriefAPIError(f"Server returned status {response.status_code}")
+        except requests.exceptions.ConnectionError as e:
+            raise DebriefAPIError(f"Connection failed: Cannot connect to Debrief HTTP server at {self.url}. Make sure VS Code extension is running.")
+        except requests.exceptions.Timeout as e:
+            raise DebriefAPIError(f"Connection timeout: Server did not respond within 10 seconds")
         except Exception as e:
-            self.connected = False
-            self.ws = None
             raise DebriefAPIError(f"Connection failed: {str(e)}")
-    
+
     def send_raw_message(self, message: str) -> str:
         """
         Send a raw string message and return the response.
-        
+
         Args:
             message (str): The raw string message to send to the server
-        
+
         Returns:
             str: The response from the server as a string
-        
+
         Raises:
             DebriefAPIError: When connection fails or message sending fails
         """
-        if not self.connected:
-            self.connect()
-            
-        if not self.connected or not self.ws:
-            raise DebriefAPIError("Not connected to Debrief")
-        
         try:
-            # Send message
-            self.ws.send(message)
-            
-            # Receive response
-            response = self.ws.recv()
-            # Ensure we return a string
-            if isinstance(response, str):
-                return response
-            elif isinstance(response, bytes):
-                return response.decode('utf-8')
-            else:
-                return str(response)
-            
+            # Parse the message as JSON to send properly
+            json_message = json.loads(message)
+            response = self.session.post(self.url, json=json_message, timeout=10)
+
+            # Return the response text
+            return response.text
+
+        except json.JSONDecodeError:
+            # If not JSON, send as raw text (though server expects JSON)
+            raise DebriefAPIError("Server expects JSON messages")
+        except requests.exceptions.ConnectionError:
+            raise DebriefAPIError(f"Not connected to Debrief. Make sure VS Code extension is running.")
+        except requests.exceptions.Timeout:
+            raise DebriefAPIError("Request timeout: Server did not respond within 10 seconds")
         except Exception as e:
             self.logger.error(f"Error sending message: {e}")
-            self.connected = False
-            self.ws = None
             raise DebriefAPIError(f"Message send failed: {e}")
     
     def send_json_message(self, message: Dict[str, Any]) -> Dict[str, Any]:
         """
         Send a JSON message and return the parsed response.
-        
+
         Args:
             message (Dict[str, Any]): The JSON message dictionary to send
-        
+
         Returns:
             Dict[str, Any]: The parsed JSON response from the server
-        
+
         Raises:
             DebriefAPIError: When connection fails, message sending fails, or server returns an error
         """
-        if not self.connected:
-            self.connect()
-        
         # Check if this command uses filename parameter for optional filename handling
         params = message.get('params', {})
         if 'filename' in params:
@@ -158,58 +147,72 @@ class DebriefWebSocketClient:
                 # filename=None means: use single editor or let user choose
                 # Try the command without filename first
                 response = self._send_json_raw(message)
-                
+
                 # Check for MULTIPLE_PLOTS error and handle it
-                if ('error' in response and 
+                if ('error' in response and
                     response['error'].get('code') == 'MULTIPLE_PLOTS'):
                     available_plots = response['error'].get('available_plots', [])
                     selected_filename = self._prompt_plot_selection(available_plots)
-                    
+
                     # Retry with selected filename
                     message['params']['filename'] = selected_filename
                     return self._send_json_raw(message)
-                    
+
                 return response
             # else: filename has a value (use that specific file) - send directly
-        
+
         # For commands without filename parameter, send directly
         return self._send_json_raw(message)
-    
+
     def _send_json_raw(self, message: Dict[str, Any]) -> Dict[str, Any]:
         """
         Send a JSON message without filename handling logic.
-        
+
         Args:
             message (Dict[str, Any]): The JSON message dictionary to send
-        
+
         Returns:
             Dict[str, Any]: The parsed JSON response from the server
-        
+
         Raises:
             DebriefAPIError: When message sending fails or JSON parsing fails
         """
-        json_str = json.dumps(message)
-        response_str = self.send_raw_message(json_str)
-        
         try:
-            response = json.loads(response_str)
-            
+            response = self.session.post(self.url, json=message, timeout=10)
+
+            # Check HTTP status code
+            if response.status_code >= 500:
+                raise DebriefAPIError(f"Server error: HTTP {response.status_code}")
+
+            # Parse JSON response
+            try:
+                response_data = response.json()
+            except json.JSONDecodeError as e:
+                raise DebriefAPIError(f"Invalid JSON response: {e}")
+
             # Check for errors in response
-            if 'error' in response:
-                error_info = response['error']
-                
+            if 'error' in response_data:
+                error_info = response_data['error']
+
                 # Don't raise exception for MULTIPLE_PLOTS - let caller handle it
                 if error_info.get('code') == 'MULTIPLE_PLOTS':
-                    return response
-                    
+                    return response_data
+
                 raise DebriefAPIError(
                     error_info.get('message', 'Unknown error'),
                     error_info.get('code')
                 )
-                
-            return response
-        except json.JSONDecodeError as e:
-            raise DebriefAPIError(f"Invalid JSON response: {e}")
+
+            return response_data
+
+        except requests.exceptions.ConnectionError:
+            raise DebriefAPIError(f"Not connected to Debrief. Make sure VS Code extension is running.")
+        except requests.exceptions.Timeout:
+            raise DebriefAPIError("Request timeout: Server did not respond within 10 seconds")
+        except DebriefAPIError:
+            raise  # Re-raise our own errors
+        except Exception as e:
+            raise DebriefAPIError(f"Request failed: {e}")
     
     def _prompt_plot_selection(self, available_plots: List[Dict[str, str]]) -> str:
         """
@@ -263,53 +266,37 @@ class DebriefWebSocketClient:
                 print("\nInput stream closed. Exiting script.")
                 sys.exit(0)
     
-    def cleanup(self) -> None:
-        """
-        Clean up resources.
-        
-        Returns:
-            None: Method returns nothing, closes WebSocket connection and resets state
-        """
-        if self.ws:
-            try:
-                self.ws.close()
-            except Exception:
-                pass
-            self.ws = None
-        self.connected = False
-
-
 class DebriefAPI:
     """
     Main API class providing discoverable methods for VS Code Debrief extension integration.
-    
-    This class wraps the WebSocket client to provide a clean, discoverable API interface
+
+    This class wraps the HTTP client to provide a clean, discoverable API interface
     that enables IDE auto-completion and better developer experience.
-    
+
     Usage:
         from debrief_api import debrief
-        
+
         # Connect and send notification
         debrief.connect()
         debrief.notify("Hello from Python!")
-        
+
         # Work with plot features
         features = debrief.get_feature_collection("my_plot.plot.json")
         selected = debrief.get_selected_features("my_plot.plot.json")
     """
-    
+
     def __init__(self):
-        self._client = DebriefWebSocketClient()
+        self._client = DebriefHTTPClient()
     
     def connect(self) -> None:
         """
-        Connect to the Debrief WebSocket server.
-        
+        Connect to the Debrief HTTP server.
+
         Returns:
             None: Method returns nothing but establishes connection for subsequent API calls
-        
+
         Raises:
-            DebriefAPIError: When connection to WebSocket server fails
+            DebriefAPIError: When connection to HTTP server fails
         """
         self._client.connect()
     
