@@ -13,7 +13,7 @@ import { DebriefActivityProvider } from './providers/panels/debriefActivityProvi
 import { CustomOutlineTreeProvider } from './providers/outlines/customOutlineTreeProvider';
 
 // External services
-import { DebriefWebSocketServer } from './services/debriefWebSocketServer';
+import { DebriefHTTPServer } from './services/debriefHttpServer';
 import { PythonWheelInstaller } from './services/pythonWheelInstaller';
 import { ToolVaultServerService } from './services/toolVaultServer';
 import { ToolVaultConfigService } from './services/toolVaultConfig';
@@ -35,7 +35,7 @@ class HelloWorldProvider implements vscode.TreeDataProvider<string> {
     }
 }
 
-let webSocketServer: DebriefWebSocketServer | null = null;
+let webSocketServer: DebriefHTTPServer | null = null;
 let globalController: GlobalController | null = null;
 let activationHandler: EditorActivationHandler | null = null;
 let statePersistence: StatePersistence | null = null;
@@ -50,11 +50,11 @@ export function activate(context: vscode.ExtensionContext) {
 
     vscode.window.showInformationMessage('Debrief Extension has been activated successfully!');
 
-    // Start WebSocket server
-    webSocketServer = new DebriefWebSocketServer();
-    webSocketServer.start().catch(error => {
-        console.error('Failed to start WebSocket server:', error);
-        vscode.window.showErrorMessage('Failed to start Debrief WebSocket Bridge. Some features may not work.');
+    // Start HTTP server
+    webSocketServer = new DebriefHTTPServer();
+    webSocketServer.start().catch((error: unknown) => {
+        console.error('Failed to start HTTP server:', error);
+        vscode.window.showErrorMessage('Failed to start Debrief HTTP Bridge. Some features may not work.');
     });
 
     // Initialize Python wheel installer for automatic debrief-types installation
@@ -138,12 +138,12 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push({
         dispose: () => {
             if (webSocketServer) {
-                webSocketServer.stop().catch(error => {
-                    console.error('Error stopping WebSocket server during cleanup:', error);
+                webSocketServer.stop().catch((error: unknown) => {
+                    console.error('Error stopping HTTP server during cleanup:', error);
                 });
             }
             if (toolVaultServer) {
-                toolVaultServer.stopServer().catch(error => {
+                toolVaultServer.stopServer().catch((error: unknown) => {
                     console.error('Error stopping Tool Vault server during cleanup:', error);
                 });
             }

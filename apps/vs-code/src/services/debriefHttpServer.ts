@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
-import * as WebSocket from 'ws';
+import express from 'express';
 import * as http from 'http';
+import * as net from 'net';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PlotJsonEditorProvider } from '../providers/editors/plotJsonEditor';
@@ -49,33 +50,96 @@ interface DebriefResponse {
     };
 }
 
-export class DebriefWebSocketServer {
-    private server: WebSocket.WebSocketServer | null = null;
+export class DebriefHTTPServer {
+    private app: express.Express | null = null;
     private httpServer: http.Server | null = null;
     private readonly port = 60123;
-    private clients: Set<WebSocket> = new Set();
     private cachedFilename: string | null = null;
     private healthCheckInterval: NodeJS.Timeout | null = null;
-    private httpConnections: Set<any> = new Set(); // Track all HTTP connections for proper cleanup
+    private httpConnections: Set<net.Socket> = new Set(); // Track all HTTP connections for proper cleanup
 
     constructor() {}
 
     async start(): Promise<void> {
         // Don't start if already running
         if (this.isRunning()) {
-            console.log('WebSocket server is already running, skipping start');
+            console.warn('HTTP server is already running, skipping start');
             return;
         }
 
         // If there's a leftover server from incomplete shutdown, clean it up first
-        if (this.httpServer || this.server) {
+        if (this.httpServer || this.app) {
             console.warn('Found leftover server instances, cleaning up before restart...');
             await this.stop();
         }
 
         try {
-            // Create HTTP server first to handle port conflicts
-            this.httpServer = http.createServer();
+            // Create Express app
+            this.app = express();
+
+            // Configure JSON body parser with increased limit for large feature collections
+            // Limit: 50MB - allows for complex maritime plots with thousands of features
+            // If you need larger payloads, increase this limit accordingly
+            this.app.use(express.json({ limit: '50mb' }));
+
+            // Health check endpoint for monitoring
+            this.app.get('/health', (_req, res) => {
+                res.json({
+                    status: 'healthy',
+                    transport: 'http',
+                    port: this.port
+                });
+            });
+
+            // Create single POST endpoint at root path accepting JSON requests
+            this.app.post('/', async (req: express.Request, res: express.Response) => {
+                try {
+                    console.warn('Received HTTP request:', req.body);
+
+                    // Validate message structure
+                    const message = req.body as DebriefMessage;
+                    if (!message.command) {
+                        res.status(400).json({
+                            error: {
+                                message: 'Request must include a "command" field',
+                                code: 400
+                            }
+                        });
+                        return;
+                    }
+
+                    // Handle the command using existing handlers
+                    const response = await this.handleCommand(message);
+
+                    // Return JSON response
+                    if (response.error) {
+                        // Set appropriate status code for errors
+                        // MULTIPLE_PLOTS is a client error (400-level), not a server error
+                        let statusCode: number;
+                        if (response.error.code === 'MULTIPLE_PLOTS') {
+                            statusCode = 409; // Conflict - user needs to resolve which plot to use
+                        } else if (typeof response.error.code === 'number') {
+                            statusCode = response.error.code;
+                        } else {
+                            statusCode = 500; // Generic server error for unknown error codes
+                        }
+                        res.status(statusCode).json(response);
+                    } else {
+                        res.json(response);
+                    }
+                } catch (error) {
+                    console.error('Error handling HTTP request:', error);
+                    res.status(500).json({
+                        error: {
+                            message: error instanceof Error ? error.message : 'Unknown error',
+                            code: 500
+                        }
+                    });
+                }
+            });
+
+            // Create HTTP server from Express app
+            this.httpServer = http.createServer(this.app);
 
             // Handle port conflicts - but try to recover
             this.httpServer.on('error', async (error: NodeJS.ErrnoException) => {
@@ -88,21 +152,21 @@ export class DebriefWebSocketServer {
                         await new Promise(resolve => setTimeout(resolve, 500)); // Wait for port release
 
                         // Don't show error to user on first attempt - try to recover
-                        console.log('Retrying WebSocket server start after cleanup...');
+                        console.warn('Retrying HTTP server start after cleanup...');
                         // Note: We can't call start() recursively, so log and let it fail
                         vscode.window.showErrorMessage(
-                            `WebSocket server port ${this.port} is already in use. Please restart VS Code if this persists.`
+                            `HTTP server port ${this.port} is already in use. Please restart VS Code if this persists.`
                         );
                     } catch (cleanupError) {
                         console.error('Failed to cleanup and restart:', cleanupError);
                         vscode.window.showErrorMessage(
-                            `WebSocket server port ${this.port} is already in use. Please close other applications using this port.`
+                            `HTTP server port ${this.port} is already in use. Please close other applications using this port.`
                         );
                     }
                 }
                 throw error;
             });
-            
+
             // Track all connections for proper cleanup
             this.httpServer.on('connection', (conn) => {
                 this.httpConnections.add(conn);
@@ -115,104 +179,31 @@ export class DebriefWebSocketServer {
                 // Bind to localhost only for security - Python scripts run on same machine
                 // If Docker/remote access is needed, users can use port forwarding
                 this.httpServer!.listen(this.port, 'localhost', () => {
-                    console.log(`HTTP server listening on port ${this.port} (localhost only)`);
+                    console.warn(`HTTP server listening on port ${this.port} (localhost only)`);
                     resolve();
                 });
                 this.httpServer!.on('error', reject);
             });
 
-            // Create WebSocket server
-            this.server = new WebSocket.WebSocketServer({ 
-                server: this.httpServer,
-                path: '/'
-            });
+            console.warn(`Debrief HTTP server started on http://localhost:${this.port}`);
+            vscode.window.showInformationMessage(`Debrief HTTP bridge started on port ${this.port}`);
 
-            this.server.on('connection', (ws: WebSocket, req: http.IncomingMessage) => {
-                console.log(`WebSocket client connected from ${req.socket.remoteAddress}`);
-                this.clients.add(ws);
-
-                // Set up message handling
-                ws.on('message', async (data: Buffer) => {
-                    try {
-                        const message = data.toString();
-                        console.log('Received message:', message);
-                        
-                        // Try to parse as JSON
-                        let response: DebriefResponse;
-                        
-                        try {
-                            const parsedMessage: DebriefMessage = JSON.parse(message);
-                            response = await this.handleCommand(parsedMessage);
-                        } catch {
-                            // If not valid JSON, treat as raw message (for backward compatibility)
-                            response = { result: `Echo: ${message}` };
-                        }
-                        
-                        ws.send(JSON.stringify(response));
-                    } catch (error) {
-                        console.error('Error handling message:', error);
-                        const errorResponse: DebriefResponse = {
-                            error: {
-                                message: error instanceof Error ? error.message : 'Unknown error',
-                                code: 500
-                            }
-                        };
-                        ws.send(JSON.stringify(errorResponse));
-                    }
-                });
-
-                ws.on('close', (code, reason) => {
-                    console.log(`WebSocket client disconnected. Code: ${code}, Reason: ${reason}. Remaining clients: ${this.clients.size - 1}`);
-                    this.clients.delete(ws);
-                    // Clear cached filename when client disconnects
-                    this.cachedFilename = null;
-                });
-
-                ws.on('error', (error) => {
-                    console.error('WebSocket client error:', error);
-                    this.clients.delete(ws);
-                    // Clear cached filename when client disconnects with error
-                    this.cachedFilename = null;
-                });
-
-                // Send welcome message
-                ws.send(JSON.stringify({ result: 'Connected to Debrief WebSocket Bridge' }));
-            });
-
-            this.server.on('error', (error) => {
-                console.error('WebSocket server error:', error);
-                vscode.window.showErrorMessage(`WebSocket server error: ${error.message}`);
-                
-                // Attempt to restart the server after a brief delay
-                setTimeout(() => {
-                    console.log('Attempting to restart WebSocket server...');
-                    this.stop().then(() => {
-                        return this.start();
-                    }).catch((restartError) => {
-                        console.error('Failed to restart WebSocket server:', restartError);
-                    });
-                }, 2000);
-            });
-
-            console.log(`Debrief WebSocket server started on ws://localhost:${this.port}`);
-            vscode.window.showInformationMessage(`Debrief WebSocket bridge started on port ${this.port}`);
-            
             // Start health check logging every 30 seconds
             this.healthCheckInterval = setInterval(() => {
-                const isServerRunning = this.server !== null;
+                const isAppRunning = this.app !== null;
                 const isHttpServerListening = this.httpServer && this.httpServer.listening;
-                console.log(`WebSocket Health Check - Server running: ${isServerRunning}, HTTP listening: ${isHttpServerListening}, Active clients: ${this.clients.size}`);
+                console.warn(`HTTP Health Check - App running: ${isAppRunning}, HTTP listening: ${isHttpServerListening}`);
             }, 30000);
 
         } catch (error) {
-            console.error('Failed to start WebSocket server:', error);
-            vscode.window.showErrorMessage(`Failed to start WebSocket server: ${error instanceof Error ? error.message : 'Unknown error'}`);
+            console.error('Failed to start HTTP server:', error);
+            vscode.window.showErrorMessage(`Failed to start HTTP server: ${error instanceof Error ? error.message : 'Unknown error'}`);
             throw error;
         }
     }
 
     async stop(): Promise<void> {
-        console.log('Stopping Debrief WebSocket server...');
+        console.warn('Stopping Debrief HTTP server...');
 
         // Clear health check interval
         if (this.healthCheckInterval) {
@@ -220,24 +211,8 @@ export class DebriefWebSocketServer {
             this.healthCheckInterval = null;
         }
 
-        // Close all WebSocket client connections
-        this.clients.forEach(ws => {
-            if (ws.readyState === 1) { // WebSocket.OPEN
-                ws.close();
-            }
-        });
-        this.clients.clear();
-
-        // Close WebSocket server
-        if (this.server) {
-            await new Promise<void>((resolve) => {
-                this.server!.close(() => {
-                    console.log('WebSocket server closed');
-                    resolve();
-                });
-            });
-            this.server = null;
-        }
+        // Clear Express app
+        this.app = null;
 
         // Force-close all HTTP connections to release the port immediately
         this.httpConnections.forEach((conn) => {
@@ -263,7 +238,7 @@ export class DebriefWebSocketServer {
 
                 // Set a timeout in case close hangs
                 const timeout = setTimeout(() => {
-                    console.log('HTTP server close timed out after 2 seconds, forcing shutdown');
+                    console.warn('HTTP server close timed out after 2 seconds, forcing shutdown');
                     doResolve();
                 }, 2000);
 
@@ -272,7 +247,7 @@ export class DebriefWebSocketServer {
                     if (error) {
                         console.error('Error closing HTTP server:', error);
                     } else {
-                        console.log('HTTP server closed, port released');
+                        console.warn('HTTP server closed, port released');
                     }
                     doResolve();
                 });
@@ -287,15 +262,15 @@ export class DebriefWebSocketServer {
             this.httpServer = null;
         }
 
-        console.log('Debrief WebSocket server stopped completely');
+        console.warn('Debrief HTTP server stopped completely');
     }
 
     isRunning(): boolean {
-        return this.server !== null && this.httpServer !== null;
+        return this.app !== null && this.httpServer !== null;
     }
 
     private async handleCommand(message: DebriefMessage): Promise<DebriefResponse> {
-        console.log(`Handling command: ${message.command}`);
+        console.warn(`Handling command: ${message.command}`);
 
         try {
             switch (message.command) {
@@ -373,9 +348,9 @@ export class DebriefWebSocketServer {
         try {
             // Display VS Code notification
             vscode.window.showInformationMessage(params.message);
-            
-            console.log(`Displayed notification: "${params.message}"`);
-            
+
+            console.warn(`Displayed notification: "${params.message}"`);
+
             return { result: null };
         } catch (error) {
             console.error('Error displaying notification:', error);
@@ -461,7 +436,7 @@ export class DebriefWebSocketServer {
             // Log successful validation with feature counts
             if (validation.featureCounts) {
                 const counts = validation.featureCounts;
-                console.log(`WebSocket: Valid FeatureCollection received - ${counts.total} features (${counts.tracks} tracks, ${counts.points} points, ${counts.annotations} annotations)`);
+                console.warn(`HTTP: Valid FeatureCollection received - ${counts.total} features (${counts.tracks} tracks, ${counts.points} points, ${counts.annotations} annotations)`);
             }
 
             const filename = resolution.result;
