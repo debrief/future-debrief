@@ -114,7 +114,15 @@ export class DebriefHTTPServer {
                     // Return JSON response
                     if (response.error) {
                         // Set appropriate status code for errors
-                        const statusCode = typeof response.error.code === 'number' ? response.error.code : 500;
+                        // MULTIPLE_PLOTS is a client error (400-level), not a server error
+                        let statusCode: number;
+                        if (response.error.code === 'MULTIPLE_PLOTS') {
+                            statusCode = 409; // Conflict - user needs to resolve which plot to use
+                        } else if (typeof response.error.code === 'number') {
+                            statusCode = response.error.code;
+                        } else {
+                            statusCode = 500; // Generic server error for unknown error codes
+                        }
                         res.status(statusCode).json(response);
                     } else {
                         res.json(response);

@@ -77,50 +77,65 @@ test.describe('Tool Vault Server Integration', () => {
 
     // Check if we got an "already in use" message - this means it's already running, which is OK
     if (pageText?.includes('already in use') || pageText?.includes('EADDRINUSE')) {
-      console.log('ℹ️  WebSocket server already running from previous test (expected in test suite)');
+      console.log('ℹ️  HTTP server already running from previous test (expected in test suite)');
     }
 
     // Look for success notification (may not always be present if already running)
-    const hasSuccessMessage = pageText?.includes('WebSocket bridge started') ||
+    const hasSuccessMessage = pageText?.includes('HTTP bridge started') ||
                              pageText?.includes('started on port 60123');
 
     if (hasSuccessMessage) {
-      console.log('✅ Found WebSocket bridge activation notification');
+      console.log('✅ Found HTTP bridge activation notification');
     } else {
-      console.log('⚠️  WebSocket activation notification not in page text (may be already running)');
+      console.log('⚠️  HTTP activation notification not in page text (may be already running)');
     }
 
-    // Verify by connecting to the WebSocket
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const WebSocket = require('ws');
+    // Verify by making HTTP requests to the bridge
+    console.log('🔌 Attempting to connect to HTTP bridge...');
 
-    console.log('🔌 Attempting to connect to WebSocket bridge...');
-    const ws = new WebSocket('ws://localhost:60123');
+    try {
+      // First try the health endpoint
+      const healthResponse = await fetch('http://localhost:60123/health');
 
-    const connectionResult = await new Promise<{ success: boolean, error?: string }>((resolve) => {
-      const timeout = setTimeout(() => {
-        resolve({ success: false, error: 'Connection timeout' });
-        ws.close();
-      }, 5000);
+      if (healthResponse.ok) {
+        const healthData = await healthResponse.json();
+        console.log('✅ HTTP health endpoint responded:', healthData);
 
-      ws.on('open', () => {
-        clearTimeout(timeout);
-        console.log('✅ WebSocket connection established');
-        ws.close();
-        resolve({ success: true });
+        // Verify expected health response structure
+        if (healthData.status === 'healthy' && healthData.transport === 'http') {
+          console.log('✅ Health check passed with correct structure');
+        }
+      } else {
+        throw new Error(`Health endpoint returned status ${healthResponse.status}`);
+      }
+
+      // Also verify the main POST endpoint works
+      const testResponse = await fetch('http://localhost:60123/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          command: 'list_open_plots',
+          params: {}
+        })
       });
 
-      ws.on('error', (error: Error) => {
-        clearTimeout(timeout);
-        resolve({ success: false, error: error.message });
-      });
-    });
+      if (!testResponse.ok) {
+        throw new Error(`POST endpoint returned status ${testResponse.status}`);
+      }
 
-    if (!connectionResult.success) {
-      throw new Error(`WebSocket bridge connection failed: ${connectionResult.error}`);
+      const responseData = await testResponse.json();
+      console.log('✅ HTTP POST endpoint responded successfully');
+
+      // Should have either result or error
+      if (!('result' in responseData) && !('error' in responseData)) {
+        throw new Error('Invalid response format - missing result or error field');
+      }
+
+    } catch (error) {
+      throw new Error(`HTTP bridge connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
-    console.log('✅ Debrief WebSocket bridge is activated and accepting connections');
+    console.log('✅ Debrief HTTP bridge is activated and accepting connections');
   });
 
   test('should validate Tool Vault health endpoint with structured response', async ({
