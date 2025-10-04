@@ -55,7 +55,7 @@ export class DebriefWebSocketServer {
     private readonly port = 60123;
     private cachedFilename: string | null = null;
     private healthCheckInterval: NodeJS.Timeout | null = null;
-    private httpConnections: Set<NodeJS.Socket> = new Set(); // Track all HTTP connections for proper cleanup
+    private httpConnections: Set<http.IncomingMessage['socket']> = new Set(); // Track all HTTP connections for proper cleanup
 
     constructor() {}
 
