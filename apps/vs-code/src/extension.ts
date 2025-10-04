@@ -13,7 +13,7 @@ import { DebriefActivityProvider } from './providers/panels/debriefActivityProvi
 import { CustomOutlineTreeProvider } from './providers/outlines/customOutlineTreeProvider';
 
 // External services
-import { DebriefWebSocketServer } from './services/debriefHttpServer';
+import { DebriefHTTPServer } from './services/debriefHttpServer';
 import { PythonWheelInstaller } from './services/pythonWheelInstaller';
 import { ToolVaultServerService } from './services/toolVaultServer';
 import { ToolVaultConfigService } from './services/toolVaultConfig';
@@ -50,11 +50,11 @@ export function activate(context: vscode.ExtensionContext) {
 
     vscode.window.showInformationMessage('Debrief Extension has been activated successfully!');
 
-    // Start WebSocket server
-    webSocketServer = new DebriefWebSocketServer();
+    // Start HTTP server
+    webSocketServer = new DebriefHTTPServer();
     webSocketServer.start().catch(error => {
-        console.error('Failed to start WebSocket server:', error);
-        vscode.window.showErrorMessage('Failed to start Debrief WebSocket Bridge. Some features may not work.');
+        console.error('Failed to start HTTP server:', error);
+        vscode.window.showErrorMessage('Failed to start Debrief HTTP Bridge. Some features may not work.');
     });
 
     // Initialize Python wheel installer for automatic debrief-types installation

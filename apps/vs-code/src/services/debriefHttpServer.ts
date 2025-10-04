@@ -50,7 +50,7 @@ interface DebriefResponse {
     };
 }
 
-export class DebriefWebSocketServer {
+export class DebriefHTTPServer {
     private app: express.Express | null = null;
     private httpServer: http.Server | null = null;
     private readonly port = 60123;
