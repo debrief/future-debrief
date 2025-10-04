@@ -203,7 +203,8 @@
       "Bash(test:*)",
       "WebFetch(domain:leafletjs.com)",
       "WebFetch(domain:levelup.gitconnected.com)",
-      "WebFetch(domain:medium.com)"
+      "WebFetch(domain:medium.com)",
+      "Read(//Users/ian/git/future-debrief-parent/**)"
     ]
   }
 }
