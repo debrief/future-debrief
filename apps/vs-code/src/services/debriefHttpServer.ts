@@ -78,7 +78,18 @@ export class DebriefHTTPServer {
             this.app = express();
 
             // Configure JSON body parser with increased limit for large feature collections
+            // Limit: 50MB - allows for complex maritime plots with thousands of features
+            // If you need larger payloads, increase this limit accordingly
             this.app.use(express.json({ limit: '50mb' }));
+
+            // Health check endpoint for monitoring
+            this.app.get('/health', (_req, res) => {
+                res.json({
+                    status: 'healthy',
+                    transport: 'http',
+                    port: this.port
+                });
+            });
 
             // Create single POST endpoint at root path accepting JSON requests
             this.app.post('/', async (req: express.Request, res: express.Response) => {
