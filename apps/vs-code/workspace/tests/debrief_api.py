@@ -46,6 +46,25 @@ class DebriefHTTPClient:
         # Set timeout for all requests
         self.session.timeout = 10
 
+    def __enter__(self):
+        """Context manager entry."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - ensures session is closed."""
+        self.cleanup()
+        return False
+
+    def cleanup(self) -> None:
+        """
+        Clean up HTTP session resources.
+
+        Should be called when done using the client, or use the client
+        as a context manager to ensure automatic cleanup.
+        """
+        if self.session:
+            self.session.close()
+
     def connect(self) -> None:
         """
         Test connection to the HTTP server.
