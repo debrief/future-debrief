@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import express from 'express';
 import * as http from 'http';
+import * as net from 'net';
 import * as fs from 'fs';
 import * as path from 'path';
 import { PlotJsonEditorProvider } from '../providers/editors/plotJsonEditor';
@@ -55,14 +56,14 @@ export class DebriefWebSocketServer {
     private readonly port = 60123;
     private cachedFilename: string | null = null;
     private healthCheckInterval: NodeJS.Timeout | null = null;
-    private httpConnections: Set<http.IncomingMessage['socket']> = new Set(); // Track all HTTP connections for proper cleanup
+    private httpConnections: Set<net.Socket> = new Set(); // Track all HTTP connections for proper cleanup
 
     constructor() {}
 
     async start(): Promise<void> {
         // Don't start if already running
         if (this.isRunning()) {
-            console.log('HTTP server is already running, skipping start');
+            console.warn('HTTP server is already running, skipping start');
             return;
         }
 
@@ -82,7 +83,7 @@ export class DebriefWebSocketServer {
             // Create single POST endpoint at root path accepting JSON requests
             this.app.post('/', async (req: express.Request, res: express.Response) => {
                 try {
-                    console.log('Received HTTP request:', req.body);
+                    console.warn('Received HTTP request:', req.body);
 
                     // Validate message structure
                     const message = req.body as DebriefMessage;
@@ -132,7 +133,7 @@ export class DebriefWebSocketServer {
                         await new Promise(resolve => setTimeout(resolve, 500)); // Wait for port release
 
                         // Don't show error to user on first attempt - try to recover
-                        console.log('Retrying HTTP server start after cleanup...');
+                        console.warn('Retrying HTTP server start after cleanup...');
                         // Note: We can't call start() recursively, so log and let it fail
                         vscode.window.showErrorMessage(
                             `HTTP server port ${this.port} is already in use. Please restart VS Code if this persists.`
@@ -159,20 +160,20 @@ export class DebriefWebSocketServer {
                 // Bind to localhost only for security - Python scripts run on same machine
                 // If Docker/remote access is needed, users can use port forwarding
                 this.httpServer!.listen(this.port, 'localhost', () => {
-                    console.log(`HTTP server listening on port ${this.port} (localhost only)`);
+                    console.warn(`HTTP server listening on port ${this.port} (localhost only)`);
                     resolve();
                 });
                 this.httpServer!.on('error', reject);
             });
 
-            console.log(`Debrief HTTP server started on http://localhost:${this.port}`);
+            console.warn(`Debrief HTTP server started on http://localhost:${this.port}`);
             vscode.window.showInformationMessage(`Debrief HTTP bridge started on port ${this.port}`);
 
             // Start health check logging every 30 seconds
             this.healthCheckInterval = setInterval(() => {
                 const isAppRunning = this.app !== null;
                 const isHttpServerListening = this.httpServer && this.httpServer.listening;
-                console.log(`HTTP Health Check - App running: ${isAppRunning}, HTTP listening: ${isHttpServerListening}`);
+                console.warn(`HTTP Health Check - App running: ${isAppRunning}, HTTP listening: ${isHttpServerListening}`);
             }, 30000);
 
         } catch (error) {
@@ -183,7 +184,7 @@ export class DebriefWebSocketServer {
     }
 
     async stop(): Promise<void> {
-        console.log('Stopping Debrief HTTP server...');
+        console.warn('Stopping Debrief HTTP server...');
 
         // Clear health check interval
         if (this.healthCheckInterval) {
@@ -218,7 +219,7 @@ export class DebriefWebSocketServer {
 
                 // Set a timeout in case close hangs
                 const timeout = setTimeout(() => {
-                    console.log('HTTP server close timed out after 2 seconds, forcing shutdown');
+                    console.warn('HTTP server close timed out after 2 seconds, forcing shutdown');
                     doResolve();
                 }, 2000);
 
@@ -227,7 +228,7 @@ export class DebriefWebSocketServer {
                     if (error) {
                         console.error('Error closing HTTP server:', error);
                     } else {
-                        console.log('HTTP server closed, port released');
+                        console.warn('HTTP server closed, port released');
                     }
                     doResolve();
                 });
@@ -242,7 +243,7 @@ export class DebriefWebSocketServer {
             this.httpServer = null;
         }
 
-        console.log('Debrief HTTP server stopped completely');
+        console.warn('Debrief HTTP server stopped completely');
     }
 
     isRunning(): boolean {
@@ -250,7 +251,7 @@ export class DebriefWebSocketServer {
     }
 
     private async handleCommand(message: DebriefMessage): Promise<DebriefResponse> {
-        console.log(`Handling command: ${message.command}`);
+        console.warn(`Handling command: ${message.command}`);
 
         try {
             switch (message.command) {
@@ -328,9 +329,9 @@ export class DebriefWebSocketServer {
         try {
             // Display VS Code notification
             vscode.window.showInformationMessage(params.message);
-            
-            console.log(`Displayed notification: "${params.message}"`);
-            
+
+            console.warn(`Displayed notification: "${params.message}"`);
+
             return { result: null };
         } catch (error) {
             console.error('Error displaying notification:', error);
@@ -416,7 +417,7 @@ export class DebriefWebSocketServer {
             // Log successful validation with feature counts
             if (validation.featureCounts) {
                 const counts = validation.featureCounts;
-                console.log(`WebSocket: Valid FeatureCollection received - ${counts.total} features (${counts.tracks} tracks, ${counts.points} points, ${counts.annotations} annotations)`);
+                console.warn(`HTTP: Valid FeatureCollection received - ${counts.total} features (${counts.tracks} tracks, ${counts.points} points, ${counts.annotations} annotations)`);
             }
 
             const filename = resolution.result;
