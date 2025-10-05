@@ -121,9 +121,10 @@ describe('HealthCheckPoller', () => {
 
       poller.start();
 
-      // Wait for first check
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Wait for immediate check + one interval (0ms + 100ms + buffer)
+      await new Promise(resolve => setTimeout(resolve, 50));
 
+      // Should have had immediate check only
       expect(poller.getConsecutiveFailures()).toBe(1);
     });
 
@@ -251,16 +252,16 @@ describe('HealthCheckPoller', () => {
 
       poller.start();
 
-      // Wait for 4 failures (below threshold)
-      await new Promise(resolve => setTimeout(resolve, 450));
+      // Wait for 4 failures (immediate + 3 intervals = 0ms, 100ms, 200ms, 300ms)
+      await new Promise(resolve => setTimeout(resolve, 350));
 
-      // Should not be unhealthy yet
+      // Should not be unhealthy yet (4 < threshold of 5)
       expect(healthChangeCallback).not.toHaveBeenCalledWith(false);
 
-      // Wait for 5th failure
-      await new Promise(resolve => setTimeout(resolve, 150));
+      // Wait for 5th failure (at 400ms)
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      // Now should be unhealthy
+      // Now should be unhealthy (5 >= threshold of 5)
       expect(healthChangeCallback).toHaveBeenCalledWith(false);
     });
   });

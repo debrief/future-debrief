@@ -20,8 +20,8 @@ describe('ServerLifecycleManager', () => {
     mockConfig = {
       name: 'Test Server',
       healthCheckUrl: 'http://localhost:8080/health',
-      onStart: jest.fn(),
-      onStop: jest.fn()
+      onStart: jest.fn<() => Promise<void>>(),
+      onStop: jest.fn<() => Promise<void>>()
     };
     jest.clearAllMocks();
   });
@@ -104,7 +104,7 @@ describe('ServerLifecycleManager', () => {
 
   describe('restart', () => {
     it('should use custom onRestart if provided', async () => {
-      mockConfig.onRestart = jest.fn();
+      mockConfig.onRestart = jest.fn<() => Promise<void>>();
 
       await manager.restart(mockConfig);
 
@@ -130,7 +130,7 @@ describe('ServerLifecycleManager', () => {
     });
 
     it('should throw ServerCallbackError if onRestart fails', async () => {
-      mockConfig.onRestart = jest.fn().mockRejectedValue(new Error('Restart failed'));
+      mockConfig.onRestart = jest.fn<() => Promise<void>>().mockRejectedValue(new Error('Restart failed'));
 
       await expect(manager.restart(mockConfig)).rejects.toThrow(ServerCallbackError);
     });
