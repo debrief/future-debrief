@@ -207,7 +207,11 @@
       "Read(//Users/ian/git/future-debrief-parent/**)",
       "Bash(git mv:*)",
       "Bash(.husky/pre-push:*)",
-      "Bash(bash .husky/pre-push:*)"
+      "Bash(bash .husky/pre-push:*)",
+      "Bash(if [ -f .husky/pre-push ])",
+      "Bash(then bash .husky/pre-push)",
+      "Bash(else echo \"No pre-push hook found\")",
+      "Bash(fi)"
     ]
   }
 }

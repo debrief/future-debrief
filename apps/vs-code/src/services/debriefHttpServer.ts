@@ -8,6 +8,8 @@ import { PlotJsonEditorProvider } from '../providers/editors/plotJsonEditor';
 import { validateFeatureCollectionComprehensive, validateFeatureByType, classifyFeature, TimeState, ViewportState } from '@debrief/shared-types';
 import { GlobalController } from '../core/globalController';
 import { EditorIdManager } from '../core/editorIdManager';
+import { validateTimeState, validateViewportState } from './utils/validators';
+import { InvalidParameterError, getUserFriendlyMessage } from './utils/errors';
 
 interface GeoJSONFeature {
     type: 'Feature';
@@ -174,9 +176,10 @@ export class DebriefHTTPServer {
 
             // MCP JSON-RPC 2.0 endpoint
             this.app.post('/mcp', async (req: express.Request, res: express.Response) => {
+                const mcpRequest = req.body as MCPRequest;
+                const { jsonrpc, method, params, id } = mcpRequest;
+
                 try {
-                    const mcpRequest = req.body as MCPRequest;
-                    const { jsonrpc, method, params, id } = mcpRequest;
 
                     // Validate JSON-RPC 2.0 format
                     if (jsonrpc !== '2.0') {
@@ -1342,16 +1345,19 @@ export class DebriefHTTPServer {
                 };
             }
 
-            // Validate the time state structure
-            const timeState = params.timeState as TimeState;
-            if (!timeState.current || !timeState.start || !timeState.end) {
+            // Validate the time state structure using Phase 2 validators
+            const validation = validateTimeState(params.timeState);
+            if (!validation.valid) {
                 return {
                     error: {
-                        message: 'Invalid TimeState: must have "current", "start", and "end" properties (all strings)',
+                        message: validation.error || 'Invalid TimeState',
                         code: 400
                     }
                 };
             }
+
+            // Safe to cast after validation
+            const timeState = params.timeState as TimeState;
 
             // Get editorId for this document
             const globalController = GlobalController.getInstance();
@@ -1488,16 +1494,19 @@ export class DebriefHTTPServer {
                 };
             }
 
-            // Validate the viewport state structure
-            const viewportState = params.viewportState as ViewportState;
-            if (!viewportState.bounds || !Array.isArray(viewportState.bounds) || viewportState.bounds.length !== 4) {
+            // Validate the viewport state structure using Phase 2 validators
+            const validation = validateViewportState(params.viewportState);
+            if (!validation.valid) {
                 return {
                     error: {
-                        message: 'Invalid ViewportState: must have "bounds" (array with 4 elements)',
+                        message: validation.error || 'Invalid ViewportState',
                         code: 400
                     }
                 };
             }
+
+            // Safe to cast after validation
+            const viewportState = params.viewportState as ViewportState;
 
             // Get editorId for this document
             const globalController = GlobalController.getInstance();

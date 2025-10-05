@@ -1,0 +1,50 @@
+{
+  "type": "FeatureCollection",
+  "properties": {
+    "title": "Pacific Ocean Plot",
+    "description": "Test plot for multi-plot scenarios and antimeridian crossing",
+    "timeRange": ["2025-10-05T08:00:00Z", "2025-10-05T16:00:00Z"]
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "pacific-track-001",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [175, 10],
+          [178, 11],
+          [-179, 12],
+          [-176, 13],
+          [-173, 14]
+        ]
+      },
+      "properties": {
+        "type": "Track",
+        "name": "Pacific Vessel - Antimeridian Crossing",
+        "color": "#1ABC9C",
+        "description": "Vessel crossing the International Date Line (antimeridian)",
+        "time": "2025-10-05T08:00:00Z"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "pacific-track-002",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-155, 20],
+          [-150, 21],
+          [-145, 22]
+        ]
+      },
+      "properties": {
+        "type": "Track",
+        "name": "Pacific Vessel - Eastern Pacific",
+        "color": "#F39C12",
+        "description": "Vessel in eastern Pacific Ocean",
+        "time": "2025-10-05T12:00:00Z"
+      }
+    }
+  ]
+}

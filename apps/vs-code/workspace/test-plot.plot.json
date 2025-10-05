@@ -1,0 +1,95 @@
+{
+  "type": "FeatureCollection",
+  "properties": {
+    "title": "Test Plot for Phase 5 Validation",
+    "timeRange": ["2025-10-05T10:00:00Z", "2025-10-05T14:00:00Z"]
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "Track-001",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-10, 50],
+          [-9.5, 50.5],
+          [-9, 51],
+          [-8.5, 51.5],
+          [-8, 52]
+        ]
+      },
+      "properties": {
+        "type": "Track",
+        "name": "Northern Track",
+        "color": "#FF0000",
+        "description": "Track feature in northern hemisphere for testing",
+        "time": "2025-10-05T10:00:00Z"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "Track-002",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [20, -30],
+          [21, -29],
+          [22, -28]
+        ]
+      },
+      "properties": {
+        "type": "Track",
+        "name": "Southern Track",
+        "color": "#00FF00",
+        "description": "Track feature in southern hemisphere for testing",
+        "time": "2025-10-05T11:00:00Z"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "Point-001",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [0, 0]
+      },
+      "properties": {
+        "type": "Point",
+        "name": "Equator Point",
+        "color": "#0000FF",
+        "description": "Point feature at the equator",
+        "time": "2025-10-05T12:00:00Z"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "Point-002",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [0, 80]
+      },
+      "properties": {
+        "type": "Point",
+        "name": "Arctic Point",
+        "color": "#FFFF00",
+        "description": "Point feature in the Arctic",
+        "time": "2025-10-05T13:00:00Z"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "Annotation-001",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-5, 45]
+      },
+      "properties": {
+        "type": "Annotation",
+        "name": "Test Annotation",
+        "text": "This is a test annotation",
+        "color": "#FF00FF",
+        "description": "Annotation for testing",
+        "time": "2025-10-05T10:30:00Z"
+      }
+    }
+  ]
+}

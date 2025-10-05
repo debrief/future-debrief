@@ -1,0 +1,66 @@
+{
+  "type": "FeatureCollection",
+  "properties": {
+    "title": "Atlantic Ocean Plot",
+    "description": "Test plot for multi-plot scenarios - Atlantic region",
+    "timeRange": ["2025-10-05T09:00:00Z", "2025-10-05T15:00:00Z"]
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "atlantic-track-001",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-30, 40],
+          [-28, 41],
+          [-26, 42],
+          [-24, 43],
+          [-22, 44]
+        ]
+      },
+      "properties": {
+        "type": "Track",
+        "name": "Atlantic Vessel 1",
+        "color": "#4A90E2",
+        "description": "Vessel crossing North Atlantic",
+        "time": "2025-10-05T09:00:00Z"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "atlantic-track-002",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-40, 35],
+          [-38, 36],
+          [-36, 37],
+          [-34, 38]
+        ]
+      },
+      "properties": {
+        "type": "Track",
+        "name": "Atlantic Vessel 2",
+        "color": "#E94B3C",
+        "description": "Vessel in mid-Atlantic",
+        "time": "2025-10-05T10:00:00Z"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "atlantic-point-001",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-20, 45]
+      },
+      "properties": {
+        "type": "Point",
+        "name": "Atlantic Buoy",
+        "color": "#6A4C93",
+        "description": "Weather buoy in North Atlantic",
+        "time": "2025-10-05T11:00:00Z"
+      }
+    }
+  ]
+}
