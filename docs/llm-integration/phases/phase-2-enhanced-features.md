@@ -6,7 +6,7 @@
 
 ## Timeline
 
-**Duration**: 2-3 weeks
+**Duration**: 1-2 weeks
 
 **Prerequisites**: Phase 1 complete and validated
 
@@ -16,9 +16,8 @@
 
 1. Improve robustness and error handling
 2. Add remaining MCP tools
-3. Enhance observability with audit logging
-4. Validate GitHub Copilot integration in VS Code
-5. Performance optimization
+3. Validate GitHub Copilot integration in VS Code
+4. Performance optimization
 
 ---
 
@@ -167,61 +166,7 @@ try {
 
 ---
 
-### 3. Audit Logging
-
-**Structured JSON Logging**:
-
-```typescript
-import winston from 'winston';
-
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.json(),
-  transports: [
-    new winston.transports.File({
-      filename: 'debrief-mcp-error.log',
-      level: 'error',
-      maxsize: 5242880, // 5MB
-      maxFiles: 5
-    }),
-    new winston.transports.File({
-      filename: 'debrief-mcp-combined.log',
-      maxsize: 5242880,
-      maxFiles: 5
-    }),
-    new winston.transports.Console({
-      format: winston.format.simple()
-    })
-  ]
-});
-```
-
-**Example Log Entry**:
-
-```json
-{
-  "timestamp": "2025-10-03T14:23:45.123Z",
-  "level": "INFO",
-  "service": "debrief-state",
-  "operation": "tool_call",
-  "toolName": "debrief_get_selection",
-  "duration": 45,
-  "success": true,
-  "metadata": {
-    "filename": "mission1.plot.json",
-    "selectedCount": 2
-  }
-}
-```
-
-**Performance Metrics**:
-- Track latency for each tool call
-- Monitor success/failure rates
-- Identify slow operations
-
----
-
-### 4. VS Code LLM Integration Validation
+### 3. VS Code LLM Integration Validation
 
 **GitHub Copilot Testing Checklist**:
 
@@ -242,7 +187,7 @@ const logger = winston.createLogger({
 
 ---
 
-### 5. Testing & Validation
+### 4. Testing & Validation
 
 **Performance Benchmarking**:
 
@@ -282,7 +227,6 @@ describe('MCP Server Performance', () => {
 ## Success Criteria
 
 - ✅ All WebSocket API commands available as MCP tools
-- ✅ Comprehensive audit logging operational
 - ✅ GitHub Copilot integration verified within VS Code
 - ✅ Performance meets targets (<200ms p95 latency)
 - ✅ Error handling provides clear, actionable feedback
@@ -301,15 +245,7 @@ describe('MCP Server Performance', () => {
 - [ ] Implement graceful degradation patterns
 - [ ] Unit tests for all new tools
 
-### Week 2: Logging & Observability
-
-- [ ] Implement structured logging (Winston)
-- [ ] Add performance metrics tracking
-- [ ] Configure log rotation
-- [ ] Create logging dashboard (optional)
-- [ ] Document log format and analysis
-
-### Week 3: Integration Testing & Validation
+### Week 2: Integration Testing & Validation
 
 - [ ] GitHub Copilot end-to-end testing
 - [ ] Performance benchmarking
