@@ -1,6 +1,8 @@
 # Phase 1: MCP Endpoint Implementation
 
-**Back to**: [Main Index](../README.md) | **Duration**: 3-5 days | **Status**: 📋 Planned
+**Back to**: [Main Index](../README.md) | **Duration**: 5-7 days | **Status**: 🔄 ~60% Complete
+
+**📊 Detailed Progress**: See [STATUS.md](../STATUS.md)
 
 ---
 
@@ -12,38 +14,96 @@ Add MCP streamable-http endpoints to both servers and validate with GitHub Copil
 
 ---
 
+## Phase 1 Progress Summary
+
+### ✅ Completed: Foundation Infrastructure (3-4 days)
+
+**PR #217** (Oct 4, 2025): HTTP Transport Migration
+- ✅ Migrated Debrief Server from WebSocket → HTTP
+- ✅ Express server on port 60123 with POST / endpoint
+- ✅ Health check endpoint GET /health
+- ✅ Python client migrated from websocket-client → requests
+- ✅ All command handlers preserved and tested
+
+**Issue #215** (Oct 4, 2025): Server Infrastructure
+- ✅ ServerLifecycleManager with start/stop/restart
+- ✅ Server status bar indicators in VS Code
+- ✅ Health monitoring with 5-second polling
+- ✅ Error types and recovery patterns
+
+**Benefits**:
+- HTTP foundation ready for MCP protocol layer
+- Server health monitoring production-ready
+- Lifecycle management tested and stable
+
+### 🔄 In Progress: MCP Protocol Layer (3-4 days remaining)
+
+**Remaining Tasks**:
+- Add POST /mcp endpoints with JSON-RPC 2.0 protocol
+- Generate MCP tool indexes
+- Convert Python client to MCP format
+- GitHub Copilot integration testing
+
+---
+
 ## Deliverables
 
-### 1. Debrief State Server (2-3 days)
+### 1. Debrief State Server (2-3 days remaining)
 
-- [ ] Add Express HTTP server alongside existing WebSocket
+**✅ Completed** (PR #217):
+- ✅ Express HTTP server on port 60123
+- ✅ POST / endpoint with custom JSON command format
+- ✅ Health check endpoint GET /health
+- ✅ Command handlers ready and tested
+- ✅ 50MB JSON payload limit for large feature collections
+
+**🔄 Remaining**:
 - [ ] Implement POST `/mcp` endpoint with JSON-RPC 2.0 handler
 - [ ] Implement `tools/list` method (return pre-cached tool index)
 - [ ] Implement `tools/call` method routing to existing command handlers
 - [ ] Generate MCP tool index at build time (`scripts/generate-mcp-tools.ts`)
-- [ ] Add health check endpoint
 - [ ] Error handling with JSON-RPC error codes (-32601, -32603)
 
 **Code Locations**:
-- Server: `apps/vs-code/src/services/debriefWebSocketServer.ts`
+- Server: `apps/vs-code/src/services/debriefHttpServer.ts` (renamed from debriefWebSocketServer.ts)
 - Handler: `apps/vs-code/src/services/commandHandler.ts`
-- Tool Index: `apps/vs-code/scripts/generate-mcp-tools.ts`
+- Tool Index: `apps/vs-code/scripts/generate-mcp-tools.ts` (NEW - to be created)
+- Lifecycle: `apps/vs-code/src/services/ServerLifecycleManager.ts` (DONE)
 
-### 2. Tool Vault Server (1-2 days)
+### 2. Tool Vault Server (1-2 days remaining)
 
+**✅ Completed** (Existing):
+- ✅ FastAPI HTTP server on port 60124
+- ✅ REST endpoints: GET /tools/list, POST /tools/call
+- ✅ Health check endpoint GET /health
+- ✅ Dynamic tool discovery from tools/ directory
+- ✅ Tool execution with parameter validation
+- ✅ React SPA integration at /ui/
+
+**🔄 Remaining**:
 - [ ] Add POST `/mcp` endpoint with JSON-RPC 2.0 handler
 - [ ] Implement `tools/list` method (wrap existing tool discovery)
 - [ ] Implement `tools/call` method (wrap existing tool execution)
 - [ ] Error handling with JSON-RPC error codes
 - [ ] Update server startup to log MCP endpoint availability
-- [ ] **No legacy REST API needed** - MCP-only implementation
+- [ ] **Keep existing REST endpoints for SPA** (NOT MCP-only as originally planned)
 
 **Code Location**: `libs/tool-vault-packager/server.py`
 
-### 3. Python Script Integration (1 day)
+**Architecture Change**: Tool Vault will support BOTH REST (for SPA) and MCP (for LLMs) endpoints, not MCP-only as originally planned. This is because the SPA already uses the REST API.
 
-- [ ] Modify `debrief_api.py` to use MCP endpoint instead of WebSocket
-- [ ] Update to use JSON-RPC 2.0 request format
+### 3. Python Script Integration (1 day remaining)
+
+**✅ Completed** (PR #217):
+- ✅ Migrated from websocket-client → requests library
+- ✅ HTTP POST requests to localhost:60123
+- ✅ All existing API methods preserved
+- ✅ Optional filename parameter support
+
+**🔄 Remaining**:
+- [ ] Update to use POST /mcp endpoint (instead of POST /)
+- [ ] Convert to JSON-RPC 2.0 request format
+- [ ] Implement request ID management
 - [ ] Test all existing Python script workflows with new MCP client
 
 **Code Location**: `apps/vs-code/workspace/tests/debrief_api.py`
@@ -67,13 +127,20 @@ Add MCP streamable-http endpoints to both servers and validate with GitHub Copil
 
 ## Success Criteria
 
-- ✅ Both servers expose `/mcp` endpoints responding to JSON-RPC 2.0
-- ✅ GitHub Copilot can discover and call all tools
-- ✅ Multi-step workflows execute successfully (e.g., get selection → delete → verify)
-- ✅ Error responses use proper JSON-RPC error format
-- ✅ Multiple LLM clients can connect simultaneously
-- ✅ Python scripts (`debrief_api.py`) successfully use MCP endpoint
-- ✅ Tool Vault MCP-only implementation (no legacy REST API)
+**✅ Completed** (Foundation):
+- ✅ HTTP transport layer established
+- ✅ Health check endpoints operational
+- ✅ Server lifecycle management working
+- ✅ Python client HTTP connectivity tested
+
+**🔄 Remaining** (MCP Protocol):
+- [ ] Both servers expose `/mcp` endpoints responding to JSON-RPC 2.0
+- [ ] GitHub Copilot can discover and call all tools
+- [ ] Multi-step workflows execute successfully (e.g., get selection → delete → verify)
+- [ ] Error responses use proper JSON-RPC error format
+- [ ] Multiple LLM clients can connect simultaneously
+- [ ] Python scripts (`debrief_api.py`) successfully use MCP endpoint
+- [ ] ~~Tool Vault MCP-only implementation~~ → Changed to dual REST + MCP (SPA needs REST)
 
 ---
 
@@ -81,33 +148,42 @@ Add MCP streamable-http endpoints to both servers and validate with GitHub Copil
 
 ### Debrief State Server Implementation
 
-#### Task 1.1: Add Express HTTP Server
+#### Task 1.1: ~~Add Express HTTP Server~~ ✅ DONE (PR #217)
+
+**Status**: ✅ Completed in PR #217
+
+The HTTP server is already implemented in `apps/vs-code/src/services/debriefHttpServer.ts`:
+- Express server on port 60123
+- POST / endpoint for commands
+- GET /health for monitoring
+- 50MB JSON payload limit
+
+**Skip this task** - move directly to adding /mcp endpoint.
+
+#### Task 1.2: Implement MCP Endpoint 🔄 NEXT TASK
+
+**Status**: 🔄 Not yet started - this is the next implementation task
+
+Add this endpoint to `apps/vs-code/src/services/debriefHttpServer.ts`:
 
 ```typescript
-// apps/vs-code/src/services/debriefStateServer.ts
-import express from 'express';
-
-const app = express();
-app.use(express.json());
-
-// Keep existing WebSocket server
-const wss = new WebSocket.Server({ server: httpServer });
-
-// Start combined server
-httpServer.listen(60123, () => {
-  console.log('Debrief State Server on :60123 (MCP + WebSocket)');
-});
-```
-
-#### Task 1.2: Implement MCP Endpoint
-
-```typescript
+// Add POST /mcp endpoint for MCP JSON-RPC 2.0 protocol
 app.post('/mcp', async (req, res) => {
   const { jsonrpc, method, params, id } = req.body;
+
+  // Validate JSON-RPC 2.0 format
+  if (jsonrpc !== '2.0') {
+    return res.status(400).json({
+      jsonrpc: '2.0',
+      id,
+      error: { code: -32600, message: 'Invalid Request: jsonrpc must be "2.0"' }
+    });
+  }
 
   try {
     switch (method) {
       case 'tools/list':
+        // Return pre-generated tool index (see Task 1.3)
         res.json({
           jsonrpc: '2.0',
           id,
@@ -116,7 +192,11 @@ app.post('/mcp', async (req, res) => {
         break;
 
       case 'tools/call':
-        const result = await handleCommand(params.name, params.arguments);
+        // Route to existing handleCommand function
+        const result = await this.handleCommand({
+          command: params.name,
+          params: params.arguments
+        });
         res.json({ jsonrpc: '2.0', id, result });
         break;
 
@@ -131,11 +211,13 @@ app.post('/mcp', async (req, res) => {
     res.status(500).json({
       jsonrpc: '2.0',
       id,
-      error: { code: -32603, message: error.message }
+      error: { code: -32603, message: error instanceof Error ? error.message : 'Internal error' }
     });
   }
 });
 ```
+
+**Note**: The existing `handleCommand` method already implements all needed command logic. We just need to wrap it in JSON-RPC format.
 
 #### Task 1.3: Generate Tool Index at Build
 

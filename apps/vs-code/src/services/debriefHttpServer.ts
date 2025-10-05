@@ -186,7 +186,6 @@ export class DebriefHTTPServer {
             });
 
             console.warn(`Debrief HTTP server started on http://localhost:${this.port}`);
-            vscode.window.showInformationMessage(`Debrief HTTP bridge started on port ${this.port}`);
 
             // Start health check logging every 30 seconds
             this.healthCheckInterval = setInterval(() => {

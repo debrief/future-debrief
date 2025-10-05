@@ -1,0 +1,93 @@
+# Issue #215: VS Code Server Status Bar Indicators
+# Multi-Agent Task Context
+
+issue_number: 215
+title: "Status bar indicators"
+created_at: "2025-10-04"
+current_phase: 4
+phases_completed: [1, 2, 3, 4]
+
+## Project State
+tech_stack:
+  - TypeScript
+  - VS Code Extension API
+  - Express.js
+  - Python subprocess
+
+architecture:
+  - pnpm monorepo
+  - Event-driven updates
+  - Singleton service patterns
+
+current_phase_status: MVP Development
+
+repository_structure:
+  apps_vs_code: "apps/vs-code/"
+  libs_web_components: "libs/web-components/"
+  libs_shared_types: "libs/shared-types/"
+
+## Health Check Endpoints (Available from PR #217)
+health_endpoints:
+  debrief_http_server: "http://localhost:60123/health"
+  tool_vault_server: "http://localhost:60124/health"
+
+## Constraints
+- Must support two different server architectures (JavaScript process and Python subprocess)
+- Non-blocking UI updates required
+- 5-second polling intervals for health checks
+- Proper resource cleanup on disposal
+- Reusable component architecture
+
+## Progress Tracking
+phase_1_started: "2025-10-04"
+phase_1_completed: "2025-10-04"
+phase_1_agent: "systems-analyst"
+phase_1_status: "completed"
+phase_1_deliverables:
+  - "Architecture decision document (decisions.md)"
+  - "State machine design with 4 states"
+  - "Server integration analysis"
+  - "Risk assessment for polling mechanism"
+  - "Error recovery strategies"
+  - "Phase 2 handoff document"
+
+phase_2_started: "2025-10-04"
+phase_2_completed: "2025-10-04"
+phase_2_agent: "typescript-developer"
+phase_2_status: "completed"
+phase_2_deliverables:
+  - "ServerState.ts with enum and visual mappings"
+  - "ServerIndicatorConfig.ts with interface and type guards"
+  - "ServerIndicatorErrors.ts with 5 error classes"
+  - "100+ unit tests with full coverage"
+  - "ESLint compliance (zero errors)"
+  - "Phase 3 handoff document"
+
+phase_3_started: "2025-10-04"
+phase_3_completed: "2025-10-04"
+phase_3_agent: "backend-developer"
+phase_3_status: "completed"
+phase_3_deliverables:
+  - "HealthCheckPoller service with AbortController"
+  - "ServerLifecycleManager with error handling"
+  - "Server configuration factory functions"
+  - "80+ integration tests (poller + lifecycle)"
+  - "ESLint compliance (zero errors)"
+  - "Phase 4 handoff document"
+
+phase_4_started: "2025-10-05"
+phase_4_completed: "2025-10-05"
+phase_4_agent: "frontend-developer"
+phase_4_status: "completed"
+phase_4_deliverables:
+  - "ServerStatusBarIndicator component with state management (370 lines)"
+  - "QuickPick menu with state-based options"
+  - "Extension integration (removed auto-start, added indicators)"
+  - "Component tests (20+ test cases, 512 lines)"
+  - "ESLint compliance (zero errors in production code)"
+  - "Bug fixes (HealthCheckTimeoutError.timeoutMs, type guard)"
+  - "Phase 5 handoff document"
+
+phase_5_status: "ready_to_start"
+phase_5_agent: "test-developer"
+phase_5_blocked_by: []

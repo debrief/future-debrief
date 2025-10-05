@@ -2,34 +2,60 @@
 
 **Back to**: [Main Index](../README.md) | **Related**: [Debrief State Server](debrief-state-server.md) | [ADR 003](../decisions/003-mcp-only-tool-vault.md)
 
+**Status**: 🔄 REST API complete, MCP pending | **See**: [STATUS.md](../STATUS.md)
+
 ---
 
 ## Overview
 
-The Tool Vault Server exposes maritime analysis tools through an MCP endpoint.
+The Tool Vault Server exposes maritime analysis tools through REST and MCP endpoints.
 
 **Implementation**: Python/FastAPI
 **Port**: 60124
-**Architecture**: **MCP-only** (no legacy REST API)
+**Architecture**: **Dual API** (REST for SPA + MCP for LLMs)
+
+### Current Status
+
+**✅ Implemented**:
+- FastAPI HTTP server
+- REST endpoints: GET /tools/list, POST /tools/call
+- GET /health endpoint
+- Dynamic tool discovery
+- React SPA integration at /ui/
+
+**🔄 Planned** (Phase 1 remaining):
+- POST /mcp endpoint (JSON-RPC 2.0)
+
+**Architecture Change**: Originally planned as MCP-only (ADR 003), but keeping REST endpoints because the SPA already depends on them.
 
 ---
 
 ## Quick Reference
 
-### Endpoint
+### Endpoints
 
+**✅ Current** (Implemented):
 ```
-POST /mcp          # MCP JSON-RPC 2.0 endpoint (ONLY endpoint)
+GET  /tools/list   # REST tool discovery (SPA client)
+POST /tools/call   # REST tool execution (SPA client)
+GET  /health       # Health check endpoint
+GET  /ui/          # React SPA interface
 ```
 
-### Why MCP-Only?
+**🔄 Planned** (Phase 1):
+```
+POST /mcp          # MCP JSON-RPC 2.0 endpoint (LLMs + Python scripts)
+```
 
-✅ Not in production yet - no legacy clients to support
-✅ Clean implementation without technical debt
-✅ 50% less code vs dual-API approach
-✅ Single protocol for all clients (LLMs + Python scripts)
+### Why Dual API (Not MCP-Only)?
 
-See: [ADR 003: MCP-Only Tool Vault](../decisions/003-mcp-only-tool-vault.md)
+**Architecture Change from ADR 003**:
+- ✅ REST endpoints already implemented and working
+- ✅ SPA at /ui/ depends on REST API
+- ✅ Adding MCP alongside REST is simpler than migration
+- ✅ Both APIs can coexist without conflicts
+
+Original ADR 003 assumed greenfield implementation. Actual discovery: REST API already production-ready for SPA.
 
 ---
 

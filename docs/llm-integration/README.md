@@ -146,33 +146,47 @@ Detailed rationale in Architecture Decision Records (ADRs):
 
 ## Implementation Phases
 
+**📊 Current Status**: [**See Detailed Status Report →**](STATUS.md)
+
 ### Timeline Overview
 
 | Phase | Duration | Goal | Status |
 |-------|----------|------|--------|
-| **[Phase 1](phases/phase-1-implementation.md)** | 3-5 days | MCP endpoints + GitHub Copilot validation | 📋 Planned |
+| **[Phase 1](phases/phase-1-implementation.md)** | 5-7 days | MCP endpoints + GitHub Copilot validation | 🔄 **~60% Complete** |
 | **[Phase 2](phases/phase-2-enhanced-features.md)** | 2-3 weeks | Enhanced features + audit logging | 📋 Planned |
 | **[Phase 3](phases/phase-3-together-dev.md)** | 2-3 weeks | together.dev integration + offline support | 📋 Planned |
 
+**Phase 1 Progress**:
+- ✅ HTTP transport foundation (PR #217)
+- ✅ Server lifecycle & health monitoring (Issue #215)
+- 🔄 MCP JSON-RPC protocol wrapper (in progress)
+
 ### Phase Details
 
-#### [Phase 1: MCP Endpoint Implementation](phases/phase-1-implementation.md) (3-5 days)
+#### [Phase 1: MCP Endpoint Implementation](phases/phase-1-implementation.md) (5-7 days, ~60% Complete)
 
 **Goal**: Add `/mcp` endpoints to both servers, validate with GitHub Copilot
 
-**Deliverables**:
-- ✅ Debrief State Server: POST `/mcp` endpoint
-- ✅ Tool Vault Server: POST `/mcp` endpoint (MCP-only)
-- ✅ Modified `debrief_api.py` for Python scripts
-- ✅ GitHub Copilot integration tested
-- ✅ Multi-step workflow validation
+**Completed** (Foundation Infrastructure):
+- ✅ HTTP transport layer (PR #217 - migrated from WebSocket)
+- ✅ Health check endpoints on both servers
+- ✅ Server lifecycle management (ServerLifecycleManager)
+- ✅ Status bar indicators in VS Code (Issue #215)
+- ✅ Python client HTTP connectivity
+
+**In Progress** (MCP Protocol Layer):
+- 🔄 Debrief State Server: POST `/mcp` endpoint (JSON-RPC wrapper)
+- 🔄 Tool Vault Server: POST `/mcp` endpoint (JSON-RPC wrapper)
+- 🔄 Modified `debrief_api.py` for MCP JSON-RPC format
+- 🔄 GitHub Copilot integration testing
+- 🔄 Multi-step workflow validation
 
 **Success Criteria**:
 - GitHub Copilot discovers and calls all tools
 - Multi-step workflows execute correctly
 - Python scripts work via MCP endpoint
 
-[📋 Full Phase 1 Plan](phases/phase-1-implementation.md)
+[📋 Full Phase 1 Plan](phases/phase-1-implementation.md) | [📊 Detailed Status](STATUS.md)
 
 #### [Phase 2: Enhanced Features & Logging](phases/phase-2-enhanced-features.md) (2-3 weeks)
 
@@ -295,11 +309,15 @@ Content-Type: application/json
 
 ## Document Metadata
 
-**Version**: 2.0 (Refactored from monolithic doc)
-**Last Updated**: 2025-10-03
-**Status**: ✅ Active - Implementation Ready
-**Related Issue**: [#205](https://github.com/debrief/future-debrief/issues/205)
+**Version**: 2.1 (Updated with implementation progress)
+**Last Updated**: 2025-10-05
+**Status**: 🔄 Active - Phase 1 ~60% Complete
+**Related Issues**:
+- [#205](https://github.com/debrief/future-debrief/issues/205) - LLM Integration Planning
+- [#216](https://github.com/debrief/future-debrief/issues/216) - HTTP Migration (✅ Completed PR #217)
+- [#215](https://github.com/debrief/future-debrief/issues/215) - Server Status Indicators (✅ Completed)
 **Previous Version**: [Legacy Monolithic Doc](../llm-integration-architecture.md) (2200+ lines)
+**Implementation Status**: See [STATUS.md](STATUS.md) for detailed progress tracking
 
 ---
 

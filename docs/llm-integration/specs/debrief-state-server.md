@@ -2,15 +2,31 @@
 
 **Back to**: [Main Index](../README.md) | **Related**: [Tool Vault Server](tool-vault-server.md) | [ADR 001](../decisions/001-streamable-http-transport.md)
 
+**Status**: 🔄 ~60% Complete | **See**: [STATUS.md](../STATUS.md)
+
 ---
 
 ## Overview
 
 The Debrief State Server manages plot state and provides MCP tools for LLM-driven maritime analysis.
 
-**Implementation**: TypeScript/Express + WebSocket
+**Implementation**: TypeScript/Express HTTP
 **Port**: 60123
-**Architecture**: Dual interface (MCP + WebSocket)
+**Architecture**: HTTP with custom JSON format (MCP JSON-RPC 2.0 planned)
+
+### Current Status
+
+**✅ Implemented** (PR #217):
+- HTTP server with Express
+- POST / endpoint (custom JSON command format)
+- GET /health endpoint
+- Command handlers for all operations
+- Server lifecycle management
+
+**🔄 Planned** (Phase 1 remaining):
+- POST /mcp endpoint (JSON-RPC 2.0)
+- MCP tool index generation
+- tools/list and tools/call methods
 
 ---
 
@@ -18,10 +34,18 @@ The Debrief State Server manages plot state and provides MCP tools for LLM-drive
 
 ### Endpoints
 
+**✅ Current** (Implemented):
+```
+POST /             # Custom JSON command endpoint (Python scripts)
+GET  /health       # Health check endpoint
+```
+
+**🔄 Planned** (Phase 1):
 ```
 POST /mcp          # MCP JSON-RPC 2.0 endpoint (LLMs + Python scripts)
-WS   /             # WebSocket (VS Code extension internal)
 ```
+
+**Note**: WebSocket interface was replaced by HTTP in PR #217.
 
 ### Available MCP Tools
 
@@ -56,10 +80,11 @@ graph LR
 
 ### Code Locations
 
-- **Server**: `apps/vs-code/src/services/debriefWebSocketServer.ts`
-- **Command Handler**: `apps/vs-code/src/services/commandHandler.ts`
+- **Server**: `apps/vs-code/src/services/debriefHttpServer.ts` (renamed from debriefWebSocketServer.ts in PR #217)
+- **Command Handler**: Inline in `debriefHttpServer.ts` (handleCommand method)
 - **Global Controller**: `apps/vs-code/src/core/globalController.ts`
-- **Tool Index Generation**: `apps/vs-code/scripts/generate-mcp-tools.ts`
+- **Lifecycle Manager**: `apps/vs-code/src/services/ServerLifecycleManager.ts` ✅
+- **Tool Index Generation**: `apps/vs-code/scripts/generate-mcp-tools.ts` (🔄 to be created)
 
 ---
 
