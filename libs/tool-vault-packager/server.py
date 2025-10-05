@@ -4,7 +4,7 @@ import json
 import sys
 import traceback
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, Dict, Optional, Union, cast
 
 from debrief.types.tools import ToolCallRequest
 from fastapi import FastAPI, HTTPException
@@ -62,6 +62,32 @@ class ErrorResponse(BaseModel):
 
     error: str
     details: Optional[str] = None
+
+
+class MCPRequest(BaseModel):
+    """MCP JSON-RPC 2.0 request model."""
+
+    jsonrpc: str
+    id: Union[int, None]
+    method: str
+    params: Optional[Dict[str, Any]] = None
+
+
+class MCPError(BaseModel):
+    """MCP JSON-RPC 2.0 error object."""
+
+    code: int
+    message: str
+    data: Optional[Any] = None
+
+
+class MCPResponse(BaseModel):
+    """MCP JSON-RPC 2.0 response model."""
+
+    jsonrpc: str = "2.0"
+    id: Union[int, None]
+    result: Optional[Any] = None
+    error: Optional[MCPError] = None
 
 
 class ToolVaultServer:
@@ -597,7 +623,159 @@ class ToolVaultServer:
         @self.app.get("/health")
         async def health():
             """Health check endpoint."""
-            return {"status": "healthy", "tools_loaded": len(self.tools)}
+            return {
+                "status": "healthy",
+                "tools_loaded": len(self.tools),
+                "protocols": ["rest", "mcp"],
+                "transport": "http",
+            }
+
+        @self.app.post("/mcp")
+        async def mcp_endpoint(request: MCPRequest):
+            """MCP JSON-RPC 2.0 endpoint."""
+            # Validate JSON-RPC version
+            if request.jsonrpc != "2.0":
+                return JSONResponse(
+                    status_code=400,
+                    content=MCPResponse(
+                        id=request.id,
+                        error=MCPError(code=-32600, message='Invalid Request: jsonrpc must be "2.0"'),
+                    ).model_dump(exclude_none=True),
+                )
+
+            try:
+                if request.method == "tools/list":
+                    # Return tool index in MCP format
+                    return JSONResponse(
+                        content=MCPResponse(id=request.id, result=self.index_data).model_dump(
+                            exclude_none=True
+                        )
+                    )
+
+                elif request.method == "tools/call":
+                    # Validate params
+                    if not request.params or "name" not in request.params:
+                        return JSONResponse(
+                            status_code=400,
+                            content=MCPResponse(
+                                id=request.id,
+                                error=MCPError(
+                                    code=-32602, message='Invalid params: missing "name" field'
+                                ),
+                            ).model_dump(exclude_none=True),
+                        )
+
+                    tool_name = request.params["name"]
+                    arguments = request.params.get("arguments", {})
+
+                    # Lazy-load tool if in production mode
+                    if self._running_from_archive and tool_name not in self.tools_by_name:
+                        tool = self._lazy_load_tool(tool_name)
+                        if tool is None:
+                            return JSONResponse(
+                                status_code=400,
+                                content=MCPResponse(
+                                    id=request.id,
+                                    error=MCPError(
+                                        code=-32601, message=f"Tool not found: {tool_name}"
+                                    ),
+                                ).model_dump(exclude_none=True),
+                            )
+                    elif tool_name not in self.tools_by_name:
+                        return JSONResponse(
+                            status_code=400,
+                            content=MCPResponse(
+                                id=request.id,
+                                error=MCPError(code=-32601, message=f"Tool not found: {tool_name}"),
+                            ).model_dump(exclude_none=True),
+                        )
+                    else:
+                        tool = self.tools_by_name[tool_name]
+
+                    if tool.pydantic_model is None:
+                        return JSONResponse(
+                            status_code=500,
+                            content=MCPResponse(
+                                id=request.id,
+                                error=MCPError(
+                                    code=-32603,
+                                    message=f"Tool '{tool_name}' is missing its parameter model",
+                                ),
+                            ).model_dump(exclude_none=True),
+                        )
+
+                    try:
+                        # Convert arguments dict to Pydantic parameter object
+                        params_obj = tool.pydantic_model(**arguments)
+                        result = tool.function(params_obj)
+
+                        # Handle different result types
+                        if hasattr(result, "model_dump"):
+                            # It's a Pydantic model (like DebriefCommand)
+                            command_result = result.model_dump()
+                        elif isinstance(result, dict) and "command" in result:
+                            # It's already a dict with command structure
+                            command_result = result
+                        else:
+                            # Wrap non-command results as showText for backward compatibility
+                            if isinstance(result, (str, int, float, bool)):
+                                command_result = {"command": "showText", "payload": str(result)}
+                            else:
+                                command_result = {"command": "showData", "payload": result}
+
+                        # Return JSON-RPC success response
+                        return JSONResponse(
+                            content=MCPResponse(
+                                id=request.id, result=command_result
+                            ).model_dump(exclude_none=True)
+                        )
+
+                    except TypeError as e:
+                        # Handle argument validation errors
+                        return JSONResponse(
+                            status_code=400,
+                            content=MCPResponse(
+                                id=request.id,
+                                error=MCPError(
+                                    code=-32602,
+                                    message=f"Invalid arguments for tool '{tool_name}': {str(e)}",
+                                ),
+                            ).model_dump(exclude_none=True),
+                        )
+                    except Exception as e:
+                        # Handle tool execution errors
+                        error_details = traceback.format_exc()
+                        return JSONResponse(
+                            status_code=500,
+                            content=MCPResponse(
+                                id=request.id,
+                                error=MCPError(
+                                    code=-32603,
+                                    message=f"Tool execution failed: {str(e)}",
+                                    data=error_details,
+                                ),
+                            ).model_dump(exclude_none=True),
+                        )
+
+                else:
+                    # Unknown method
+                    return JSONResponse(
+                        status_code=400,
+                        content=MCPResponse(
+                            id=request.id,
+                            error=MCPError(code=-32601, message=f"Method not found: {request.method}"),
+                        ).model_dump(exclude_none=True),
+                    )
+
+            except Exception as e:
+                # Catch-all error handler
+                return JSONResponse(
+                    status_code=500,
+                    content=MCPResponse(
+                        id=request.id,
+                        error=MCPError(code=-32603, message=f"Internal error: {str(e)}"),
+                    ).model_dump(exclude_none=True),
+                )
 
         @self.app.post("/shutdown")
         async def shutdown():

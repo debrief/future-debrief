@@ -50,6 +50,27 @@ interface DebriefResponse {
     };
 }
 
+interface MCPRequest {
+    jsonrpc: string;
+    id: number | null;
+    method: string;
+    params?: {
+        name?: string;
+        arguments?: Record<string, unknown>;
+    };
+}
+
+interface MCPResponse {
+    jsonrpc: string;
+    id: number | null;
+    result?: unknown;
+    error?: {
+        code: number;
+        message: string;
+        data?: unknown;
+    };
+}
+
 export class DebriefHTTPServer {
     private app: express.Express | null = null;
     private httpServer: http.Server | null = null;
@@ -57,6 +78,7 @@ export class DebriefHTTPServer {
     private cachedFilename: string | null = null;
     private healthCheckInterval: NodeJS.Timeout | null = null;
     private httpConnections: Set<net.Socket> = new Set(); // Track all HTTP connections for proper cleanup
+    private mcpToolIndex: { tools: Array<Record<string, unknown>> } | null = null;
 
     constructor() {}
 
@@ -74,6 +96,17 @@ export class DebriefHTTPServer {
         }
 
         try {
+            // Load MCP tool index (pre-generated at build time)
+            try {
+                const toolIndexPath = path.join(__dirname, 'mcp-tools.json');
+                const toolIndexData = fs.readFileSync(toolIndexPath, 'utf8');
+                this.mcpToolIndex = JSON.parse(toolIndexData) as { tools: Array<Record<string, unknown>> };
+                console.warn(`Loaded MCP tool index with ${this.mcpToolIndex.tools.length} tools`);
+            } catch (error) {
+                console.error('Failed to load MCP tool index:', error);
+                console.warn('MCP endpoint will not be available');
+            }
+
             // Create Express app
             this.app = express();
 
@@ -87,6 +120,7 @@ export class DebriefHTTPServer {
                 res.json({
                     status: 'healthy',
                     transport: 'http',
+                    protocols: this.mcpToolIndex ? ['custom', 'mcp'] : ['custom'],
                     port: this.port
                 });
             });
@@ -135,6 +169,163 @@ export class DebriefHTTPServer {
                             code: 500
                         }
                     });
+                }
+            });
+
+            // MCP JSON-RPC 2.0 endpoint
+            this.app.post('/mcp', async (req: express.Request, res: express.Response) => {
+                try {
+                    const mcpRequest = req.body as MCPRequest;
+                    const { jsonrpc, method, params, id } = mcpRequest;
+
+                    // Validate JSON-RPC 2.0 format
+                    if (jsonrpc !== '2.0') {
+                        const errorResponse: MCPResponse = {
+                            jsonrpc: '2.0',
+                            id: id || null,
+                            error: {
+                                code: -32600,
+                                message: 'Invalid Request: jsonrpc must be "2.0"'
+                            }
+                        };
+                        res.status(400).json(errorResponse);
+                        return;
+                    }
+
+                    // Check if MCP tool index is available
+                    if (!this.mcpToolIndex) {
+                        const errorResponse: MCPResponse = {
+                            jsonrpc: '2.0',
+                            id: id || null,
+                            error: {
+                                code: -32603,
+                                message: 'MCP tool index not loaded'
+                            }
+                        };
+                        res.status(500).json(errorResponse);
+                        return;
+                    }
+
+                    // Handle different MCP methods
+                    if (method === 'tools/list') {
+                        const successResponse: MCPResponse = {
+                            jsonrpc: '2.0',
+                            id,
+                            result: { tools: this.mcpToolIndex.tools }
+                        };
+                        res.json(successResponse);
+                        return;
+                    }
+
+                    if (method === 'tools/call') {
+                        // Validate params
+                        if (!params || !params.name) {
+                            const errorResponse: MCPResponse = {
+                                jsonrpc: '2.0',
+                                id,
+                                error: {
+                                    code: -32602,
+                                    message: 'Invalid params: missing "name" field'
+                                }
+                            };
+                            res.status(400).json(errorResponse);
+                            return;
+                        }
+
+                        // Map MCP tool names to internal command names
+                        const commandMap: Record<string, string> = {
+                            'debrief_get_features': 'get_feature_collection',
+                            'debrief_set_features': 'set_feature_collection',
+                            'debrief_get_selection': 'get_selected_features',
+                            'debrief_set_selection': 'set_selected_features',
+                            'debrief_update_features': 'update_features',
+                            'debrief_add_features': 'add_features',
+                            'debrief_delete_features': 'delete_features',
+                            'debrief_zoom_to_selection': 'zoom_to_selection',
+                            'debrief_list_plots': 'list_open_plots',
+                            'debrief_get_time': 'get_time',
+                            'debrief_set_time': 'set_time',
+                            'debrief_get_viewport': 'get_viewport',
+                            'debrief_set_viewport': 'set_viewport',
+                            'debrief_notify': 'notify'
+                        };
+
+                        const command = commandMap[params.name];
+                        if (!command) {
+                            const errorResponse: MCPResponse = {
+                                jsonrpc: '2.0',
+                                id,
+                                error: {
+                                    code: -32601,
+                                    message: `Tool not found: ${params.name}`
+                                }
+                            };
+                            res.status(400).json(errorResponse);
+                            return;
+                        }
+
+                        // Call existing command handler
+                        const response = await this.handleCommand({
+                            command,
+                            params: params.arguments || {}
+                        });
+
+                        // Convert response to JSON-RPC format
+                        if (response.error) {
+                            // Map internal error codes to JSON-RPC error codes
+                            let errorCode = -32603; // Internal error by default
+
+                            if (response.error.code === 'MULTIPLE_PLOTS') {
+                                errorCode = -32001; // Custom error code for multiple plots
+                            } else if (response.error.code === 400) {
+                                errorCode = -32602; // Invalid params
+                            } else if (response.error.code === 404) {
+                                errorCode = -32002; // Custom error code for not found
+                            }
+
+                            const errorResponse: MCPResponse = {
+                                jsonrpc: '2.0',
+                                id,
+                                error: {
+                                    code: errorCode,
+                                    message: response.error.message,
+                                    data: response.error.available_plots
+                                }
+                            };
+                            res.status(400).json(errorResponse);
+                            return;
+                        }
+
+                        const successResponse: MCPResponse = {
+                            jsonrpc: '2.0',
+                            id,
+                            result: response.result
+                        };
+                        res.json(successResponse);
+                        return;
+                    }
+
+                    // Unknown method
+                    const errorResponse: MCPResponse = {
+                        jsonrpc: '2.0',
+                        id,
+                        error: {
+                            code: -32601,
+                            message: `Method not found: ${method}`
+                        }
+                    };
+                    res.status(400).json(errorResponse);
+                } catch (error) {
+                    console.error('MCP error:', error);
+                    const errorResponse: MCPResponse = {
+                        jsonrpc: '2.0',
+                        id: null,
+                        error: {
+                            code: -32603,
+                            message: error instanceof Error ? error.message : 'Internal error'
+                        }
+                    };
+                    res.status(500).json(errorResponse);
                 }
             });
 
