@@ -319,7 +319,7 @@ export class DebriefHTTPServer {
                     console.error('MCP error:', error);
                     const errorResponse: MCPResponse = {
                         jsonrpc: '2.0',
-                        id: null,
+                        id: id,
                         error: {
                             code: -32603,
                             message: error instanceof Error ? error.message : 'Internal error'
