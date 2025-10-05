@@ -18,6 +18,10 @@ import { PythonWheelInstaller } from './services/pythonWheelInstaller';
 import { ToolVaultServerService } from './services/toolVaultServer';
 import { ToolVaultConfigService } from './services/toolVaultConfig';
 
+// Server status indicators
+import { ServerStatusBarIndicator } from './components/ServerStatusBarIndicator';
+import { createDebriefHttpConfig, createToolVaultConfig } from './config/serverIndicatorConfigs';
+
 
 class HelloWorldProvider implements vscode.TreeDataProvider<string> {
     getTreeItem(element: string): vscode.TreeItem {
@@ -48,15 +52,6 @@ let debriefActivityProvider: DebriefActivityProvider | null = null;
 export function activate(context: vscode.ExtensionContext) {
     console.warn('Debrief Extension is now active!');
 
-    vscode.window.showInformationMessage('Debrief Extension has been activated successfully!');
-
-    // Start HTTP server
-    webSocketServer = new DebriefHTTPServer();
-    webSocketServer.start().catch((error: unknown) => {
-        console.error('Failed to start HTTP server:', error);
-        vscode.window.showErrorMessage('Failed to start Debrief HTTP Bridge. Some features may not work.');
-    });
-
     // Initialize Python wheel installer for automatic debrief-types installation
     const pythonWheelInstaller = new PythonWheelInstaller(context);
     pythonWheelInstaller.checkAndInstallPackage().catch(error => {
@@ -67,72 +62,48 @@ export function activate(context: vscode.ExtensionContext) {
     // Initialize Tool Vault server
     toolVaultServer = ToolVaultServerService.getInstance();
 
-    // Try to start Tool Vault server if auto-start is enabled
-    const startToolVaultServer = async () => {
-        try {
-            // Get configuration from ToolVaultConfigService (handles auto-detection)
-            const configService = ToolVaultConfigService.getInstance();
-            const config = configService.getConfiguration();
+    // Create server status bar indicators
+    console.warn('[Extension] Creating server status bar indicators...');
+    try {
+        const debriefHttpConfig = createDebriefHttpConfig(
+            () => webSocketServer,
+            (server) => { webSocketServer = server; }
+        );
+        console.warn('[Extension] Debrief HTTP config created');
 
-            if (config && config.autoStart && config.serverPath) {
-                await toolVaultServer!.startServer();
+        const toolVaultConfig = createToolVaultConfig();
+        console.warn('[Extension] Tool Vault config created');
 
-                // Load tool index and show success notification
-                const toolIndex = await toolVaultServer!.getToolIndex();
+        const debriefIndicator = new ServerStatusBarIndicator(debriefHttpConfig, 100);
+        console.warn('[Extension] Debrief HTTP indicator created');
 
-                // Helper to count tools from tree structure
-                function countTools(nodes: unknown[]): number {
-                    let count = 0;
-                    for (const node of nodes) {
-                        const nodeObj = node as Record<string, unknown>;
-                        if (nodeObj.type === 'tool') {
-                            count++;
-                        } else if (nodeObj.type === 'category' && Array.isArray(nodeObj.children)) {
-                            count += countTools(nodeObj.children);
-                        }
-                    }
-                    return count;
-                }
+        const toolVaultIndicator = new ServerStatusBarIndicator(toolVaultConfig, 99);
+        console.warn('[Extension] Tool Vault indicator created');
 
-                const toolCount = (toolIndex && typeof toolIndex === 'object' && 'root' in toolIndex && Array.isArray((toolIndex as Record<string, unknown>).root))
-                    ? countTools((toolIndex as Record<string, unknown>).root as unknown[])
-                    : 'unknown number of';
+        context.subscriptions.push(debriefIndicator, toolVaultIndicator);
+        console.warn('[Extension] Status bar indicators registered successfully');
 
-                vscode.window.showInformationMessage(
-                    `Tool Vault server started successfully with ${toolCount} tools available.`
-                );
-            } else if (config && config.autoStart && !config.serverPath) {
-                vscode.window.showInformationMessage(
-                    'Tool Vault server auto-start is enabled but no server path is configured. Configure debrief.toolVault.serverPath in VS Code settings.'
-                );
-            }
-        } catch (error) {
-            const errorMessage = `Failed to start Tool Vault server: ${error instanceof Error ? error.message : String(error)}`;
-            console.error(errorMessage);
+        // Auto-start Debrief HTTP Server (silently, no notification)
+        // Status bar indicator will show the state
+        console.warn('[Extension] Auto-starting Debrief HTTP Server...');
+        debriefIndicator.start().catch((error: unknown) => {
+            console.error('[Extension] Failed to auto-start Debrief HTTP Server:', error);
+            // Error is already shown via status bar indicator error handling
+        });
 
-            // Show enhanced error message with action buttons
-            vscode.window.showWarningMessage(
-                errorMessage + ' Tools will not be available until server is manually started.',
-                'Show Logs',
-                'Manual Setup Guide'
-            ).then(selection => {
-                if (selection === 'Show Logs') {
-                    toolVaultServer?.getOutputChannel().show();
-                } else if (selection === 'Manual Setup Guide') {
-                    vscode.window.showInformationMessage(
-                        'Tool Vault Server Setup:\n\n' +
-                        '1. Check the "Debrief Tools" output channel for detailed logs\n' +
-                        '2. Ensure Python is installed and accessible\n' +
-                        '3. Verify the .pyz file exists and is executable\n' +
-                        '4. Try restarting with: "Debrief: Restart Tool Vault Server" command'
-                    );
-                }
+        // Auto-start Tool Vault Server if configured (silently, no notification)
+        const configService = ToolVaultConfigService.getInstance();
+        const tvConfig = configService.getConfiguration();
+        if (tvConfig && tvConfig.autoStart && tvConfig.serverPath) {
+            console.warn('[Extension] Auto-starting Tool Vault Server...');
+            toolVaultIndicator.start().catch((error: unknown) => {
+                console.error('[Extension] Failed to auto-start Tool Vault Server:', error);
+                // Error is already shown via status bar indicator error handling
             });
         }
-    };
-
-    // Start Tool Vault server asynchronously (non-blocking)
-    startToolVaultServer();
+    } catch (error) {
+        console.error('[Extension] Failed to create status bar indicators:', error);
+    }
 
     // Add cleanup to subscriptions
     context.subscriptions.push({
