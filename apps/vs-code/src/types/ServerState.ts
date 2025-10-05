@@ -17,14 +17,14 @@
 export enum ServerState {
   /**
    * Server has not been started yet.
-   * - Visual: Gray $(server) icon
+   * - Visual: $(circle-outline) icon with theme-default text color
    * - User Action: Click to start server
    */
   NotStarted = 'not_started',
 
   /**
    * Server is in the process of starting up.
-   * - Visual: Yellow $(sync~spin) animated icon
+   * - Visual: $(sync~spin) animated icon with theme-default text color
    * - Timeout: 30 seconds before transitioning to Error
    * - Health Check: Polling every 500ms during startup
    */
@@ -32,7 +32,7 @@ export enum ServerState {
 
   /**
    * Server is running and healthy.
-   * - Visual: Green $(check) icon
+   * - Visual: $(pass-filled) icon with theme-default text color
    * - Health Check: Polling every 5 seconds
    * - Transition to Error: After 3 consecutive health check failures
    */
@@ -40,7 +40,7 @@ export enum ServerState {
 
   /**
    * Server has encountered an error or is not responding.
-   * - Visual: Red background $(error) icon
+   * - Visual: $(error) icon with red background (theme-aware)
    * - User Action: Click to view error details and recovery options
    * - Auto-Recovery: May retry if configured
    */
@@ -68,10 +68,14 @@ export interface StateVisuals {
   /**
    * Optional foreground color for the status bar text.
    *
-   * Can be a hex color or VS Code theme color.
+   * **BEST PRACTICE**: Leave undefined to use theme-default text color
+   * for better readability across light/dark themes.
    *
-   * @example '#858585' - Gray for NotStarted state
-   * @example '#00FF00' - Green for Healthy state
+   * Only set if you need to override default text color for specific reasons.
+   * Can be a hex color or VS Code theme color token.
+   *
+   * @example undefined - Uses theme default (recommended)
+   * @example 'errorForeground' - Uses VS Code semantic color
    */
   color?: string;
 
@@ -111,34 +115,36 @@ export type StateVisualsMap = {
  *
  * This constant defines the appearance of each server state in the status bar:
  * - Icons use VS Code's built-in codicon set
- * - Colors are hex values for cross-theme compatibility
+ * - Text uses default theme color (adapts to light/dark themes)
+ * - State indicated by icon type and optional background color
  * - Background colors use theme-aware VS Code constants
  *
  * @example
  * ```typescript
  * const visuals = SERVER_STATE_VISUALS[ServerState.Healthy];
  * statusBarItem.text = visuals.icon + ' Server Name';
- * statusBarItem.color = visuals.color;
+ * // No color set - uses theme default for readability
  * ```
  */
 export const SERVER_STATE_VISUALS: StateVisualsMap = {
   [ServerState.NotStarted]: {
-    icon: '$(server)',
-    color: '#858585',
+    icon: '$(circle-outline)',
+    // No color - uses theme default text color for readability
     tooltipSuffix: 'Not Started - Click to start'
   },
   [ServerState.Starting]: {
     icon: '$(sync~spin)',
-    color: '#FFA500',
+    // No color - uses theme default text color for readability
     tooltipSuffix: 'Starting...'
   },
   [ServerState.Healthy]: {
-    icon: '$(check)',
-    color: '#00FF00',
+    icon: '$(pass-filled)',
+    // No color - uses theme default text color for readability
     tooltipSuffix: 'Healthy'
   },
   [ServerState.Error]: {
     icon: '$(error)',
+    // Red background is theme-aware and provides clear error indication
     backgroundColor: 'statusBarItem.errorBackground',
     tooltipSuffix: 'Error - Click for details'
   }
