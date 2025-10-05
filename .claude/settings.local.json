@@ -205,7 +205,9 @@
       "WebFetch(domain:levelup.gitconnected.com)",
       "WebFetch(domain:medium.com)",
       "Read(//Users/ian/git/future-debrief-parent/**)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(.husky/pre-push:*)",
+      "Bash(bash .husky/pre-push:*)"
     ]
   }
 }
