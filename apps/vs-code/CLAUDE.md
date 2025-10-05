@@ -5,10 +5,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 - `pnpm install` - Install dependencies (run from root for full workspace)
-- `pnpm compile` - Bundle extension with esbuild + copy schemas and dependencies
+- `pnpm compile` - Bundle extension with esbuild + copy schemas, dependencies, and Tool Vault
 - `pnpm watch` - Watch mode bundling with esbuild for development
-- `pnpm vscode:prepublish` - Prepare for publishing (minified esbuild bundle + schemas)
+- `pnpm vscode:prepublish` - Prepare for publishing (minified esbuild bundle + schemas + Tool Vault)
 - `pnpm copy-schemas` - Copy JSON schemas from libs/shared-types to extension
+- `pnpm copy-toolvault` - Copy Tool Vault .pyz package to extension (requires: `cd libs/tool-vault-packager && npm run build`)
 - `pnpm typecheck` - Type check TypeScript without compilation
 - `pnpm lint` - Run ESLint for code quality and TypeScript patterns
 - `pnpm eslint` - Run ESLint only (no TypeScript check)
@@ -21,8 +22,10 @@ The extension uses **esbuild** for fast bundling and includes JSON schema integr
 - Development builds include sourcemaps for debugging
 - Production builds are minified for optimal performance
 - **Schema copying**: JSON schemas from `libs/shared-types` are copied to `schemas/` directory
+- **Tool Vault packaging**: Tool Vault .pyz file from `libs/tool-vault-packager/dist/` is copied to `tool-vault/` directory
+- **Python wheel bundling**: Debrief types wheel from `libs/shared-types/dist/python/` is copied to `python/` directory
 - **Language configuration**: Plot JSON files inherit JSON language server features
-- Build time: ~20ms for TypeScript + schema copying
+- Build time: ~80ms for TypeScript + asset copying
 
 ## TypeScript Patterns and Code Quality
 
