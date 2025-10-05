@@ -139,9 +139,17 @@ export class ServerLifecycleManager {
       attempts++;
 
       try {
+        // Create AbortController with timeout to prevent fetch from hanging indefinitely
+        // Critical: Without this, a fetch that never completes would block the timeout check
+        const controller = new AbortController();
+        const fetchTimeout = setTimeout(() => controller.abort(), pollIntervalMs);
+
         const response = await fetch(config.healthCheckUrl, {
+          signal: controller.signal,
           headers: { 'Accept': 'application/json' }
         });
+
+        clearTimeout(fetchTimeout);
 
         if (response.ok) {
           console.warn(`[Lifecycle] ${config.name} became healthy after ${attempts} attempts`);
@@ -149,6 +157,7 @@ export class ServerLifecycleManager {
         }
       } catch {
         // Ignore errors during startup - server may not be ready yet
+        // Errors include: network failures, timeouts (AbortError), non-200 responses
       }
 
       await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
