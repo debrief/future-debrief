@@ -14,8 +14,14 @@ global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 describe('ServerLifecycleManager', () => {
   let manager: ServerLifecycleManager;
   let mockConfig: ServerIndicatorConfig;
+  let consoleWarnSpy: ReturnType<typeof jest.spyOn>;
+  let consoleErrorSpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
+    // Suppress console output for all tests
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
     manager = new ServerLifecycleManager();
     mockConfig = {
       name: 'Test Server',
@@ -24,6 +30,11 @@ describe('ServerLifecycleManager', () => {
       onStop: jest.fn<() => Promise<void>>()
     };
     jest.clearAllMocks();
+  });
+
+  afterEach(() => {
+    consoleWarnSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
   });
 
   describe('start', () => {
@@ -36,7 +47,7 @@ describe('ServerLifecycleManager', () => {
     it('should throw PortConflictError on EADDRINUSE', async () => {
       const portError = new Error('Port in use');
       (portError as NodeJS.ErrnoException).code = 'EADDRINUSE';
-      (mockConfig.onStart as jest.Mock).mockRejectedValue(portError);
+      (mockConfig.onStart as jest.MockedFunction<() => Promise<void>>).mockRejectedValue(portError);
 
       await expect(manager.start(mockConfig)).rejects.toThrow(PortConflictError);
     });
@@ -44,7 +55,7 @@ describe('ServerLifecycleManager', () => {
     it('should extract correct port from healthCheckUrl in PortConflictError', async () => {
       const portError = new Error('Port in use');
       (portError as NodeJS.ErrnoException).code = 'EADDRINUSE';
-      (mockConfig.onStart as jest.Mock).mockRejectedValue(portError);
+      (mockConfig.onStart as jest.MockedFunction<() => Promise<void>>).mockRejectedValue(portError);
 
       try {
         await manager.start(mockConfig);
@@ -58,13 +69,13 @@ describe('ServerLifecycleManager', () => {
     });
 
     it('should throw ServerStartupError on other errors', async () => {
-      (mockConfig.onStart as jest.Mock).mockRejectedValue(new Error('Unknown failure'));
+      (mockConfig.onStart as jest.MockedFunction<() => Promise<void>>).mockRejectedValue(new Error('Unknown failure'));
 
       await expect(manager.start(mockConfig)).rejects.toThrow(ServerStartupError);
     });
 
     it('should include error message in ServerStartupError', async () => {
-      (mockConfig.onStart as jest.Mock).mockRejectedValue(new Error('Custom error message'));
+      (mockConfig.onStart as jest.MockedFunction<() => Promise<void>>).mockRejectedValue(new Error('Custom error message'));
 
       try {
         await manager.start(mockConfig);
@@ -86,19 +97,17 @@ describe('ServerLifecycleManager', () => {
     });
 
     it('should not throw on stop errors', async () => {
-      (mockConfig.onStop as jest.Mock).mockRejectedValue(new Error('Stop failed'));
+      (mockConfig.onStop as jest.MockedFunction<() => Promise<void>>).mockRejectedValue(new Error('Stop failed'));
 
       await expect(manager.stop(mockConfig)).resolves.toBeUndefined();
     });
 
     it('should log but not throw on stop failure', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
-      (mockConfig.onStop as jest.Mock).mockRejectedValue(new Error('Stop failed'));
+      (mockConfig.onStop as jest.MockedFunction<() => Promise<void>>).mockRejectedValue(new Error('Stop failed'));
 
       await manager.stop(mockConfig);
 
-      expect(consoleSpy).toHaveBeenCalled();
-      consoleSpy.mockRestore();
+      expect(consoleErrorSpy).toHaveBeenCalled();
     });
   });
 
@@ -136,7 +145,7 @@ describe('ServerLifecycleManager', () => {
     });
 
     it('should include callback name in ServerCallbackError', async () => {
-      mockConfig.onRestart = jest.fn().mockRejectedValue(new Error('Restart failed'));
+      mockConfig.onRestart = jest.fn<() => Promise<void>>().mockRejectedValue(new Error('Restart failed'));
 
       try {
         await manager.restart(mockConfig);
@@ -227,21 +236,21 @@ describe('ServerLifecycleManager', () => {
     it('should detect EADDRINUSE error code', async () => {
       const error = new Error('Address in use');
       (error as NodeJS.ErrnoException).code = 'EADDRINUSE';
-      (mockConfig.onStart as jest.Mock).mockRejectedValue(error);
+      (mockConfig.onStart as jest.MockedFunction<() => Promise<void>>).mockRejectedValue(error);
 
       await expect(manager.start(mockConfig)).rejects.toThrow(PortConflictError);
     });
 
     it('should detect port conflict in error message', async () => {
       const error = new Error('Error: address already in use');
-      (mockConfig.onStart as jest.Mock).mockRejectedValue(error);
+      (mockConfig.onStart as jest.MockedFunction<() => Promise<void>>).mockRejectedValue(error);
 
       await expect(manager.start(mockConfig)).rejects.toThrow(PortConflictError);
     });
 
     it('should detect port conflict from system error', async () => {
       const error = new Error('listen EADDRINUSE: address already in use :::8080');
-      (mockConfig.onStart as jest.Mock).mockRejectedValue(error);
+      (mockConfig.onStart as jest.MockedFunction<() => Promise<void>>).mockRejectedValue(error);
 
       await expect(manager.start(mockConfig)).rejects.toThrow(PortConflictError);
     });
@@ -252,7 +261,7 @@ describe('ServerLifecycleManager', () => {
       mockConfig.healthCheckUrl = 'http://localhost:60123/health';
       const error = new Error('Port conflict');
       (error as NodeJS.ErrnoException).code = 'EADDRINUSE';
-      (mockConfig.onStart as jest.Mock).mockRejectedValue(error);
+      (mockConfig.onStart as jest.MockedFunction<() => Promise<void>>).mockRejectedValue(error);
 
       try {
         await manager.start(mockConfig);
@@ -267,7 +276,7 @@ describe('ServerLifecycleManager', () => {
       mockConfig.healthCheckUrl = 'https://example.com:8443/health';
       const error = new Error('Port conflict');
       (error as NodeJS.ErrnoException).code = 'EADDRINUSE';
-      (mockConfig.onStart as jest.Mock).mockRejectedValue(error);
+      (mockConfig.onStart as jest.MockedFunction<() => Promise<void>>).mockRejectedValue(error);
 
       try {
         await manager.start(mockConfig);
@@ -282,7 +291,7 @@ describe('ServerLifecycleManager', () => {
       mockConfig.healthCheckUrl = 'http://localhost/health';
       const error = new Error('Port conflict');
       (error as NodeJS.ErrnoException).code = 'EADDRINUSE';
-      (mockConfig.onStart as jest.Mock).mockRejectedValue(error);
+      (mockConfig.onStart as jest.MockedFunction<() => Promise<void>>).mockRejectedValue(error);
 
       try {
         await manager.start(mockConfig);

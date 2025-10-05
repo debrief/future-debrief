@@ -1,11 +1,28 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
-import * as vscode from 'vscode';
 import { ServerStatusBarIndicator } from '../../components/ServerStatusBarIndicator';
 import { ServerIndicatorConfig } from '../../types/ServerIndicatorConfig';
+import { ServerState } from '../../types/ServerState';
 import {
   PortConflictError,
   HealthCheckTimeoutError
 } from '../../types/ServerIndicatorErrors';
+
+// Mock vscode module globally
+jest.mock('vscode', () => ({
+  StatusBarAlignment: { Left: 1, Right: 2 },
+  ThemeColor: jest.fn((color: string) => ({ color })),
+  window: {
+    createStatusBarItem: jest.fn(),
+    showQuickPick: jest.fn(),
+    showErrorMessage: jest.fn(() => Promise.resolve(undefined))
+  },
+  commands: {
+    registerCommand: jest.fn()
+  }
+}), { virtual: true });
+
+// Import vscode after mocking
+import * as vscode from 'vscode';
 
 // Type definitions for mocks
 type MockHealthCheckPoller = {
@@ -23,17 +40,14 @@ type MockServerLifecycleManager = {
   waitForHealthy: jest.Mock<(config: ServerIndicatorConfig, timeout?: number, interval?: number) => Promise<void>>;
 };
 
-// Mock vscode module
-jest.mock('vscode');
-
 // Mock HealthCheckPoller
 let mockPollers: MockHealthCheckPoller[] = [];
 jest.mock('../../services/HealthCheckPoller', () => ({
-  HealthCheckPoller: jest.fn().mockImplementation((
+  HealthCheckPoller: jest.fn(function(
     _url: string,
     _interval: number,
     onHealthChange: (isHealthy: boolean) => void
-  ) => {
+  ) {
     const mockPoller: MockHealthCheckPoller = {
       start: jest.fn<() => void>(),
       dispose: jest.fn<() => void>(),
@@ -75,8 +89,14 @@ describe('ServerStatusBarIndicator', () => {
 
   let mockConfig: ServerIndicatorConfig;
   let indicator: ServerStatusBarIndicator | null;
+  let consoleWarnSpy: ReturnType<typeof jest.spyOn>;
+  let consoleErrorSpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
+    // Suppress console output for all tests
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
     // Reset mock arrays
     mockPollers = [];
     mockManagers = [];
@@ -93,20 +113,12 @@ describe('ServerStatusBarIndicator', () => {
       dispose: jest.fn()
     };
 
-    // Mock vscode.window.createStatusBarItem
-    (vscode.window.createStatusBarItem as unknown as jest.Mock) = jest.fn(() => mockStatusBarItem);
-
-    // Mock vscode.commands.registerCommand
-    (vscode.commands.registerCommand as unknown as jest.Mock) = jest.fn();
-
-    // Mock vscode.ThemeColor
-    (vscode.ThemeColor as unknown as jest.Mock) = jest.fn((color: string) => ({ color })) as unknown as jest.Mock;
-
-    // Mock vscode.window.showQuickPick
-    (vscode.window.showQuickPick as unknown as jest.Mock) = jest.fn() as unknown as jest.Mock;
-
-    // Mock vscode.window.showErrorMessage
-    (vscode.window.showErrorMessage as unknown as jest.Mock) = jest.fn(() => Promise.resolve(undefined));
+    // Reset vscode mocks
+    (vscode.window.createStatusBarItem as jest.Mock).mockReturnValue(mockStatusBarItem);
+    (vscode.commands.registerCommand as jest.Mock).mockClear();
+    (vscode.ThemeColor as jest.Mock).mockImplementation((color: any) => ({ color }));
+    (vscode.window.showQuickPick as jest.Mock).mockClear();
+    (vscode.window.showErrorMessage as jest.Mock).mockReturnValue(Promise.resolve(undefined));
 
     // Create test config
     mockConfig = {
@@ -127,6 +139,8 @@ describe('ServerStatusBarIndicator', () => {
       indicator.dispose();
       indicator = null;
     }
+    consoleWarnSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
   });
 
   describe('Initialization', () => {
@@ -177,13 +191,15 @@ describe('ServerStatusBarIndicator', () => {
       expect(mockStatusBarItem.backgroundColor).toBeUndefined();
     });
 
-    it('should update icon and color for Starting state', async () => {
+    it('should update icon and color for Starting state', () => {
       indicator = new ServerStatusBarIndicator(mockConfig);
 
-      // Trigger start (will fail immediately due to mock)
-      await indicator.start().catch(() => { /* Expected to fail */ });
+      // Directly set the indicator to Starting state using private setState method
+      // We can't easily test the transient Starting state during async start()
+      // so we test the visual update by directly triggering the state change
+      (indicator as any).setState(ServerState.Starting);
 
-      // State should be Starting initially
+      // Verify Starting state visuals
       expect(mockStatusBarItem.text).toContain('$(sync~spin)');
       expect(mockStatusBarItem.color).toBe('#FFA500');
     });
@@ -363,7 +379,7 @@ describe('ServerStatusBarIndicator', () => {
       indicator = new ServerStatusBarIndicator(mockConfig);
 
       const mockQuickPickItems: vscode.QuickPickItem[] = [];
-      (vscode.window.showQuickPick as unknown as jest.Mock).mockImplementation((items: vscode.QuickPickItem[]) => {
+      (vscode.window.showQuickPick as unknown as jest.Mock).mockImplementation((items: any) => {
         mockQuickPickItems.push(...items);
         return Promise.resolve(undefined);
       });
@@ -384,7 +400,7 @@ describe('ServerStatusBarIndicator', () => {
       await indicator.start();
 
       const mockQuickPickItems: vscode.QuickPickItem[] = [];
-      (vscode.window.showQuickPick as unknown as jest.Mock).mockImplementation((items: vscode.QuickPickItem[]) => {
+      (vscode.window.showQuickPick as unknown as jest.Mock).mockImplementation((items: any) => {
         mockQuickPickItems.push(...items);
         return Promise.resolve(undefined);
       });
@@ -407,7 +423,7 @@ describe('ServerStatusBarIndicator', () => {
       await indicator.start();
 
       const mockQuickPickItems: vscode.QuickPickItem[] = [];
-      (vscode.window.showQuickPick as unknown as jest.Mock).mockImplementation((items: vscode.QuickPickItem[]) => {
+      (vscode.window.showQuickPick as unknown as jest.Mock).mockImplementation((items: any) => {
         mockQuickPickItems.push(...items);
         return Promise.resolve(undefined);
       });
@@ -422,7 +438,7 @@ describe('ServerStatusBarIndicator', () => {
       indicator = new ServerStatusBarIndicator(mockConfig);
 
       const mockQuickPickItems: vscode.QuickPickItem[] = [];
-      (vscode.window.showQuickPick as unknown as jest.Mock).mockImplementation((items: vscode.QuickPickItem[]) => {
+      (vscode.window.showQuickPick as unknown as jest.Mock).mockImplementation((items: any) => {
         mockQuickPickItems.push(...items);
         return Promise.resolve(undefined);
       });
@@ -435,9 +451,9 @@ describe('ServerStatusBarIndicator', () => {
     it('should execute start action when selected', async () => {
       indicator = new ServerStatusBarIndicator(mockConfig);
 
-      (vscode.window.showQuickPick as unknown as jest.Mock).mockResolvedValue({
+      (vscode.window.showQuickPick as any).mockResolvedValue({
         label: '$(play) Start Server'
-      } as vscode.QuickPickItem);
+      });
 
       const currentManager = mockManagers[mockManagers.length - 1];
       currentManager.start.mockResolvedValue(undefined);

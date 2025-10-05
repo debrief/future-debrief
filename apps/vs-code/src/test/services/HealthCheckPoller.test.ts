@@ -7,8 +7,12 @@ global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>;
 describe('HealthCheckPoller', () => {
   let poller: HealthCheckPoller;
   let healthChangeCallback: jest.Mock;
+  let consoleWarnSpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
+    // Suppress console output for all tests
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
     healthChangeCallback = jest.fn();
     jest.clearAllMocks();
   });
@@ -17,6 +21,7 @@ describe('HealthCheckPoller', () => {
     if (poller) {
       poller.dispose();
     }
+    consoleWarnSpy.mockRestore();
   });
 
   describe('start and stop', () => {
