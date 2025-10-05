@@ -41,22 +41,22 @@ describe('ServerState', () => {
 
     it('should have correct NotStarted visuals', () => {
       const visuals = SERVER_STATE_VISUALS[ServerState.NotStarted];
-      expect(visuals.icon).toBe('$(server)');
-      expect(visuals.color).toBe('#858585');
+      expect(visuals.icon).toBe('$(circle-outline)');
+      expect(visuals.color).toBeUndefined(); // Uses theme default for readability
       expect(visuals.tooltipSuffix).toContain('Not Started');
     });
 
     it('should have correct Starting visuals with animation', () => {
       const visuals = SERVER_STATE_VISUALS[ServerState.Starting];
       expect(visuals.icon).toBe('$(sync~spin)');
-      expect(visuals.color).toBe('#FFA500');
+      expect(visuals.color).toBeUndefined(); // Uses theme default for readability
       expect(visuals.tooltipSuffix).toContain('Starting');
     });
 
     it('should have correct Healthy visuals', () => {
       const visuals = SERVER_STATE_VISUALS[ServerState.Healthy];
-      expect(visuals.icon).toBe('$(check)');
-      expect(visuals.color).toBe('#00FF00');
+      expect(visuals.icon).toBe('$(pass-filled)');
+      expect(visuals.color).toBeUndefined(); // Uses theme default for readability
       expect(visuals.tooltipSuffix).toContain('Healthy');
     });
 

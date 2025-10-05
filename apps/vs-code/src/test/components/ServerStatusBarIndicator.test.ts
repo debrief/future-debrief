@@ -165,7 +165,7 @@ describe('ServerStatusBarIndicator', () => {
     it('should set initial state to NotStarted', () => {
       indicator = new ServerStatusBarIndicator(mockConfig);
 
-      expect(mockStatusBarItem.text).toContain('$(server)');
+      expect(mockStatusBarItem.text).toContain('$(circle-outline)');
       expect(mockStatusBarItem.text).toContain('Test Server');
     });
 
@@ -186,8 +186,8 @@ describe('ServerStatusBarIndicator', () => {
     it('should update icon for NotStarted state', () => {
       indicator = new ServerStatusBarIndicator(mockConfig);
 
-      expect(mockStatusBarItem.text).toContain('$(server)');
-      expect(mockStatusBarItem.color).toBe('#858585');
+      expect(mockStatusBarItem.text).toContain('$(circle-outline)');
+      expect(mockStatusBarItem.color).toBeUndefined(); // Uses theme default
       expect(mockStatusBarItem.backgroundColor).toBeUndefined();
     });
 
@@ -201,7 +201,7 @@ describe('ServerStatusBarIndicator', () => {
 
       // Verify Starting state visuals
       expect(mockStatusBarItem.text).toContain('$(sync~spin)');
-      expect(mockStatusBarItem.color).toBe('#FFA500');
+      expect(mockStatusBarItem.color).toBeUndefined(); // Uses theme default
     });
 
     it('should update tooltip based on state', () => {
@@ -251,8 +251,8 @@ describe('ServerStatusBarIndicator', () => {
 
       await indicator.start();
 
-      expect(mockStatusBarItem.text).toContain('$(check)');
-      expect(mockStatusBarItem.color).toBe('#00FF00');
+      expect(mockStatusBarItem.text).toContain('$(pass-filled)');
+      expect(mockStatusBarItem.color).toBeUndefined(); // Uses theme default
     });
 
     it('should transition to NotStarted after stop', async () => {
@@ -260,8 +260,8 @@ describe('ServerStatusBarIndicator', () => {
 
       await indicator.stop();
 
-      expect(mockStatusBarItem.text).toContain('$(server)');
-      expect(mockStatusBarItem.color).toBe('#858585');
+      expect(mockStatusBarItem.text).toContain('$(circle-outline)');
+      expect(mockStatusBarItem.color).toBeUndefined(); // Uses theme default
     });
   });
 
