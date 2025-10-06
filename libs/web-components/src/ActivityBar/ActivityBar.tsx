@@ -4,6 +4,8 @@ import { VscodeIcon } from '@vscode-elements/react-elements'
 export interface ActivityBarProps {
   children: React.ReactNode
   className?: string
+  initialPanelStates?: PanelState[]
+  onPanelStatesChange?: (states: PanelState[]) => void
 }
 
 export interface ActivityPanelProps {
@@ -14,7 +16,7 @@ export interface ActivityPanelProps {
   className?: string
 }
 
-interface PanelState {
+export interface PanelState {
   id: string
   collapsed: boolean
   height: number // pixels
@@ -25,7 +27,7 @@ const MIN_CONTENT_HEIGHT = 100 // pixels
 const MIN_PANEL_HEIGHT = HEADER_HEIGHT + MIN_CONTENT_HEIGHT
 const FIXED_NON_RESIZABLE_HEIGHT = 200 // Fixed height for non-resizable panels
 
-export const ActivityBar: React.FC<ActivityBarProps> = ({ children, className = '' }) => {
+export const ActivityBar: React.FC<ActivityBarProps> = ({ children, className = '', initialPanelStates, onPanelStatesChange }) => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [panelStates, setPanelStates] = useState<PanelState[]>([])
   const [resizing, setResizing] = useState<{ panelIndex: number; startY: number; startHeights: [number, number] } | null>(null)
@@ -38,6 +40,14 @@ export const ActivityBar: React.FC<ActivityBarProps> = ({ children, className = 
       return
     }
 
+    // Use provided initial states if available
+    if (initialPanelStates && initialPanelStates.length > 0) {
+      setPanelStates(initialPanelStates)
+      initializedRef.current = true
+      return
+    }
+
+    // Otherwise calculate default states
     const childArray = Children.toArray(children)
     const containerHeight = containerRef.current?.clientHeight || 600
 
@@ -70,7 +80,7 @@ export const ActivityBar: React.FC<ActivityBarProps> = ({ children, className = 
 
     setPanelStates(initialStates)
     initializedRef.current = true
-  }, [children])
+  }, [children, initialPanelStates])
 
   // Redistribute space when panels collapse/expand
   const redistributeSpace = (newStates: PanelState[], childArray: React.ReactNode[]) => {
@@ -118,7 +128,14 @@ export const ActivityBar: React.FC<ActivityBarProps> = ({ children, className = 
       const newStates = [...prevStates]
       newStates[index] = { ...newStates[index], collapsed: !newStates[index].collapsed }
       const childArray = Children.toArray(children)
-      return redistributeSpace(newStates, childArray)
+      const redistributedStates = redistributeSpace(newStates, childArray)
+
+      // Notify parent of state change
+      if (onPanelStatesChange) {
+        onPanelStatesChange(redistributedStates)
+      }
+
+      return redistributedStates
     })
   }
 
@@ -164,6 +181,10 @@ export const ActivityBar: React.FC<ActivityBarProps> = ({ children, className = 
     }
 
     const handleMouseUp = () => {
+      // Notify parent of final state after resize
+      if (onPanelStatesChange) {
+        onPanelStatesChange(panelStates)
+      }
       setResizing(null)
     }
 

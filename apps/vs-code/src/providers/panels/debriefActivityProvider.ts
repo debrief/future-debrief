@@ -8,7 +8,7 @@ import {
     DebriefFeature
 } from '@debrief/shared-types';
 import { ToolSchema } from '@debrief/web-components/services';
-import { Property } from '@debrief/web-components';
+import { Property, PanelState } from '@debrief/web-components';
 
 /**
  * DebriefActivityProvider - Consolidated webview provider for all activity panel components
@@ -736,6 +736,41 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
                     const initialState = ${JSON.stringify(state)};
                     const timeFormat = '${this._getTimeFormat()}';
 
+                    // Panel state persistence logic
+                    const PANEL_STATE_KEY = 'debrief-activity-panel-states';
+
+                    function loadPanelStates() {
+                        // First try VS Code webview state (persists during session)
+                        const vsCodeState = vscode.getState();
+                        if (vsCodeState && vsCodeState.panelStates) {
+                            return vsCodeState.panelStates;
+                        }
+
+                        // Fallback to localStorage (persists across sessions)
+                        try {
+                            const stored = localStorage.getItem(PANEL_STATE_KEY);
+                            if (stored) {
+                                return JSON.parse(stored);
+                            }
+                        } catch (e) {
+                            console.warn('Failed to load panel states from localStorage:', e);
+                        }
+
+                        return null;
+                    }
+
+                    function savePanelStates(states) {
+                        // Save to VS Code webview state
+                        vscode.setState({ panelStates: states });
+
+                        // Also save to localStorage for cross-session persistence
+                        try {
+                            localStorage.setItem(PANEL_STATE_KEY, JSON.stringify(states));
+                        } catch (e) {
+                            console.warn('Failed to save panel states to localStorage:', e);
+                        }
+                    }
+
                     function initializeDebriefActivity() {
                         const container = document.getElementById('activity-container');
                         if (!container || !window.DebriefWebComponents || !window.DebriefWebComponents.createDebriefActivity) {
@@ -743,6 +778,9 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
                         }
 
                         try {
+                            // Load saved panel states
+                            const savedPanelStates = loadPanelStates();
+
                             const activityInstance = window.DebriefWebComponents.createDebriefActivity(container, {
                                 timeState: initialState.timeState,
                                 timeFormat: timeFormat,
@@ -751,6 +789,12 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
                                 toolList: initialState.toolList,
                                 currentState: initialState.currentState,
                                 selectedFeatureProperties: initialState.selectedFeatureProperties,
+
+                                // Panel state persistence
+                                initialPanelStates: savedPanelStates,
+                                onPanelStatesChange: (states) => {
+                                    savePanelStates(states);
+                                },
 
                                 // TimeController callbacks
                                 onTimeChange: (time) => {
