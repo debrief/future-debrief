@@ -53,7 +53,8 @@
       "Bash(git pull:*)",
       "Bash(pnpm compile:*)",
       "Bash(pnpm lint:*)",
-      "Bash(pnpm typecheck:*)"
+      "Bash(pnpm typecheck:*)",
+      "Bash(git commit:*)"
     ]
   },
   "outputStyle": "default"

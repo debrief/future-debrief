@@ -76,6 +76,14 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
                 console.error('[DebriefActivityProvider] Failed to initialize webview:', error);
             });
 
+        // Handle visibility changes - repopulate when becoming visible
+        webviewView.onDidChangeVisibility(() => {
+            if (webviewView.visible) {
+                console.warn('[DebriefActivityProvider] Webview became visible - refreshing state');
+                void this._updateView();
+            }
+        });
+
         webviewView.onDidDispose(() => {
             this._cleanup();
         });
