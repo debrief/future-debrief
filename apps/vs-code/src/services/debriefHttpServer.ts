@@ -174,9 +174,10 @@ export class DebriefHTTPServer {
 
             // MCP JSON-RPC 2.0 endpoint
             this.app.post('/mcp', async (req: express.Request, res: express.Response) => {
+                const mcpRequest = req.body as MCPRequest;
+                const { jsonrpc, method, params, id } = mcpRequest;
+
                 try {
-                    const mcpRequest = req.body as MCPRequest;
-                    const { jsonrpc, method, params, id } = mcpRequest;
 
                     // Validate JSON-RPC 2.0 format
                     if (jsonrpc !== '2.0') {
