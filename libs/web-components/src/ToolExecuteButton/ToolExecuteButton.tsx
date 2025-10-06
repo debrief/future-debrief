@@ -261,14 +261,42 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
   const renderMenu = () => {
     if (!isMenuOpen || !menuRect) return null;
 
+    // Calculate available space for the menu
+    const viewportHeight = window.innerHeight;
+    const viewportWidth = window.innerWidth;
+    const availableSpaceBelow = viewportHeight - menuRect.top;
+    const availableSpaceAbove = menuRect.top;
+    const availableSpaceRight = viewportWidth - menuRect.left;
+
+    // Reserve some padding from viewport edges
+    const VIEWPORT_PADDING = 40; // 20px top + 20px bottom
+    const RIGHT_PADDING = 20; // Keep scrollbar visible + some margin
+
+    // Calculate max height based on menu position
+    const maxHeight = menuPosition === 'bottom'
+      ? Math.max(200, availableSpaceBelow - VIEWPORT_PADDING)
+      : Math.max(200, availableSpaceAbove - VIEWPORT_PADDING);
+
+    // Calculate max width to keep scrollbar visible
+    const maxWidth = Math.min(400, availableSpaceRight - RIGHT_PADDING);
+    const minWidth = Math.min(Math.max(menuRect.width, 200), maxWidth);
+
     const menuStyle: React.CSSProperties = {
       position: 'fixed',
       top: menuPosition === 'bottom' ? menuRect.top : undefined,
       bottom: menuPosition === 'top' ? `calc(100vh - ${menuRect.top}px + 4px)` : undefined,
       left: menuRect.left,
-      minWidth: Math.max(menuRect.width, 200),
-      zIndex: 10000
+      minWidth: minWidth,
+      maxWidth: maxWidth,
+      maxHeight: `${maxHeight}px`,
+      zIndex: 999999 // Very high to float above all panels including Current State
     };
+
+    // Calculate max-height for tools list (accounting for search box and warnings)
+    const SEARCH_BOX_HEIGHT = 60; // Approximate height of search box
+    const WARNING_HEIGHT = filterWarnings.length > 0 && showAllState ? filterWarnings.length * 40 : 0; // Approximate
+    const SMART_NOTE_HEIGHT = (enableSmartFiltering && selectedFeatures.length === 0 && showAllState) ? 50 : 0;
+    const toolsListMaxHeight = Math.max(150, maxHeight - SEARCH_BOX_HEIGHT - WARNING_HEIGHT - SMART_NOTE_HEIGHT);
 
     return createPortal(
       <div ref={menuRef} className={menuClassName} style={menuStyle} role="menu">
@@ -329,7 +357,7 @@ export const ToolExecuteButton: React.FC<ToolExecuteButtonProps> = ({
               )}
             </div>
           ) : (
-            <div className="tools-list">
+            <div className="tools-list" style={{ maxHeight: `${toolsListMaxHeight}px` }}>
               {renderTreeNodes(filteredTreeNodes)}
             </div>
           )}
