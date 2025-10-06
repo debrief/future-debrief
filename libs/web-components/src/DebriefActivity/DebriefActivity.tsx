@@ -45,6 +45,10 @@ export interface DebriefActivityProps {
   // ActivityBar state persistence props
   initialPanelStates?: PanelState[];
   onPanelStatesChange?: (states: PanelState[]) => void;
+
+  // Outline folder state persistence props
+  initialFolderStates?: Record<string, boolean>;
+  onFolderStatesChange?: (states: Record<string, boolean>) => void;
 }
 
 export const DebriefActivity: React.FC<DebriefActivityProps> = ({
@@ -73,7 +77,11 @@ export const DebriefActivity: React.FC<DebriefActivityProps> = ({
 
   // ActivityBar state persistence props
   initialPanelStates,
-  onPanelStatesChange
+  onPanelStatesChange,
+
+  // Outline folder state persistence props
+  initialFolderStates,
+  onFolderStatesChange
 }) => {
   // Provide defaults for required OutlineViewParent props
   const defaultFeatureCollection: DebriefFeatureCollection = { type: 'FeatureCollection', features: [] };
@@ -108,6 +116,8 @@ export const DebriefActivity: React.FC<DebriefActivityProps> = ({
           onViewFeature={onViewFeature}
           onDeleteFeatures={onDeleteFeatures}
           onCollapseAll={onCollapseAll}
+          initialFolderStates={initialFolderStates}
+          onFolderStatesChange={onFolderStatesChange}
         />
       </ActivityPanel>
 

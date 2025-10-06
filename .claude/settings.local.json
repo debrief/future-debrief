@@ -207,7 +207,11 @@
       "Read(//Users/ian/git/future-debrief-parent/**)",
       "Bash(git mv:*)",
       "Bash(.husky/pre-push:*)",
-      "Bash(bash .husky/pre-push:*)"
+      "Bash(bash .husky/pre-push:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh api:*)",
+      "Bash(git show:*)",
+      "Bash(./scripts/cleanup-flyio-apps.sh:*)"
     ]
   }
 }

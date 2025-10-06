@@ -19,6 +19,8 @@ export interface OutlineViewParentProps
   buttonText?: string;
   menuPosition?: 'bottom' | 'top';
   additionalToolbarContent?: React.ReactNode;
+  initialFolderStates?: Record<string, boolean>;
+  onFolderStatesChange?: (states: Record<string, boolean>) => void;
 }
 
 export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
@@ -32,6 +34,8 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
   buttonText,
   menuPosition = 'bottom',
   additionalToolbarContent,
+  initialFolderStates,
+  onFolderStatesChange,
   ...outlineViewCallbacks
 }) => {
   const [internalSelectedIds, setInternalSelectedIds] = React.useState<string[]>(
@@ -167,6 +171,8 @@ export const OutlineViewParent: React.FC<OutlineViewParentProps> = ({
         contextMenuOpen={contextMenu?.open ?? false}
         contextMenuPosition={contextMenu ? { x: contextMenu.x, y: contextMenu.y } : undefined}
         contextMenuContent={contextMenuContent}
+        initialFolderStates={initialFolderStates}
+        onFolderStatesChange={onFolderStatesChange}
         {...outlineViewCallbacks}
       />
     </ToolExecutionProvider>

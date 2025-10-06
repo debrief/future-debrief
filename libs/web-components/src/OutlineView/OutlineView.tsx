@@ -25,6 +25,8 @@ export interface OutlineViewProps {
   contextMenuOpen?: boolean
   contextMenuPosition?: { x: number; y: number }
   contextMenuContent?: React.ReactNode
+  initialFolderStates?: Record<string, boolean>
+  onFolderStatesChange?: (states: Record<string, boolean>) => void
 }
 
 // Group features by their dataType
@@ -59,19 +61,33 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
   contextMenuOpen = false,
   contextMenuPosition,
   contextMenuContent,
+  initialFolderStates,
+  onFolderStatesChange,
 }) => {
   const groupedFeatures = React.useMemo(
     () => groupFeaturesByType(featureCollection.features),
     [featureCollection.features]
   )
 
-  // Track which group tree items we've initialized
-  // This ensures we only set the initial open state once
-  const initializedGroupsRef = React.useRef<Set<string>>(new Set())
-
-  // Get the first group type for initial open state
+  // Get the first group type for default open state
   const groupTypes = Object.keys(groupedFeatures)
   const firstGroupType = groupTypes[0]
+
+  // Track folder open/closed states
+  const [folderStates, setFolderStates] = React.useState<Record<string, boolean>>(() => {
+    // Use initialFolderStates if provided, otherwise default first folder to open
+    if (initialFolderStates) {
+      return initialFolderStates
+    }
+    // Default: only first folder open
+    return groupTypes.reduce((acc, type) => {
+      acc[type] = type === firstGroupType
+      return acc
+    }, {} as Record<string, boolean>)
+  })
+
+  // Track which group tree items we've had their ref callback called
+  const initializedGroupsRef = React.useRef<Set<string>>(new Set())
 
   // Calculate visibility state based on selected features using feature.properties.visible
   const getVisibilityState = (): VisibilityState => {
@@ -125,9 +141,20 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
 
   const handleSelection = (event: VscTreeSelectEvent) => {
     const selectedItems = extractSelectedItems(event.detail as unknown)
+
+    // Create a set of valid feature IDs for quick lookup
+    const validFeatureIds = new Set(
+      featureCollection.features
+        .map(f => String(f.id))
+        .filter(id => id && id !== 'undefined' && id !== 'null')
+    )
+
     const selectedIds = Array.from(new Set(selectedItems
       .map(extractIdFromItem)
-      .filter((id): id is string => typeof id === 'string' && id.length > 0)))
+      .filter((id): id is string => {
+        // Only include IDs that are non-empty strings AND exist in our feature collection
+        return typeof id === 'string' && id.length > 0 && validFeatureIds.has(id)
+      })))
 
     onSelectionChange(selectedIds)
   }
@@ -228,11 +255,30 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
             key={type}
             ref={(el: HTMLElement | null) => {
               if (el && !initializedGroupsRef.current.has(type)) {
-                // Set initial open state only on first mount
-                // Only the first group is expanded by default
-                const isFirstGroup = type === firstGroupType;
-                (el as unknown as { open: boolean }).open = isFirstGroup;
-                initializedGroupsRef.current.add(type);
+                // Set initial open state from folderStates
+                const webComponent = el as unknown as { open: boolean }
+                webComponent.open = folderStates[type] ?? (type === firstGroupType)
+                initializedGroupsRef.current.add(type)
+
+                // Listen for open state changes to persist them
+                const observer = new MutationObserver(() => {
+                  const newOpenState = webComponent.open
+                  setFolderStates(prev => {
+                    const updated = { ...prev, [type]: newOpenState }
+                    // Notify parent of state change
+                    onFolderStatesChange?.(updated)
+                    return updated
+                  })
+                })
+
+                // Observe the 'open' attribute on the web component
+                observer.observe(el, {
+                  attributes: true,
+                  attributeFilter: ['open']
+                })
+
+                // Cleanup observer when element is removed
+                return () => observer.disconnect()
               }
             }}
           >
