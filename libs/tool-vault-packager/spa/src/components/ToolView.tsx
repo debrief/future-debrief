@@ -22,7 +22,8 @@ export function ToolView({ tool }: ToolViewProps) {
     setError(null);
     setToolIndex(null);
     try {
-      const index = await mcpService.loadToolIndex(tool.name);
+      // Use tool_url if available (includes category path), otherwise fall back to tool name
+      const index = await mcpService.loadToolIndex(tool.name, tool.tool_url || undefined);
       setToolIndex(index);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -32,7 +33,7 @@ export function ToolView({ tool }: ToolViewProps) {
     } finally {
       setLoading(false);
     }
-  }, [tool.name]);
+  }, [tool.name, tool.tool_url]);
 
   useEffect(() => {
     loadToolIndex();

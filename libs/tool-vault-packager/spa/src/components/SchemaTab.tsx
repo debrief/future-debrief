@@ -30,7 +30,7 @@ export function SchemaTab({ tool, toolIndex, loading }: SchemaTabProps) {
       )));
 
       try {
-        const data = await mcpService.loadSchemaDocument(reference.path, tool.name);
+        const data = await mcpService.loadSchemaDocument(reference.path, tool.tool_url);
         setDocuments(prev => prev.map(doc => (
           doc.reference.path === reference.path
             ? { ...doc, data, loading: false }

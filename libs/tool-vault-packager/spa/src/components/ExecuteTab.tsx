@@ -36,7 +36,7 @@ export function ExecuteTab({ tool, toolIndex, loading }: ExecuteTabProps) {
     try {
       const samplePromises = toolIndex.files.inputs.map(async (inputFile: any) => {
         try {
-          const content = await mcpService.loadSampleInput(inputFile.path, tool.name);
+          const content = await mcpService.loadSampleInput(inputFile.path, tool.tool_url);
 
           // Validate sample data structure during loading
           if (!content || typeof content !== 'object' || !content.input) {

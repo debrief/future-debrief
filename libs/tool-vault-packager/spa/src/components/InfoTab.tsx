@@ -17,7 +17,7 @@ export function InfoTab({ tool, toolIndex, loading }: InfoTabProps) {
     
     setGitLoading(true);
     try {
-      const history = await mcpService.loadGitHistory(toolIndex.files.git_history.path, tool.name);
+      const history = await mcpService.loadGitHistory(toolIndex.files.git_history.path, tool.tool_url);
       // Backend returns array directly, wrap it in GitHistory format
       setGitHistory({ commits: history as GitHistoryEntry[] });
     } catch (err) {

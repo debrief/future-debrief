@@ -1,27 +1,28 @@
-import type { ToolListResponse, ToolCallResponse, ToolIndexModel, ToolVaultRootResponse, SPAToolCallRequest } from '../types';
+import type { GlobalToolIndexModel, ToolCallResponse, ToolIndexModel, ToolVaultRootResponse, SPAToolCallRequest } from '../types';
 
 // Auto-detect server URL or use environment variable override
 const getServerBaseUrl = (): string => {
-  // Check for environment variable override (for development)
-  const envBackendUrl = import.meta.env.BACKEND_URL;
-  if (envBackendUrl) {
-    return envBackendUrl;
-  }
-  
-  // Check for Vite environment variable
-  const viteBackendUrl = import.meta.env.VITE_BACKEND_URL;
-  if (viteBackendUrl) {
-    return viteBackendUrl;
-  }
-  
-  // Auto-detect from current window location (when served from same server)
+  // Priority 1: Auto-detect from window location (production mode - served from same server)
   if (typeof window !== 'undefined') {
     const { protocol, hostname, port } = window.location;
-    return `${protocol}//${hostname}${port ? ':' + port : ''}`;
+    const detectedUrl = `${protocol}//${hostname}${port ? ':' + port : ''}`;
+
+    // Only use env var override if explicitly set AND different from detected URL
+    // This allows development mode (Vite dev server) to override the backend URL
+    const viteBackendUrl = import.meta.env.VITE_BACKEND_URL;
+    const envBackendUrl = import.meta.env.BACKEND_URL;
+
+    // If we're on the Vite dev server (port 5173), use the env var override
+    if (port === '5173' && (viteBackendUrl || envBackendUrl)) {
+      return envBackendUrl || viteBackendUrl;
+    }
+
+    // Otherwise, use auto-detected URL (production mode)
+    return detectedUrl;
   }
-  
-  // Fallback for development
-  return 'http://localhost:8000';
+
+  // Fallback for SSR or non-browser environments
+  return import.meta.env.VITE_BACKEND_URL || import.meta.env.BACKEND_URL || 'http://localhost:8000';
 };
 
 const SERVER_BASE_URL = getServerBaseUrl();
@@ -33,6 +34,17 @@ export class MCPService {
 
   constructor(baseUrl?: string) {
     this.baseUrl = baseUrl || MCP_BASE_URL;
+  }
+
+  /**
+   * Extract the base path for a tool from its tool_url.
+   * E.g., '/api/tools/selection/fit_to_selection/tool.json' -> '/api/tools/selection/fit_to_selection'
+   */
+  private getToolBasePath(toolUrl?: string | null): string | null {
+    if (!toolUrl) return null;
+    // Remove the filename (e.g., 'tool.json') to get the base directory path
+    const lastSlash = toolUrl.lastIndexOf('/');
+    return lastSlash > 0 ? toolUrl.substring(0, lastSlash) : null;
   }
 
   async discoverEndpoints(): Promise<ToolVaultRootResponse> {
@@ -73,7 +85,7 @@ export class MCPService {
     }
   }
 
-  async listTools(): Promise<ToolListResponse> {
+  async listTools(): Promise<GlobalToolIndexModel> {
     try {
       // Ensure we've discovered endpoints first
       if (!this.toolsListUrl) {
@@ -122,7 +134,15 @@ export class MCPService {
   }
 
   async loadToolIndex(toolName: string, indexPath?: string): Promise<ToolIndexModel> {
-    const path = indexPath || `${SERVER_BASE_URL}/api/tools/${toolName}/tool.json`;
+    // If indexPath is provided and starts with '/', it's a relative path - prepend SERVER_BASE_URL
+    // Otherwise, use it as-is (absolute URL) or construct default path
+    let path: string;
+    if (indexPath) {
+      path = indexPath.startsWith('/') ? `${SERVER_BASE_URL}${indexPath}` : indexPath;
+    } else {
+      path = `${SERVER_BASE_URL}/api/tools/${toolName}/tool.json`;
+    }
+
     try {
       const response = await fetch(path);
       if (!response.ok) {
@@ -135,8 +155,15 @@ export class MCPService {
     }
   }
 
-  async loadSampleInput(inputPath: string, toolName?: string): Promise<Record<string, unknown>> {
-    const url = inputPath.startsWith('http') ? inputPath : (toolName ? `${SERVER_BASE_URL}/api/tools/${toolName}/${inputPath}` : inputPath);
+  async loadSampleInput(inputPath: string, toolUrl?: string | null): Promise<Record<string, unknown>> {
+    let url: string;
+    if (inputPath.startsWith('http')) {
+      url = inputPath;
+    } else {
+      const basePath = this.getToolBasePath(toolUrl);
+      url = basePath ? `${SERVER_BASE_URL}${basePath}/${inputPath}` : inputPath;
+    }
+
     try {
       const response = await fetch(url);
       if (!response.ok) {
@@ -149,8 +176,15 @@ export class MCPService {
     }
   }
 
-  async loadSchemaDocument(schemaPath: string, toolName?: string): Promise<unknown> {
-    const url = schemaPath.startsWith('http') ? schemaPath : (toolName ? `${SERVER_BASE_URL}/api/tools/${toolName}/${schemaPath}` : schemaPath);
+  async loadSchemaDocument(schemaPath: string, toolUrl?: string | null): Promise<unknown> {
+    let url: string;
+    if (schemaPath.startsWith('http')) {
+      url = schemaPath;
+    } else {
+      const basePath = this.getToolBasePath(toolUrl);
+      url = basePath ? `${SERVER_BASE_URL}${basePath}/${schemaPath}` : schemaPath;
+    }
+
     try {
       const response = await fetch(url);
       if (!response.ok) {
@@ -163,8 +197,15 @@ export class MCPService {
     }
   }
 
-  async loadSourceCode(sourcePath: string, toolName?: string): Promise<string> {
-    const url = sourcePath.startsWith('http') ? sourcePath : (toolName ? `${SERVER_BASE_URL}/api/tools/${toolName}/${sourcePath}` : sourcePath);
+  async loadSourceCode(sourcePath: string, toolUrl?: string | null): Promise<string> {
+    let url: string;
+    if (sourcePath.startsWith('http')) {
+      url = sourcePath;
+    } else {
+      const basePath = this.getToolBasePath(toolUrl);
+      url = basePath ? `${SERVER_BASE_URL}${basePath}/${sourcePath}` : sourcePath;
+    }
+
     try {
       const response = await fetch(url);
       if (!response.ok) {
@@ -177,8 +218,15 @@ export class MCPService {
     }
   }
 
-  async loadGitHistory(historyPath: string, toolName?: string): Promise<unknown> {
-    const url = historyPath.startsWith('http') ? historyPath : (toolName ? `${SERVER_BASE_URL}/api/tools/${toolName}/${historyPath}` : historyPath);
+  async loadGitHistory(historyPath: string, toolUrl?: string | null): Promise<unknown> {
+    let url: string;
+    if (historyPath.startsWith('http')) {
+      url = historyPath;
+    } else {
+      const basePath = this.getToolBasePath(toolUrl);
+      url = basePath ? `${SERVER_BASE_URL}${basePath}/${historyPath}` : historyPath;
+    }
+
     try {
       const response = await fetch(url);
       if (!response.ok) {
