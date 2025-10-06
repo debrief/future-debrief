@@ -3,7 +3,7 @@ import { Track } from './Track';
 import { MapContainer, TileLayer } from 'react-leaflet';
 import plot from '../../../../../apps/vs-code/workspace/large-sample.plot.json';
 import { GeoJSONFeature } from '../MapComponent';
-import { TimeState } from '@debrief/shared-types';
+import { DebriefTrackFeature, TimeState } from '@debrief/shared-types';
 
 const meta: Meta<typeof Track> = {
   title: 'Map/Track',
@@ -50,6 +50,44 @@ export const Default: Story = {
     selectedFeatureIds: [],
     onSelectionChange: (ids: (string | number)[]) => console.warn('Selection changed:', ids),
     timeState: timeState,
+  },
+  parameters: {
+    chromatic: { disable: true },
+  },
+};
+
+interface SelectionToggleArgs {
+  feature: GeoJSONFeature;
+  selectedFeatureIds: (string | number)[];
+  onSelectionChange?: (selectedFeatureIds: (string | number)[]) => void;
+  timeState?: TimeState;
+  'Selected'?: boolean;
+}
+
+export const Selected: StoryObj<SelectionToggleArgs> = {
+  args: {
+    feature: trackFeature,
+    selectedFeatureIds: [],
+    onSelectionChange: (ids: (string | number)[]) => console.warn('Selection changed:', ids),
+    timeState: timeState,
+    'Selected': true,
+  },
+  argTypes: {
+    'Selected': {
+      control: 'boolean',
+      description: 'Toggle track selection state',
+    },
+  },
+  render: (args) => {
+    const selectedIds = args['Selected'] ? [trackFeature.id!] : [];
+    return (
+      <Track
+        feature={args.feature as unknown as DebriefTrackFeature}
+        selectedFeatureIds={selectedIds}
+        onSelectionChange={args.onSelectionChange}
+        timeState={args.timeState}
+      />
+    );
   },
   parameters: {
     chromatic: { disable: true },
