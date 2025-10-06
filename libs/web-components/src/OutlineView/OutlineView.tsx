@@ -277,8 +277,11 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
                   attributeFilter: ['open']
                 })
 
-                // Cleanup observer when element is removed
-                return () => observer.disconnect()
+                // Cleanup observer and ref when element is removed
+                return () => {
+                  observer.disconnect()
+                  initializedGroupsRef.current.delete(type)
+                }
               }
             }}
           >
