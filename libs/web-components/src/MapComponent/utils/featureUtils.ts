@@ -36,8 +36,8 @@ export const getFeatureStyle = (feature: GeoJSONFeature, isSelected = false) => 
 
   if (isSelected) {
     return {
-      color: '#ffffff',
-      weight: 5,
+      color: strokeColor,  // Keep original color
+      weight: 4,
       opacity: 1,
       fillColor: fillColor,
       fillOpacity: Math.min(fillOpacity + 0.2, 0.8),
