@@ -176,6 +176,20 @@ export class DebriefHTTPServer {
 
             // MCP JSON-RPC 2.0 endpoint
             this.app.post('/mcp', async (req: express.Request, res: express.Response) => {
+                // Guard against invalid request body (must be an object)
+                if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+                    const errorResponse: MCPResponse = {
+                        jsonrpc: '2.0',
+                        id: null,
+                        error: {
+                            code: -32600,
+                            message: 'Invalid Request: body must be a JSON-RPC 2.0 object'
+                        }
+                    };
+                    res.status(400).json(errorResponse);
+                    return;
+                }
+
                 const mcpRequest = req.body as MCPRequest;
                 const { jsonrpc, method, params, id } = mcpRequest;
 
