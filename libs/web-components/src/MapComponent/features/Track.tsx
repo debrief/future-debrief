@@ -14,12 +14,12 @@ interface TrackProps {
 
 export const Track: React.FC<TrackProps> = (props) => {
   const { feature, selectedFeatureIds, onSelectionChange, timeState } = props;
-  
+
   // Return early if track is not visible
   if (feature.properties?.visible === false) {
     return null;
   }
-  
+
   // Check if this feature is selected by ID
   const isSelected = selectedFeatureIds.some(id => feature.id === id);
   
@@ -126,9 +126,17 @@ export const Track: React.FC<TrackProps> = (props) => {
   // Cast for utility functions that expect GeoJSONFeature (structurally compatible)
   const style = getFeatureStyle(feature as unknown as GeoJSON.Feature, isSelected);
 
-  const coordinates = geometry.type === 'LineString' 
+  // For selected tracks, create white outline style
+  const outlineStyle = isSelected ? {
+    color: '#ffffff',
+    weight: 9,
+    opacity: 1,
+    interactive: false,
+  } as L.PolylineOptions : null;
+
+  const coordinates = geometry.type === 'LineString'
     ? (geometry.coordinates as number[][]).map(coord => [coord[1], coord[0]] as [number, number])
-    : (geometry.coordinates as number[][][]).map((lineString: number[][]) => 
+    : (geometry.coordinates as number[][][]).map((lineString: number[][]) =>
         lineString.map((coord: number[]) => [coord[1], coord[0]] as [number, number])
       );
 
@@ -139,11 +147,36 @@ export const Track: React.FC<TrackProps> = (props) => {
   };
 
   if (geometry.type === 'MultiLineString') {
+    if (isSelected) {
+      return (
+        <>
+          {/* Render both outline and main line when selected */}
+          {(coordinates as [number, number][][]).map((lineCoords, index) => (
+            <React.Fragment key={`track-${index}`}>
+              {/* White outline first */}
+              <Polyline
+                positions={lineCoords}
+                pathOptions={outlineStyle!}
+              />
+              {/* Main colored line second - appears on top */}
+              <Polyline
+                ref={index === 0 ? handlePathRef : undefined}
+                positions={lineCoords}
+                pathOptions={style}
+              />
+            </React.Fragment>
+          ))}
+          {markerPosition && <Marker position={markerPosition} icon={timeMarkerIcon} />}
+        </>
+      );
+    }
+
+    // Not selected - just render main line
     return (
       <>
         {(coordinates as [number, number][][]).map((lineCoords, index) => (
           <Polyline
-            key={index}
+            key={`track-${index}`}
             ref={index === 0 ? handlePathRef : undefined}
             positions={lineCoords}
             pathOptions={style}
@@ -154,6 +187,26 @@ export const Track: React.FC<TrackProps> = (props) => {
     );
   }
 
+  if (isSelected) {
+    return (
+      <>
+        {/* White outline first */}
+        <Polyline
+          positions={coordinates as [number, number][]}
+          pathOptions={outlineStyle!}
+        />
+        {/* Main colored line second - appears on top */}
+        <Polyline
+          ref={handlePathRef}
+          positions={coordinates as [number, number][]}
+          pathOptions={style}
+        />
+        {markerPosition && <Marker position={markerPosition} icon={timeMarkerIcon} />}
+      </>
+    );
+  }
+
+  // Not selected - just render main line
   return (
     <>
       <Polyline

@@ -3,7 +3,8 @@ import { Track } from './Track';
 import { MapContainer, TileLayer } from 'react-leaflet';
 import plot from '../../../../../apps/vs-code/workspace/large-sample.plot.json';
 import { GeoJSONFeature } from '../MapComponent';
-import { TimeState } from '@debrief/shared-types';
+import { DebriefTrackFeature, TimeState } from '@debrief/shared-types';
+import { TrackProperties } from '@debrief/shared-types/dist/src/types/features/debrief_feature_collection';
 
 const meta: Meta<typeof Track> = {
   title: 'Map/Track',
@@ -28,7 +29,7 @@ const trackFeature = plot.features.find(
   (f) => f.properties?.dataType === 'track' && f.geometry.type === 'LineString'
 ) as GeoJSONFeature;
 
-const timestamps = (trackFeature.properties as any)?.timestamps as string[];
+const timestamps = (trackFeature.properties as unknown as TrackProperties)?.timestamps as string[];
 const startTime = new Date(timestamps[0]).getTime();
 const endTime = new Date(timestamps[timestamps.length - 1]).getTime();
 const timeRange = endTime - startTime; // Total duration in milliseconds
@@ -46,10 +47,48 @@ const timeState: TimeState = {
 
 export const Default: Story = {
   args: {
+    feature: trackFeature as unknown as DebriefTrackFeature,
+    selectedFeatureIds: [],
+    onSelectionChange: (ids: (string | number)[]) => console.warn('Selection changed:', ids),
+    timeState: timeState,
+  },
+  parameters: {
+    chromatic: { disable: true },
+  },
+};
+
+interface SelectionToggleArgs {
+  feature: GeoJSONFeature;
+  selectedFeatureIds: (string | number)[];
+  onSelectionChange?: (selectedFeatureIds: (string | number)[]) => void;
+  timeState?: TimeState;
+  'Selected'?: boolean;
+}
+
+export const Selected: StoryObj<SelectionToggleArgs> = {
+  args: {
     feature: trackFeature,
     selectedFeatureIds: [],
     onSelectionChange: (ids: (string | number)[]) => console.warn('Selection changed:', ids),
     timeState: timeState,
+    'Selected': true,
+  },
+  argTypes: {
+    'Selected': {
+      control: 'boolean',
+      description: 'Toggle track selection state',
+    },
+  },
+  render: (args) => {
+    const selectedIds = args['Selected'] ? [trackFeature.id!] : [];
+    return (
+      <Track
+        feature={args.feature as unknown as DebriefTrackFeature}
+        selectedFeatureIds={selectedIds}
+        onSelectionChange={args.onSelectionChange}
+        timeState={args.timeState}
+      />
+    );
   },
   parameters: {
     chromatic: { disable: true },
@@ -98,7 +137,7 @@ export const WithTimeControl: StoryObj<TimeControlArgs> = {
     return (
       <div style={{ position: 'relative' }}>
         <Track
-          feature={args.feature}
+          feature={args.feature as unknown as DebriefTrackFeature}
           selectedFeatureIds={args.selectedFeatureIds}
           onSelectionChange={args.onSelectionChange}
           timeState={currentTimeState}

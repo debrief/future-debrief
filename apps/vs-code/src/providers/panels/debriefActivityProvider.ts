@@ -738,6 +738,7 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
 
                     // Panel state persistence logic
                     const PANEL_STATE_KEY = 'debrief-activity-panel-states';
+                    const FOLDER_STATE_KEY = 'debrief-activity-folder-states';
 
                     function loadPanelStates() {
                         // First try VS Code webview state (persists during session)
@@ -761,13 +762,47 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
 
                     function savePanelStates(states) {
                         // Save to VS Code webview state
-                        vscode.setState({ panelStates: states });
+                        const currentState = vscode.getState() || {};
+                        vscode.setState({ ...currentState, panelStates: states });
 
                         // Also save to localStorage for cross-session persistence
                         try {
                             localStorage.setItem(PANEL_STATE_KEY, JSON.stringify(states));
                         } catch (e) {
                             console.warn('Failed to save panel states to localStorage:', e);
+                        }
+                    }
+
+                    function loadFolderStates() {
+                        // First try VS Code webview state (persists during session)
+                        const vsCodeState = vscode.getState();
+                        if (vsCodeState && vsCodeState.folderStates) {
+                            return vsCodeState.folderStates;
+                        }
+
+                        // Fallback to localStorage (persists across sessions)
+                        try {
+                            const stored = localStorage.getItem(FOLDER_STATE_KEY);
+                            if (stored) {
+                                return JSON.parse(stored);
+                            }
+                        } catch (e) {
+                            console.warn('Failed to load folder states from localStorage:', e);
+                        }
+
+                        return null;
+                    }
+
+                    function saveFolderStates(states) {
+                        // Save to VS Code webview state
+                        const currentState = vscode.getState() || {};
+                        vscode.setState({ ...currentState, folderStates: states });
+
+                        // Also save to localStorage for cross-session persistence
+                        try {
+                            localStorage.setItem(FOLDER_STATE_KEY, JSON.stringify(states));
+                        } catch (e) {
+                            console.warn('Failed to save folder states to localStorage:', e);
                         }
                     }
 
@@ -778,8 +813,9 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
                         }
 
                         try {
-                            // Load saved panel states
+                            // Load saved panel states and folder states
                             const savedPanelStates = loadPanelStates();
+                            const savedFolderStates = loadFolderStates();
 
                             const activityInstance = window.DebriefWebComponents.createDebriefActivity(container, {
                                 timeState: initialState.timeState,
@@ -794,6 +830,12 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
                                 initialPanelStates: savedPanelStates,
                                 onPanelStatesChange: (states) => {
                                     savePanelStates(states);
+                                },
+
+                                // Folder state persistence
+                                initialFolderStates: savedFolderStates,
+                                onFolderStatesChange: (states) => {
+                                    saveFolderStates(states);
                                 },
 
                                 // TimeController callbacks
