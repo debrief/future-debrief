@@ -94,7 +94,41 @@
       "properties": {
         "name": "Point at 47.4560, 6.6736",
         "dataType": "reference-point"
-
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "debrief-viewport-metadata",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              3.8261000000000065,
+              48.64848613996725
+            ],
+            [
+              9.451100000000007,
+              48.64848613996725
+            ],
+            [
+              9.451100000000007,
+              51.46098613996725
+            ],
+            [
+              3.8261000000000065,
+              51.46098613996725
+            ],
+            [
+              3.8261000000000065,
+              48.64848613996725
+            ]
+          ]
+        ]
+      },
+      "properties": {
+        "dataType": "metadata",
+        "metadataType": "viewport"
       }
     }
   ]

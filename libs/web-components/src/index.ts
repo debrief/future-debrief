@@ -26,7 +26,7 @@ export type { OutlineContextMenuProps } from './OutlineView/OutlineContextMenu';
 export type { ToolExecuteButtonProps } from './ToolExecuteButton/ToolExecuteButton';
 export type { OutlineViewParentProps } from './OutlineViewParent/OutlineViewParent';
 export type { HeadedPanelProps } from './HeadedPanel/HeadedPanel';
-export type { ActivityBarProps, ActivityPanelProps } from './ActivityBar/ActivityBar';
+export type { ActivityBarProps, ActivityPanelProps, PanelState } from './ActivityBar/ActivityBar';
 export type { DebriefActivityProps } from './DebriefActivity/DebriefActivity';
 export type { ToolExecutionContextValue, ToolExecutionProviderProps, ToolWithCategory } from './contexts/ToolExecutionContext';
 

@@ -172,10 +172,10 @@
 .tool-execute-menu {
   /* Position is now handled via inline styles with fixed positioning and React Portal */
   /* This allows the menu to escape the stacking context of react-resizable-panels */
-  max-width: 400px;
-  max-height: 300px;
-  overflow-y: auto;
-  overflow-x: hidden;
+  /* max-width and max-height are now calculated dynamically in TSX based on viewport */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Changed from overflow-y: auto - only tools-list scrolls now */
   background: var(--vscode-dropdown-background, white);
   border: 1px solid var(--vscode-dropdown-border, #cccccc);
   border-radius: 4px;
@@ -213,6 +213,10 @@
 /* Tools List */
 .tools-list {
   padding: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  /* max-height will be set inline via style to account for search box and warnings */
 }
 
 /* Category Styles */

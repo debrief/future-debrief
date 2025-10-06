@@ -1,5 +1,5 @@
 import React from 'react';
-import { ActivityBar, ActivityPanel } from '../ActivityBar/ActivityBar';
+import { ActivityBar, ActivityPanel, PanelState } from '../ActivityBar/ActivityBar';
 import { TimeController, TimeControllerProps } from '../TimeController/TimeController';
 import { OutlineViewParent } from '../OutlineViewParent/OutlineViewParent';
 import { PropertiesView, PropertiesViewProps } from '../PropertiesView/PropertiesView';
@@ -41,6 +41,10 @@ export interface DebriefActivityProps {
 
   // CurrentStateTable props
   currentState?: CurrentState;
+
+  // ActivityBar state persistence props
+  initialPanelStates?: PanelState[];
+  onPanelStatesChange?: (states: PanelState[]) => void;
 }
 
 export const DebriefActivity: React.FC<DebriefActivityProps> = ({
@@ -65,7 +69,11 @@ export const DebriefActivity: React.FC<DebriefActivityProps> = ({
   selectedFeatureProperties,
 
   // CurrentStateTable props
-  currentState
+  currentState,
+
+  // ActivityBar state persistence props
+  initialPanelStates,
+  onPanelStatesChange
 }) => {
   // Provide defaults for required OutlineViewParent props
   const defaultFeatureCollection: DebriefFeatureCollection = { type: 'FeatureCollection', features: [] };
@@ -76,7 +84,10 @@ export const DebriefActivity: React.FC<DebriefActivityProps> = ({
   };
 
   return (
-    <ActivityBar>
+    <ActivityBar
+      initialPanelStates={initialPanelStates}
+      onPanelStatesChange={onPanelStatesChange}
+    >
       <ActivityPanel title="Time Controller" collapsible={true} resizable={false}>
         <TimeController
           timeState={timeState}

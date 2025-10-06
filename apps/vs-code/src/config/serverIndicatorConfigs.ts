@@ -86,7 +86,7 @@ export function createToolVaultConfig(): ServerIndicatorConfig {
 
     onOpenWebUI: () => {
       // Open Tool Vault web interface in external browser
-      vscode.env.openExternal(vscode.Uri.parse('http://localhost:60124'));
+      vscode.env.openExternal(vscode.Uri.parse('http://localhost:60124/ui'));
     },
 
     onShowDetails: () => {
