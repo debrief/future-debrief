@@ -32,6 +32,8 @@ export const ActivityBar: React.FC<ActivityBarProps> = ({ children, className = 
   const [panelStates, setPanelStates] = useState<PanelState[]>([])
   const [resizing, setResizing] = useState<{ panelIndex: number; startY: number; startHeights: [number, number] } | null>(null)
   const initializedRef = useRef(false)
+  const panelStatesRef = useRef<PanelState[]>([]) // Track current panel states for event handlers
+  const onPanelStatesChangeRef = useRef(onPanelStatesChange) // Track callback ref to avoid effect recreation
 
   // Initialize panel states only once
   useEffect(() => {
@@ -82,6 +84,15 @@ export const ActivityBar: React.FC<ActivityBarProps> = ({ children, className = 
     initializedRef.current = true
   }, [children, initialPanelStates])
 
+  // Keep refs in sync with state and props for event handlers
+  useEffect(() => {
+    panelStatesRef.current = panelStates
+  }, [panelStates])
+
+  useEffect(() => {
+    onPanelStatesChangeRef.current = onPanelStatesChange
+  }, [onPanelStatesChange])
+
   // Redistribute space when panels collapse/expand
   const redistributeSpace = (newStates: PanelState[], childArray: React.ReactNode[]) => {
     const containerHeight = containerRef.current?.clientHeight || 600
@@ -131,8 +142,8 @@ export const ActivityBar: React.FC<ActivityBarProps> = ({ children, className = 
       const redistributedStates = redistributeSpace(newStates, childArray)
 
       // Notify parent of state change
-      if (onPanelStatesChange) {
-        onPanelStatesChange(redistributedStates)
+      if (onPanelStatesChangeRef.current) {
+        onPanelStatesChangeRef.current(redistributedStates)
       }
 
       return redistributedStates
@@ -182,8 +193,8 @@ export const ActivityBar: React.FC<ActivityBarProps> = ({ children, className = 
 
     const handleMouseUp = () => {
       // Notify parent of final state after resize
-      if (onPanelStatesChange) {
-        onPanelStatesChange(panelStates)
+      if (onPanelStatesChangeRef.current) {
+        onPanelStatesChangeRef.current(panelStatesRef.current)
       }
       setResizing(null)
     }

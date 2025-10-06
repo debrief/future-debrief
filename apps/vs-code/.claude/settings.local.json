@@ -54,7 +54,10 @@
       "Bash(pnpm compile:*)",
       "Bash(pnpm lint:*)",
       "Bash(pnpm typecheck:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Read(//Users/ian/git/future-debrief-parent/a/libs/web-components/src/**)",
+      "Read(//Users/ian/git/future-debrief-parent/a/libs/web-components/**)",
+      "Bash(pnpm build:*)"
     ]
   },
   "outputStyle": "default"
