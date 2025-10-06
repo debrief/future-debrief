@@ -50,7 +50,10 @@
       "Bash(time npm run compile)",
       "Bash(time npm run vscode:prepublish)",
       "Bash(yarn install)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "Bash(pnpm compile:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm typecheck:*)"
     ]
   },
   "outputStyle": "default"
