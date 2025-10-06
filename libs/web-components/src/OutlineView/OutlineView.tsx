@@ -60,7 +60,18 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
   contextMenuPosition,
   contextMenuContent,
 }) => {
-  const groupedFeatures = groupFeaturesByType(featureCollection.features)
+  const groupedFeatures = React.useMemo(
+    () => groupFeaturesByType(featureCollection.features),
+    [featureCollection.features]
+  )
+
+  // Track which group tree items we've initialized
+  // This ensures we only set the initial open state once
+  const initializedGroupsRef = React.useRef<Set<string>>(new Set())
+
+  // Get the first group type for initial open state
+  const groupTypes = Object.keys(groupedFeatures)
+  const firstGroupType = groupTypes[0]
 
   // Calculate visibility state based on selected features using feature.properties.visible
   const getVisibilityState = (): VisibilityState => {
@@ -213,7 +224,18 @@ export const OutlineView: React.FC<OutlineViewProps> = ({
       </VscodeToolbarContainer>
       <VscodeTree data-testid="outline-view-tree" multiSelect onVscTreeSelect={handleSelection} >
         {(Object.entries(groupedFeatures) as [string, DebriefFeature[]][]).map(([type, features]) => (
-          <VscodeTreeItem key={type}>
+          <VscodeTreeItem
+            key={type}
+            ref={(el: HTMLElement | null) => {
+              if (el && !initializedGroupsRef.current.has(type)) {
+                // Set initial open state only on first mount
+                // Only the first group is expanded by default
+                const isFirstGroup = type === firstGroupType;
+                (el as unknown as { open: boolean }).open = isFirstGroup;
+                initializedGroupsRef.current.add(type);
+              }
+            }}
+          >
             <span>{type}</span>
             {features.map((feature: DebriefFeature) => (
               <VscodeTreeItem

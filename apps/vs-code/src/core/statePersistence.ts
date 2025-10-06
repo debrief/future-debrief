@@ -155,10 +155,17 @@ export class StatePersistence {
             
             if (text.length === 0) {
                 // Empty document - initialize with default state
-                this.globalController.updateMultipleStates(editorId, {
-                    featureCollection: { type: 'FeatureCollection', features: [] },
-                    selectionState: { selectedIds: [] }
-                });
+                const stateUpdates: Record<string, unknown> = {
+                    featureCollection: { type: 'FeatureCollection', features: [] }
+                };
+
+                // Preserve existing selection state if it exists
+                const currentState = this.globalController.getEditorState(editorId);
+                if (!currentState.selectionState || currentState.selectionState.selectedIds.length === 0) {
+                    stateUpdates.selectionState = { selectedIds: [] };
+                }
+
+                this.globalController.updateMultipleStates(editorId, stateUpdates);
                 return;
             }
             
@@ -195,10 +202,9 @@ export class StatePersistence {
             // Update GlobalController with all state
             // Note: If no viewport state exists, leave it undefined so map can fitBounds()
             const stateUpdates: Record<string, unknown> = {
-                featureCollection: cleanFeatureCollection,
-                selectionState: { selectedIds: [] } // Selection is always empty on load
+                featureCollection: cleanFeatureCollection
             };
-            
+
             // Only add timeState and viewportState if they're defined
             if (extractedState.timeState) {
                 stateUpdates.timeState = extractedState.timeState;
@@ -206,7 +212,15 @@ export class StatePersistence {
             if (extractedState.viewportState) {
                 stateUpdates.viewportState = extractedState.viewportState;
             }
-            
+
+            // Preserve existing selection state - only reset on initial load
+            const currentState = this.globalController.getEditorState(editorId);
+            if (!currentState.selectionState || currentState.selectionState.selectedIds.length === 0) {
+                // Only set empty selection if there's no existing selection
+                stateUpdates.selectionState = { selectedIds: [] };
+            }
+            // Otherwise, keep the current selection state (don't update it)
+
             this.globalController.updateMultipleStates(editorId, stateUpdates);
             
         } catch (error) {
