@@ -21,6 +21,9 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
     private static outlineUpdateCallback: ((document: vscode.TextDocument) => void) | undefined;
     private static activeWebviewPanel: vscode.WebviewPanel | undefined;
 
+    // Track which webview is currently updating state to prevent circular updates
+    private static updatingWebviewPanel: vscode.WebviewPanel | undefined;
+
     public static setOutlineUpdateCallback(callback: (document: vscode.TextDocument) => void): void {
         PlotJsonEditorProvider.outlineUpdateCallback = callback;
     }
@@ -206,6 +209,11 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
 
         // Subscribe to viewport changes
         const viewportSubscription = globalController.on('viewportChanged', (data) => {
+            // Skip if this webview is the source of the update (prevent circular updates)
+            if (PlotJsonEditorProvider.updatingWebviewPanel === webviewPanel) {
+                return;
+            }
+
             if (data.editorId === editorId && webviewPanel.visible) {
                 const mapState = PlotJsonEditorProvider.convertBoundsToMapState(data.state.viewportState?.bounds);
                 if (mapState) {
@@ -326,10 +334,18 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
                 case 'mapStateSaved': {
                     // Save map view state using GlobalController, but only if this is the active webview
                     if (PlotJsonEditorProvider.activeWebviewPanel === webviewPanel) {
+                        // Mark this webview as the source of the update to prevent circular updates
+                        PlotJsonEditorProvider.updatingWebviewPanel = webviewPanel;
+
                         const editorId = EditorIdManager.getEditorId(document);
                         const globalController = GlobalController.getInstance();
                         const viewportState = PlotJsonEditorProvider.convertCenterZoomToBounds(e.center, e.zoom);
                         globalController.updateState(editorId, 'viewportState', viewportState);
+
+                        // Clear the flag after a brief delay to allow event propagation
+                        setTimeout(() => {
+                            PlotJsonEditorProvider.updatingWebviewPanel = undefined;
+                        }, 10);
                     }
                     return;
                 }
