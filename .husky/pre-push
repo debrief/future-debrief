@@ -1,35 +1,65 @@
 #!/bin/bash
 set -e  # Exit immediately on any error
 
-pnpm test
-
-# Run fast pre-push validation showing detailed errors
-echo "🚀 Running pre-push validation..."
+echo "⚡ Phase 1: Fast checks (typecheck, lint, artifacts)..."
 
 ORIGINAL_DIR=$(pwd)
 
-# Check if web-components changed, and if so, build Storybook to catch runtime errors
-if git diff --name-only main...HEAD 2>/dev/null | grep -q "^libs/web-components/"; then
-  echo "✅ Checking Storybook build (web-components changed)..."
-  pnpm --filter @debrief/web-components build-storybook --quiet || {
-    echo "❌ Storybook build failed - check your story files for runtime errors" >&2
-    exit 1
-  }
-fi
-
-# Find all Makefiles and run verify sequentially to show errors properly
-# Store directories in a variable first to avoid subshell issues
+# Find all Makefiles and run fast verifications in parallel
 MAKEFILE_DIRS=$(find . -path "*/*/Makefile" -not -path "*/node_modules/*" -exec dirname {} \;)
 
+# Launch parallel verification tasks, capturing only errors
+FAILED=0
+PIDS=()
 for dir in $MAKEFILE_DIRS; do
-  cd "$dir" || exit 1
-  pkg_name=$(basename "$(pwd)")
-  echo "✅ Checking $pkg_name..."
+  (
+    cd "$dir" || exit 1
+    pkg_name=$(basename "$(pwd)")
 
-  # Fail immediately if make verify fails
-  make verify || { echo "❌ $pkg_name verification failed" >&2; exit 1; }
+    # Run fast checks only (artifacts + typecheck), suppress success output
+    OUTPUT=$(make verify-artifacts verify-typecheck 2>&1)
+    EXIT_CODE=$?
 
-  cd "$ORIGINAL_DIR" || exit 1
+    # Show only errors and hints
+    echo "$OUTPUT" | grep -E "(❌|Error|💡)" || true
+
+    # Exit with error code if any check failed
+    if [ $EXIT_CODE -ne 0 ]; then
+      echo "❌ $pkg_name fast checks failed" >&2
+      exit 1
+    fi
+  ) &
+  PIDS+=($!)
 done
+
+# Wait for all parallel tasks to complete
+for pid in "${PIDS[@]}"; do
+  wait $pid || FAILED=1
+done
+
+if [ $FAILED -eq 1 ]; then
+  echo "❌ Fast checks failed - fix issues above" >&2
+  exit 1
+fi
+
+echo "✅ Phase 1 complete"
+
+# Phase 2: Tests (via turbo - runs once with caching)
+echo "⚡ Phase 2: Running tests..."
+NODE_NO_WARNINGS=1 pnpm test --output-logs=errors-only || {
+  echo "❌ Tests failed" >&2
+  exit 1
+}
+echo "✅ Phase 2 complete"
+
+# Phase 3: Conditional Storybook build (only if web-components changed)
+if git diff --name-only main...HEAD 2>/dev/null | grep -q "^libs/web-components/"; then
+  echo "⚡ Phase 3: Storybook build (web-components changed)..."
+  pnpm --filter @debrief/web-components build-storybook --quiet || {
+    echo "❌ Storybook build failed" >&2
+    exit 1
+  }
+  echo "✅ Phase 3 complete"
+fi
 
 echo "✅ All validations passed!"

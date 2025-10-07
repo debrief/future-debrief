@@ -211,7 +211,8 @@
       "Bash(gh run list:*)",
       "Bash(gh api:*)",
       "Bash(git show:*)",
-      "Bash(./scripts/cleanup-flyio-apps.sh:*)"
+      "Bash(./scripts/cleanup-flyio-apps.sh:*)",
+      "Bash(time bash:*)"
     ]
   }
 }

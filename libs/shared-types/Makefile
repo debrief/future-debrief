@@ -219,11 +219,10 @@ dev: ## Watch mode for development
 	@echo "$(BLUE)Starting development watch mode...$(RESET)"
 	@NODE_NO_WARNINGS=1 npx concurrently "npx nodemon --watch python-src/debrief/types --ext 'py' --exec 'python3 generate_schemas.py'" "NODE_NO_WARNINGS=1 npx tsc --watch --preserveWatchOutput"
 
-verify: verify-artifacts verify-tests verify-typecheck verify-contents ## Fast verification (timestamp-based)
+verify: verify-artifacts verify-typecheck verify-contents ## Fast verification (timestamp-based)
 	@echo "$(GREEN)✅ All shared-types verifications passed!$(RESET)"
 
 verify-artifacts: ## Verify build artifacts are up-to-date
-	@echo "$(BLUE)Checking build artifacts...$(RESET)"
 	@NEWEST_PY=$$(find python-src/debrief/types -name "*.py" -type f -exec stat -f "%m %N" {} \; | sort -nr | head -1 | cut -d' ' -f2-); \
 	if [ -z "$$NEWEST_PY" ]; then \
 		echo "$(RED)❌ [@debrief/shared-types] No Pydantic source files found$(RESET)"; \
@@ -240,8 +239,7 @@ verify-artifacts: ## Verify build artifacts are up-to-date
 			echo "$(BLUE)💡 Run: make generate$(RESET)"; \
 			exit 1; \
 		fi; \
-	done; \
-	echo "$(GREEN)✅ All build artifacts are up-to-date$(RESET)"
+	done
 
 verify-tests: ## Run tests without rebuilding
 	@echo "$(BLUE)Running tests...$(RESET)"
@@ -250,15 +248,11 @@ verify-tests: ## Run tests without rebuilding
 	 echo "$(GREEN)✅ Tests passed$(RESET)" || (echo "$(RED)❌ Tests failed$(RESET)" && exit 1)
 
 verify-typecheck: ## Type check without compilation
-	@echo "$(BLUE)Type checking...$(RESET)"
-	@NODE_NO_WARNINGS=1 npx tsc --noEmit && echo "$(GREEN)✅ Type check passed$(RESET)" || (echo "$(RED)❌ Type check failed$(RESET)" && exit 1)
+	@NODE_NO_WARNINGS=1 npx tsc --noEmit || (echo "$(RED)❌ Type check failed$(RESET)" >&2 && exit 1)
 
 verify-contents: ## Verify build artifact contents
-	@echo "$(BLUE)Verifying build artifact contents...$(RESET)"
 	@if [ -f "$(PYTHON_WHEEL)" ]; then \
-		if python -m zipfile -l "$(PYTHON_WHEEL)" | grep -q "debrief/types"; then \
-			echo "$(GREEN)✅ Python wheel contains expected modules$(RESET)"; \
-		else \
+		if ! python -m zipfile -l "$(PYTHON_WHEEL)" | grep -q "debrief/types"; then \
 			echo "$(RED)❌ [@debrief/shared-types] Python wheel missing debrief.types modules$(RESET)"; \
 			exit 1; \
 		fi; \
