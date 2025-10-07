@@ -511,23 +511,12 @@ export class DebriefOutlineProvider implements vscode.WebviewViewProvider {
     const hasDebriefCommands = this._containsDebriefCommands(result);
 
     if (hasDebriefCommands) {
-      // If tool returned commands, those were processed by GlobalController
-      const successMessage = `Tool "${commandName}" executed successfully and plot updated`;
-      vscode.window.showInformationMessage(successMessage);
+      // Tool updated plot - no notification needed on success
+      console.warn(`[DebriefOutlineProvider] Tool "${commandName}" executed successfully and plot updated`);
     } else {
-      // Traditional result handling for tools that return data
-      const successMessage = `Tool "${commandName}" executed successfully`;
-      vscode.window.showInformationMessage(
-        successMessage,
-        'View Results',
-        'Copy Results'
-      ).then(selection => {
-        if (selection === 'View Results') {
-          this._showToolResults(commandName, result);
-        } else if (selection === 'Copy Results') {
-          this._copyToolResults(result);
-        }
-      });
+      // Tool returned data - log success (no notification on success)
+      console.warn(`[DebriefOutlineProvider] Tool "${commandName}" executed successfully`);
+      // Users can access results through the Outline view if needed
     }
   }
 

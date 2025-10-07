@@ -546,21 +546,12 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
         const hasDebriefCommands = this._containsDebriefCommands(result);
 
         if (hasDebriefCommands) {
-            const successMessage = `Tool "${commandName}" executed successfully and plot updated`;
-            vscode.window.showInformationMessage(successMessage);
+            // Tool updated plot - no notification needed on success
+            console.warn(`[DebriefActivityProvider] Tool "${commandName}" executed successfully and plot updated`);
         } else {
-            const successMessage = `Tool "${commandName}" executed successfully`;
-            vscode.window.showInformationMessage(
-                successMessage,
-                'View Results',
-                'Copy Results'
-            ).then(selection => {
-                if (selection === 'View Results') {
-                    void this._showToolResults(commandName, result);
-                } else if (selection === 'Copy Results') {
-                    void this._copyToolResults(result);
-                }
-            });
+            // Tool returned data - log success (no notification on success)
+            console.warn(`[DebriefActivityProvider] Tool "${commandName}" executed successfully`);
+            // Users can access results through the Activity view if needed
         }
     }
 
