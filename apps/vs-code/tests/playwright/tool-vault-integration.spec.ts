@@ -135,7 +135,7 @@ test.describe('Tool Vault Server Integration', () => {
       throw new Error(`HTTP bridge connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
 
-    console.log('✅ Debrief HTTP bridge is activated and accepting connections');
+    console.log('✅ Debrief State bridge is activated and accepting connections');
   });
 
   test('should validate Tool Vault health endpoint with structured response', async ({

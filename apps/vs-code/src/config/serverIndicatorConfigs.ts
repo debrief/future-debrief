@@ -23,7 +23,7 @@ export function createDebriefHttpConfig(
   setServer: (server: DebriefHTTPServer | null) => void
 ): ServerIndicatorConfig {
   return {
-    name: 'Debrief HTTP',
+    name: 'Debrief State',
     healthCheckUrl: 'http://localhost:60123/health',
     pollInterval: 5000,
 
