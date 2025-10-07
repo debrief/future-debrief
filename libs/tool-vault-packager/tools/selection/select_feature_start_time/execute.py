@@ -1,4 +1,4 @@
-"""Set TimeState current to the earliest timestamp from features."""
+"""Set current time to the earliest timestamp of selected features."""
 
 from datetime import datetime, timezone
 from typing import List
@@ -44,7 +44,7 @@ class SelectFeatureStartTimeParameters(BaseModel):
 
 def select_feature_start_time(params: SelectFeatureStartTimeParameters) -> DebriefCommand:
     """
-    Set TimeState current to the earliest timestamp from any feature.
+    Set current time state to the earliest timestamp of selected features.
 
     Analyzes the timestamps property of features and sets TimeState.current
     to the earliest timestamp found across all features.
