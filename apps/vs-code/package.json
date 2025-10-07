@@ -67,14 +67,6 @@
     ],
     "commands": [
       {
-        "command": "vs-code.helloWorld",
-        "title": "Hello World"
-      },
-      {
-        "command": "customOutline.selectFeature",
-        "title": "Select Feature"
-      },
-      {
         "command": "debrief.undo",
         "title": "Debrief: Undo"
       },
@@ -105,18 +97,6 @@
       ]
     },
     "views": {
-      "explorer": [
-        {
-          "id": "vs-code.helloView",
-          "name": "Hello World",
-          "when": "!config.debrief.development.mode"
-        },
-        {
-          "id": "customGeoJsonOutline",
-          "name": "GeoJSON Features",
-          "when": "true"
-        }
-      ],
       "debrief": [
         {
           "id": "debrief.activity",

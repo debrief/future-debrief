@@ -35,12 +35,12 @@ describe('ServerIndicatorErrors', () => {
 
   describe('HealthCheckTimeoutError', () => {
     it('should create timeout error with default timeout', () => {
-      const error = new HealthCheckTimeoutError('Debrief HTTP');
+      const error = new HealthCheckTimeoutError('Debrief State');
 
       expect(error.message).toContain('Health check timeout');
-      expect(error.message).toContain('Debrief HTTP');
+      expect(error.message).toContain('Debrief State');
       expect(error.message).toContain('30000ms');
-      expect(error.serverName).toBe('Debrief HTTP');
+      expect(error.serverName).toBe('Debrief State');
       expect(error.state).toBe(ServerState.Error);
       expect(error.name).toBe('HealthCheckTimeoutError');
     });
@@ -60,12 +60,12 @@ describe('ServerIndicatorErrors', () => {
 
   describe('ServerStartupError', () => {
     it('should create startup error with cause', () => {
-      const error = new ServerStartupError('Debrief HTTP', 'Port in use');
+      const error = new ServerStartupError('Debrief State', 'Port in use');
 
       expect(error.message).toContain('Failed to start');
-      expect(error.message).toContain('Debrief HTTP');
+      expect(error.message).toContain('Debrief State');
       expect(error.message).toContain('Port in use');
-      expect(error.serverName).toBe('Debrief HTTP');
+      expect(error.serverName).toBe('Debrief State');
       expect(error.cause).toBe('Port in use');
       expect(error.state).toBe(ServerState.Error);
       expect(error.name).toBe('ServerStartupError');
@@ -79,12 +79,12 @@ describe('ServerIndicatorErrors', () => {
 
   describe('PortConflictError', () => {
     it('should create port conflict error with port number', () => {
-      const error = new PortConflictError('Debrief HTTP', 60123);
+      const error = new PortConflictError('Debrief State', 60123);
 
       expect(error.message).toContain('Port 60123');
       expect(error.message).toContain('already in use');
-      expect(error.message).toContain('Debrief HTTP');
-      expect(error.serverName).toBe('Debrief HTTP');
+      expect(error.message).toContain('Debrief State');
+      expect(error.serverName).toBe('Debrief State');
       expect(error.port).toBe(60123);
       expect(error.state).toBe(ServerState.Error);
       expect(error.name).toBe('PortConflictError');
@@ -128,12 +128,12 @@ describe('ServerIndicatorErrors', () => {
   describe('ServerCallbackError', () => {
     it('should create callback error with original error', () => {
       const originalError = new Error('Original failure');
-      const error = new ServerCallbackError('Debrief HTTP', 'onStart', originalError);
+      const error = new ServerCallbackError('Debrief State', 'onStart', originalError);
 
       expect(error.message).toContain('onStart');
-      expect(error.message).toContain('Debrief HTTP');
+      expect(error.message).toContain('Debrief State');
       expect(error.message).toContain('Original failure');
-      expect(error.serverName).toBe('Debrief HTTP');
+      expect(error.serverName).toBe('Debrief State');
       expect(error.callbackName).toBe('onStart');
       expect(error.originalError).toBe(originalError);
       expect(error.state).toBe(ServerState.Error);

@@ -18,15 +18,10 @@ interface WebviewMessage {
 }
 
 export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
-    private static outlineUpdateCallback: ((document: vscode.TextDocument) => void) | undefined;
     private static activeWebviewPanel: vscode.WebviewPanel | undefined;
 
     // Track which webview is currently updating state to prevent circular updates
     private static updatingWebviewPanel: vscode.WebviewPanel | undefined;
-
-    public static setOutlineUpdateCallback(callback: (document: vscode.TextDocument) => void): void {
-        PlotJsonEditorProvider.outlineUpdateCallback = callback;
-    }
 
     public static sendMessageToActiveWebview(message: WebviewMessage): void {
         if (PlotJsonEditorProvider.activeWebviewPanel) {
@@ -185,11 +180,6 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         // Track this as the active webview panel
         PlotJsonEditorProvider.activeWebviewPanel = webviewPanel;
 
-        // Notify outline tree that this document is now active (legacy)
-        if (PlotJsonEditorProvider.outlineUpdateCallback) {
-            PlotJsonEditorProvider.outlineUpdateCallback(document);
-        }
-
         // Subscribe to GlobalController state changes for this editor
         const editorId = EditorIdManager.getEditorId(document);
         const globalController = GlobalController.getInstance();
@@ -255,13 +245,10 @@ export class PlotJsonEditorProvider implements vscode.CustomTextEditorProvider {
         webviewPanel.onDidChangeViewState(() => {
             const editorId = EditorIdManager.getEditorId(document);
             const globalController = GlobalController.getInstance();
-            
+
             if (webviewPanel.visible) {
                 PlotJsonEditorProvider.activeWebviewPanel = webviewPanel;
-                if (PlotJsonEditorProvider.outlineUpdateCallback) {
-                    PlotJsonEditorProvider.outlineUpdateCallback(document);
-                }
-                
+
                 // Editor became visible - sync current state and set as active
                 globalController.setActiveEditor(editorId);
                 this.syncWebviewWithGlobalState(webviewPanel, editorId);

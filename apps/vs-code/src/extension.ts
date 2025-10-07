@@ -10,7 +10,6 @@ import { HistoryManager } from './core/historyManager';
 // UI Providers
 import { PlotJsonEditorProvider } from './providers/editors/plotJsonEditor';
 import { DebriefActivityProvider } from './providers/panels/debriefActivityProvider';
-import { CustomOutlineTreeProvider } from './providers/outlines/customOutlineTreeProvider';
 
 // External services
 import { DebriefHTTPServer } from './services/debriefHttpServer';
@@ -21,23 +20,6 @@ import { ToolVaultConfigService } from './services/toolVaultConfig';
 // Server status indicators
 import { ServerStatusBarIndicator } from './components/ServerStatusBarIndicator';
 import { createDebriefHttpConfig, createToolVaultConfig } from './config/serverIndicatorConfigs';
-
-
-class HelloWorldProvider implements vscode.TreeDataProvider<string> {
-    getTreeItem(element: string): vscode.TreeItem {
-        return {
-            label: element,
-            collapsibleState: vscode.TreeItemCollapsibleState.None
-        };
-    }
-
-    getChildren(element?: string): Thenable<string[]> {
-        if (!element) {
-            return Promise.resolve(['Hello World from Debrief\'s Custom View!', 'Extension is working properly']);
-        }
-        return Promise.resolve([]);
-    }
-}
 
 let webSocketServer: DebriefHTTPServer | null = null;
 let globalController: GlobalController | null = null;
@@ -121,45 +103,9 @@ export function activate(context: vscode.ExtensionContext) {
         }
     });
 
-    const disposable = vscode.commands.registerCommand('vs-code.helloWorld', () => {
-        vscode.window.showInformationMessage('Hello World from Debrief Extension!');
-    });
-
-    const provider = new HelloWorldProvider();
-    vscode.window.createTreeView('vs-code.helloView', { treeDataProvider: provider });
-
-    // Create custom outline tree view
-    const outlineTreeProvider = new CustomOutlineTreeProvider();
-    
-    // Register the custom plot JSON editor and wire up outline updates
-    PlotJsonEditorProvider.setOutlineUpdateCallback((document) => {
-        outlineTreeProvider.updateDocument(document);
-    });
+    // Register the custom plot JSON editor
     context.subscriptions.push(PlotJsonEditorProvider.register(context));
-    const outlineTreeView = vscode.window.createTreeView('customGeoJsonOutline', {
-        treeDataProvider: outlineTreeProvider,
-        showCollapseAll: false
-    });
-    context.subscriptions.push(outlineTreeView);
 
-    // Update outline when active editor changes or document content changes
-    // Note: Active editor handling is now managed by EditorActivationHandler
-    context.subscriptions.push(
-        vscode.window.onDidChangeActiveTextEditor((editor) => {
-            if (editor && editor.document.fileName.endsWith('.plot.json')) {
-                outlineTreeProvider.updateDocument(editor.document);
-            }
-        })
-    );
-
-    context.subscriptions.push(
-        vscode.workspace.onDidChangeTextDocument((event) => {
-            if (event.document.fileName.endsWith('.plot.json')) {
-                outlineTreeProvider.updateDocument(event.document);
-            }
-        })
-    );
-    
     // Handle document close events for GlobalController cleanup
     context.subscriptions.push(
         vscode.workspace.onDidCloseTextDocument((document) => {
@@ -171,37 +117,6 @@ export function activate(context: vscode.ExtensionContext) {
             }
         })
     );
-
-    // Initialize with current active editor if it's a .plot.json file
-    // Note: Active editor initialization is now handled by EditorActivationHandler
-    const activeEditor = vscode.window.activeTextEditor;
-    if (activeEditor && activeEditor.document.fileName.endsWith('.plot.json')) {
-        outlineTreeProvider.updateDocument(activeEditor.document);
-    }
-
-    // Register command to handle feature selection from custom outline
-    const selectFeatureCommand = vscode.commands.registerCommand(
-        'customOutline.selectFeature',
-        (featureIndex: number) => {
-            console.warn('Feature selected from custom outline:', featureIndex);
-            
-            // Find the active custom editor webview and send highlight message
-            vscode.window.tabGroups.all.forEach(tabGroup => {
-                tabGroup.tabs.forEach(tab => {
-                    if (tab.input instanceof vscode.TabInputCustom && 
-                        tab.input.viewType === 'plotJsonEditor' && 
-                        tab.isActive) {
-                        // Send highlight message to the active webview
-                        PlotJsonEditorProvider.sendMessageToActiveWebview({
-                            type: 'highlightFeature',
-                            featureIndex: featureIndex
-                        });
-                    }
-                });
-            });
-        }
-    );
-    context.subscriptions.push(selectFeatureCommand);
 
     // Register Tool Vault server restart command
     const restartToolVaultCommand = vscode.commands.registerCommand(
@@ -348,8 +263,6 @@ export function activate(context: vscode.ExtensionContext) {
     );
 
     // Panel connections are handled automatically through GlobalController subscriptions
-
-    context.subscriptions.push(disposable);
 }
 
 export async function deactivate() {
