@@ -18,10 +18,8 @@ COPY libs/shared-types/ ./libs/shared-types/
 
 WORKDIR /tmp/repo/libs/shared-types
 
-RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: shared-types build starting" "${STATUS_WEBHOOK}" || true; fi && \
-    pip install --no-cache-dir -r requirements.txt && \
-    python -m build --wheel --outdir /tmp/wheels && \
-    if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: shared-types wheel ready" "${STATUS_WEBHOOK}" || true; fi
+RUN pip install --no-cache-dir -r requirements.txt && \
+    python -m build --wheel --outdir /tmp/wheels
 
 # Build Tool Vault package
 FROM node:20-slim AS tool-vault-builder
@@ -49,11 +47,9 @@ COPY libs/tool-vault-packager/ ./libs/tool-vault-packager/
 WORKDIR /tmp/repo/libs/tool-vault-packager
 
 # Install npm dependencies and build Tool Vault package
-RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: Tool Vault build starting" "${STATUS_WEBHOOK}" || true; fi && \
-    npm install && \
+RUN npm install && \
     cd spa && npm install && cd .. && \
-    npm run build && \
-    if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: Tool Vault package ready" "${STATUS_WEBHOOK}" || true; fi
+    npm run build
 
 # Use the official code-server image as the base
 FROM codercom/code-server:latest
@@ -134,14 +130,10 @@ WORKDIR /home/coder/project
 RUN if [ ! -f "vs-code-0.0.1.vsix" ]; then echo "Error: Pre-built vs-code-0.0.1.vsix missing"; exit 1; fi
 
 # Install the extension in code-server
-RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: installing Debrief VSIX" "${STATUS_WEBHOOK}" || true; fi && \
-    code-server --install-extension ./vs-code-0.0.1.vsix && \
-    if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: Debrief VSIX installed" "${STATUS_WEBHOOK}" || true; fi
+RUN code-server --install-extension ./vs-code-0.0.1.vsix
 
 # Install Python extension for code-server
-RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: installing Python extension" "${STATUS_WEBHOOK}" || true; fi && \
-    code-server --install-extension ms-python.python && \
-    if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: Python extension installed" "${STATUS_WEBHOOK}" || true; fi
+RUN code-server --install-extension ms-python.python
 
 # Copy workspace files to the workspace directory
 # Build context is apps/vs-code/, so workspace is at ./workspace
@@ -164,7 +156,6 @@ RUN if [ ! -d "/home/coder/workspace/tests" ]; then \
         ls -la /home/coder/workspace/ >&2; \
         exit 1; \
     fi && \
-    if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: creating workspace venv" "${STATUS_WEBHOOK}" || true; fi && \
     cd /home/coder/workspace/tests && \
     python3 -m venv venv && \
     venv/bin/pip install -r requirements.txt && \
@@ -173,14 +164,16 @@ RUN if [ ! -d "/home/coder/workspace/tests" ]; then \
     else \
         echo "Error: debrief-types wheel not found. Verify shared-types build step." >&2 && \
         exit 1; \
-    fi && \
-    if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: workspace venv ready" "${STATUS_WEBHOOK}" || true; fi
+    fi
 
 # Create a simple README for the workspace
 RUN echo "# Debrief Extension Preview\n\nThis is a preview environment for the Debrief VS Code extension.\n\n## Sample Files\n\n- \`*.rep\` files: Debrief replay files\n- \`*.plot.json\` files: Plot data visualization files\n\n## Usage\n\n1. Open any .plot.json file to see the custom Plot JSON editor\n2. Use Ctrl+Shift+P to access the 'Hello World' command\n3. Check the 'Hello World' view in the Explorer panel\n\n## Python Scripts\n\nPython scripts can be run directly with F5 or using the Run button in VS Code. The environment is pre-configured to use the virtual environment automatically.\n\nAlternatively, you can run scripts manually:\n\n\`\`\`bash\ncd tests\n./venv/bin/python move_point_north_simple.py\n\`\`\`\n\nThis environment includes sample data files for testing the extension features." > /home/coder/workspace/README.md
 
 # Set workspace as the default directory
 WORKDIR /home/coder/workspace
+
+# Send final success notification
+RUN if [ -n "${STATUS_WEBHOOK}" ]; then curl -s -d "PR ${PR_NUMBER}: VS Code Docker build succeeded ✅" "${STATUS_WEBHOOK}" || true; fi
 
 # Expose ports:
 # - 8080: code-server web interface
