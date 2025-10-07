@@ -262,6 +262,27 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.registerWebviewViewProvider(DebriefActivityProvider.viewType, debriefActivityProvider)
     );
 
+    // Register commands for accessing last tool result
+    const viewLastToolResultCommand = vscode.commands.registerCommand(
+        'debrief.viewLastToolResult',
+        () => {
+            if (debriefActivityProvider) {
+                debriefActivityProvider.showLastToolResult();
+            }
+        }
+    );
+    context.subscriptions.push(viewLastToolResultCommand);
+
+    const copyLastToolResultCommand = vscode.commands.registerCommand(
+        'debrief.copyLastToolResult',
+        () => {
+            if (debriefActivityProvider) {
+                debriefActivityProvider.copyLastToolResult();
+            }
+        }
+    );
+    context.subscriptions.push(copyLastToolResultCommand);
+
     // Panel connections are handled automatically through GlobalController subscriptions
 }
 

@@ -8,7 +8,7 @@ import {
     DebriefFeature
 } from '@debrief/shared-types';
 import { ToolSchema } from '@debrief/web-components/services';
-import { Property, PanelState } from '@debrief/web-components';
+import { Property } from '@debrief/web-components';
 
 /**
  * DebriefActivityProvider - Consolidated webview provider for all activity panel components
@@ -36,6 +36,7 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
     private _disposables: vscode.Disposable[] = [];
     private _toolListFailed = false;
     private _cachedToolList: unknown = null;
+    private _lastToolResult?: { commandName: string; result: unknown };
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
@@ -546,21 +547,14 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
         const hasDebriefCommands = this._containsDebriefCommands(result);
 
         if (hasDebriefCommands) {
-            const successMessage = `Tool "${commandName}" executed successfully and plot updated`;
-            vscode.window.showInformationMessage(successMessage);
+            // Tool updated plot - no notification needed on success
+            console.warn(`[DebriefActivityProvider] Tool "${commandName}" executed successfully and plot updated`);
         } else {
-            const successMessage = `Tool "${commandName}" executed successfully`;
-            vscode.window.showInformationMessage(
-                successMessage,
-                'View Results',
-                'Copy Results'
-            ).then(selection => {
-                if (selection === 'View Results') {
-                    void this._showToolResults(commandName, result);
-                } else if (selection === 'Copy Results') {
-                    void this._copyToolResults(result);
-                }
-            });
+            // Store result for later access
+            this._lastToolResult = { commandName, result };
+
+            // Log success without showing notification
+            console.warn(`[DebriefActivityProvider] Tool "${commandName}" executed successfully - use "View Last Tool Result" command to access output`);
         }
     }
 
@@ -666,6 +660,30 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
     private _cleanup(): void {
         this._disposables.forEach(disposable => disposable.dispose());
         this._disposables = [];
+    }
+
+    /**
+     * Show last tool result in a new document
+     */
+    public showLastToolResult(): void {
+        if (!this._lastToolResult) {
+            vscode.window.showInformationMessage('No tool results available');
+            return;
+        }
+
+        void this._showToolResults(this._lastToolResult.commandName, this._lastToolResult.result);
+    }
+
+    /**
+     * Copy last tool result to clipboard
+     */
+    public copyLastToolResult(): void {
+        if (!this._lastToolResult) {
+            vscode.window.showInformationMessage('No tool results available');
+            return;
+        }
+
+        void this._copyToolResults(this._lastToolResult.result);
     }
 
     /**
