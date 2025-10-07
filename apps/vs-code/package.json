@@ -85,6 +85,14 @@
       {
         "command": "debrief.toolVaultStatus",
         "title": "Debrief: Tool Vault Server Status"
+      },
+      {
+        "command": "debrief.viewLastToolResult",
+        "title": "Debrief: View Last Tool Result"
+      },
+      {
+        "command": "debrief.copyLastToolResult",
+        "title": "Debrief: Copy Last Tool Result"
       }
     ],
     "viewsContainers": {
