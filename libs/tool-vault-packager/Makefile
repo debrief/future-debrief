@@ -34,6 +34,8 @@ help: ## Show this help message
 verify: verify-static-analysis verify-artifacts ## Fast verification (timestamp-based)
 	@echo "$(GREEN)✅ All tool-vault-packager verifications passed!$(RESET)"
 
+verify-typecheck: verify-static-analysis ## Alias for static analysis (provides consistency with other packages)
+
 verify-static-analysis: ## Run static analysis as part of verification (blocking)
 	@if command -v ruff >/dev/null 2>&1 && command -v mypy >/dev/null 2>&1; then \
 		$(MAKE) --no-print-directory check-all || { echo "$(RED)❌ Static analysis checks failed$(RESET)" >&2; exit 1; }; \
