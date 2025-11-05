@@ -111,10 +111,18 @@ class MCPClient:
             # Try to parse JSON even on error responses
             try:
                 data = response.json()
-            except:
-                # If JSON parsing fails, raise the HTTP error with status
+            except Exception as json_error:
+                # If JSON parsing fails, show what we got
                 response.raise_for_status()
-                raise Exception(f"Invalid JSON response from server")
+                content_type = response.headers.get('Content-Type', 'unknown')
+                body_preview = response.text[:500] if response.text else '(empty)'
+                raise Exception(
+                    f"Invalid JSON response from server\n"
+                    f"Content-Type: {content_type}\n"
+                    f"Status: {response.status_code}\n"
+                    f"Body preview: {body_preview}\n"
+                    f"JSON Error: {json_error}"
+                )
 
             # Check for JSON-RPC error (even if HTTP status is not 200)
             if "error" in data:
