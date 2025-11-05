@@ -4,13 +4,14 @@ Simple MCP client for making JSON-RPC 2.0 requests to the Debrief MCP server.
 This module provides a lightweight client for interacting with the Debrief VS Code
 extension's MCP server using raw HTTP requests with JSON-RPC 2.0 protocol.
 
-Each MCPClient instance maintains its own session with the server using a unique
-session ID. The session persists for the lifetime of the client instance.
+The server operates in stateless mode, meaning each request is independent and no
+session initialization is required. This is the standard pattern for HTTP-based MCP
+servers and is simpler, more reliable, and better suited for serverless deployments.
 
 Example usage:
     from mcp_client import MCPClient
 
-    # Create client (establishes session automatically)
+    # Create client (no initialization needed in stateless mode)
     client = MCPClient()
 
     # Read a resource
@@ -22,13 +23,9 @@ Example usage:
     # List available tools
     tools = client.list_tools()
 
-    # Close session when done (optional - sessions expire automatically)
-    client.close()
-
-Context manager usage:
+Context manager usage (optional):
     with MCPClient() as client:
         features = client.get_features()
-        # Session automatically closed when exiting context
 """
 
 import requests
@@ -60,7 +57,11 @@ class MCPClient:
 
     def __init__(self, port: int = 60123, host: str = "localhost", timeout: int = 10):
         """
-        Initialize MCP client with session management.
+        Initialize MCP client for stateless HTTP transport.
+
+        In stateless mode, each request is independent and no session initialization
+        is required. The session ID is still generated for request tracking and
+        potential future use.
 
         Args:
             port: Server port (default: 60123)
@@ -70,34 +71,9 @@ class MCPClient:
         self.base_url = f"http://{host}:{port}/mcp"
         self.timeout = timeout
         self.request_id = 0
-        # Generate unique session ID for this client instance
+        # Generate unique session ID for request tracking
+        # In stateless mode, this is sent but not used for session management
         self.session_id = str(uuid.uuid4())
-        # Track if session is initialized
-        self._initialized = False
-        # Initialize the session with the server
-        self._initialize_session()
-
-    def _initialize_session(self):
-        """
-        Initialize the MCP session by calling the 'initialize' method.
-        This must be done before any other MCP requests.
-        """
-        try:
-            result = self._make_request("initialize", {
-                "protocolVersion": "2024-11-05",
-                "capabilities": {
-                    "roots": {
-                        "listChanged": False
-                    }
-                },
-                "clientInfo": {
-                    "name": "Debrief Python Client",
-                    "version": "1.0.0"
-                }
-            })
-            self._initialized = True
-        except Exception as e:
-            raise Exception(f"Failed to initialize MCP session: {e}")
 
     def _make_request(self, method: str, params: Optional[Dict[str, Any]] = None) -> Any:
         """

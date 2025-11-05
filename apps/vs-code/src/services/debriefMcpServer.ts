@@ -650,11 +650,12 @@ export class DebriefMcpServer {
             transportType: 'httpStream',
             httpStream: {
                 port: this.port,
-                endpoint: '/mcp'
+                endpoint: '/mcp',
+                stateless: true  // Enable stateless mode for HTTP transport
             }
         });
 
-        console.warn(`Debrief MCP server started on http://localhost:${this.port}/mcp`);
+        console.warn(`Debrief MCP server started on http://localhost:${this.port}/mcp (stateless mode)`);
     }
 
     async stop(): Promise<void> {
