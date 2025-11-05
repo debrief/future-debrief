@@ -4,10 +4,13 @@ Simple MCP client for making JSON-RPC 2.0 requests to the Debrief MCP server.
 This module provides a lightweight client for interacting with the Debrief VS Code
 extension's MCP server using raw HTTP requests with JSON-RPC 2.0 protocol.
 
+Each MCPClient instance maintains its own session with the server using a unique
+session ID. The session persists for the lifetime of the client instance.
+
 Example usage:
     from mcp_client import MCPClient
 
-    # Create client
+    # Create client (establishes session automatically)
     client = MCPClient()
 
     # Read a resource
@@ -18,11 +21,20 @@ Example usage:
 
     # List available tools
     tools = client.list_tools()
+
+    # Close session when done (optional - sessions expire automatically)
+    client.close()
+
+Context manager usage:
+    with MCPClient() as client:
+        features = client.get_features()
+        # Session automatically closed when exiting context
 """
 
 import requests
 from typing import Any, Dict, List, Optional
 import json
+import uuid
 
 
 class MCPError(Exception):
@@ -43,11 +55,12 @@ class MCPClient:
         base_url: The base URL of the MCP server
         timeout: Request timeout in seconds
         request_id: Auto-incrementing request ID counter
+        session_id: Unique session identifier for this client
     """
 
     def __init__(self, port: int = 60123, host: str = "localhost", timeout: int = 10):
         """
-        Initialize MCP client.
+        Initialize MCP client with session management.
 
         Args:
             port: Server port (default: 60123)
@@ -57,6 +70,8 @@ class MCPClient:
         self.base_url = f"http://{host}:{port}/mcp"
         self.timeout = timeout
         self.request_id = 0
+        # Generate unique session ID for this client instance
+        self.session_id = str(uuid.uuid4())
 
     def _make_request(self, method: str, params: Optional[Dict[str, Any]] = None) -> Any:
         """
@@ -89,7 +104,10 @@ class MCPClient:
                 self.base_url,
                 json=payload,
                 timeout=self.timeout,
-                headers={"Content-Type": "application/json"}
+                headers={
+                    "Content-Type": "application/json",
+                    "Mcp-Session-Id": self.session_id  # Session management header
+                }
             )
 
             # Try to parse JSON even on error responses
@@ -119,6 +137,26 @@ class MCPClient:
             raise
         except requests.RequestException as e:
             raise Exception(f"HTTP request failed: {e}")
+
+    def close(self):
+        """
+        Close the session (optional - sessions expire automatically).
+
+        This is mainly for explicit cleanup in context manager usage.
+        The server will automatically clean up expired sessions.
+        """
+        # Note: FastMCP handles session cleanup automatically
+        # This method exists for explicit cleanup and context manager support
+        pass
+
+    def __enter__(self):
+        """Context manager entry - returns self for 'with' statement."""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit - closes session."""
+        self.close()
+        return False  # Don't suppress exceptions
 
     def test_connection(self) -> bool:
         """

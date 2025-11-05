@@ -3,17 +3,26 @@
 Debug script to see what the MCP server is actually returning
 """
 
-import requests
+from mcp_client import MCPClient, MCPError
 import json
+
+print("=" * 60)
+print("MCP Session-Based Debug Script")
+print("=" * 60)
+
+# Create client (establishes session)
+client = MCPClient()
+print(f"Session ID: {client.session_id}\n")
 
 # Test 1: Check health endpoint
 print("=" * 60)
 print("Test 1: Health Check")
 print("=" * 60)
 try:
-    response = requests.get("http://localhost:60123/health", timeout=2)
-    print(f"Status: {response.status_code}")
-    print(f"Response: {response.text}")
+    if client.test_connection():
+        print("✓ Server is accessible")
+    else:
+        print("✗ Server is not accessible")
 except Exception as e:
     print(f"Error: {e}")
 
@@ -22,57 +31,57 @@ print("\n" + "=" * 60)
 print("Test 2: List Resources")
 print("=" * 60)
 try:
-    response = requests.post(
-        "http://localhost:60123/mcp",
-        json={
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "resources/list"
-        },
-        timeout=5
-    )
-    print(f"Status: {response.status_code}")
-    print(f"Response: {json.dumps(response.json(), indent=2)}")
+    resources = client.list_resources()
+    print(f"✓ Found {len(resources)} resource(s):")
+    for resource in resources:
+        print(f"  - {resource.get('uri', 'unknown')}: {resource.get('name', 'unnamed')}")
+except MCPError as e:
+    print(f"✗ MCP Error: {e}")
 except Exception as e:
-    print(f"Error: {e}")
+    print(f"✗ Error: {e}")
 
 # Test 3: Try to read plot://features resource
 print("\n" + "=" * 60)
 print("Test 3: Read plot://features")
 print("=" * 60)
 try:
-    response = requests.post(
-        "http://localhost:60123/mcp",
-        json={
-            "jsonrpc": "2.0",
-            "id": 2,
-            "method": "resources/read",
-            "params": {
-                "uri": "plot://features"
-            }
-        },
-        timeout=5
-    )
-    print(f"Status: {response.status_code}")
-    print(f"Response: {json.dumps(response.json(), indent=2)}")
+    features = client.read_resource("plot://features")
+    feature_count = len(features.get('features', [])) if isinstance(features, dict) else 0
+    print(f"✓ Successfully read features resource")
+    print(f"  Feature count: {feature_count}")
+except MCPError as e:
+    print(f"✗ MCP Error: {e}")
+    if e.data:
+        print(f"  Additional data: {e.data}")
 except Exception as e:
-    print(f"Error: {e}")
+    print(f"✗ Error: {e}")
 
 # Test 4: List tools
 print("\n" + "=" * 60)
 print("Test 4: List Tools")
 print("=" * 60)
 try:
-    response = requests.post(
-        "http://localhost:60123/mcp",
-        json={
-            "jsonrpc": "2.0",
-            "id": 3,
-            "method": "tools/list"
-        },
-        timeout=5
-    )
-    print(f"Status: {response.status_code}")
-    print(f"Response: {json.dumps(response.json(), indent=2)}")
+    tools = client.list_tools()
+    print(f"✓ Found {len(tools)} tool(s):")
+    for tool in tools:
+        print(f"  - {tool.get('name', 'unknown')}: {tool.get('description', 'no description')}")
+except MCPError as e:
+    print(f"✗ MCP Error: {e}")
 except Exception as e:
-    print(f"Error: {e}")
+    print(f"✗ Error: {e}")
+
+# Test 5: Test notification
+print("\n" + "=" * 60)
+print("Test 5: Send Notification")
+print("=" * 60)
+try:
+    result = client.notify("Debug script test notification")
+    print(f"✓ Notification sent: {result}")
+except MCPError as e:
+    print(f"✗ MCP Error: {e}")
+except Exception as e:
+    print(f"✗ Error: {e}")
+
+print("\n" + "=" * 60)
+print("Debug Complete")
+print("=" * 60)
