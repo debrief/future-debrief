@@ -4,14 +4,14 @@
  * Defines the contract for creating a status bar indicator that monitors
  * server health and provides user controls for server lifecycle management.
  *
- * @example Debrief HTTP Server Configuration
+ * @example Debrief MCP Server Configuration
  * ```typescript
  * const debriefConfig: ServerIndicatorConfig = {
- *   name: 'Debrief HTTP',
+ *   name: 'Debrief State',
  *   healthCheckUrl: 'http://localhost:60123/health',
  *   pollInterval: 5000,
  *   onStart: async () => {
- *     const server = new DebriefHTTPServer();
+ *     const server = new DebriefMcpServer();
  *     await server.start();
  *   },
  *   onStop: async () => {
