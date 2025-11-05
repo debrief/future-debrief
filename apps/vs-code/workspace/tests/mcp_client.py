@@ -103,8 +103,8 @@ class MCPClient:
                 json=payload,
                 timeout=self.timeout,
                 headers={
-                    "Content-Type": "application/json"
-                    # No session headers in stateless mode
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream"  # Required for HTTP streaming transport
                 }
             )
 
