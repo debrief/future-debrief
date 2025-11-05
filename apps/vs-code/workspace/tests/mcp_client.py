@@ -72,6 +72,32 @@ class MCPClient:
         self.request_id = 0
         # Generate unique session ID for this client instance
         self.session_id = str(uuid.uuid4())
+        # Track if session is initialized
+        self._initialized = False
+        # Initialize the session with the server
+        self._initialize_session()
+
+    def _initialize_session(self):
+        """
+        Initialize the MCP session by calling the 'initialize' method.
+        This must be done before any other MCP requests.
+        """
+        try:
+            result = self._make_request("initialize", {
+                "protocolVersion": "2024-11-05",
+                "capabilities": {
+                    "roots": {
+                        "listChanged": False
+                    }
+                },
+                "clientInfo": {
+                    "name": "Debrief Python Client",
+                    "version": "1.0.0"
+                }
+            })
+            self._initialized = True
+        except Exception as e:
+            raise Exception(f"Failed to initialize MCP session: {e}")
 
     def _make_request(self, method: str, params: Optional[Dict[str, Any]] = None) -> Any:
         """
