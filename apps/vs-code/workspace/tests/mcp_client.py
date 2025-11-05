@@ -91,11 +91,16 @@ class MCPClient:
                 timeout=self.timeout,
                 headers={"Content-Type": "application/json"}
             )
-            response.raise_for_status()
 
-            data = response.json()
+            # Try to parse JSON even on error responses
+            try:
+                data = response.json()
+            except:
+                # If JSON parsing fails, raise the HTTP error with status
+                response.raise_for_status()
+                raise Exception(f"Invalid JSON response from server")
 
-            # Check for JSON-RPC error
+            # Check for JSON-RPC error (even if HTTP status is not 200)
             if "error" in data:
                 error = data["error"]
                 raise MCPError(
@@ -104,8 +109,14 @@ class MCPClient:
                     data=error.get("data")
                 )
 
+            # If no error in JSON but HTTP status is not OK, raise it
+            response.raise_for_status()
+
             return data.get("result")
 
+        except MCPError:
+            # Re-raise MCP errors as-is
+            raise
         except requests.RequestException as e:
             raise Exception(f"HTTP request failed: {e}")
 
