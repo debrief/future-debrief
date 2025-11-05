@@ -10,7 +10,7 @@
   },
   "scripts": {
     "clean": "rm -rf dist/* media/web-components.js media/web-components.css python/ schemas/ tool-vault/",
-    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:@debrief/shared-types --external:fastmcp --external:zod --external:effect --external:sury --external:@valibot/to-json-schema --format=cjs --platform=node",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:@debrief/shared-types --external:fastmcp --external:zod --format=cjs --platform=node",
     "generate-mcp-tools": "node scripts/generate-mcp-tools.js",
     "copy-webcomponents": "cp ../../libs/web-components/dist/vanilla/index.js media/web-components.js && cp ../../libs/web-components/dist/vanilla/index.css media/web-components.css",
     "copy-schemas": "mkdir -p schemas && cp -r ../../libs/shared-types/derived/json-schema/* schemas/",
@@ -210,6 +210,6 @@
     "express": "^5.1.0",
     "fastmcp": "^3.22.0",
     "leaflet": "^1.9.4",
-    "zod": "^4.1.12"
+    "zod": "^3.25.76"
   }
 }
