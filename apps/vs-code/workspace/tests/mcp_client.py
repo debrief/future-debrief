@@ -71,6 +71,29 @@ class MCPClient:
         self.timeout = timeout
         self.request_id = 0
 
+    def _parse_sse_response(self, sse_text: str) -> Dict[str, Any]:
+        """
+        Parse Server-Sent Events format to extract JSON data.
+
+        SSE format:
+            event: message
+            id: <some-id>
+            data: {"jsonrpc": "2.0", ...}
+
+        Args:
+            sse_text: Raw SSE response text
+
+        Returns:
+            Parsed JSON data from the 'data:' field
+        """
+        lines = sse_text.strip().split('\n')
+        for line in lines:
+            if line.startswith('data: '):
+                json_str = line[6:]  # Remove 'data: ' prefix
+                return json.loads(json_str)
+
+        raise Exception(f"No data field found in SSE response: {sse_text[:200]}")
+
     def _make_request(self, method: str, params: Optional[Dict[str, Any]] = None) -> Any:
         """
         Make a JSON-RPC 2.0 request to the MCP server.
@@ -108,21 +131,27 @@ class MCPClient:
                 }
             )
 
-            # Try to parse JSON even on error responses
-            try:
-                data = response.json()
-            except Exception as json_error:
-                # If JSON parsing fails, show what we got
-                response.raise_for_status()
-                content_type = response.headers.get('Content-Type', 'unknown')
-                body_preview = response.text[:500] if response.text else '(empty)'
-                raise Exception(
-                    f"Invalid JSON response from server\n"
-                    f"Content-Type: {content_type}\n"
-                    f"Status: {response.status_code}\n"
-                    f"Body preview: {body_preview}\n"
-                    f"JSON Error: {json_error}"
-                )
+            # Parse response based on Content-Type
+            content_type = response.headers.get('Content-Type', '')
+
+            if 'text/event-stream' in content_type:
+                # Server-Sent Events format - extract JSON from data field
+                data = self._parse_sse_response(response.text)
+            else:
+                # Plain JSON response
+                try:
+                    data = response.json()
+                except Exception as json_error:
+                    # If JSON parsing fails, show what we got
+                    response.raise_for_status()
+                    body_preview = response.text[:500] if response.text else '(empty)'
+                    raise Exception(
+                        f"Invalid JSON response from server\n"
+                        f"Content-Type: {content_type}\n"
+                        f"Status: {response.status_code}\n"
+                        f"Body preview: {body_preview}\n"
+                        f"JSON Error: {json_error}"
+                    )
 
             # Check for JSON-RPC error (even if HTTP status is not 200)
             if "error" in data:
