@@ -7,12 +7,12 @@ from mcp_client import MCPClient, MCPError
 import json
 
 print("=" * 60)
-print("MCP Session-Based Debug Script")
+print("MCP Stateless Debug Script")
 print("=" * 60)
 
-# Create client (establishes session)
+# Create client (no session in stateless mode)
 client = MCPClient()
-print(f"Session ID: {client.session_id}\n")
+print("Client created (stateless mode - no session)\n")
 
 # Test 1: Check health endpoint
 print("=" * 60)

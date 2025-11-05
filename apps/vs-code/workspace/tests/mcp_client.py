@@ -31,7 +31,6 @@ Context manager usage (optional):
 import requests
 from typing import Any, Dict, List, Optional
 import json
-import uuid
 
 
 class MCPError(Exception):
@@ -48,20 +47,20 @@ class MCPClient:
     """
     Simple client for interacting with MCP servers using JSON-RPC 2.0 over HTTP.
 
+    Uses stateless HTTP transport where each request is independent.
+
     Attributes:
         base_url: The base URL of the MCP server
         timeout: Request timeout in seconds
         request_id: Auto-incrementing request ID counter
-        session_id: Unique session identifier for this client
     """
 
     def __init__(self, port: int = 60123, host: str = "localhost", timeout: int = 10):
         """
         Initialize MCP client for stateless HTTP transport.
 
-        In stateless mode, each request is independent and no session initialization
-        is required. The session ID is still generated for request tracking and
-        potential future use.
+        In stateless mode, each request is completely independent with no session
+        management required. No headers or initialization needed.
 
         Args:
             port: Server port (default: 60123)
@@ -71,9 +70,6 @@ class MCPClient:
         self.base_url = f"http://{host}:{port}/mcp"
         self.timeout = timeout
         self.request_id = 0
-        # Generate unique session ID for request tracking
-        # In stateless mode, this is sent but not used for session management
-        self.session_id = str(uuid.uuid4())
 
     def _make_request(self, method: str, params: Optional[Dict[str, Any]] = None) -> Any:
         """
@@ -107,8 +103,8 @@ class MCPClient:
                 json=payload,
                 timeout=self.timeout,
                 headers={
-                    "Content-Type": "application/json",
-                    "Mcp-Session-Id": self.session_id  # Session management header
+                    "Content-Type": "application/json"
+                    # No session headers in stateless mode
                 }
             )
 
