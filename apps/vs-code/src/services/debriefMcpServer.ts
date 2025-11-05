@@ -182,6 +182,137 @@ export class DebriefMcpServer {
             }
         });
 
+        // Auto-select resources (no filename required - auto-selects when single plot open)
+        // Resource: Feature Collection (auto-select)
+        this.server.addResource({
+            uri: 'plot://features',
+            name: 'Plot Feature Collection (Auto-select)',
+            description: 'GeoJSON FeatureCollection (auto-selects plot if only one open)',
+            mimeType: 'application/json',
+            load: async () => {
+                const openPlots = this.getOpenPlotFiles();
+
+                if (openPlots.length === 0) {
+                    throw new Error('No plot files are currently open');
+                }
+
+                if (openPlots.length > 1) {
+                    throw new Error(`Multiple plot files are open: ${openPlots.map(p => p.filename).join(', ')}. Please specify filename in URI like plot://filename.plot.json/features`);
+                }
+
+                const document = await this.findOpenDocument(openPlots[0].filename);
+                if (!document) {
+                    throw new Error(`File not found: ${openPlots[0].filename}`);
+                }
+
+                const featureCollection = this.parseGeoJsonDocument(document);
+                return {
+                    text: JSON.stringify(featureCollection, null, 2)
+                };
+            }
+        });
+
+        // Resource: Selection State (auto-select)
+        this.server.addResource({
+            uri: 'plot://selection',
+            name: 'Plot Selection State (Auto-select)',
+            description: 'Currently selected feature IDs (auto-selects plot if only one open)',
+            mimeType: 'application/json',
+            load: async () => {
+                const openPlots = this.getOpenPlotFiles();
+
+                if (openPlots.length === 0) {
+                    throw new Error('No plot files are currently open');
+                }
+
+                if (openPlots.length > 1) {
+                    throw new Error(`Multiple plot files are open: ${openPlots.map(p => p.filename).join(', ')}. Please specify filename in URI like plot://filename.plot.json/selection`);
+                }
+
+                const document = await this.findOpenDocument(openPlots[0].filename);
+                if (!document) {
+                    throw new Error(`File not found: ${openPlots[0].filename}`);
+                }
+
+                const selectedFeatureIds = PlotJsonEditorProvider.getSelectedFeatures(document.fileName);
+                return {
+                    text: JSON.stringify({ selectedIds: selectedFeatureIds }, null, 2)
+                };
+            }
+        });
+
+        // Resource: Time State (auto-select)
+        this.server.addResource({
+            uri: 'plot://time',
+            name: 'Plot Time State (Auto-select)',
+            description: 'Current time state (auto-selects plot if only one open)',
+            mimeType: 'application/json',
+            load: async () => {
+                const openPlots = this.getOpenPlotFiles();
+
+                if (openPlots.length === 0) {
+                    throw new Error('No plot files are currently open');
+                }
+
+                if (openPlots.length > 1) {
+                    throw new Error(`Multiple plot files are open: ${openPlots.map(p => p.filename).join(', ')}. Please specify filename in URI like plot://filename.plot.json/time`);
+                }
+
+                const document = await this.findOpenDocument(openPlots[0].filename);
+                if (!document) {
+                    throw new Error(`File not found: ${openPlots[0].filename}`);
+                }
+
+                const editorId = this.getEditorIdForDocument(document);
+                if (!editorId) {
+                    throw new Error(`Editor not found for file: ${openPlots[0].filename}`);
+                }
+
+                const globalController = GlobalController.getInstance();
+                const timeState = globalController.getStateSlice(editorId, 'timeState');
+
+                return {
+                    text: JSON.stringify(timeState || null, null, 2)
+                };
+            }
+        });
+
+        // Resource: Viewport State (auto-select)
+        this.server.addResource({
+            uri: 'plot://viewport',
+            name: 'Plot Viewport State (Auto-select)',
+            description: 'Current map viewport bounds (auto-selects plot if only one open)',
+            mimeType: 'application/json',
+            load: async () => {
+                const openPlots = this.getOpenPlotFiles();
+
+                if (openPlots.length === 0) {
+                    throw new Error('No plot files are currently open');
+                }
+
+                if (openPlots.length > 1) {
+                    throw new Error(`Multiple plot files are open: ${openPlots.map(p => p.filename).join(', ')}. Please specify filename in URI like plot://filename.plot.json/viewport`);
+                }
+
+                const document = await this.findOpenDocument(openPlots[0].filename);
+                if (!document) {
+                    throw new Error(`File not found: ${openPlots[0].filename}`);
+                }
+
+                const editorId = this.getEditorIdForDocument(document);
+                if (!editorId) {
+                    throw new Error(`Editor not found for file: ${openPlots[0].filename}`);
+                }
+
+                const globalController = GlobalController.getInstance();
+                const viewportState = globalController.getStateSlice(editorId, 'viewportState');
+
+                return {
+                    text: JSON.stringify(viewportState || null, null, 2)
+                };
+            }
+        });
+
         // Resource: List of Open Plots
         this.server.addResource({
             uri: 'plots://list',

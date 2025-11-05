@@ -203,7 +203,7 @@ class MCPClient:
             return self.read_resource(f"plot://{filename}/features")
         else:
             # Try without filename - server will auto-select if only one plot open
-            return self.read_resource("plot:///features")
+            return self.read_resource("plot://features")
 
     def add_features(self, features: List[Dict[str, Any]], filename: Optional[str] = None) -> Any:
         """Add features to a plot."""
@@ -238,7 +238,7 @@ class MCPClient:
         if filename:
             return self.read_resource(f"plot://{filename}/selection")
         else:
-            return self.read_resource("plot:///selection")
+            return self.read_resource("plot://selection")
 
     def set_selection(self, selected_ids: List[str], filename: Optional[str] = None) -> Any:
         """Set selected feature IDs."""
@@ -259,7 +259,7 @@ class MCPClient:
         if filename:
             return self.read_resource(f"plot://{filename}/time")
         else:
-            return self.read_resource("plot:///time")
+            return self.read_resource("plot://time")
 
     def set_time(self, time_state: Dict[str, str], filename: Optional[str] = None) -> Any:
         """Set time state."""
@@ -273,7 +273,7 @@ class MCPClient:
         if filename:
             return self.read_resource(f"plot://{filename}/viewport")
         else:
-            return self.read_resource("plot:///viewport")
+            return self.read_resource("plot://viewport")
 
     def set_viewport(self, viewport_state: Dict[str, Any], filename: Optional[str] = None) -> Any:
         """Set viewport state."""
