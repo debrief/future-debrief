@@ -41,7 +41,7 @@ export const DebriefFeatures: React.FC<DebriefFeaturesProps> = ({
             timeState
           };
           // Create a key that includes property changes to force re-render when properties change
-          const markerColor = feature.properties?.['marker-color'] || feature.properties?.color;
+          const markerColor = feature.properties?.marker_color || feature.properties?.color;
           const visible = feature.properties?.visible;
           const key = `${feature.id || index}-${markerColor || ''}-${visible !== undefined ? visible : 'true'}`;
 

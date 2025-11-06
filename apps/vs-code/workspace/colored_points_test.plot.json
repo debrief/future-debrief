@@ -14,7 +14,7 @@
       "properties": {
         "dataType": "reference-point",
         "name": "Red Point (NYC)",
-        "marker-color": "#FF0000",
+        "marker_color": "#FF0000",
         "description": "A red marker in New York City"
       }
     },
@@ -31,7 +31,7 @@
       "properties": {
         "dataType": "reference-point",
         "name": "Green Point (Chicago)",
-        "marker-color": "#00FF00",
+        "marker_color": "#00FF00",
         "description": "A green marker in Chicago"
       }
     },
@@ -48,7 +48,7 @@
       "properties": {
         "dataType": "reference-point",
         "name": "Blue Point (LA)",
-        "marker-color": "#0000FF",
+        "marker_color": "#0000FF",
         "description": "A blue marker in Los Angeles"
       }
     },
@@ -65,7 +65,7 @@
       "properties": {
         "dataType": "reference-point",
         "name": "Purple Point (SF)",
-        "marker-color": "#800080",
+        "marker_color": "#800080",
         "description": "A purple marker in San Francisco"
       }
     },
@@ -82,7 +82,7 @@
       "properties": {
         "dataType": "reference-point",
         "name": "Orange Point (Houston)",
-        "marker-color": "#FFA500",
+        "marker_color": "#FFA500",
         "description": "An orange marker in Houston"
       }
     },
@@ -99,7 +99,7 @@
       "properties": {
         "dataType": "reference-point",
         "name": "Cyan Point (Miami)",
-        "marker-color": "#00FFFF",
+        "marker_color": "#00FFFF",
         "description": "A cyan marker in Miami"
       }
     },
@@ -132,7 +132,7 @@
       "properties": {
         "dataType": "reference-point",
         "name": "Custom Hex Color (DC)",
-        "marker-color": "#FF6B35",
+        "marker_color": "#FF6B35",
         "description": "A point with custom hex color #FF6B35"
       }
     }

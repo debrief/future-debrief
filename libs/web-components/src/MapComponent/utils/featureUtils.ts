@@ -7,7 +7,7 @@ import { GeoJSONFeature } from '../MapComponent';
 
 export const getFeatureColor = (feature: GeoJSONFeature): string => {
   const props = feature.properties;
-  return props?.['marker-color'] || props?.color || props?.stroke || '#3388ff';
+  return props?.marker_color || props?.color || props?.stroke || '#3388ff';
 };
 
 export const getFeatureFillColor = (feature: GeoJSONFeature): string => {
