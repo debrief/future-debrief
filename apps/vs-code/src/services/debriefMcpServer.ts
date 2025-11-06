@@ -674,15 +674,11 @@ export class DebriefMcpServer {
                     port: this.port,
                     endpoint: '/mcp',
                     stateless: true  // Enable stateless mode for HTTP transport
-                },
-                webUI: {
-                    enabled: true  // Enable web UI for testing in browser
                 }
             });
 
             this.running = true;
             console.warn(`Debrief MCP server started on http://localhost:${this.port}/mcp (stateless mode)`);
-            console.warn(`Web UI available at http://localhost:${this.port}/`);
         } catch (error) {
             this.running = false;
             this.httpServer = null;
