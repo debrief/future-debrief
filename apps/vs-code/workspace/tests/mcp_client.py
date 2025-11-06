@@ -29,11 +29,11 @@ Context manager usage (optional):
 """
 
 import requests
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
 import json
 
-# Import Pydantic models for type-safe validation
-try:
+# Import Pydantic models for type checking (always available to type checkers)
+if TYPE_CHECKING:
     from debrief.types.features.debrief_feature_collection import DebriefFeatureCollection
     from debrief.types.features.track import DebriefTrackFeature
     from debrief.types.features.point import DebriefPointFeature
@@ -41,21 +41,30 @@ try:
     from debrief.types.states.time_state import TimeState
     from debrief.types.states.viewport_state import ViewportState
     from debrief.types.states.selection_state import SelectionState
-    PYDANTIC_AVAILABLE = True
 
     # Type alias for any Debrief feature
     DebriefFeature = Union[DebriefTrackFeature, DebriefPointFeature, DebriefAnnotationFeature]
+
+# Try to import Pydantic models at runtime for validation
+try:
+    from debrief.types.features.debrief_feature_collection import DebriefFeatureCollection as _DebriefFeatureCollection
+    from debrief.types.features.track import DebriefTrackFeature as _DebriefTrackFeature
+    from debrief.types.features.point import DebriefPointFeature as _DebriefPointFeature
+    from debrief.types.features.annotation import DebriefAnnotationFeature as _DebriefAnnotationFeature
+    from debrief.types.states.time_state import TimeState as _TimeState
+    from debrief.types.states.viewport_state import ViewportState as _ViewportState
+    from debrief.types.states.selection_state import SelectionState as _SelectionState
+    PYDANTIC_AVAILABLE = True
 except ImportError:
-    # Pydantic models not available - validation will be skipped
+    # Pydantic models not available at runtime - validation will be skipped
     PYDANTIC_AVAILABLE = False
-    DebriefFeatureCollection = None
-    DebriefTrackFeature = None
-    DebriefPointFeature = None
-    DebriefAnnotationFeature = None
-    TimeState = None
-    ViewportState = None
-    SelectionState = None
-    DebriefFeature = Dict[str, Any]  # Fallback type
+    _DebriefFeatureCollection = None  # type: ignore
+    _DebriefTrackFeature = None  # type: ignore
+    _DebriefPointFeature = None  # type: ignore
+    _DebriefAnnotationFeature = None  # type: ignore
+    _TimeState = None  # type: ignore
+    _ViewportState = None  # type: ignore
+    _SelectionState = None  # type: ignore
 
 
 class MCPError(Exception):
@@ -321,18 +330,18 @@ class MCPClient:
         result = self.read_resource(uri)
 
         # Validate with Pydantic if available and requested
-        if validate and PYDANTIC_AVAILABLE and DebriefFeatureCollection:
+        if validate and PYDANTIC_AVAILABLE and _DebriefFeatureCollection:
             try:
-                return DebriefFeatureCollection.model_validate(result)
+                return _DebriefFeatureCollection.model_validate(result)
             except Exception as e:
                 print(f"⚠️  Pydantic validation failed: {e}")
                 print("    Returning unvalidated data as model")
                 # Still wrap in model even if validation fails, for consistency
-                return DebriefFeatureCollection.model_validate(result, strict=False)
+                return _DebriefFeatureCollection.model_validate(result, strict=False)
 
         # If Pydantic not available, wrap result in model anyway
-        if PYDANTIC_AVAILABLE and DebriefFeatureCollection:
-            return DebriefFeatureCollection.model_validate(result, strict=False)
+        if PYDANTIC_AVAILABLE and _DebriefFeatureCollection:
+            return _DebriefFeatureCollection.model_validate(result, strict=False)
 
         # Fallback: return raw dict if Pydantic not available at all
         return result  # type: ignore
@@ -428,8 +437,8 @@ class MCPClient:
             result = self.read_resource("plot://selection")
 
         # Validate with Pydantic if available and requested
-        if PYDANTIC_AVAILABLE and SelectionState:
-            return SelectionState.model_validate(result)
+        if PYDANTIC_AVAILABLE and _SelectionState:
+            return _SelectionState.model_validate(result)
 
         return result  # type: ignore
 
@@ -464,8 +473,8 @@ class MCPClient:
             result = self.read_resource("plot://time")
 
         # Validate with Pydantic if available
-        if PYDANTIC_AVAILABLE and TimeState:
-            return TimeState.model_validate(result)
+        if PYDANTIC_AVAILABLE and _TimeState:
+            return _TimeState.model_validate(result)
 
         return result  # type: ignore
 
@@ -499,8 +508,8 @@ class MCPClient:
             result = self.read_resource("plot://viewport")
 
         # Validate with Pydantic if available
-        if PYDANTIC_AVAILABLE and ViewportState:
-            return ViewportState.model_validate(result)
+        if PYDANTIC_AVAILABLE and _ViewportState:
+            return _ViewportState.model_validate(result)
 
         return result  # type: ignore
 
