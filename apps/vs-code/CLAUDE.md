@@ -220,13 +220,11 @@ async processToolVaultCommands(result: unknown): Promise<void> {
 - Or run "Debug: Start Debugging" from Command Palette
 - **Test JSON Schema Validation**: Open `.plot.json` files and verify autocomplete/validation works
 
-### WebSocket Bridge Testing
+### MCP Integration Testing
 Navigate to `workspace/tests/` and run:
 - `pip install -r requirements.txt` - Install Python test dependencies
-- `python test_integration.py` - Run comprehensive integration tests
-- `python test_notify_command.py` - Test VS Code notifications from Python
-- `python test_optional_filename.py` - Test optional filename functionality
-- `python test_plot_api.py` - Test full plot manipulation API with optional filename support
+- `python test_http_connection.py` - Test MCP connection to VS Code extension
+- `python mcp_client.py` - Interactive MCP client with comprehensive test suite
 
 ### Playwright End-to-End Testing
 Automated Docker-based tests validate the complete deployment workflow:
@@ -277,12 +275,12 @@ See `docs/local-docker-testing.md` for complete testing guide.
 **VS Code Extension (`src/extension.ts`)**
 - Main extension entry point with activate/deactivate lifecycle
 - Registers custom Plot JSON editor and GeoJSON outline view
-- Starts WebSocket server on port 60123 for Python integration
+- Starts MCP HTTP server on port 60123 for Python integration
 
-**WebSocket Bridge (`src/debriefWebSocketServer.ts`)**
-- WebSocket server runs inside VS Code extension on localhost:60123
-- Handles JSON command protocol for Python-to-VS Code communication
-- Supports plot manipulation commands with **optional filename parameters**
+**MCP Server (`src/services/debriefMcpServer.ts`)**
+- MCP HTTP server runs inside VS Code extension on localhost:60123
+- Implements JSON-RPC 2.0 protocol for Python-to-VS Code communication via MCP tools
+- Supports plot manipulation tools with **optional filename parameters**
 - Automatically starts on extension activation and stops on deactivation
 
 **Plot JSON Editor (`src/plotJsonEditor.ts`)**
@@ -297,10 +295,10 @@ See `docs/local-docker-testing.md` for complete testing guide.
 
 ### Key Design Patterns
 
-- **WebSocket Integration**: Python scripts can interact with VS Code through WebSocket bridge
+- **MCP Integration**: Python scripts can interact with VS Code through MCP HTTP server using JSON-RPC 2.0
 - **Webview Communication**: Plot editor uses VS Code webview API with message passing
 - **Document Syncing**: Outline view automatically updates when plot files change
-- **Extension Lifecycle**: WebSocket server managed through extension activation/deactivation
+- **Extension Lifecycle**: MCP server managed through extension activation/deactivation
 
 ### File Structure
 
@@ -333,7 +331,7 @@ src/
 │       ├── customOutlineTreeProvider.ts
 │       └── geoJsonOutlineProvider.ts
 ├── services/                      # External integrations
-│   └── debriefWebSocketServer.ts  # WebSocket bridge for Python
+│   └── debriefMcpServer.ts        # MCP HTTP server for Python integration
 ├── legacy/                        # Legacy code (to be removed)
 │   └── debriefStateManager.ts     # Old state system
 └── extension.ts                   # Main extension entry point
@@ -341,68 +339,73 @@ language-configuration.json       # Plot JSON language configuration
 package.json                       # Extension manifest with schema validation
 ```
 
-### WebSocket Protocol
+### MCP Protocol
 
-Messages are JSON-based with this structure:
+The extension implements JSON-RPC 2.0 protocol for MCP communication:
+
+**Request format:**
 ```json
 {
-  "command": "notify",
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
   "params": {
-    "message": "Hello from Python!"
+    "name": "debrief_notify",
+    "arguments": {
+      "message": "Hello from Python!"
+    }
   }
 }
 ```
 
-**Optional Filename Support**: Most plot commands now support optional filename parameters:
+**Optional Filename Support**: Most MCP tools support optional filename parameters:
 ```json
 {
-  "command": "get_feature_collection",
-  "params": {}
+  "jsonrpc": "2.0",
+  "id": 2,
+  "method": "tools/call",
+  "params": {
+    "name": "debrief_add_features",
+    "arguments": {
+      "features": [...]
+      // filename parameter is optional
+    }
+  }
 }
 ```
 
 When filename is omitted:
-- **Single plot open**: Command executes automatically
-- **Multiple plots open**: Returns `MULTIPLE_PLOTS` error with available options
+- **Single plot open**: Tool executes automatically
+- **Multiple plots open**: Returns error with available options
 - **No plots open**: Returns clear error message
 
-Responses:
+**Response format:**
 ```json
 {
-  "result": null
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": "Features added successfully"
 }
 ```
 
-Error format:
+**Error format:**
 ```json
 {
+  "jsonrpc": "2.0",
+  "id": 1,
   "error": {
-    "message": "Error description",
-    "code": 400
-  }
-}
-```
-
-Multiple plots error format:
-```json
-{
-  "error": {
-    "message": "Multiple plots open, please specify filename",
-    "code": "MULTIPLE_PLOTS",
-    "available_plots": [
-      {"filename": "mission1.plot.json", "title": "Mission 1"},
-      {"filename": "mission2.plot.json", "title": "Mission 2"}
-    ]
+    "code": -32603,
+    "message": "Error description"
   }
 }
 ```
 
 ## Key Integration Points
 
-- **Python Testing**: Use `workspace/tests/debrief_api.py` for WebSocket integration
+- **Python Testing**: Use `workspace/tests/mcp_client.py` for MCP integration testing
 - **Plot Files**: `.plot.json` files in workspace/ for testing custom editor
 - **JSON Schema Validation**: Files automatically validated using FeatureCollection.schema.json
-- **Port Configuration**: WebSocket bridge uses fixed port 60123
+- **Port Configuration**: MCP HTTP server uses fixed port 60123
 - **Feature Selection**: Outline view and plot editor are bidirectionally linked
 
 ## JSON Schema Integration

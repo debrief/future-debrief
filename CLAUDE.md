@@ -143,9 +143,9 @@ Key components:
 The VS Code extension provides a complete maritime analysis environment:
 
 - **Custom editors**: `.plot.json` files with interactive Leaflet maps
-- **WebSocket bridge**: Python-to-VS Code integration on port 60123
+- **MCP server**: Python-to-VS Code integration via HTTP on port 60123
 - **Multi-view architecture**: Time controller, properties, outline tree views
-- **Plot manipulation API**: Programmatic control of maritime plots from Python
+- **Plot manipulation API**: Programmatic control of maritime plots from Python via MCP tools
 
 ## Testing Strategy
 
@@ -214,8 +214,8 @@ We are not yet in production, so we are in full control of our data. We should u
 ## Key Integration Points
 
 ### VS Code Extension ↔ Python Integration
-- **WebSocket server** on port 60123 inside VS Code extension
-- **JSON command protocol** for plot manipulation from Python scripts
+- **MCP HTTP server** on port 60123 inside VS Code extension
+- **JSON-RPC 2.0 protocol** for plot manipulation from Python scripts via MCP tools
 - **Test files** in `apps/vs-code/workspace/tests/` demonstrate integration patterns
 - **Optional filename support** for multi-plot scenarios
 

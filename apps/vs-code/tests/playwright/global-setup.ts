@@ -252,17 +252,17 @@ async function globalSetup() {
         encoding: 'utf-8',
       });
 
-      if (logs.includes('WebSocket server port 60123 is already in use')) {
+      if (logs.includes('MCP server') && logs.includes('port 60123') && logs.includes('already in use')) {
         throw new Error(
-          '❌ WebSocket server failed to start - port conflict detected.\n' +
+          '❌ MCP server failed to start - port conflict detected.\n' +
           '   This should not happen after cleanup. Check container logs.'
         );
       }
 
-      if (logs.includes('WebSocket server listening on port 60123')) {
-        console.log('✅ WebSocket server is running\n');
+      if (logs.includes('MCP server') || logs.includes('started on http://localhost:60123')) {
+        console.log('✅ MCP server is running\n');
       } else {
-        console.warn('⚠️  Could not confirm WebSocket server status from logs\n');
+        console.warn('⚠️  Could not confirm MCP server status from logs\n');
       }
     } catch (error) {
       if (error instanceof Error && error.message.includes('port conflict')) {

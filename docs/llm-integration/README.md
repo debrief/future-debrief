@@ -127,7 +127,7 @@ Detailed rationale in Architecture Decision Records (ADRs):
 
 | Component | Spec | Implementation | Port |
 |-----------|------|----------------|------|
-| **Debrief State Server** | [📄 Spec](specs/debrief-state-server.md) | TypeScript/Express + WebSocket | 60123 |
+| **Debrief State Server** | [📄 Spec](specs/debrief-state-server.md) | TypeScript/FastMCP + HTTP | 60123 |
 | **Tool Vault Server** | [📄 Spec](specs/tool-vault-server.md) | Python/FastAPI (MCP-only) | 60124 |
 
 ### Integration & Patterns

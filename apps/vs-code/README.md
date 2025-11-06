@@ -1,6 +1,6 @@
 # Debrief VS Code Extension
 
-A comprehensive VS Code extension for Debrief maritime analysis, providing custom Plot JSON editing, GeoJSON visualization, and Python integration through WebSocket bridge.
+A comprehensive VS Code extension for Debrief maritime analysis, providing custom Plot JSON editing, GeoJSON visualization, and Python integration through MCP HTTP server.
 
 ## Features
 
@@ -8,7 +8,7 @@ This extension provides comprehensive maritime analysis capabilities:
 
 - **Plot JSON Editor**: Custom webview editor for `.plot.json` files with interactive Leaflet map
 - **GeoJSON Outline View**: Tree view showing features from plot files with bidirectional selection
-- **WebSocket Bridge**: Python integration on localhost:60123 for external tool communication
+- **MCP Server**: Python integration and AI assistant access on localhost:60123 via JSON-RPC 2.0
 - **Debrief Activity Panel**: Dedicated activity bar with TimeController, Outline, and PropertiesView, and State Monitor
 - **JSON Schema Validation**: Real-time validation of `.plot.json` files using schemas from `libs/shared-types`
 - **Feature Validation**: Comprehensive validation using shared JSON Schema types with IntelliSense support
@@ -82,10 +82,10 @@ Once the Extension Development Host launches:
    - Test feature selection and outline synchronization
    - Verify JSON schema validation provides autocomplete and error highlighting
 
-2. **Check WebSocket Bridge**:
-   - Run Python tests: `cd workspace/tests && python test_integration.py`
-   - Verify WebSocket server starts on port 60123
-   - Test Python-to-VS Code communication
+2. **Check MCP Server**:
+   - Run Python tests: `cd workspace/tests && python test_http_connection.py`
+   - Verify MCP server starts on port 60123
+   - Test Python-to-VS Code communication via MCP
 
 3. **View Debrief Activity Panel**:
    - Click the Debrief icon in the Activity Bar
@@ -107,13 +107,15 @@ vs-code/
 │   └── states/                   # State schemas from shared-types
 ├── src/
 │   ├── extension.ts              # Main extension entry point
-│   ├── plotJsonEditor.ts         # Custom Plot JSON editor
-│   ├── debriefWebSocketServer.ts # Python WebSocket bridge
-│   ├── customOutlineTreeProvider.ts # GeoJSON outline view
-│   ├── timeControllerProvider.ts # Time controller webview
-│   ├── debriefOutlineProvider.ts # Debrief outline provider
-│   ├── propertiesViewProvider.ts # Properties view webview
-│   └── debriefStateManager.ts    # State management
+│   ├── services/
+│   │   └── debriefMcpServer.ts   # MCP HTTP server for Python/AI integration
+│   ├── providers/
+│   │   ├── editors/
+│   │   │   └── plotJsonEditor.ts # Custom Plot JSON editor
+│   │   ├── panels/               # Activity panel providers
+│   │   └── outlines/             # Outline view providers
+│   ├── core/                     # Core architecture (state, lifecycle)
+│   └── components/               # UI components (status bar indicators)
 ├── dist/                         # Compiled JavaScript (generated)
 ├── language-configuration.json  # Plot JSON language configuration
 ├── package.json                  # Extension manifest
@@ -212,7 +214,7 @@ For complete testing documentation, see [docs/local-docker-testing.md](docs/loca
 ### Extension Not Loading
 - Ensure esbuild compilation succeeded (`pnpm compile`)
 - Check console for activation errors (Developer Tools → Console)
-- Verify WebSocket server starts on port 60123
+- Verify MCP server starts on port 60123
 - Ensure dependencies are installed from monorepo root (`pnpm install`)
 - Check shared-types and web-components are built (`pnpm build` from root)
 
@@ -241,210 +243,163 @@ This extension is part of a monorepo with shared dependencies:
 The extension integrates several key components:
 
 - **Custom Editor**: Plot JSON files open in custom webview with Leaflet map
-- **WebSocket Server**: Enables Python integration for external tools
+- **MCP Server**: Enables Python integration and AI assistant access via HTTP
 - **State Management**: Coordinates between multiple views and panels
 - **Type Validation**: Uses shared JSON Schema for feature validation
 - **Activity Panel**: Dedicated Debrief workspace with time control and properties
 
 See `CLAUDE.md` for detailed development guidance and `Memory_Bank.md` for architectural decisions.
 
-## WebSocket API
+## MCP API
 
-The extension provides a WebSocket server on `localhost:60123` for Python integration. The server supports the following commands:
-
-### Time State Commands
-
-#### `get_time` - Get Current Time State
-Retrieves the current time state for a specified document.
-
-**Request:**
-```json
-{
-  "command": "get_time",
-  "params": {
-    "filename": "sample.plot.json"  // Optional: if not specified, uses active document
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "result": {
-    "current": "2025-09-03T12:00:00Z",
-    "range": ["2025-09-03T10:00:00Z", "2025-09-03T14:00:00Z"]
-  }
-}
-```
-
-#### `set_time` - Update Time State
-Updates the time state for a specified document.
-
-**Request:**
-```json
-{
-  "command": "set_time",
-  "params": {
-    "timeState": {
-      "current": "2025-09-03T13:00:00Z",
-      "range": ["2025-09-03T10:00:00Z", "2025-09-03T14:00:00Z"]
-    },
-    "filename": "sample.plot.json"  // Optional
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "result": "Time state updated successfully"
-}
-```
-
-### Viewport State Commands
-
-#### `get_viewport` - Get Current Viewport State
-Retrieves the current map viewport bounds for a specified document.
-
-**Request:**
-```json
-{
-  "command": "get_viewport",
-  "params": {
-    "filename": "sample.plot.json"  // Optional
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "result": {
-    "bounds": [-10.0, 50.0, 2.0, 58.0]
-  }
-}
-```
-
-#### `set_viewport` - Update Viewport State
-Updates the map viewport bounds for a specified document.
-
-**Request:**
-```json
-{
-  "command": "set_viewport",
-  "params": {
-    "viewportState": {
-      "bounds": [-5.0, 45.0, 5.0, 55.0]
-    },
-    "filename": "sample.plot.json"  // Optional
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "result": "Viewport state updated successfully"
-}
-```
-
-### Python API Client
-
-The extension includes a Python client API with **typed state objects** for improved type safety and IDE support:
-
-```python
-from debrief_api import debrief, TimeState, ViewportState, SelectionState
-from datetime import datetime
-
-# Get current time state (returns TimeState object)
-time_state = debrief.get_time("sample.plot.json")
-if time_state:
-    print(f"Current time: {time_state.current}")
-    print(f"Time range: {time_state.start} to {time_state.end}")
-
-    # Update time to center of range using TimeState object
-    start = time_state.start
-    end = time_state.end
-    center = start + (end - start) / 2
-    
-    # Create new TimeState with center time
-    new_time_state = TimeState(current=center, start=time_state.start, end=time_state.end)
-    debrief.set_time(new_time_state, "sample.plot.json")
-
-# Get and update viewport (returns ViewportState object)
-viewport = debrief.get_viewport("sample.plot.json")
-if viewport:
-    print(f"Current bounds: {viewport.bounds}")
-    
-    # Set new viewport bounds [west, south, east, north]
-    new_viewport = ViewportState(bounds=[-10.0, 50.0, 2.0, 58.0])
-    debrief.set_viewport(new_viewport, "sample.plot.json")
-
-# Get selected features (returns SelectionState object)
-selection = debrief.get_selected_features("sample.plot.json")
-print(f"Selected feature IDs: {selection.selected_ids}")
-
-# Update selection with new feature IDs
-new_selection = SelectionState(selected_ids=["feature1", "feature2"])
-debrief.set_selected_features(new_selection, "sample.plot.json")
-```
-
-#### Type Safety Benefits
-
-The typed API provides:
-- **IDE Auto-completion**: Full IntelliSense support for state object properties
-- **Type Checking**: Automatic validation of data types at runtime  
-- **Better Documentation**: Clear method signatures and property types
-- **Conversion Methods**: Automatic `to_dict()` and `from_dict()` for WebSocket transmission
-
-### Error Handling
-
-All commands follow a consistent error format:
-
-```json
-{
-  "error": {
-    "message": "File not found or not open: sample.plot.json",
-    "code": 404
-  }
-}
-```
-
-Common error codes:
-- `400` - Bad Request (invalid parameters)
-- `404` - File not found or not open
-- `500` - Internal server error
-- `"MULTIPLE_PLOTS"` - Multiple plots open, filename required
-
-### Existing Feature Commands
-
-The API also supports feature collection management:
-
-- `get_feature_collection` - Get GeoJSON features
-- `set_feature_collection` - Update GeoJSON features
-- `get_selected_features` - Get currently selected features
-- `set_selected_features` - Update feature selection
-- `update_features` - Update specific features by ID
-- `add_features` - Add new features
-- `delete_features` - Delete features by ID
-- `zoom_to_selection` - Zoom map to selected features
-- `list_open_plots` - List all open plot files
-
-See `workspace/tests/debrief_api.py` for complete API documentation and examples.
-
-## MCP Server Debugging
-
-The extension includes an **MCP (Model Context Protocol) server** that provides programmatic access to Debrief functionality. This is useful for AI assistants and external tools that need to interact with the extension.
+The extension provides an **MCP (Model Context Protocol) HTTP server** on `http://localhost:60123/mcp` for programmatic access from Python scripts, AI assistants, and external tools.
 
 ### MCP Server Details
 
 - **URL**: `http://localhost:60123/mcp`
+- **Protocol**: JSON-RPC 2.0 over HTTP
 - **Transport**: HTTP Stream (stateless)
-- **Port**: 60123 (same as WebSocket API)
+- **Port**: 60123
+- **Auto-start**: Server starts automatically when the extension activates
+
+### Available MCP Tools
+
+The MCP server exposes the following tools for plot manipulation:
+
+#### Feature Management
+- `debrief_add_features` - Add new features to a plot
+- `debrief_update_features` - Update existing features by ID
+- `debrief_delete_features` - Delete features by ID
+- `debrief_set_features` - Replace entire feature collection
+
+#### State Management
+- `debrief_set_selection` - Set selected feature IDs
+- `debrief_zoom_to_selection` - Zoom map viewport to fit selected features
+- `debrief_set_time` - Update time state (start, current, end)
+- `debrief_set_viewport` - Update map viewport bounds
+
+#### Notifications
+- `debrief_notify` - Display a notification to the user
+
+### Available MCP Resources
+
+The MCP server provides these resources for reading plot state:
+
+- `plot://{filename}/features` - Get feature collection for a specific plot
+- `plot://{filename}/selection` - Get selected feature IDs
+- `plot://{filename}/time` - Get time state
+- `plot://{filename}/viewport` - Get viewport state
+- `plot://features` - Auto-select plot if only one is open
+- `plot://selection` - Auto-select plot if only one is open
+- `plot://time` - Auto-select plot if only one is open
+- `plot://viewport` - Auto-select plot if only one is open
+- `plots://list` - List all currently open plot files
+
+### Python MCP Client
+
+The extension includes a Python MCP client (`workspace/tests/mcp_client.py`) with **typed state objects** for type safety and IDE support:
+
+```python
+from mcp_client import MCPClient
+
+# Create MCP client (no initialization needed in stateless mode)
+client = MCPClient()
+
+# Test connection
+if client.test_connection():
+    print("✓ Connected to MCP server")
+
+# Get features from a plot
+features = client.get_features("sample.plot.json")
+print(f"Plot has {len(features.features)} features")
+
+# Add new features
+from debrief.types.features.point import DebriefPointFeature
+new_point = DebriefPointFeature(
+    type="Feature",
+    geometry={"type": "Point", "coordinates": [-74.0059, 40.7589]},
+    properties={"name": "New York", "id": "nyc_1"}
+)
+client.add_features([new_point], filename="sample.plot.json")
+
+# Update selection
+client.set_selection(["nyc_1"], filename="sample.plot.json")
+client.zoom_to_selection("sample.plot.json")
+
+# Get and update time state
+time_state = client.get_time("sample.plot.json")
+if time_state:
+    print(f"Current time: {time_state.current}")
+    # Update time to a new value
+    from debrief.types.states.time_state import TimeState
+    new_time = TimeState(
+        current="2025-09-03T13:00:00Z",
+        start=time_state.start,
+        end=time_state.end
+    )
+    client.set_time(new_time, "sample.plot.json")
+
+# Display notification
+client.notify("Processing complete!", level="info")
+```
+
+#### Type Safety Benefits
+
+The MCP client provides:
+- **IDE Auto-completion**: Full IntelliSense support for all methods and state objects
+- **Runtime Validation**: Automatic Pydantic validation of requests and responses
+- **Better Documentation**: Clear method signatures with type hints
+- **Error Handling**: Proper exception handling with MCPError
+
+### Optional Filename Support
+
+Most MCP tools support optional filename parameters:
+
+```python
+# When only one plot is open, filename is optional
+client.get_features()  # Auto-selects the open plot
+client.set_selection(["feature1"])  # Works without filename
+
+# When multiple plots are open, filename is required
+client.get_features("mission1.plot.json")  # Must specify which plot
+```
+
+### Error Handling
+
+All MCP requests follow JSON-RPC 2.0 error format:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "error": {
+    "code": -32603,
+    "message": "File not found or not open: sample.plot.json"
+  }
+}
+```
+
+The Python client raises `MCPError` exceptions:
+
+```python
+from mcp_client import MCPClient, MCPError
+
+try:
+    client = MCPClient()
+    features = client.get_features("nonexistent.plot.json")
+except MCPError as e:
+    print(f"MCP Error {e.code}: {e.message}")
+```
+
+Common error scenarios:
+- File not found or not open
+- Multiple plots open without filename specified
+- Invalid feature data
+- Network/connection errors
 
 ### Using the MCP Inspector
 
-The official MCP Inspector provides a web-based UI for testing and debugging the MCP server:
+The official MCP Inspector provides a web-based UI for testing and debugging:
 
 ```bash
 # Connect to the running MCP server
@@ -456,7 +411,7 @@ npx @modelcontextprotocol/inspector http://localhost:60123/mcp
 2. The MCP server starts automatically when the extension activates
 
 **What you can do with the Inspector:**
-- Browse available MCP tools and resources
+- Browse all available MCP tools and resources
 - Test tool invocations with custom parameters
 - View real-time request/response messages
 - Debug MCP protocol communication
@@ -464,17 +419,5 @@ npx @modelcontextprotocol/inspector http://localhost:60123/mcp
 
 **Note**: The MCP Inspector is a separate debugging tool, not part of the extension itself. It connects to the already-running MCP server exposed by the extension.
 
-### MCP vs WebSocket API
-
-The extension provides **two complementary APIs**:
-
-| Feature | MCP Server | WebSocket API |
-|---------|-----------|---------------|
-| **Purpose** | AI assistant integration | Python script integration |
-| **Protocol** | Model Context Protocol | Custom JSON-RPC |
-| **URL** | `http://localhost:60123/mcp` | `ws://localhost:60123` |
-| **Use Cases** | Claude, GPT, other AI tools | Debrief Python scripts |
-| **Debugging** | MCP Inspector | Direct WebSocket clients |
-
-Both APIs run on the same port (60123) but serve different use cases.
+See `workspace/tests/mcp_client.py` for complete API documentation and examples.
 
