@@ -21753,7 +21753,7 @@
       "type": "Feature",
       "properties": {
         "dataType": "buoyfield",
-        "marker-color": "#FF0",
+        "marker_color": "#FF0",
         "name": "Z12344",
         "shortName": "12344",
         "visible": true,
@@ -22850,7 +22850,7 @@
       "properties": {
         "name": "SONO 1-2",
         "dataType": "reference-point",
-        "marker-color": "#00FF00",
+        "marker_color": "#00FF00",
         "visible": true,
         "time": "2024-11-14T21:10:00.000Z"
       },
@@ -22868,7 +22868,7 @@
       "properties": {
         "name": "NEW SONO",
         "dataType": "reference-point",
-        "marker-color": "#0000FF",
+        "marker_color": "#0000FF",
         "visible": true
       },
       "geometry": {
@@ -22885,7 +22885,7 @@
       "properties": {
         "name": "POINT D-1",
         "dataType": "reference-point",
-        "marker-color": "#FFFF00",
+        "marker_color": "#FFFF00",
         "visible": true
       },
       "geometry": {
