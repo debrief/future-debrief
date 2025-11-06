@@ -67,7 +67,7 @@ const sampleGeoJSON: GeoJSONFeatureCollection = {
       },
       properties: {
         name: 'Test Point',
-        'marker-color': '#ff0000'
+        'marker_color': '#ff0000'
       }
     },
     {
@@ -80,7 +80,7 @@ const sampleGeoJSON: GeoJSONFeatureCollection = {
       properties: {
         name: 'Test Buoy',
         type: 'buoyfield',
-        'marker-color': '#00ff00'
+        'marker_color': '#00ff00'
       }
     },
     {
@@ -118,7 +118,7 @@ const sampleGeoJSON: GeoJSONFeatureCollection = {
       },
       properties: {
         name: 'Hidden Point',
-        'marker-color': '#888888',
+        'marker_color': '#888888',
         visible: false
       }
     }
@@ -168,7 +168,7 @@ describe('MapComponent', () => {
     // More detailed testing would require inspecting internal state or using React Testing Library queries
   });
 
-  it('handles features with marker-color properties', () => {
+  it('handles features with marker_color properties', () => {
     const pointFeatureData = {
       type: 'FeatureCollection' as const,
       features: [{
@@ -179,7 +179,7 @@ describe('MapComponent', () => {
           coordinates: [-0.09, 51.505]
         },
         properties: {
-          'marker-color': '#ff0000'
+          'marker_color': '#ff0000'
         }
       }]
     };
@@ -200,7 +200,7 @@ describe('MapComponent', () => {
         },
         properties: {
           type: 'buoyfield',
-          'marker-color': '#00ff00'
+          'marker_color': '#00ff00'
         }
       }]
     };
