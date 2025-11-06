@@ -1,24 +1,25 @@
 """TimeState Pydantic model for maritime analysis time control."""
 
-from datetime import datetime
-
 from pydantic import BaseModel, Field
 
 
 class TimeState(BaseModel):
     """State representing the current time position in a Debrief editor."""
 
-    current: datetime = Field(
+    current: str = Field(
         ...,
-        description="Current time position as ISO 8601 date-time string"
+        description="Current time position as ISO 8601 date-time string",
+        json_schema_extra={"format": "date-time"}
     )
-    start: datetime = Field(
+    start: str = Field(
         ...,
-        description="Start time of the overall time range as ISO 8601 date-time string"
+        description="Start time of the overall time range as ISO 8601 date-time string",
+        json_schema_extra={"format": "date-time"}
     )
-    end: datetime = Field(
+    end: str = Field(
         ...,
-        description="End time of the overall time range as ISO 8601 date-time string"
+        description="End time of the overall time range as ISO 8601 date-time string",
+        json_schema_extra={"format": "date-time"}
     )
 
     model_config = {
