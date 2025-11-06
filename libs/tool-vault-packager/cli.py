@@ -260,37 +260,41 @@ def serve_hybrid_command(tools_path: str, port: int = 8000, host: str = "127.0.0
 
 
 def serve_dev_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
-    """Start the ToolVault server with MCP Inspector web UI for debugging."""
+    """Start the ToolVault server with MCP Inspector web UI for debugging.
+
+    Note: fastmcp dev runs its own proxy server architecture:
+    - MCP Inspector UI runs on --ui-port (default: 6274)
+    - MCP Proxy server runs on --server-port (default: random)
+    - The original 'port' parameter is not directly used by fastmcp dev
+    """
     import subprocess
     import os
+
+    ui_port = 6274  # Default MCP Inspector UI port
 
     print("\n" + "=" * 70)
     print("STARTING TOOL VAULT WITH MCP INSPECTOR")
     print("=" * 70)
     print("\nThe MCP Inspector provides a web UI for testing and debugging tools.")
-    print("Inspector will be available at: http://127.0.0.1:6274")
-    print(f"Server will run on: http://{host}:{port}")
+    print(f"Inspector UI will be available at: http://127.0.0.1:{ui_port}")
+    print("Note: fastmcp dev uses its own proxy server architecture")
     print("\n" + "=" * 70 + "\n")
 
     # Set environment variables for the server
     env = os.environ.copy()
     env["TOOLS_PATH"] = tools_path
-    env["SERVER_HOST"] = host
-    env["SERVER_PORT"] = str(port)
 
-    # Create a temporary entry point for fastmcp dev
+    # Create entry point for fastmcp dev
     entry_point = Path(__file__).parent / "server_fastmcp_dev.py"
     if not entry_point.exists():
         print(f"Creating entry point: {entry_point}")
         with open(entry_point, "w") as f:
-            f.write(f'''"""Entry point for fastmcp dev command."""
+            f.write('''"""Entry point for fastmcp dev command."""
 import os
 from server_fastmcp_simple import SimpleToolVaultServer
 
 # Get configuration from environment variables
 tools_path = os.environ.get("TOOLS_PATH", "tools")
-host = os.environ.get("SERVER_HOST", "127.0.0.1")
-port = int(os.environ.get("SERVER_PORT", "8000"))
 
 # Create the server instance (this exports the 'mcp' object that fastmcp dev needs)
 server = SimpleToolVaultServer(tools_path)
@@ -298,8 +302,8 @@ mcp = server.mcp
 ''')
 
     try:
-        # Run fastmcp dev with the entry point
-        cmd = ["fastmcp", "dev", str(entry_point), "--port", str(port), "--host", host]
+        # Run fastmcp dev with correct options
+        cmd = ["fastmcp", "dev", str(entry_point), "--ui-port", str(ui_port)]
         print(f"Running: {' '.join(cmd)}\n")
         subprocess.run(cmd, env=env, check=True)
     except subprocess.CalledProcessError as e:
