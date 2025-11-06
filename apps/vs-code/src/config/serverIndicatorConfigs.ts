@@ -85,8 +85,10 @@ export function createToolVaultConfig(): ServerIndicatorConfig {
     },
 
     onOpenWebUI: () => {
-      // Open Tool Vault web interface in external browser
-      vscode.env.openExternal(vscode.Uri.parse('http://localhost:60124/ui'));
+      // Open FastMCP Inspector web interface in external browser
+      // Note: This requires running Tool Vault with 'python cli.py serve-dev'
+      // The Inspector runs on port 6274 by default
+      vscode.env.openExternal(vscode.Uri.parse('http://127.0.0.1:6274'));
     },
 
     onShowDetails: () => {
