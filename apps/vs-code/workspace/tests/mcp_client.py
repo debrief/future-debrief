@@ -364,8 +364,8 @@ class MCPClient:
         feature_dicts = []
         for feature in features:
             if PYDANTIC_AVAILABLE and hasattr(feature, 'model_dump'):
-                # It's a Pydantic model, serialize it
-                feature_dicts.append(feature.model_dump())
+                # It's a Pydantic model, serialize it with aliases (marker-color not marker_color)
+                feature_dicts.append(feature.model_dump(by_alias=True, exclude_none=True))
             else:
                 # It's already a dict
                 feature_dicts.append(feature)  # type: ignore
@@ -391,8 +391,8 @@ class MCPClient:
         feature_dicts = []
         for feature in features:
             if PYDANTIC_AVAILABLE and hasattr(feature, 'model_dump'):
-                # It's a Pydantic model, serialize it
-                feature_dicts.append(feature.model_dump())
+                # It's a Pydantic model, serialize it with aliases (marker-color not marker_color)
+                feature_dicts.append(feature.model_dump(by_alias=True, exclude_none=True))
             else:
                 # It's already a dict
                 feature_dicts.append(feature)  # type: ignore
