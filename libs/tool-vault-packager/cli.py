@@ -234,18 +234,18 @@ def serve_fastmcp_command(tools_path: str, port: int = 8000, host: str = "127.0.
 
 
 def serve_hybrid_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
-    """Start the ToolVault server using Hybrid FastMCP + Custom Routes (recommended trial)."""
+    """Start the ToolVault server using Simple FastMCP (recommended)."""
     try:
-        from server_fastmcp_hybrid import start_server
+        from server_fastmcp_simple import start_server
     except ImportError:
         print(
-            "Error: server_fastmcp_hybrid module not found.",
+            "Error: server_fastmcp_simple module not found.",
             file=sys.stderr,
         )
         sys.exit(1)
 
     try:
-        # Start the hybrid server
+        # Start the simple FastMCP server
         start_server(
             host=host,
             port=port,
@@ -253,7 +253,7 @@ def serve_hybrid_command(tools_path: str, port: int = 8000, host: str = "127.0.0
         )
 
     except Exception as e:
-        print(f"Error starting Hybrid FastMCP server: {e}", file=sys.stderr)
+        print(f"Error starting FastMCP server: {e}", file=sys.stderr)
         import traceback
         traceback.print_exc()
         sys.exit(1)
