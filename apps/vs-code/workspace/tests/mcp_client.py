@@ -29,23 +29,33 @@ Context manager usage (optional):
 """
 
 import requests
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 import json
 
 # Import Pydantic models for type-safe validation
 try:
     from debrief.types.features.debrief_feature_collection import DebriefFeatureCollection
+    from debrief.types.features.track import DebriefTrackFeature
+    from debrief.types.features.point import DebriefPointFeature
+    from debrief.types.features.annotation import DebriefAnnotationFeature
     from debrief.types.states.time_state import TimeState
     from debrief.types.states.viewport_state import ViewportState
     from debrief.types.states.selection_state import SelectionState
     PYDANTIC_AVAILABLE = True
+
+    # Type alias for any Debrief feature
+    DebriefFeature = Union[DebriefTrackFeature, DebriefPointFeature, DebriefAnnotationFeature]
 except ImportError:
     # Pydantic models not available - validation will be skipped
     PYDANTIC_AVAILABLE = False
     DebriefFeatureCollection = None
+    DebriefTrackFeature = None
+    DebriefPointFeature = None
+    DebriefAnnotationFeature = None
     TimeState = None
     ViewportState = None
     SelectionState = None
+    DebriefFeature = Dict[str, Any]  # Fallback type
 
 
 class MCPError(Exception):
@@ -296,7 +306,7 @@ class MCPClient:
             "level": level
         })
 
-    def get_features(self, filename: Optional[str] = None, validate: bool = True) -> Dict[str, Any]:
+    def get_features(self, filename: Optional[str] = None, validate: bool = True) -> DebriefFeatureCollection:
         """
         Get feature collection from a plot.
 
@@ -305,7 +315,7 @@ class MCPClient:
             validate: If True, validate response with Pydantic (default: True)
 
         Returns:
-            Feature collection dict (validated if Pydantic is available and validate=True)
+            DebriefFeatureCollection: Validated feature collection model
         """
         uri = f"plot://{filename}/features" if filename else "plot://features"
         result = self.read_resource(uri)
@@ -313,141 +323,95 @@ class MCPClient:
         # Validate with Pydantic if available and requested
         if validate and PYDANTIC_AVAILABLE and DebriefFeatureCollection:
             try:
-                validated = DebriefFeatureCollection.model_validate(result)
-                return validated.model_dump()
+                return DebriefFeatureCollection.model_validate(result)
             except Exception as e:
                 print(f"⚠️  Pydantic validation failed: {e}")
-                print("    Returning unvalidated data")
+                print("    Returning unvalidated data as model")
+                # Still wrap in model even if validation fails, for consistency
+                return DebriefFeatureCollection.model_validate(result, strict=False)
 
-        return result
+        # If Pydantic not available, wrap result in model anyway
+        if PYDANTIC_AVAILABLE and DebriefFeatureCollection:
+            return DebriefFeatureCollection.model_validate(result, strict=False)
 
-    def add_features(self, features: List[Dict[str, Any]], filename: Optional[str] = None, validate: bool = True) -> Any:
+        # Fallback: return raw dict if Pydantic not available at all
+        return result  # type: ignore
+
+    def add_features(self, features: List[DebriefFeature], filename: Optional[str] = None, validate: bool = True) -> Any:
         """
         Add features to a plot.
 
         Args:
-            features: List of feature dicts to add
+            features: List of Debrief features (DebriefTrackFeature, DebriefPointFeature, or DebriefAnnotationFeature)
             filename: Optional plot filename
             validate: If True, validate features with Pydantic before sending (default: True)
 
         Returns:
             Tool result
         """
-        # Validate features with Pydantic if available and requested
-        if validate and PYDANTIC_AVAILABLE:
-            validated_features = []
-            for feature in features:
-                try:
-                    # Try to validate based on feature type
-                    feature_type = feature.get('properties', {}).get('featureType')
-                    if feature_type:
-                        # Import specific feature types
-                        try:
-                            from debrief.types.features.track import DebriefTrackFeature
-                            from debrief.types.features.point import DebriefPointFeature
-                            from debrief.types.features.annotation import DebriefAnnotationFeature
+        # Convert Pydantic models to dicts for JSON serialization
+        feature_dicts = []
+        for feature in features:
+            if PYDANTIC_AVAILABLE and hasattr(feature, 'model_dump'):
+                # It's a Pydantic model, serialize it
+                feature_dicts.append(feature.model_dump())
+            else:
+                # It's already a dict
+                feature_dicts.append(feature)  # type: ignore
 
-                            if feature_type == 'track':
-                                validated = DebriefTrackFeature.model_validate(feature)
-                            elif feature_type == 'point':
-                                validated = DebriefPointFeature.model_validate(feature)
-                            elif feature_type == 'annotation':
-                                validated = DebriefAnnotationFeature.model_validate(feature)
-                            else:
-                                print(f"⚠️  Unknown feature type '{feature_type}', skipping validation")
-                                validated_features.append(feature)
-                                continue
-
-                            validated_features.append(validated.model_dump())
-                        except ImportError:
-                            print(f"⚠️  Feature type models not available, skipping validation")
-                            validated_features.append(feature)
-                    else:
-                        print(f"⚠️  Feature missing featureType, skipping validation")
-                        validated_features.append(feature)
-                except Exception as e:
-                    print(f"⚠️  Pydantic validation failed for feature: {e}")
-                    print("    Using unvalidated feature")
-                    validated_features.append(feature)
-
-            features = validated_features
-
-        args = {"features": features}
+        args: Dict[str, Any] = {"features": feature_dicts}
         if filename:
             args["filename"] = filename
         return self.call_tool("debrief_add_features", args)
 
-    def update_features(self, features: List[Dict[str, Any]], filename: Optional[str] = None, validate: bool = True) -> Any:
+    def update_features(self, features: List[DebriefFeature], filename: Optional[str] = None, validate: bool = True) -> Any:
         """
         Update features in a plot by ID.
 
         Args:
-            features: List of feature dicts with IDs to update
+            features: List of Debrief features with IDs to update
             filename: Optional plot filename
             validate: If True, validate features with Pydantic before sending (default: True)
 
         Returns:
             Tool result
         """
-        # Validate features with Pydantic if available and requested
-        if validate and PYDANTIC_AVAILABLE:
-            validated_features = []
-            for feature in features:
-                try:
-                    # Try to validate based on feature type
-                    feature_type = feature.get('properties', {}).get('featureType')
-                    if feature_type:
-                        # Import specific feature types
-                        try:
-                            from debrief.types.features.track import DebriefTrackFeature
-                            from debrief.types.features.point import DebriefPointFeature
-                            from debrief.types.features.annotation import DebriefAnnotationFeature
+        # Convert Pydantic models to dicts for JSON serialization
+        feature_dicts = []
+        for feature in features:
+            if PYDANTIC_AVAILABLE and hasattr(feature, 'model_dump'):
+                # It's a Pydantic model, serialize it
+                feature_dicts.append(feature.model_dump())
+            else:
+                # It's already a dict
+                feature_dicts.append(feature)  # type: ignore
 
-                            if feature_type == 'track':
-                                validated = DebriefTrackFeature.model_validate(feature)
-                            elif feature_type == 'point':
-                                validated = DebriefPointFeature.model_validate(feature)
-                            elif feature_type == 'annotation':
-                                validated = DebriefAnnotationFeature.model_validate(feature)
-                            else:
-                                print(f"⚠️  Unknown feature type '{feature_type}', skipping validation")
-                                validated_features.append(feature)
-                                continue
-
-                            validated_features.append(validated.model_dump())
-                        except ImportError:
-                            print(f"⚠️  Feature type models not available, skipping validation")
-                            validated_features.append(feature)
-                    else:
-                        print(f"⚠️  Feature missing featureType, skipping validation")
-                        validated_features.append(feature)
-                except Exception as e:
-                    print(f"⚠️  Pydantic validation failed for feature: {e}")
-                    print("    Using unvalidated feature")
-                    validated_features.append(feature)
-
-            features = validated_features
-
-        args = {"features": features}
+        args: Dict[str, Any] = {"features": feature_dicts}
         if filename:
             args["filename"] = filename
         return self.call_tool("debrief_update_features", args)
 
     def delete_features(self, ids: List[str], filename: Optional[str] = None) -> Any:
         """Delete features from a plot by ID."""
-        args = {"ids": ids}
+        args: Dict[str, Any] = {"ids": ids}
         if filename:
             args["filename"] = filename
         return self.call_tool("debrief_delete_features", args)
 
-    def set_features(self, feature_collection: Dict[str, Any], filename: Optional[str] = None) -> Any:
+    def set_features(self, feature_collection: DebriefFeatureCollection, filename: Optional[str] = None) -> Any:
         """Replace entire feature collection."""
-        args = {"featureCollection": feature_collection}
+        # Convert Pydantic model to dict if needed
+        if PYDANTIC_AVAILABLE and hasattr(feature_collection, 'model_dump'):
+            feature_collection_dict = feature_collection.model_dump()
+        else:
+            feature_collection_dict = feature_collection  # type: ignore
+
+        args: Dict[str, Any] = {"featureCollection": feature_collection_dict}
         if filename:
             args["filename"] = filename
         return self.call_tool("debrief_set_features", args)
 
-    def get_selection(self, filename: Optional[str] = None, validate: bool = True) -> Dict[str, Any]:
+    def get_selection(self, filename: Optional[str] = None, validate: bool = True) -> SelectionState:
         """
         Get selected feature IDs.
 
@@ -456,7 +420,7 @@ class MCPClient:
             validate: If True, validate response with Pydantic (default: True)
 
         Returns:
-            Selection state dict (validated if Pydantic is available and validate=True)
+            SelectionState: Validated selection state model
         """
         if filename:
             result = self.read_resource(f"plot://{filename}/selection")
@@ -464,31 +428,26 @@ class MCPClient:
             result = self.read_resource("plot://selection")
 
         # Validate with Pydantic if available and requested
-        if validate and PYDANTIC_AVAILABLE and SelectionState:
-            try:
-                validated = SelectionState.model_validate(result)
-                return validated.model_dump()
-            except Exception as e:
-                print(f"⚠️  Pydantic validation failed: {e}")
-                print("    Returning unvalidated data")
+        if PYDANTIC_AVAILABLE and SelectionState:
+            return SelectionState.model_validate(result)
 
-        return result
+        return result  # type: ignore
 
     def set_selection(self, selected_ids: List[str], filename: Optional[str] = None) -> Any:
         """Set selected feature IDs."""
-        args = {"selectedIds": selected_ids}
+        args: Dict[str, Any] = {"selectedIds": selected_ids}
         if filename:
             args["filename"] = filename
         return self.call_tool("debrief_set_selection", args)
 
     def zoom_to_selection(self, filename: Optional[str] = None) -> Any:
         """Zoom to selected features."""
-        args = {}
+        args: Dict[str, Any] = {}
         if filename:
             args["filename"] = filename
         return self.call_tool("debrief_zoom_to_selection", args)
 
-    def get_time(self, filename: Optional[str] = None, validate: bool = True) -> Dict[str, Any]:
+    def get_time(self, filename: Optional[str] = None, validate: bool = True) -> TimeState:
         """
         Get time state.
 
@@ -497,32 +456,33 @@ class MCPClient:
             validate: If True, validate response with Pydantic (default: True)
 
         Returns:
-            Time state dict (validated if Pydantic is available and validate=True)
+            TimeState: Validated time state model
         """
         if filename:
             result = self.read_resource(f"plot://{filename}/time")
         else:
             result = self.read_resource("plot://time")
 
-        # Validate with Pydantic if available and requested
-        if validate and PYDANTIC_AVAILABLE and TimeState:
-            try:
-                validated = TimeState.model_validate(result)
-                return validated.model_dump()
-            except Exception as e:
-                print(f"⚠️  Pydantic validation failed: {e}")
-                print("    Returning unvalidated data")
+        # Validate with Pydantic if available
+        if PYDANTIC_AVAILABLE and TimeState:
+            return TimeState.model_validate(result)
 
-        return result
+        return result  # type: ignore
 
-    def set_time(self, time_state: Dict[str, str], filename: Optional[str] = None) -> Any:
+    def set_time(self, time_state: TimeState, filename: Optional[str] = None) -> Any:
         """Set time state."""
-        args = {"timeState": time_state}
+        # Convert Pydantic model to dict if needed
+        if PYDANTIC_AVAILABLE and hasattr(time_state, 'model_dump'):
+            time_state_dict = time_state.model_dump()
+        else:
+            time_state_dict = time_state  # type: ignore
+
+        args: Dict[str, Any] = {"timeState": time_state_dict}
         if filename:
             args["filename"] = filename
         return self.call_tool("debrief_set_time", args)
 
-    def get_viewport(self, filename: Optional[str] = None, validate: bool = True) -> Dict[str, Any]:
+    def get_viewport(self, filename: Optional[str] = None, validate: bool = True) -> ViewportState:
         """
         Get viewport state.
 
@@ -531,27 +491,28 @@ class MCPClient:
             validate: If True, validate response with Pydantic (default: True)
 
         Returns:
-            Viewport state dict (validated if Pydantic is available and validate=True)
+            ViewportState: Validated viewport state model
         """
         if filename:
             result = self.read_resource(f"plot://{filename}/viewport")
         else:
             result = self.read_resource("plot://viewport")
 
-        # Validate with Pydantic if available and requested
-        if validate and PYDANTIC_AVAILABLE and ViewportState:
-            try:
-                validated = ViewportState.model_validate(result)
-                return validated.model_dump()
-            except Exception as e:
-                print(f"⚠️  Pydantic validation failed: {e}")
-                print("    Returning unvalidated data")
+        # Validate with Pydantic if available
+        if PYDANTIC_AVAILABLE and ViewportState:
+            return ViewportState.model_validate(result)
 
-        return result
+        return result  # type: ignore
 
-    def set_viewport(self, viewport_state: Dict[str, Any], filename: Optional[str] = None) -> Any:
+    def set_viewport(self, viewport_state: ViewportState, filename: Optional[str] = None) -> Any:
         """Set viewport state."""
-        args = {"viewportState": viewport_state}
+        # Convert Pydantic model to dict if needed
+        if PYDANTIC_AVAILABLE and hasattr(viewport_state, 'model_dump'):
+            viewport_state_dict = viewport_state.model_dump()
+        else:
+            viewport_state_dict = viewport_state  # type: ignore
+
+        args: Dict[str, Any] = {"viewportState": viewport_state_dict}
         if filename:
             args["filename"] = filename
         return self.call_tool("debrief_set_viewport", args)
