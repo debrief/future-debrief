@@ -47,6 +47,8 @@ export class DebriefMcpServer {
     private server: FastMCP;
     private readonly port = 60123;
     private cachedFilename: string | null = null;
+    private running: boolean = false;
+    private httpServer: any = null; // Node.js HTTP server instance
 
     constructor() {
         this.server = new FastMCP({
@@ -657,31 +659,70 @@ export class DebriefMcpServer {
     }
 
     async start(): Promise<void> {
+        if (this.running) {
+            console.warn('Debrief MCP server is already running');
+            throw new Error('MCP server is already running. Please stop it before starting again.');
+        }
+
         console.warn('Starting Debrief MCP server...');
 
-        await this.server.start({
-            transportType: 'httpStream',
-            httpStream: {
-                port: this.port,
-                endpoint: '/mcp',
-                stateless: true  // Enable stateless mode for HTTP transport
-            }
-        });
+        try {
+            // Store the HTTP server instance returned by FastMCP
+            this.httpServer = await this.server.start({
+                transportType: 'httpStream',
+                httpStream: {
+                    port: this.port,
+                    endpoint: '/mcp',
+                    stateless: true  // Enable stateless mode for HTTP transport
+                }
+            });
 
-        console.warn(`Debrief MCP server started on http://localhost:${this.port}/mcp (stateless mode)`);
+            this.running = true;
+            console.warn(`Debrief MCP server started on http://localhost:${this.port}/mcp (stateless mode)`);
+        } catch (error) {
+            this.running = false;
+            this.httpServer = null;
+            console.error('Failed to start Debrief MCP server:', error);
+            throw error;
+        }
     }
 
     async stop(): Promise<void> {
+        if (!this.running) {
+            console.warn('Debrief MCP server is not running');
+            return;
+        }
+
         console.warn('Stopping Debrief MCP server...');
-        // FastMCP handles cleanup internally
-        // Note: FastMCP v3 doesn't expose a stop method, server lifecycle is managed by the framework
-        console.warn('Debrief MCP server stopped');
+
+        try {
+            // Close the HTTP server to release the port
+            if (this.httpServer && typeof this.httpServer.close === 'function') {
+                await new Promise<void>((resolve, reject) => {
+                    this.httpServer.close((err: Error | undefined) => {
+                        if (err) {
+                            reject(err);
+                        } else {
+                            resolve();
+                        }
+                    });
+                });
+            }
+
+            this.running = false;
+            this.httpServer = null;
+            console.warn('Debrief MCP server stopped successfully');
+        } catch (error) {
+            console.error('Error stopping Debrief MCP server:', error);
+            // Mark as not running even if there was an error
+            this.running = false;
+            this.httpServer = null;
+            throw error;
+        }
     }
 
     isRunning(): boolean {
-        // FastMCP doesn't expose a running state check
-        // We rely on start() being called successfully
-        return true;
+        return this.running;
     }
 
     // Helper Methods
