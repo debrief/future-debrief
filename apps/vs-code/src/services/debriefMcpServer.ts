@@ -9,7 +9,13 @@ import {
     validateFeatureByType,
     classifyFeature,
     TimeState,
-    ViewportState
+    ViewportState,
+    DebriefTrackFeatureSchema,
+    DebriefPointFeatureSchema,
+    DebriefAnnotationFeatureSchema,
+    TimeStateSchema,
+    ViewportStateSchema,
+    SelectionStateSchema
 } from '@debrief/shared-types';
 import { GlobalController } from '../core/globalController';
 import { EditorIdManager } from '../core/editorIdManager';
@@ -29,6 +35,13 @@ interface GeoJSONFeatureCollection {
     features: GeoJSONFeature[];
     bbox?: number[];
 }
+
+// Union schema for any Debrief feature
+const DebriefFeatureSchema = z.union([
+    DebriefTrackFeatureSchema,
+    DebriefPointFeatureSchema,
+    DebriefAnnotationFeatureSchema
+]);
 
 export class DebriefMcpServer {
     private server: FastMCP;
@@ -335,7 +348,7 @@ export class DebriefMcpServer {
             description: 'Add new features to a plot',
             parameters: z.object({
                 filename: z.string().optional(),
-                features: z.array(z.any()).describe('Array of GeoJSON features to add')
+                features: z.array(DebriefFeatureSchema).describe('Array of Debrief GeoJSON features (track, point, or annotation) to add')
             }),
             execute: async (args) => {
                 // Validate each feature
@@ -364,7 +377,7 @@ export class DebriefMcpServer {
                     if (!feature.id) {
                         feature.id = this.generateFeatureId();
                     }
-                    featureCollection.features.push(feature);
+                    featureCollection.features.push(feature as GeoJSONFeature);
                 }
 
                 await this.updateDocument(document, featureCollection);
@@ -380,7 +393,7 @@ export class DebriefMcpServer {
             description: 'Update existing features by ID',
             parameters: z.object({
                 filename: z.string().optional(),
-                features: z.array(z.any()).describe('Array of GeoJSON features with IDs to update')
+                features: z.array(DebriefFeatureSchema).describe('Array of Debrief GeoJSON features (track, point, or annotation) with IDs to update')
             }),
             execute: async (args) => {
                 // Validate each feature
@@ -416,7 +429,7 @@ export class DebriefMcpServer {
                     );
 
                     if (index >= 0) {
-                        featureCollection.features[index] = updatedFeature;
+                        featureCollection.features[index] = updatedFeature as GeoJSONFeature;
                     } else {
                         console.warn(`Feature with ID ${updatedFeature.id} not found for update`);
                     }

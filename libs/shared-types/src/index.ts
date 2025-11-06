@@ -70,4 +70,23 @@ export type { CurrentState } from './types/states/current_state';
 export type { Features } from './types/features/debrief_feature_collection';
 import type { Features as DebriefFeatures } from './types/features/debrief_feature_collection';
 export type DebriefFeature = DebriefFeatures[number];
+
+// Re-export Zod schemas for runtime validation
+export {
+  DebriefTrackFeatureSchema,
+  DebriefPointFeatureSchema,
+  DebriefAnnotationFeatureSchema,
+  DebriefFeatureCollectionSchema,
+  BuoyfieldFeatureSchema,
+  BackdropFeatureSchema
+} from './zod/features/index.js';
+
+export {
+  TimeStateSchema,
+  ViewportStateSchema,
+  SelectionStateSchema,
+  EditorStateSchema,
+  CurrentStateSchema
+} from './zod/states/index.js';
+
 // Note: Input.ts and Output.ts export specific interfaces, not generic Input/Output types
