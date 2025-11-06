@@ -195,6 +195,44 @@ def serve_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
         sys.exit(1)
 
 
+def serve_fastmcp_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
+    """Start the ToolVault server using FastMCP framework (trial implementation)."""
+    try:
+        from server_fastmcp import start_server
+    except ImportError:
+        print(
+            "Error: server_fastmcp module not found.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    try:
+        print("\n" + "=" * 70)
+        print("FASTMCP TRIAL IMPLEMENTATION")
+        print("=" * 70)
+        print("\nThis is a trial implementation using the FastMCP framework.")
+        print("It provides the same functionality as the standard server but with:")
+        print("  - Automatic schema generation from type hints")
+        print("  - Decorator-based tool registration")
+        print("  - Built-in MCP protocol compliance")
+        print("  - Native SSE transport support")
+        print("\n" + "=" * 70 + "\n")
+
+        # Start the FastMCP server
+        start_server(
+            host=host,
+            port=port,
+            tools_path=tools_path,
+            with_sse=True
+        )
+
+    except Exception as e:
+        print(f"Error starting FastMCP server: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -238,6 +276,16 @@ Examples:
         "--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)"
     )
 
+    # Serve FastMCP command (trial implementation)
+    serve_fastmcp_parser = subparsers.add_parser(
+        "serve-fastmcp",
+        help="Start the ToolVault server using FastMCP framework (trial implementation)"
+    )
+    serve_fastmcp_parser.add_argument("--port", type=int, default=8000, help="Server port (default: 8000)")
+    serve_fastmcp_parser.add_argument(
+        "--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)"
+    )
+
     # Show details command
     subparsers.add_parser(
         "show-details", help="Show detailed tool information including source code and git history"
@@ -272,6 +320,8 @@ Examples:
         call_tool_command(tools_path_str, args.tool_name, arguments)
     elif args.command == "serve":
         serve_command(tools_path_str, args.port, args.host)
+    elif args.command == "serve-fastmcp":
+        serve_fastmcp_command(tools_path_str, args.port, args.host)
     elif args.command == "show-details":
         output_tool_details(tools_path_str)
 
