@@ -189,23 +189,17 @@ test.describe('Tool Vault Server Integration', () => {
     console.log('✅ Tool Vault health response:', body);
   });
 
-  test('should validate WebSocket bridge is accessible on port 60123', async () => {
-    // WebSocket server starts when extension activates
+  test('should validate MCP server is accessible on port 60123', async () => {
+    // MCP server starts when extension activates
     // The extension activates when VS Code starts (we already opened it in beforeEach)
     // Give it time to fully initialize
-    console.log('⏳ Waiting for WebSocket server to start...');
+    console.log('⏳ Waiting for MCP server to start...');
     await new Promise(resolve => setTimeout(resolve, 5000));
 
-    // Use Node.js WebSocket client to test connection
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const WebSocket = require('ws');
-
-    console.log('🔌 Attempting WebSocket connection on port 60123...');
+    console.log('🔌 Attempting MCP server connection on port 60123...');
 
     // Retry connection with exponential backoff
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let ws: any = null;
-    let connectionResult: { success: boolean; error?: Error } = {
+    let connectionResult: { success: boolean; error?: Error; status?: number } = {
       success: false,
       error: new Error('Not attempted')
     };
@@ -214,44 +208,28 @@ test.describe('Tool Vault Server Integration', () => {
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       console.log(`   Attempt ${attempt}/${maxRetries}...`);
 
-      ws = new WebSocket('ws://localhost:60123');
-
-      connectionResult = await new Promise<{
-        success: boolean;
-        error?: Error;
-      }>((resolve) => {
-        const timeout = setTimeout(() => {
-          resolve({
-            success: false,
-            error: new Error(`Connection timeout on attempt ${attempt}`),
-          });
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-          ws.close();
-        }, 5000);
-
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        ws.on('open', () => {
-          clearTimeout(timeout);
-          console.log(`   ✅ Connection succeeded on attempt ${attempt}`);
-          resolve({ success: true });
+      try {
+        // Test health endpoint
+        const response = await fetch('http://localhost:60123/health', {
+          method: 'GET',
+          signal: AbortSignal.timeout(5000)
         });
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        ws.on('error', (error: Error) => {
-          clearTimeout(timeout);
-          console.log(`   ❌ Connection failed on attempt ${attempt}: ${error.message}`);
-          resolve({ success: false, error });
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-          ws.close();
-        });
-      });
-
-      if (connectionResult.success) {
-        break; // Keep ws open for echo test
+        if (response.ok) {
+          console.log(`   ✅ Health check succeeded on attempt ${attempt}`);
+          connectionResult = { success: true, status: response.status };
+          break;
+        } else {
+          console.log(`   ❌ Health check failed on attempt ${attempt}: HTTP ${response.status}`);
+          connectionResult = { success: false, error: new Error(`HTTP ${response.status}`), status: response.status };
+        }
+      } catch (error) {
+        console.log(`   ❌ Connection failed on attempt ${attempt}: ${error instanceof Error ? error.message : String(error)}`);
+        connectionResult = { success: false, error: error instanceof Error ? error : new Error(String(error)) };
       }
 
       // Wait before retry
-      if (attempt < maxRetries) {
+      if (attempt < maxRetries && !connectionResult.success) {
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
@@ -262,47 +240,58 @@ test.describe('Tool Vault Server Integration', () => {
       throw connectionResult.error;
     }
 
-    console.log('✅ WebSocket bridge connection verified');
+    console.log('✅ MCP server health check verified');
 
-    // Test bidirectional communication with a ping/echo
-    // Send a simple command to verify the bridge responds
-    const echoTest = await new Promise<{ success: boolean; data?: unknown }>(
-      (resolve) => {
-        const timeout = setTimeout(() => {
-          console.log('⚠️  Echo test timed out (this is OK if no plot is open)');
-          resolve({ success: false });
-        }, 5000);
+    // Test MCP communication with a tools/list request
+    console.log('🧪 Testing MCP protocol communication...');
 
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        ws.on('message', (data: Buffer) => {
-          clearTimeout(timeout);
-          try {
-            const parsed = JSON.parse(data.toString()) as unknown;
-            console.log('✅ WebSocket echo test response:', parsed);
-            resolve({ success: true, data: parsed });
-          } catch {
-            resolve({ success: false });
-          }
-        });
+    try {
+      const mcpResponse = await fetch('http://localhost:60123/mcp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json, text/event-stream'
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'tools/list'
+        }),
+        signal: AbortSignal.timeout(5000)
+      });
 
-        // Send a test command (get_feature_collection is a safe read-only command)
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-        ws.send(
-          JSON.stringify({
-            command: 'get_feature_collection',
-            params: {},
-          })
-        );
+      expect(mcpResponse.ok).toBeTruthy();
+
+      // Parse response (could be JSON or SSE format)
+      const contentType = mcpResponse.headers.get('content-type');
+      let mcpData: unknown;
+
+      if (contentType?.includes('text/event-stream')) {
+        // Parse SSE format
+        const text = await mcpResponse.text();
+        const lines = text.split('\n');
+        const dataLine = lines.find(line => line.startsWith('data: '));
+        if (dataLine) {
+          mcpData = JSON.parse(dataLine.substring(6));
+        }
+      } else {
+        // Parse JSON format
+        mcpData = await mcpResponse.json();
       }
-    );
 
-    // We expect either success or a structured error response
-    // (the command might fail if no plot is open, but the bridge should respond)
-    expect(echoTest.success).toBeTruthy();
+      console.log('✅ MCP server response received');
+      expect(mcpData).toBeDefined();
 
-    // Clean up
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-    ws.close();
-    console.log('✅ WebSocket bridge fully verified');
+      // Verify it's a valid JSON-RPC response
+      const response = mcpData as { jsonrpc?: string; id?: number; result?: { tools?: unknown[] } };
+      expect(response.jsonrpc).toBe('2.0');
+      expect(response.result).toBeDefined();
+      console.log(`✅ MCP server returned ${response.result?.tools?.length ?? 0} tools`);
+    } catch (error) {
+      console.error('❌ MCP protocol test failed:', error);
+      throw error;
+    }
+
+    console.log('✅ MCP server fully verified');
   });
 });
