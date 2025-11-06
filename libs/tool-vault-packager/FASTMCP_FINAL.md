@@ -139,13 +139,30 @@ These can be added back later if needed, but for the trial we're focusing on cor
 
 ## Usage
 
-### Start Server
+### Start Server (Production)
 ```bash
 cd /home/user/future-debrief/libs/tool-vault-packager
 
 # Start server (command name unchanged for easy transition)
 python cli.py serve-hybrid --port 8000 --host 127.0.0.1
 ```
+
+### Start Server with Web UI (Development)
+```bash
+cd /home/user/future-debrief/libs/tool-vault-packager
+
+# Install FastMCP with dev extras (includes MCP Inspector)
+pip install 'fastmcp[dev]'
+
+# Start server with MCP Inspector web UI at http://127.0.0.1:6274
+python cli.py serve-dev --port 8000 --host 127.0.0.1
+```
+
+The **MCP Inspector** provides an interactive web interface for:
+- 🧪 Testing tools with custom parameters
+- 📊 Inspecting requests and responses
+- ✅ Validating schemas
+- 🐛 Real-time debugging
 
 ### Test Endpoints
 ```bash
