@@ -2,8 +2,8 @@
 """
 Simple example: Move selected points 100km North
 
-This example demonstrates how to use Pydantic types with the MCP client
-for type-safe geometry manipulation.
+This example demonstrates proper type narrowing when working with
+Pydantic union types for type-safe geometry manipulation.
 """
 
 from mcp_client import MCPClient
@@ -23,19 +23,20 @@ selected_points = []
 
 # Find selected point features
 for feature in feature_collection.features:
-    # Type-safe check if feature is selected
-    if feature.id in selected_ids:
-        # Check if this is a Point feature
-        if isinstance(feature, DebriefPointFeature):
+    # Type narrowing: Check if this is specifically a DebriefPointFeature
+    if isinstance(feature, DebriefPointFeature):
+        # feature.id can be str | int | None, so check if it exists and is in selection
+        if feature.id is not None and feature.id in selected_ids:
             selected_points.append(feature)
 
 # Move selected points 100km North
 for point in selected_points:
     # Type-safe access to geometry coordinates
-    if point.geometry and hasattr(point.geometry, 'coordinates'):
-        coords = point.geometry.coordinates
+    # After isinstance check, Pylance knows point.geometry is Point (not a union)
+    if point.geometry and point.geometry.coordinates:
+        lon, lat = point.geometry.coordinates
         # 100km ≈ 0.9 degrees latitude
-        point.geometry.coordinates = [coords[0], coords[1] + 100 / 111.32]
+        point.geometry.coordinates = [lon, lat + 100 / 111.32]
 
 # Update plot and show result (accepts List[DebriefFeature])
 if selected_points:
