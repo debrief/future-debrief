@@ -28,11 +28,7 @@ except ImportError:
 
 
 # Initialize FastMCP server
-mcp = FastMCP(
-    name="ToolVault",
-    version="1.0.0",
-    description="Maritime analysis tools via Model Context Protocol"
-)
+mcp = FastMCP("ToolVault")
 
 
 def load_and_register_tools(tools_path: str = "tools"):
@@ -129,7 +125,7 @@ def start_server(
     print(f"\n{'='*60}\n")
 
     # Create Starlette app from FastMCP
-    app = mcp.get_starlette_app()
+    app = mcp.http_app()
 
     # Run with uvicorn
     uvicorn.run(
