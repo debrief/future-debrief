@@ -432,3 +432,49 @@ The API also supports feature collection management:
 
 See `workspace/tests/debrief_api.py` for complete API documentation and examples.
 
+## MCP Server Debugging
+
+The extension includes an **MCP (Model Context Protocol) server** that provides programmatic access to Debrief functionality. This is useful for AI assistants and external tools that need to interact with the extension.
+
+### MCP Server Details
+
+- **URL**: `http://localhost:60123/mcp`
+- **Transport**: HTTP Stream (stateless)
+- **Port**: 60123 (same as WebSocket API)
+
+### Using the MCP Inspector
+
+The official MCP Inspector provides a web-based UI for testing and debugging the MCP server:
+
+```bash
+# Connect to the running MCP server
+npx @modelcontextprotocol/inspector http://localhost:60123/mcp
+```
+
+**Prerequisites:**
+1. The VS Code extension must be running (F5 or Extension Development Host)
+2. The MCP server starts automatically when the extension activates
+
+**What you can do with the Inspector:**
+- Browse available MCP tools and resources
+- Test tool invocations with custom parameters
+- View real-time request/response messages
+- Debug MCP protocol communication
+- Inspect server capabilities and metadata
+
+**Note**: The MCP Inspector is a separate debugging tool, not part of the extension itself. It connects to the already-running MCP server exposed by the extension.
+
+### MCP vs WebSocket API
+
+The extension provides **two complementary APIs**:
+
+| Feature | MCP Server | WebSocket API |
+|---------|-----------|---------------|
+| **Purpose** | AI assistant integration | Python script integration |
+| **Protocol** | Model Context Protocol | Custom JSON-RPC |
+| **URL** | `http://localhost:60123/mcp` | `ws://localhost:60123` |
+| **Use Cases** | Claude, GPT, other AI tools | Debrief Python scripts |
+| **Debugging** | MCP Inspector | Direct WebSocket clients |
+
+Both APIs run on the same port (60123) but serve different use cases.
+
