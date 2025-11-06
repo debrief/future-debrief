@@ -10,7 +10,7 @@
   },
   "scripts": {
     "clean": "rm -rf dist/* media/web-components.js media/web-components.css python/ schemas/ tool-vault/",
-    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:@valibot/to-json-schema --external:sury --external:effect --format=cjs --platform=node --define:import.meta.url='__import_meta_url__' --banner:js=\"var __filename = __filename || '/'; var __dirname = __dirname || '/'; var __import_meta_url__ = typeof __filename !== 'undefined' ? require('url').pathToFileURL(__filename).href : 'file:///';\"",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:@valibot/to-json-schema --external:sury --external:effect --format=cjs --platform=node --define:import.meta.url='__import_meta_url__' --banner:js=\"const __import_meta_url__ = (function() { try { if (typeof __filename !== 'undefined') { return require('url').pathToFileURL(__filename).href; } } catch (e) { console.error('[Polyfill Error]', e); } return 'file:///extension.js'; })();\"",
     "generate-mcp-tools": "node scripts/generate-mcp-tools.js",
     "copy-webcomponents": "cp ../../libs/web-components/dist/vanilla/index.js media/web-components.js && cp ../../libs/web-components/dist/vanilla/index.css media/web-components.css",
     "copy-schemas": "mkdir -p schemas && cp -r ../../libs/shared-types/derived/json-schema/* schemas/",

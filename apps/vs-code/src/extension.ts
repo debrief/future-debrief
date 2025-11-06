@@ -32,7 +32,8 @@ let toolVaultServer: ToolVaultServerService | null = null;
 let debriefActivityProvider: DebriefActivityProvider | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
-    console.warn('Debrief Extension is now active!');
+    try {
+        console.warn('Debrief Extension is now active!');
 
     // Initialize Python wheel installer for automatic debrief-types installation
     const pythonWheelInstaller = new PythonWheelInstaller(context);
@@ -284,6 +285,15 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(copyLastToolResultCommand);
 
     // Panel connections are handled automatically through GlobalController subscriptions
+    } catch (error) {
+        console.error('[Extension Activation Error] Full stack trace:', error);
+        if (error instanceof Error) {
+            console.error('[Extension Activation Error] Message:', error.message);
+            console.error('[Extension Activation Error] Stack:', error.stack);
+        }
+        // Re-throw to let VS Code show the error
+        throw error;
+    }
 }
 
 export async function deactivate() {
