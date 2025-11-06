@@ -40,7 +40,10 @@ export const DebriefFeatures: React.FC<DebriefFeaturesProps> = ({
             onSelectionChange,
             timeState
           };
-          const key = feature.id || index;
+          // Create a key that includes property changes to force re-render when properties change
+          const markerColor = feature.properties?.['marker-color'] || feature.properties?.color;
+          const visible = feature.properties?.visible;
+          const key = `${feature.id || index}-${markerColor || ''}-${visible !== undefined ? visible : 'true'}`;
 
           // Route features to appropriate specialized renderers
           if (dataType === 'track' && (feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString')) {
