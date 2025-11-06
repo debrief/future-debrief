@@ -8,27 +8,12 @@ ORIGINAL_DIR=$(pwd)
 # Find all Makefiles and run fast verifications in parallel
 MAKEFILE_DIRS=$(find . -path "*/*/Makefile" -not -path "*/node_modules/*" -exec dirname {} \;)
 
-# Launch parallel verification tasks, capturing only errors
+# Launch parallel verification tasks
 FAILED=0
 PIDS=()
+
 for dir in $MAKEFILE_DIRS; do
-  (
-    cd "$dir" || exit 1
-    pkg_name=$(basename "$(pwd)")
-
-    # Run fast checks only (artifacts + typecheck), suppress success output
-    OUTPUT=$(make verify-artifacts verify-typecheck 2>&1)
-    EXIT_CODE=$?
-
-    # Show only errors and hints
-    echo "$OUTPUT" | grep -E "(❌|Error|💡)" || true
-
-    # Exit with error code if any check failed
-    if [ $EXIT_CODE -ne 0 ]; then
-      echo "❌ $pkg_name fast checks failed" >&2
-      exit 1
-    fi
-  ) &
+  make -C "$dir" verify-artifacts verify-typecheck >/dev/null 2>&1 &
   PIDS+=($!)
 done
 
@@ -37,8 +22,17 @@ for pid in "${PIDS[@]}"; do
   wait $pid || FAILED=1
 done
 
+# If any failed, re-run sequentially to show errors
 if [ $FAILED -eq 1 ]; then
-  echo "❌ Fast checks failed - fix issues above" >&2
+  echo "❌ Some checks failed. Re-running to show errors..." >&2
+  echo "" >&2
+  for dir in $MAKEFILE_DIRS; do
+    pkg_name=$(basename "$dir")
+    echo "Checking $pkg_name..." >&2
+    if ! make -C "$dir" verify-artifacts verify-typecheck 2>&1; then
+      echo "" >&2
+    fi
+  done
   exit 1
 fi
 
