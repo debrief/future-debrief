@@ -38,8 +38,11 @@ export function activate(context: vscode.ExtensionContext) {
     // Initialize Python wheel installer for automatic debrief-types installation
     const pythonWheelInstaller = new PythonWheelInstaller(context);
     pythonWheelInstaller.checkAndInstallPackage().catch(error => {
-        console.error('Python wheel installation failed:', error);
+        console.error('[Python Wheel Installer] Installation failed:', error);
+        console.error('[Python Wheel Installer] Error details:', error instanceof Error ? error.message : String(error));
+        console.error('[Python Wheel Installer] Stack:', error instanceof Error ? error.stack : 'No stack trace');
         // Non-blocking error - extension continues to work without Python integration
+        // This is expected if Python environment is not yet set up
     });
 
     // Initialize Tool Vault server

@@ -28,6 +28,8 @@ Context manager usage (optional):
         features = client.get_features()
 """
 
+from __future__ import annotations
+
 import requests
 from typing import Any, Dict, List, Optional, Union, TYPE_CHECKING
 import json
