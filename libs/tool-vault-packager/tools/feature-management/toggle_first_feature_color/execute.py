@@ -88,11 +88,11 @@ def toggle_first_feature_color(params: ToggleFirstFeatureColorParameters) -> Deb
 
         # Define color property based on feature type and CSS color codes
         if data_type == "reference-point":
-            color_property = "marker-color"
+            color_property = "marker_color"
             red_color = "#FF0000"
             blue_color = "#0000FF"
         elif data_type == "buoyfield":
-            color_property = "marker-color"
+            color_property = "marker_color"
             red_color = "#FF0000"
             blue_color = "#0000FF"
         elif data_type == "track":

@@ -33,7 +33,7 @@ const sampleGeoJSON: GeoJSONFeatureCollection = {
       },
       properties: {
         name: 'Regular Point',
-        'marker-color': '#ff0000'
+        'marker_color': '#ff0000'
       }
     },
     {
@@ -46,7 +46,7 @@ const sampleGeoJSON: GeoJSONFeatureCollection = {
       properties: {
         name: 'Buoy Marker',
         type: 'buoyfield',
-        'marker-color': '#00ff00'
+        'marker_color': '#00ff00'
       }
     },
     {
@@ -96,7 +96,7 @@ const sampleGeoJSON: GeoJSONFeatureCollection = {
       },
       properties: {
         name: 'Hidden Point (not rendered)',
-        'marker-color': '#888888',
+        'marker_color': '#888888',
         visible: false
       }
     },
@@ -130,7 +130,7 @@ const sampleGeoJSON: GeoJSONFeatureCollection = {
       properties: {
         name: 'Navigation Buoy',
         type: 'buoyfield',
-        'marker-color': '#ffff00'
+        'marker_color': '#ffff00'
       }
     }
   ]
@@ -217,7 +217,7 @@ export const BuoyfieldsAndTracks: Story = {
           properties: {
             name: 'Green Buoy',
             type: 'buoyfield',
-            'marker-color': '#00cc00'
+            'marker_color': '#00cc00'
           }
         },
         {
@@ -230,7 +230,7 @@ export const BuoyfieldsAndTracks: Story = {
           properties: {
             name: 'Red Buoy',
             type: 'buoyfield',
-            'marker-color': '#cc0000'
+            'marker_color': '#cc0000'
           }
         }
       ]
@@ -324,7 +324,7 @@ export const VisibilityFiltering: Story = {
           },
           properties: {
             name: 'Visible Point',
-            'marker-color': '#00ff00',
+            'marker_color': '#00ff00',
             visible: true
           }
         },
@@ -337,7 +337,7 @@ export const VisibilityFiltering: Story = {
           },
           properties: {
             name: 'Hidden Point (not shown)',
-            'marker-color': '#ff0000',
+            'marker_color': '#ff0000',
             visible: false
           }
         },
@@ -350,7 +350,7 @@ export const VisibilityFiltering: Story = {
           },
           properties: {
             name: 'Default Visible (no visible property)',
-            'marker-color': '#0066ff'
+            'marker_color': '#0066ff'
           }
         },
         {
