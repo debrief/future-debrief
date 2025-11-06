@@ -27,14 +27,14 @@ for feature in feature_collection.features:
             # feature.properties is now PointProperties (not a union)
             # Check that properties and color exist
             if feature.properties and hasattr(feature.properties, 'color'):
-                current_color = feature.properties.color
+                current_color = feature.properties.marker_color or ''
 
                 # Toggle between green and red
                 if current_color == '#00FF00':  # If already green
-                    feature.properties.color = '#FF0000'  # Change to red
+                    feature.properties.marker_color = '#FF0000'  # Change to red
                     print(f"Changing {feature.id} to red")
                 else:
-                    feature.properties.color = '#00FF00'  # Change to green
+                    feature.properties.marker_color = '#00FF00'  # Change to green
                     print(f"Changing {feature.id} to green")
 
                 updates.append(feature)
