@@ -25,8 +25,8 @@ for feature in feature_collection.features:
         # Type narrow again: ensure id is a string before calling .lower()
         if isinstance(feature.id, str) and 'paris' in feature.id.lower():
             # feature.properties is now PointProperties (not a union)
-            # Check that properties and color exist
-            if feature.properties and hasattr(feature.properties, 'color'):
+            # Check that properties exist
+            if feature.properties:
                 current_color = feature.properties.marker_color or ''
 
                 # Toggle between green and red

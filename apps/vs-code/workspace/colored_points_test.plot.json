@@ -12,8 +12,9 @@
         ]
       },
       "properties": {
+        "dataType": "reference-point",
         "name": "Red Point (NYC)",
-        "color": "#FF0000",
+        "marker-color": "#FF0000",
         "description": "A red marker in New York City"
       }
     },
@@ -28,8 +29,9 @@
       },
       "id": "green_point",
       "properties": {
+        "dataType": "reference-point",
         "name": "Green Point (Chicago)",
-        "color": "#00FF00",
+        "marker-color": "#00FF00",
         "description": "A green marker in Chicago"
       }
     },
@@ -44,8 +46,9 @@
       },
       "id": "blue_point",
       "properties": {
+        "dataType": "reference-point",
         "name": "Blue Point (LA)",
-        "color": "#0000FF",
+        "marker-color": "#0000FF",
         "description": "A blue marker in Los Angeles"
       }
     },
@@ -60,8 +63,9 @@
       },
       "id": "purple_point",
       "properties": {
+        "dataType": "reference-point",
         "name": "Purple Point (SF)",
-        "color": "#800080",
+        "marker-color": "#800080",
         "description": "A purple marker in San Francisco"
       }
     },
@@ -76,8 +80,9 @@
       },
       "id": "orange_point",
       "properties": {
+        "dataType": "reference-point",
         "name": "Orange Point (Houston)",
-        "color": "#FFA500",
+        "marker-color": "#FFA500",
         "description": "An orange marker in Houston"
       }
     },
@@ -92,8 +97,9 @@
       },
       "id": "cyan_point",
       "properties": {
+        "dataType": "reference-point",
         "name": "Cyan Point (Miami)",
-        "color": "#00FFFF",
+        "marker-color": "#00FFFF",
         "description": "A cyan marker in Miami"
       }
     },
@@ -108,6 +114,7 @@
       },
       "id": "default_point",
       "properties": {
+        "dataType": "reference-point",
         "name": "Default Blue Point (Boston)",
         "description": "A point without color property (should be default blue #00F)"
       }
@@ -123,8 +130,9 @@
       },
       "id": "hex_color_point",
       "properties": {
+        "dataType": "reference-point",
         "name": "Custom Hex Color (DC)",
-        "color": "#FF6B35",
+        "marker-color": "#FF6B35",
         "description": "A point with custom hex color #FF6B35"
       }
     }
