@@ -1,35 +1,46 @@
 #!/usr/bin/env python3
 """
 Simple example: Move selected points 100km North
+
+This example demonstrates proper type narrowing when working with
+Pydantic union types for type-safe geometry manipulation.
 """
 
-from debrief_api import debrief
+from mcp_client import MCPClient
+from debrief.types.features.point import DebriefPointFeature
 
-# Import SelectionState for typed API
-from debrief.types.SelectionState import SelectionState
+# Create MCP client
+client = MCPClient()
 
-# Get selected features using SelectionState
-selection_state = debrief.get_selected_features("sample.plot.json")
-print(f"Selected feature IDs: {selection_state.selected_ids}")
+# Get selected feature IDs (returns SelectionState model)
+selection = client.get_selection("sample.plot.json")
+selected_ids = selection.selectedIds
+print(f"Selected feature IDs: {selected_ids}")
 
-# Get the full feature collection to access selected features
-fc = debrief.get_feature_collection("sample.plot.json")
+# Get the full feature collection (returns DebriefFeatureCollection model)
+feature_collection = client.get_features("sample.plot.json")
 selected_points = []
 
 # Find selected point features
-for feature in fc.get('features', []):
-    feature_id = feature.get('id')
-    if feature_id in selection_state.selected_ids:
-        if feature.get('geometry', {}).get('type') == 'Point':
+for feature in feature_collection.features:
+    # Type narrowing: Check if this is specifically a DebriefPointFeature
+    if isinstance(feature, DebriefPointFeature):
+        # feature.id can be str | int | None, so check if it exists and is in selection
+        if feature.id is not None and feature.id in selected_ids:
             selected_points.append(feature)
 
 # Move selected points 100km North
 for point in selected_points:
-    point['geometry']['coordinates'][1] += 100 / 111.32  # 100km ≈ 0.9 degrees latitude
+    # Type-safe access to geometry coordinates
+    # After isinstance check, Pylance knows point.geometry is Point (not a union)
+    if point.geometry and point.geometry.coordinates:
+        lon, lat = point.geometry.coordinates
+        # 100km ≈ 0.9 degrees latitude
+        point.geometry.coordinates = [lon, lat + 100 / 111.32]
 
-# Update plot and show result
+# Update plot and show result (accepts List[DebriefFeature])
 if selected_points:
-    debrief.update_features(selected_points, "sample.plot.json")
-    print(f"{len(selected_points)} points moved 100km North")
+    client.update_features(selected_points, "sample.plot.json")
+    print(f"✓ {len(selected_points)} points moved 100km North")
 else:
     print("No point features selected")

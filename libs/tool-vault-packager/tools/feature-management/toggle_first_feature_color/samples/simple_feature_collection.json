@@ -7,7 +7,7 @@
           "type": "Feature",
           "properties": {
             "dataType": "reference-point",
-            "marker-color": "red",
+            "marker_color": "red",
             "name": "Test Point"
           },
           "geometry": {
@@ -39,7 +39,7 @@
           "timeEnd": null,
           "name": "Test Point",
           "visible": true,
-          "marker-color": "#0000FF"
+          "marker_color": "#0000FF"
         }
       }
     ]

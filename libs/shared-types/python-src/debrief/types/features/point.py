@@ -35,13 +35,11 @@ class PointProperties(BaseModel):
     )
     marker_color: Optional[str] = Field(
         None,
-        alias="marker-color",
         description="Marker color (hex color code)"
     )
 
     class Config:
         extra = "forbid"  # Strict validation - no additional properties
-        populate_by_name = True  # Allow both marker_color and marker-color
 
 
 class DebriefPointFeature(Feature[Point, PointProperties]):

@@ -13,7 +13,7 @@
       },
       "properties": {
         "name": "London",
-        "color": "#FF0000",
+        "marker_color": "#FF0000",
         "dataType": "reference-point"
       }
     },
@@ -30,7 +30,7 @@
       "properties": {
         "name": "Paris",
         "dataType": "reference-point",
-        "color": "#00FF00"
+        "marker_color": "#00FF00"
       }
     },
     {
@@ -46,7 +46,7 @@
       "properties": {
         "name": "Berlin",
         "dataType": "reference-point",
-        "color": "#0000FF"
+        "marker_color": "#0000FF"
       }
     },
     {
@@ -62,7 +62,7 @@
       "properties": {
         "name": "Point at 51.5143, -0.1014",
         "dataType": "reference-point",
-        "color": "#FF00FF"
+        "marker_color": "#FF00FF"
       }
     },
     {
@@ -78,7 +78,7 @@
       "properties": {
         "name": "Point at 50.1470, 3.3467",
         "dataType": "reference-point",
-        "color": "#00FF00"
+        "marker_color": "#00FF00"
       }
     },
     {

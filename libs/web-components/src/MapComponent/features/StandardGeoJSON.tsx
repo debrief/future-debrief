@@ -39,7 +39,7 @@ export const StandardGeoJSON: React.FC<StandardGeoJSONProps> = ({ feature }) => 
 
   const pointToLayer = (geoFeature: GeoJSON.Feature, latlng: L.LatLng) => {
     const props = geoFeature.properties;
-    const markerColor = props?.['marker-color'] || props?.color || '#00F';
+    const markerColor = props?.marker_color || props?.color || '#00F';
     const isBuoyfield = props?.type === 'buoyfield' || props?.name?.toLowerCase().includes('buoy');
     const radius = isBuoyfield ? 5 : 8;
     

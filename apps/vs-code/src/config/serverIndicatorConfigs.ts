@@ -1,26 +1,26 @@
 import * as vscode from 'vscode';
 import { ServerIndicatorConfig } from '../types/ServerIndicatorConfig';
-import { DebriefHTTPServer } from '../services/debriefHttpServer';
+import { DebriefMcpServer } from '../services/debriefMcpServer';
 import { ToolVaultServerService } from '../services/toolVaultServer';
 
 /**
- * Creates configuration for Debrief HTTP Server status indicator.
+ * Creates configuration for Debrief MCP Server status indicator.
  *
- * The Debrief HTTP server provides WebSocket/HTTP bridge for Python integration
+ * The Debrief MCP server provides Model Context Protocol API for Python integration
  * on port 60123. It runs as a direct JavaScript process within the extension.
  *
- * @param serverInstance - Shared reference to DebriefHTTPServer instance (can be null)
- * @returns ServerIndicatorConfig for Debrief HTTP server
+ * @param serverInstance - Shared reference to DebriefMcpServer instance (can be null)
+ * @returns ServerIndicatorConfig for Debrief MCP server
  *
  * @example
  * ```typescript
- * let httpServer: DebriefHTTPServer | null = null;
- * const config = createDebriefHttpConfig(() => httpServer, (s) => { httpServer = s; });
+ * let mcpServer: DebriefMcpServer | null = null;
+ * const config = createDebriefHttpConfig(() => mcpServer, (s) => { mcpServer = s; });
  * ```
  */
 export function createDebriefHttpConfig(
-  getServer: () => DebriefHTTPServer | null,
-  setServer: (server: DebriefHTTPServer | null) => void
+  getServer: () => DebriefMcpServer | null,
+  setServer: (server: DebriefMcpServer | null) => void
 ): ServerIndicatorConfig {
   return {
     name: 'Debrief State',
@@ -30,7 +30,7 @@ export function createDebriefHttpConfig(
     onStart: async () => {
       let server = getServer();
       if (!server) {
-        server = new DebriefHTTPServer();
+        server = new DebriefMcpServer();
         setServer(server);
       }
       await server.start();
@@ -45,7 +45,7 @@ export function createDebriefHttpConfig(
     }
 
     // No onRestart - will use default stop-then-start
-    // No onOpenWebUI - Debrief HTTP has no web interface
+    // No onOpenWebUI - Debrief MCP has no web interface
     // No onShowDetails - could add output channel in future
   };
 }

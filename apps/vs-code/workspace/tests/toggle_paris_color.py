@@ -1,23 +1,47 @@
 #!/usr/bin/env python3
 """
-Simple example: Color the Paris point green
+Simple example: Toggle Paris point color between green and red
+
+This example demonstrates proper type narrowing when working with
+Pydantic union types for type-safe feature manipulation.
 """
 
-from debrief_api import debrief
+from mcp_client import MCPClient
+from debrief.types.features.point import DebriefPointFeature
 
-# Get the feature collection and find Paris point
-fc = debrief.get_feature_collection()
-features = fc.get('features', [])
+# Create MCP client
+client = MCPClient()
+
+# Get the feature collection (returns DebriefFeatureCollection model)
+feature_collection = client.get_features()
+
+# Find Paris point and update its color
 updates = []
+for feature in feature_collection.features:
+    # Type narrowing: Check if this is specifically a DebriefPointFeature
+    # This narrows the union type and gives us proper type checking
+    if isinstance(feature, DebriefPointFeature):
+        # Now Pylance knows feature.id is str | int | None
+        # Type narrow again: ensure id is a string before calling .lower()
+        if isinstance(feature.id, str) and 'paris' in feature.id.lower():
+            # feature.properties is now PointProperties (not a union)
+            # Check that properties exist
+            if feature.properties:
+                current_color = feature.properties.marker_color or ''
 
-for feature in features:
-    if feature.get('id', '').lower().startswith('paris'):
-      if feature.get('properties'):
-        if feature['properties'].get('color', '') == '#00FF00':  # If already green
-            feature['properties']['color'] = '#FF0000'  # Change to red
-        else:
-            feature['properties']['color'] = '#00FF00'  # Change to green
-        updates.append(feature)
+                # Toggle between green and red
+                if current_color == '#00FF00':  # If already green
+                    feature.properties.marker_color = '#FF0000'  # Change to red
+                    print(f"Changing {feature.id} to red")
+                else:
+                    feature.properties.marker_color = '#00FF00'  # Change to green
+                    print(f"Changing {feature.id} to green")
 
+                updates.append(feature)
+
+# Update features (accepts List[DebriefFeature])
 if updates:
-    debrief.update_features(updates)
+    client.update_features(updates)
+    print(f"✓ Updated {len(updates)} feature(s)")
+else:
+    print("No Paris point found")

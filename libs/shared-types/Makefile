@@ -50,6 +50,8 @@ EXPECTED_SCHEMAS := derived/json-schema/features/track.schema.json \
                    derived/json-schema/tools/log_message_payload.schema.json
 TS_FILES := $(patsubst derived/json-schema/%.schema.json,derived/typescript/%.ts,$(EXPECTED_SCHEMAS))
 COPIED_TS_FILES := $(patsubst derived/typescript/%.ts,src/types/%.ts,$(TS_FILES))
+ZOD_FILES := $(patsubst derived/json-schema/%.schema.json,derived/zod/%.ts,$(EXPECTED_SCHEMAS))
+COPIED_ZOD_FILES := $(patsubst derived/zod/%.ts,src/zod/%.ts,$(ZOD_FILES))
 PYTHON_MODEL_FILES := $(wildcard python-src/debrief/types/*/*.py)
 COMPILED_TS := dist/src/index.js dist/src/index.d.ts
 PYTHON_WHEEL := dist/python/debrief_types-1.0.0-py3-none-any.whl
@@ -64,7 +66,7 @@ YELLOW := \033[33m
 RED := \033[31m
 RESET := \033[0m
 
-.PHONY: help clean build build-dist generate test dev force-generate generate-schemas generate-typescript copy-typescript copy-to-tool-vault-packager verify verify-artifacts verify-tests verify-typecheck
+.PHONY: help clean build build-dist generate test dev force-generate generate-schemas generate-typescript generate-zod copy-typescript copy-zod copy-to-tool-vault-packager verify verify-artifacts verify-tests verify-typecheck
 
 # Default target
 help: ## Show this help message
@@ -76,7 +78,7 @@ help: ## Show this help message
 
 clean: ## Clean all generated files
 	@echo "$(YELLOW)Cleaning generated files...$(RESET)"
-	@rm -rf derived/ dist/ src/types/ || true
+	@rm -rf derived/ dist/ src/types/ src/zod/ || true
 	@rm -f $(PYTHON_DEPS_STAMP)
 	@echo "$(GREEN)✓ Clean complete$(RESET)"
 
@@ -123,6 +125,36 @@ $(COPIED_TS_FILES): $(TS_FILES)
 	done
 	@touch $(COPIED_TS_FILES)
 
+# Zod schema generation from JSON schemas (preserving directory structure)
+$(ZOD_FILES): derived/json-schema/.schemas-generated
+	@echo "$(BLUE)Generating Zod schemas from JSON schemas...$(RESET)"
+	@for schema in $(EXPECTED_SCHEMAS); do \
+		if [ -f "$$schema" ]; then \
+			zod_file=$$(echo "$$schema" | sed 's|derived/json-schema/|derived/zod/|' | sed 's|\.schema\.json|.ts|'); \
+			mkdir -p "$$(dirname "$$zod_file")"; \
+			if [ ! -f "$$zod_file" ] || [ "$$schema" -nt "$$zod_file" ]; then \
+				echo "$(BLUE)  Generating $$zod_file...$(RESET)"; \
+				NODE_NO_WARNINGS=1 npx json-schema-to-zod --input "$$schema" --output "$$zod_file" --module esm; \
+			fi; \
+		fi; \
+	done
+	@touch $(ZOD_FILES)
+
+# Copy Zod files to src/zod for compatibility (preserving directory structure)
+$(COPIED_ZOD_FILES): $(ZOD_FILES)
+	@echo "$(BLUE)Copying Zod schemas to src/zod/$(RESET)"
+	@for zod_file in $(ZOD_FILES); do \
+		if [ -f "$$zod_file" ]; then \
+			dest_file=$$(echo "$$zod_file" | sed 's|derived/zod/|src/zod/|'); \
+			mkdir -p "$$(dirname "$$dest_file")"; \
+			if [ ! -f "$$dest_file" ] || [ "$$zod_file" -nt "$$dest_file" ]; then \
+				echo "$(BLUE)  Copying $$zod_file...$(RESET)"; \
+				cp "$$zod_file" "$$dest_file"; \
+			fi; \
+		fi; \
+	done
+	@touch $(COPIED_ZOD_FILES)
+
 
 # Convenience targets
 generate-schemas: ## Generate all JSON schemas
@@ -134,8 +166,12 @@ generate-typescript: $(TS_FILES) ## Generate all TypeScript files
 
 copy-typescript: $(COPIED_TS_FILES) ## Copy TypeScript files to src/types
 
-generate: $(PYTHON_DEPS_STAMP) derived/json-schema/.schemas-generated $(COPIED_TS_FILES) ## Generate all types and copy files (conditional)
-	@echo "$(GREEN)✓ All type generation complete$(RESET)"
+generate-zod: $(ZOD_FILES) ## Generate all Zod schemas
+
+copy-zod: $(COPIED_ZOD_FILES) ## Copy Zod schemas to src/zod
+
+generate: $(PYTHON_DEPS_STAMP) derived/json-schema/.schemas-generated $(COPIED_TS_FILES) $(COPIED_ZOD_FILES) ## Generate all types and copy files (conditional)
+	@echo "$(GREEN)✓ All type generation complete (TypeScript + Zod)$(RESET)"
 
 generate-typescript-force: ## Force TypeScript generation after schemas exist
 	@find derived/json-schema -name "*.schema.json" -type f | while read schema; do \
@@ -160,7 +196,7 @@ force-generate: ## Force regeneration of all types
 	@echo "$(GREEN)✓ Force generation complete$(RESET)"
 
 # TypeScript compilation depends on copied TypeScript files
-$(COMPILED_TS): $(COPIED_TS_FILES) tsconfig.json
+$(COMPILED_TS): $(COPIED_TS_FILES) $(COPIED_ZOD_FILES) tsconfig.json
 	@echo "$(BLUE)Compiling TypeScript...$(RESET)"
 	@NODE_NO_WARNINGS=1 npx tsc
 	@echo "$(GREEN)✓ TypeScript compilation complete$(RESET)"

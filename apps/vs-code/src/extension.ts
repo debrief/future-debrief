@@ -12,7 +12,7 @@ import { PlotJsonEditorProvider } from './providers/editors/plotJsonEditor';
 import { DebriefActivityProvider } from './providers/panels/debriefActivityProvider';
 
 // External services
-import { DebriefHTTPServer } from './services/debriefHttpServer';
+import { DebriefMcpServer } from './services/debriefMcpServer';
 import { PythonWheelInstaller } from './services/pythonWheelInstaller';
 import { ToolVaultServerService } from './services/toolVaultServer';
 import { ToolVaultConfigService } from './services/toolVaultConfig';
@@ -21,7 +21,7 @@ import { ToolVaultConfigService } from './services/toolVaultConfig';
 import { ServerStatusBarIndicator } from './components/ServerStatusBarIndicator';
 import { createDebriefHttpConfig, createToolVaultConfig } from './config/serverIndicatorConfigs';
 
-let webSocketServer: DebriefHTTPServer | null = null;
+let mcpServer: DebriefMcpServer | null = null;
 let globalController: GlobalController | null = null;
 let activationHandler: EditorActivationHandler | null = null;
 let statePersistence: StatePersistence | null = null;
@@ -32,13 +32,17 @@ let toolVaultServer: ToolVaultServerService | null = null;
 let debriefActivityProvider: DebriefActivityProvider | null = null;
 
 export function activate(context: vscode.ExtensionContext) {
-    console.warn('Debrief Extension is now active!');
+    try {
+        console.warn('Debrief Extension is now active!');
 
     // Initialize Python wheel installer for automatic debrief-types installation
     const pythonWheelInstaller = new PythonWheelInstaller(context);
     pythonWheelInstaller.checkAndInstallPackage().catch(error => {
-        console.error('Python wheel installation failed:', error);
+        console.error('[Python Wheel Installer] Installation failed:', error);
+        console.error('[Python Wheel Installer] Error details:', error instanceof Error ? error.message : String(error));
+        console.error('[Python Wheel Installer] Stack:', error instanceof Error ? error.stack : 'No stack trace');
         // Non-blocking error - extension continues to work without Python integration
+        // This is expected if Python environment is not yet set up
     });
 
     // Initialize Tool Vault server
@@ -48,8 +52,8 @@ export function activate(context: vscode.ExtensionContext) {
     console.warn('[Extension] Creating server status bar indicators...');
     try {
         const debriefHttpConfig = createDebriefHttpConfig(
-            () => webSocketServer,
-            (server) => { webSocketServer = server; }
+            () => mcpServer,
+            (server) => { mcpServer = server; }
         );
         console.warn('[Extension] Debrief HTTP config created');
 
@@ -90,9 +94,9 @@ export function activate(context: vscode.ExtensionContext) {
     // Add cleanup to subscriptions
     context.subscriptions.push({
         dispose: () => {
-            if (webSocketServer) {
-                webSocketServer.stop().catch((error: unknown) => {
-                    console.error('Error stopping HTTP server during cleanup:', error);
+            if (mcpServer) {
+                mcpServer.stop().catch((error: unknown) => {
+                    console.error('Error stopping MCP server during cleanup:', error);
                 });
             }
             if (toolVaultServer) {
@@ -284,6 +288,15 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(copyLastToolResultCommand);
 
     // Panel connections are handled automatically through GlobalController subscriptions
+    } catch (error) {
+        console.error('[Extension Activation Error] Full stack trace:', error);
+        if (error instanceof Error) {
+            console.error('[Extension Activation Error] Message:', error.message);
+            console.error('[Extension Activation Error] Stack:', error.stack);
+        }
+        // Re-throw to let VS Code show the error
+        throw error;
+    }
 }
 
 export async function deactivate() {
@@ -300,15 +313,15 @@ export async function deactivate() {
         toolVaultServer = null;
     }
 
-    // Stop WebSocket server and wait for it to fully shut down
-    if (webSocketServer) {
+    // Stop MCP server and wait for it to fully shut down
+    if (mcpServer) {
         try {
-            await webSocketServer.stop();
-            console.log('✅ WebSocket server stopped');
+            await mcpServer.stop();
+            console.log('✅ MCP server stopped');
         } catch (error) {
-            console.error('Error stopping WebSocket server:', error);
+            console.error('Error stopping MCP server:', error);
         }
-        webSocketServer = null;
+        mcpServer = null;
     }
 
     // Cleanup consolidated activity panel provider
