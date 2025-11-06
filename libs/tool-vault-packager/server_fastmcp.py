@@ -18,7 +18,6 @@ Comparison with server.py:
 
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 try:
     from fastmcp import FastMCP
@@ -26,7 +25,6 @@ except ImportError:
     print("Error: fastmcp not installed. Install with: pip install fastmcp")
     sys.exit(1)
 
-from pydantic import BaseModel
 
 
 # Initialize FastMCP server
@@ -50,7 +48,6 @@ def load_and_register_tools(tools_path: str = "tools"):
     """
     import importlib.util
     import inspect
-    from pathlib import Path
 
     tools_dir = Path(tools_path)
 
@@ -83,7 +80,7 @@ def load_and_register_tools(tools_path: str = "tools"):
                     obj.__module__ == module_path):
 
                     # Register with FastMCP
-                    tool_func = mcp.tool()(obj)
+                    mcp.tool()(obj)
                     tool_count += 1
 
                     # Get tool category from path
@@ -117,7 +114,7 @@ def start_server(
     import uvicorn
 
     print(f"\n{'='*60}")
-    print(f"Starting ToolVault FastMCP Server")
+    print("Starting ToolVault FastMCP Server")
     print(f"{'='*60}\n")
 
     # Load and register all tools

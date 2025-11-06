@@ -267,8 +267,8 @@ def serve_dev_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"
     - MCP Proxy server runs on --server-port (default: random)
     - The original 'port' parameter is not directly used by fastmcp dev
     """
-    import subprocess
     import os
+    import subprocess
 
     ui_port = 6274  # Default MCP Inspector UI port
 

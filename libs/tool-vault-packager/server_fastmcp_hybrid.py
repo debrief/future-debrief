@@ -17,10 +17,9 @@ This gives us:
 ✅ Best of both worlds
 """
 
-import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 try:
     from fastmcp import FastMCP
@@ -29,10 +28,10 @@ except ImportError:
     sys.exit(1)
 
 from starlette.applications import Starlette
+from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import FileResponse, JSONResponse, Response
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
-from starlette.middleware.cors import CORSMiddleware
 
 
 def _import_discovery():
@@ -320,7 +319,7 @@ def start_server(
     import uvicorn
 
     print(f"\n{'='*70}")
-    print(f"ToolVault Hybrid Server (FastMCP + Custom Routes)")
+    print("ToolVault Hybrid Server (FastMCP + Custom Routes)")
     print(f"{'='*70}\n")
 
     # Create hybrid server
@@ -329,16 +328,16 @@ def start_server(
 
     print(f"\n{'='*70}")
     print(f"Server starting on http://{host}:{port}")
-    print(f"")
-    print(f"MCP Endpoints:")
+    print("")
+    print("MCP Endpoints:")
     print(f"  - SSE Transport: http://{host}:{port}/sse")
-    print(f"")
-    print(f"Backward Compatible Endpoints:")
+    print("")
+    print("Backward Compatible Endpoints:")
     print(f"  - Tools List: http://{host}:{port}/tools/list")
     print(f"  - Tools Call: http://{host}:{port}/tools/call")
     print(f"  - Web UI: http://{host}:{port}/ui/")
     print(f"  - Health: http://{host}:{port}/health")
-    print(f"")
+    print("")
     print(f"{'='*70}\n")
 
     # Run server

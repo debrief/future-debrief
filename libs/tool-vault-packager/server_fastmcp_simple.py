@@ -14,8 +14,7 @@ Endpoints:
 """
 
 import sys
-from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 try:
     from fastmcp import FastMCP
@@ -24,9 +23,9 @@ except ImportError:
     sys.exit(1)
 
 from starlette.applications import Starlette
+from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import JSONResponse
 from starlette.routing import Route
-from starlette.middleware.cors import CORSMiddleware
 
 
 def _import_discovery():
@@ -228,7 +227,7 @@ def start_server(
     import uvicorn
 
     print(f"\n{'='*70}")
-    print(f"ToolVault Simple FastMCP Server")
+    print("ToolVault Simple FastMCP Server")
     print(f"{'='*70}\n")
 
     # Create server
@@ -237,20 +236,20 @@ def start_server(
 
     print(f"\n{'='*70}")
     print(f"Server starting on http://{host}:{port}")
-    print(f"")
-    print(f"Endpoints:")
+    print("")
+    print("Endpoints:")
     print(f"  - MCP Protocol:  POST http://{host}:{port}/mcp")
     print(f"  - Health Check:  GET  http://{host}:{port}/health")
     print(f"  - List Tools:    GET  http://{host}:{port}/tools/list")
     print(f"  - Execute Tool:  POST http://{host}:{port}/tools/call")
-    print(f"")
-    print(f"Test with:")
+    print("")
+    print("Test with:")
     print(f'  curl http://{host}:{port}/health')
     print(f'  curl http://{host}:{port}/tools/list | jq .')
     print(f'  curl -X POST http://{host}:{port}/tools/call \\')
-    print(f'    -H "Content-Type: application/json" \\')
-    print(f'    -d \'{{"name":"word_count","arguments":{{"text":"hello world"}}}}\'')
-    print(f"")
+    print('    -H "Content-Type: application/json" \\')
+    print('    -d \'{"name":"word_count","arguments":{"text":"hello world"}}\'')
+    print("")
     print(f"{'='*70}\n")
 
     # Run server
