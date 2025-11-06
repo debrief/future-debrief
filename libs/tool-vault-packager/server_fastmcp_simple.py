@@ -86,13 +86,15 @@ class SimpleToolVaultServer:
             # Create wrapper that FastMCP can use
             def make_wrapper(tool_meta):
                 def wrapper(params):
-                    """Tool wrapper for FastMCP."""
-                    # Validate with Pydantic
-                    if tool_meta.pydantic_model:
-                        validated = tool_meta.pydantic_model(**params)
-                        result = tool_meta.function(validated)
-                    else:
-                        result = tool_meta.function(params)
+                    """Tool wrapper for FastMCP.
+
+                    FastMCP already deserializes and validates the Pydantic model,
+                    so params will be an instance of the model, not a dict.
+                    We just pass it through to the tool function.
+                    """
+                    # FastMCP passes the already-validated model instance
+                    # No need to re-instantiate - just use it directly
+                    result = tool_meta.function(params)
 
                     # Convert to dict
                     return result.model_dump() if hasattr(result, 'model_dump') else result
@@ -113,6 +115,9 @@ class SimpleToolVaultServer:
 
     def create_app(self):
         """Create Starlette app with FastMCP + custom routes."""
+
+        # Get FastMCP app to extract routes and lifespan
+        mcp_app = self.mcp.http_app()
 
         # Define custom routes
         async def health(request):
@@ -193,14 +198,14 @@ class SimpleToolVaultServer:
             Route("/tools/call", tools_call, methods=["POST"]),
         ]
 
-        # Get FastMCP routes
-        mcp_routes = list(self.mcp.http_app().routes)
+        # Get FastMCP routes (already fetched at top of method)
+        mcp_routes = list(mcp_app.routes)
 
         # Combine routes - FastMCP first, then custom
         all_routes = mcp_routes + custom_routes
 
-        # Create app
-        app = Starlette(routes=all_routes)
+        # Create app with FastMCP's lifespan (CRITICAL for FastMCP to work)
+        app = Starlette(routes=all_routes, lifespan=mcp_app.router.lifespan_context)
 
         # Add CORS
         app.add_middleware(

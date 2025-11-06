@@ -45,18 +45,52 @@ $ curl http://localhost:8000/tools/list | jq '.root | length'
 5
 ✅ PASS (5 tool categories)
 
-# Test 3: Execute Tool
+# Test 3: Execute Tool (Custom REST Endpoint)
 $ curl -X POST http://localhost:8000/tools/call \
   -H "Content-Type: application/json" \
-  -d '{"name":"word_count","arguments":{"text":"Hello FastMCP!"}}'
+  -d '{"name":"word_count","arguments":{"text":"Hello FastMCP world"}}'
 {
   "result": {
     "command": "showText",
-    "payload": "Word count: 2"
+    "payload": "Word count: 3"
   },
   "isError": false
 }
 ✅ PASS (Correct word count)
+
+# Test 4: FastMCP Protocol Endpoint
+$ curl -X POST http://localhost:8000/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{...}}'
+✅ PASS (FastMCP responding, requires MCP client session for full flow)
+```
+
+## Critical Bug Fixes
+
+### Parameter Re-instantiation Bug (P1)
+**Issue**: FastMCP already deserializes request bodies into annotated Pydantic model instances before invoking tool handlers. The original wrapper in `_register_tools()` assumed `params` was a plain dict and tried to rebuild the model via `tool_meta.pydantic_model(**params)`.
+
+**Impact**: When FastMCP passed an existing BaseModel instance (e.g., `WordCountParameters`), this call raised:
+```python
+TypeError: type object argument after ** must be a mapping
+```
+Every tool invocation via FastMCP (SSE or HTTP) failed before reaching the tool code. The custom `/tools/call` route masked this bug.
+
+**Fix**: Accept the already-validated model and pass it through directly:
+```python
+def wrapper(params):
+    """FastMCP already passes validated model instance"""
+    result = tool_meta.function(params)  # Direct pass-through
+    return result.model_dump() if hasattr(result, 'model_dump') else result
+```
+
+### FastMCP Lifespan Initialization
+**Issue**: Starlette app wasn't initialized with FastMCP's lifespan context, causing "Task group is not initialized" errors.
+
+**Fix**: Pass FastMCP's lifespan when creating Starlette app:
+```python
+app = Starlette(routes=all_routes, lifespan=mcp_app.router.lifespan_context)
 ```
 
 ## Benefits Over Original Implementation
