@@ -233,6 +233,32 @@ def serve_fastmcp_command(tools_path: str, port: int = 8000, host: str = "127.0.
         sys.exit(1)
 
 
+def serve_hybrid_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
+    """Start the ToolVault server using Hybrid FastMCP + Custom Routes (recommended trial)."""
+    try:
+        from server_fastmcp_hybrid import start_server
+    except ImportError:
+        print(
+            "Error: server_fastmcp_hybrid module not found.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    try:
+        # Start the hybrid server
+        start_server(
+            host=host,
+            port=port,
+            tools_path=tools_path
+        )
+
+    except Exception as e:
+        print(f"Error starting Hybrid FastMCP server: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -286,6 +312,16 @@ Examples:
         "--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)"
     )
 
+    # Serve Hybrid command (recommended trial implementation)
+    serve_hybrid_parser = subparsers.add_parser(
+        "serve-hybrid",
+        help="Start ToolVault with Hybrid FastMCP + Custom Routes (recommended trial)"
+    )
+    serve_hybrid_parser.add_argument("--port", type=int, default=8000, help="Server port (default: 8000)")
+    serve_hybrid_parser.add_argument(
+        "--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)"
+    )
+
     # Show details command
     subparsers.add_parser(
         "show-details", help="Show detailed tool information including source code and git history"
@@ -322,6 +358,8 @@ Examples:
         serve_command(tools_path_str, args.port, args.host)
     elif args.command == "serve-fastmcp":
         serve_fastmcp_command(tools_path_str, args.port, args.host)
+    elif args.command == "serve-hybrid":
+        serve_hybrid_command(tools_path_str, args.port, args.host)
     elif args.command == "show-details":
         output_tool_details(tools_path_str)
 
