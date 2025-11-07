@@ -10,7 +10,7 @@
     "build:web-components": "pnpm --filter @debrief/web-components build",
     "build:vs-code": "turbo run build --filter=vs-code",
     "build:vs-code:ci": "turbo run build:ci --filter=vs-code",
-    "build": "turbo run build",
+    "build": "turbo run build && cd libs/tool-vault-packager && npm run build",
     "build:ci": "turbo run build:ci",
     "dev": "turbo run dev --filter=vs-code",
     "dev:web-components": "turbo run build --filter=@debrief/web-components",
