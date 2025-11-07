@@ -222,48 +222,6 @@ pydantic>=2.0.0
 """
 
 
-def build_spa() -> bool:
-    """
-    Build the SPA for integration into the package.
-
-    Returns:
-        True if build succeeded, False otherwise
-    """
-    spa_dir = Path(__file__).parent / "spa"
-
-    if not spa_dir.exists():
-        print("Warning: SPA directory not found, skipping SPA build")
-        return False
-
-    try:
-        import subprocess
-
-        print("Building SPA...")
-
-        # Check if node_modules exists, install if not
-        node_modules = spa_dir / "node_modules"
-        if not node_modules.exists():
-            print("Installing SPA dependencies...")
-            result = subprocess.run(["npm", "install"], cwd=spa_dir, capture_output=True, text=True)
-            if result.returncode != 0:
-                print(f"SPA dependencies installation failed: {result.stderr}")
-                return False
-
-        # Build the SPA
-        result = subprocess.run(
-            ["npm", "run", "build"], cwd=spa_dir, capture_output=True, text=True
-        )
-        if result.returncode != 0:
-            print(f"SPA build failed: {result.stderr}")
-            return False
-
-        print("SPA build completed successfully")
-        return True
-
-    except Exception as e:
-        print(f"Error building SPA: {e}")
-        return False
-
 
 def package_toolvault(
     tools_path: str,
@@ -306,7 +264,6 @@ def package_toolvault(
         )
 
     # Build SPA first
-    spa_build_success = build_spa()
 
     try:
         # Discover and validate tools first
@@ -370,7 +327,7 @@ def package_toolvault(
         source_dir = Path(__file__).parent
 
         # Core modules to include
-        core_modules = ["__init__.py", "discovery.py", "server.py", "cli.py", "packager.py"]
+        core_modules = ["__init__.py", "discovery.py", "server_fastmcp.py", "cli.py", "packager.py"]
 
         for module in core_modules:
             source_file = source_dir / module
@@ -402,15 +359,6 @@ def package_toolvault(
 
         # Note: Sample data is now included in each tool's samples/ folder
 
-        # Copy SPA assets if build was successful
-        if spa_build_success:
-            spa_dist_dir = Path(__file__).parent / "spa" / "dist"
-            if spa_dist_dir.exists():
-                spa_dest = package_dir / "static"
-                shutil.copytree(spa_dist_dir, spa_dest)
-                print("SPA assets copied to package")
-            else:
-                print("Warning: SPA dist directory not found after build")
 
         # Generate and save index.json
         index_path = package_dir / "index.json"
@@ -452,7 +400,7 @@ def package_toolvault(
                 with open(source_file, "w") as f:
                     f.write(html_content)
 
-            # Create tool-specific tool.json for SPA navigation using typed models
+            # Create tool-specific tool.json using typed models
             sample_input_refs = []
             for sample_input in tool.sample_inputs:
                 sample_input_refs.append(
