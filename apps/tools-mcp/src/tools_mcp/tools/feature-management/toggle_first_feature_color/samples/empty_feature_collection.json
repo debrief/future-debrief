@@ -1,0 +1,10 @@
+{
+  "input": {
+    "feature_collection": {
+      "type": "FeatureCollection",
+      "features": []
+    }
+  },
+  "expectedOutput": null,
+  "baseline_error": "Object of type ShowTextCommand is not JSON serializable"
+}

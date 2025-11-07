@@ -1,0 +1,16 @@
+{
+  "input": {
+    "viewport_state": {
+      "bounds": [
+        -1.0,
+        -1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "lat_interval": 0.25,
+    "lon_interval": 0.4
+  },
+  "expectedOutput": null,
+  "baseline_error": "Object of type ShowTextCommand is not JSON serializable"
+}

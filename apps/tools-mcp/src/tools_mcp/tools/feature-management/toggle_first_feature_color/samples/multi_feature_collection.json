@@ -1,0 +1,62 @@
+{
+  "input": {
+    "feature_collection": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "properties": {
+            "dataType": "reference-point",
+            "marker_color": "blue",
+            "name": "First Feature"
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              1,
+              1
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "dataType": "reference-point",
+            "marker_color": "green",
+            "name": "Second Feature"
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              2,
+              2
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "expectedOutput": {
+    "command": "updateFeatures",
+    "payload": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            1.0,
+            1.0
+          ]
+        },
+        "properties": {
+          "dataType": "reference-point",
+          "time": null,
+          "timeEnd": null,
+          "name": "First Feature",
+          "visible": true,
+          "marker_color": "#FF0000"
+        }
+      }
+    ]
+  }
+}

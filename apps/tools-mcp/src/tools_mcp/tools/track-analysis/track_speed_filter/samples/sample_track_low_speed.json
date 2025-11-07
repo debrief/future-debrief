@@ -1,0 +1,43 @@
+{
+  "input": {
+    "track_feature": {
+      "type": "Feature",
+      "id": "sample_track_001",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -0.1,
+            51.5
+          ],
+          [
+            -0.099,
+            51.501
+          ],
+          [
+            -0.098,
+            51.502
+          ],
+          [
+            -0.097,
+            51.503
+          ]
+        ]
+      },
+      "properties": {
+        "dataType": "track",
+        "name": "Sample Low Speed Track",
+        "description": "A track with relatively low speeds for testing",
+        "timestamps": [
+          "2023-01-01T10:00:00Z",
+          "2023-01-01T10:01:00Z",
+          "2023-01-01T10:02:00Z",
+          "2023-01-01T10:03:00Z"
+        ]
+      }
+    },
+    "min_speed": 5.0
+  },
+  "expectedOutput": null,
+  "baseline_error": "Object of type ShowTextCommand is not JSON serializable"
+}

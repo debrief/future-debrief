@@ -1,0 +1,12 @@
+# Core FastMCP dependencies
+fastmcp>=0.5.0
+pydantic>=2.0.0
+
+# GeoJSON validation for shared types
+geojson-pydantic>=1.0.0
+
+# JSON schema validation
+jsonschema>=4.17.0
+
+# Shared types from monorepo
+../../libs/shared-types

@@ -1,0 +1,47 @@
+{
+  "input": {
+    "feature_collection": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "properties": {
+            "dataType": "reference-point",
+            "marker_color": "red",
+            "name": "Test Point"
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              0,
+              0
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "expectedOutput": {
+    "command": "updateFeatures",
+    "payload": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            0.0,
+            0.0
+          ]
+        },
+        "properties": {
+          "dataType": "reference-point",
+          "time": null,
+          "timeEnd": null,
+          "name": "Test Point",
+          "visible": true,
+          "marker_color": "#0000FF"
+        }
+      }
+    ]
+  }
+}

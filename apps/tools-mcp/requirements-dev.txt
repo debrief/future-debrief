@@ -1,0 +1,9 @@
+-r requirements.txt
+
+# Development tools
+ruff>=0.1.0
+mypy>=1.0.0
+pytest>=7.0.0
+
+# MCP Inspector for testing
+mcp-inspector>=0.1.0
