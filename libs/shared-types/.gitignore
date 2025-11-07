@@ -5,6 +5,12 @@ dist/
 # Generated TypeScript types (preserve validators and index.ts)
 src/types/
 
+# Generated Zod schemas (preserve index files)
+src/zod/**/*.ts
+!src/zod/index.ts
+!src/zod/features/index.ts
+!src/zod/states/index.ts
+
 # Note: python-src/debrief/types/ now contains source files and should be committed
 
 # Copied schema files (generated from source)
