@@ -134,7 +134,7 @@ $(ZOD_FILES): derived/json-schema/.schemas-generated
 			mkdir -p "$$(dirname "$$zod_file")"; \
 			if [ ! -f "$$zod_file" ] || [ "$$schema" -nt "$$zod_file" ]; then \
 				echo "$(BLUE)  Generating $$zod_file...$(RESET)"; \
-				NODE_NO_WARNINGS=1 npx json-schema-to-zod --input "$$schema" --output "$$zod_file" --module esm; \
+				NODE_NO_WARNINGS=1 npx json-schema-to-zod --input "$$schema" --output "$$zod_file"; \
 			fi; \
 		fi; \
 	done
