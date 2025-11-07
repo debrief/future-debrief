@@ -1,4 +1,4 @@
-"""Command Line Interface for ToolVault packager."""
+"""Command Line Interface for ToolVault packager - Pure FastMCP Implementation."""
 
 import argparse
 import json
@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 
-def _import_cli_modules() -> tuple[Any, Any, Any, Any]:
+def _import_cli_modules() -> tuple[Any, Any, Any]:
     """Import CLI dependencies with fallbacks for packaged execution."""
 
     try:
@@ -18,16 +18,15 @@ def _import_cli_modules() -> tuple[Any, Any, Any, Any]:
             generate_index_json as _generate_index,
         )
         from packager import output_tool_details as _output_tool_details
-        from server import create_app as _create_app
 
-        return _discover_tools, _generate_index, _output_tool_details, _create_app
+        return _discover_tools, _generate_index, _output_tool_details
     except ImportError:
         import importlib.util
         import os
 
         current_dir = os.path.dirname(os.path.abspath(__file__))
 
-        for module_name in ["discovery", "server", "packager"]:
+        for module_name in ["discovery", "packager"]:
             module_path = os.path.join(current_dir, f"{module_name}.py")
             if not os.path.exists(module_path):
                 continue
@@ -47,12 +46,11 @@ def _import_cli_modules() -> tuple[Any, Any, Any, Any]:
             generate_index_json as _generate_index,
         )
         from packager import output_tool_details as _output_tool_details
-        from server import create_app as _create_app
 
-        return _discover_tools, _generate_index, _output_tool_details, _create_app
+        return _discover_tools, _generate_index, _output_tool_details
 
 
-discover_tools, generate_index_json, output_tool_details, create_app = _import_cli_modules()
+discover_tools, generate_index_json, output_tool_details = _import_cli_modules()
 
 
 def list_tools_command(tools_path: str):
@@ -161,42 +159,7 @@ def call_tool_command(tools_path: str, tool_name: str, arguments: Dict[str, Any]
 
 
 def serve_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
-    """Start the ToolVault server."""
-    try:
-        import uvicorn
-    except ImportError:
-        print(
-            "Error: uvicorn is required to run the server. Install with: pip install uvicorn",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    try:
-        # Validate tools before starting server
-        tools = discover_tools(tools_path)
-        print(f"Discovered {len(tools)} tools")
-
-        # Create the app
-        app = create_app(tools_path)
-
-        print(f"Server starting on http://{host}:{port}")
-        print(f"Web interface: http://{host}:{port}/ui/")
-        print(f"MCP API: http://{host}:{port}/tools/list")
-        print(f"Tools directory: {tools_path}")
-        print("Additional endpoints:")
-        print(f"  - POST http://{host}:{port}/tools/call")
-        print(f"  - GET  http://{host}:{port}/health")
-
-        # Start the server
-        uvicorn.run(app, host=host, port=port)
-
-    except Exception as e:
-        print(f"Error starting server: {e}", file=sys.stderr)
-        sys.exit(1)
-
-
-def serve_fastmcp_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
-    """Start the ToolVault server using FastMCP framework (trial implementation)."""
+    """Start the ToolVault FastMCP server."""
     try:
         from server_fastmcp import start_server
     except ImportError:
@@ -208,10 +171,11 @@ def serve_fastmcp_command(tools_path: str, port: int = 8000, host: str = "127.0.
 
     try:
         print("\n" + "=" * 70)
-        print("FASTMCP TRIAL IMPLEMENTATION")
+        print("ToolVault Pure FastMCP Server")
         print("=" * 70)
-        print("\nThis is a trial implementation using the FastMCP framework.")
-        print("It provides the same functionality as the standard server but with:")
+        print("\nThis server provides a pure MCP protocol implementation.")
+        print("No REST API endpoints - MCP protocol only.")
+        print("\nFeatures:")
         print("  - Automatic schema generation from type hints")
         print("  - Decorator-based tool registration")
         print("  - Built-in MCP protocol compliance")
@@ -233,102 +197,20 @@ def serve_fastmcp_command(tools_path: str, port: int = 8000, host: str = "127.0.
         sys.exit(1)
 
 
-def serve_hybrid_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
-    """Start the ToolVault server using Simple FastMCP (recommended)."""
-    try:
-        from server_fastmcp_simple import start_server
-    except ImportError:
-        print(
-            "Error: server_fastmcp_simple module not found.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    try:
-        # Start the simple FastMCP server
-        start_server(
-            host=host,
-            port=port,
-            tools_path=tools_path
-        )
-
-    except Exception as e:
-        print(f"Error starting FastMCP server: {e}", file=sys.stderr)
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-
-
-def serve_dev_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
-    """Start the ToolVault server with MCP Inspector web UI for debugging.
-
-    Note: fastmcp dev runs its own proxy server architecture:
-    - MCP Inspector UI runs on --ui-port (default: 6274)
-    - MCP Proxy server runs on --server-port (default: random)
-    - The original 'port' parameter is not directly used by fastmcp dev
-    """
-    import os
-    import subprocess
-
-    ui_port = 6274  # Default MCP Inspector UI port
-
-    print("\n" + "=" * 70)
-    print("STARTING TOOL VAULT WITH MCP INSPECTOR")
-    print("=" * 70)
-    print("\nThe MCP Inspector provides a web UI for testing and debugging tools.")
-    print(f"Inspector UI will be available at: http://127.0.0.1:{ui_port}")
-    print("Note: fastmcp dev uses its own proxy server architecture")
-    print("\n" + "=" * 70 + "\n")
-
-    # Set environment variables for the server
-    env = os.environ.copy()
-    env["TOOLS_PATH"] = tools_path
-
-    # Create entry point for fastmcp dev
-    entry_point = Path(__file__).parent / "server_fastmcp_dev.py"
-    if not entry_point.exists():
-        print(f"Creating entry point: {entry_point}")
-        with open(entry_point, "w") as f:
-            f.write('''"""Entry point for fastmcp dev command."""
-import os
-from server_fastmcp_simple import SimpleToolVaultServer
-
-# Get configuration from environment variables
-tools_path = os.environ.get("TOOLS_PATH", "tools")
-
-# Create the server instance (this exports the 'mcp' object that fastmcp dev needs)
-server = SimpleToolVaultServer(tools_path)
-mcp = server.mcp
-''')
-
-    try:
-        # Run fastmcp dev with correct options
-        cmd = ["fastmcp", "dev", str(entry_point), "--ui-port", str(ui_port)]
-        print(f"Running: {' '.join(cmd)}\n")
-        subprocess.run(cmd, env=env, check=True)
-    except subprocess.CalledProcessError as e:
-        print(f"\nError running fastmcp dev: {e}", file=sys.stderr)
-        print("\nMake sure fastmcp is installed with dev extras:", file=sys.stderr)
-        print("  pip install 'fastmcp[dev]'", file=sys.stderr)
-        sys.exit(1)
-    except FileNotFoundError:
-        print("\nError: 'fastmcp' command not found", file=sys.stderr)
-        print("\nMake sure fastmcp is installed with dev extras:", file=sys.stderr)
-        print("  pip install 'fastmcp[dev]'", file=sys.stderr)
-        sys.exit(1)
-
-
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
-        description="ToolVault - Tool discovery and packaging system",
+        description="ToolVault - Pure FastMCP Tool Server",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   python toolvault.pyz list-tools              # List all available tools
   python toolvault.pyz call-tool <tool> <args> # Execute a specific tool
-  python toolvault.pyz serve --port 8000       # Start MCP-compatible server
-  python toolvault.pyz show-details            # Show detailed tool info with source code and git history
+  python toolvault.pyz serve --port 8000       # Start FastMCP server
+  python toolvault.pyz show-details            # Show detailed tool info
+
+Testing:
+  npx @modelcontextprotocol/inspector http://localhost:8000/mcp
         """,
     )
 
@@ -354,40 +236,10 @@ Examples:
         "arguments", help='Tool arguments as JSON string (e.g., \'{"text": "hello world"}\')'
     )
 
-    # Serve command
-    serve_parser = subparsers.add_parser("serve", help="Start the ToolVault server")
+    # Serve command (FastMCP only)
+    serve_parser = subparsers.add_parser("serve", help="Start the FastMCP server")
     serve_parser.add_argument("--port", type=int, default=8000, help="Server port (default: 8000)")
     serve_parser.add_argument(
-        "--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)"
-    )
-
-    # Serve FastMCP command (trial implementation)
-    serve_fastmcp_parser = subparsers.add_parser(
-        "serve-fastmcp",
-        help="Start the ToolVault server using FastMCP framework (trial implementation)"
-    )
-    serve_fastmcp_parser.add_argument("--port", type=int, default=8000, help="Server port (default: 8000)")
-    serve_fastmcp_parser.add_argument(
-        "--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)"
-    )
-
-    # Serve Hybrid command (recommended trial implementation)
-    serve_hybrid_parser = subparsers.add_parser(
-        "serve-hybrid",
-        help="Start ToolVault with Hybrid FastMCP + Custom Routes (recommended trial)"
-    )
-    serve_hybrid_parser.add_argument("--port", type=int, default=8000, help="Server port (default: 8000)")
-    serve_hybrid_parser.add_argument(
-        "--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)"
-    )
-
-    # Serve Dev command (with MCP Inspector web UI)
-    serve_dev_parser = subparsers.add_parser(
-        "serve-dev",
-        help="Start ToolVault with MCP Inspector web UI for debugging (requires fastmcp[dev])"
-    )
-    serve_dev_parser.add_argument("--port", type=int, default=8000, help="Server port (default: 8000)")
-    serve_dev_parser.add_argument(
         "--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)"
     )
 
@@ -425,12 +277,6 @@ Examples:
         call_tool_command(tools_path_str, args.tool_name, arguments)
     elif args.command == "serve":
         serve_command(tools_path_str, args.port, args.host)
-    elif args.command == "serve-fastmcp":
-        serve_fastmcp_command(tools_path_str, args.port, args.host)
-    elif args.command == "serve-hybrid":
-        serve_hybrid_command(tools_path_str, args.port, args.host)
-    elif args.command == "serve-dev":
-        serve_dev_command(tools_path_str, args.port, args.host)
     elif args.command == "show-details":
         output_tool_details(tools_path_str)
 

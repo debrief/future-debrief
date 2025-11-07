@@ -1,16 +1,13 @@
 {
   "name": "tool_vault_packager",
   "version": "1.0.0",
-  "description": "ToolVault packaging system for creating deployable .pyz files",
+  "description": "ToolVault packaging system for creating pure FastMCP servers",
   "main": "cli.py",
   "scripts": {
     "clean": "rm -rf dist && rm -rf tmp_package_contents",
     "build": "mkdir -p dist && python packager.py tools --output dist/toolvault.pyz && mkdir -p ../../apps/vs-code/tool-vault && cp dist/toolvault.pyz ../../apps/vs-code/tool-vault/",
-    "build:spa": "cd spa && npm install && npm run verify-deps && npm run build",
-    "prebuild": "npm run clean && npm run build:spa",
+    "prebuild": "npm run clean",
     "serve": "python cli.py serve",
-    "dev:spa": "cd spa && npm run dev",
-    "dev:spa:with-backend": "cd spa && npm run dev:with-backend",
     "test": "test -f dist/toolvault.pyz && echo 'Test passed: dist/toolvault.pyz exists' || (echo 'Test failed: dist/toolvault.pyz not found' && exit 1)",
     "test:tools": "python -m testing.cli test",
     "test:tools:baseline": "python -m testing.cli generate-baseline",
@@ -32,6 +29,7 @@
   "keywords": [
     "toolvault",
     "mcp",
+    "fastmcp",
     "packaging"
   ],
   "author": "ToolVault",

@@ -1,4 +1,4 @@
-# Makefile for tool-vault-packager
+# Makefile for tool-vault-packager - Pure FastMCP
 # Fast verification without rebuilding
 
 # Colors for output
@@ -10,23 +10,20 @@ RESET := \033[0m
 # Source files to check
 PYTHON_FILES := $(shell find . -name "*.py" \
   -not -path "./shared-types/*" \
-  -not -path "./spa/node_modules/*" \
   -not -path "./node_modules/*" \
   -not -path "./tmp_package_contents/*" \
   -not -path "./tools/*" \
   -not -path "./test/*")
-SPA_FILES := $(shell find spa/src -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx")
-NEWEST_PYTHON := $(shell ls -t $(PYTHON_FILES) | head -1)
-NEWEST_SPA := $(shell ls -t $(SPA_FILES) | head -1)
+NEWEST_PYTHON := $(shell ls -t $(PYTHON_FILES) 2>/dev/null | head -1)
 
 # Build artifacts that should exist
-REQUIRED_FILES := dist/toolvault.pyz shared-types/python-src shared-types/src spa/dist/index.html
-REQUIRED_DIRS := spa/node_modules node_modules
+REQUIRED_FILES := dist/toolvault.pyz shared-types/python-src shared-types/src
+REQUIRED_DIRS := node_modules
 
 .PHONY: help verify verify-artifacts verify-tests verify-typecheck lint lint-fix type-check check-all install-dev-deps
 
 help: ## Show this help message
-	@echo "$(BLUE)tool-vault-packager - Fast Verification$(RESET)"
+	@echo "$(BLUE)tool-vault-packager - Pure FastMCP$(RESET)"
 	@echo ""
 	@echo "$(GREEN)Available targets:$(RESET)"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(BLUE)%-15s$(RESET) %s\n", $$1, $$2}'
@@ -72,12 +69,12 @@ verify-tests: ## Run basic validation tests
 	@npm test || (echo "$(RED)❌ Tests failed$(RESET)" >&2 && exit 1)
 
 # Check required files exist and are up-to-date
-spa/dist/index.html: $(SPA_FILES)
-dist/toolvault.pyz: $(PYTHON_FILES) $(SPA_FILES)
+dist/toolvault.pyz: $(PYTHON_FILES)
 shared-types/python-src:
+shared-types/src:
 
 $(REQUIRED_FILES):
-	@if [ ! -f "$@" ]; then \
+	@if [ ! -f "$@" ] && [ ! -d "$@" ]; then \
 		echo "$(RED)❌ [tool-vault-packager] Missing build artifact: $@$(RESET)" >&2; \
 		echo "❌ [tool-vault-packager] Missing build artifact: $@"; \
 		if [[ "$@" == *".pyz" ]]; then \
@@ -86,32 +83,13 @@ $(REQUIRED_FILES):
 		elif [[ "$@" == *"shared-types"* ]]; then \
 			echo "$(BLUE)💡 Run: cd ../shared-types && make build$(RESET)" >&2; \
 			echo "💡 Run: cd ../shared-types && make build"; \
-		elif [[ "$@" == *"spa/dist"* ]]; then \
-			echo "$(BLUE)💡 Run: npm run build:spa$(RESET)" >&2; \
-			echo "💡 Run: npm run build:spa"; \
 		fi; \
 		exit 1; \
-	elif [[ "$@" == *"spa/dist"* ]] && [[ -n "$(NEWEST_SPA)" ]] && [[ "$@" -ot "$(NEWEST_SPA)" ]]; then \
-		echo "$(RED)❌ [tool-vault-packager] $@ is older than SPA source files$(RESET)" >&2; \
-		echo "❌ [tool-vault-packager] $@ is older than SPA source files"; \
-		echo "$(BLUE)💡 Newest source: $(NEWEST_SPA)$(RESET)" >&2; \
-		echo "💡 Newest source: $(NEWEST_SPA)"; \
-		echo "$(BLUE)🔧 Attempting to rebuild SPA...$(RESET)" >&2; \
-		echo "🔧 Attempting to rebuild SPA..."; \
-		npm run build:spa || (echo "$(RED)❌ SPA build failed$(RESET)" >&2 && echo "❌ SPA build failed" && exit 1); \
-	elif [[ "$@" == *".pyz" ]] && [[ -n "$(NEWEST_PYTHON)" ]] && [[ "$@" -ot "$(NEWEST_PYTHON)" ]]; then \
+	elif [[ "$@" == *".pyz" ]] && [ -f "$@" ] && [[ -n "$(NEWEST_PYTHON)" ]] && [[ "$@" -ot "$(NEWEST_PYTHON)" ]]; then \
 		echo "$(RED)❌ [tool-vault-packager] $@ is older than Python source files$(RESET)" >&2; \
 		echo "❌ [tool-vault-packager] $@ is older than Python source files"; \
 		echo "$(BLUE)💡 Newest source: $(NEWEST_PYTHON)$(RESET)" >&2; \
 		echo "💡 Newest source: $(NEWEST_PYTHON)"; \
-		echo "$(BLUE)🔧 Attempting to rebuild package...$(RESET)" >&2; \
-		echo "🔧 Attempting to rebuild package..."; \
-		npm run build || (echo "$(RED)❌ Package build failed$(RESET)" >&2 && echo "❌ Package build failed" && exit 1); \
-	elif [[ "$@" == *".pyz" ]] && [[ -n "$(NEWEST_SPA)" ]] && [[ "$@" -ot "$(NEWEST_SPA)" ]]; then \
-		echo "$(RED)❌ [tool-vault-packager] $@ is older than SPA source files$(RESET)" >&2; \
-		echo "❌ [tool-vault-packager] $@ is older than SPA source files"; \
-		echo "$(BLUE)💡 Newest source: $(NEWEST_SPA)$(RESET)" >&2; \
-		echo "💡 Newest source: $(NEWEST_SPA)"; \
 		echo "$(BLUE)🔧 Attempting to rebuild package...$(RESET)" >&2; \
 		echo "🔧 Attempting to rebuild package..."; \
 		npm run build || (echo "$(RED)❌ Package build failed$(RESET)" >&2 && echo "❌ Package build failed" && exit 1); \
@@ -120,11 +98,9 @@ $(REQUIRED_FILES):
 # Check required directories exist
 $(REQUIRED_DIRS):
 	@if [ ! -d "$@" ]; then \
-		echo "$(RED)❌ [tool-vault-packager] Missing directory: $@/$(RESET)"; \
-		if [[ "$@" == *"spa/node_modules" ]]; then \
-			echo "$(BLUE)💡 Run: cd spa && npm install$(RESET)"; \
-		else \
-			echo "$(BLUE)💡 Run: npm install$(RESET)"; \
-		fi; \
+		echo "$(RED)❌ [tool-vault-packager] Missing directory: $@$(RESET)" >&2; \
+		echo "❌ [tool-vault-packager] Missing directory: $@"; \
+		echo "$(BLUE)💡 Run: npm install$(RESET)" >&2; \
+		echo "💡 Run: npm install"; \
 		exit 1; \
 	fi
