@@ -1,6 +1,8 @@
 # ToolVault
 
-ToolVault packages tools into self-contained `.pyz` files that include both a web interface and MCP-compatible REST endpoints. Each `.pyz` file contains everything needed to run your tools - no external dependencies required.
+ToolVault packages tools into self-contained `.pyz` files that provide MCP (Model Context Protocol) servers. Each `.pyz` file contains everything needed to run your tools - no external dependencies required.
+
+**Note**: This trial branch uses **pure FastMCP** - providing only the standard MCP protocol endpoint. No REST API or web UI in this version.
 
 **Developer?** See [DEVELOPERS.md](DEVELOPERS.md) for tool development, Docker deployment, SPA development, architecture details, and API documentation.
 
@@ -11,12 +13,16 @@ Once you have a `toolvault.pyz` file, you can use it anywhere Python is availabl
 ### Start the Server
 
 ```bash
-python toolvault.pyz serve --port 8000
+python toolvault.pyz serve-fastmcp --port 8000
 ```
 
 This provides:
-- Web interface: `http://localhost:8000/ui/`
-- MCP API: `http://localhost:8000/tools/list`
+- MCP Protocol Endpoint: `http://localhost:8000/mcp` (SSE transport)
+
+**To interact with the server**, use an MCP client:
+- MCP Inspector: `npx @modelcontextprotocol/inspector http://localhost:8000/mcp`
+- Claude Desktop: Configure in MCP settings
+- Any MCP-compatible client
 
 ### List Available Tools
 
@@ -41,17 +47,20 @@ python toolvault.pyz call-tool word_count '{"text": "Hello world"}'
 python toolvault.pyz show-details
 ```
 
-### Test with HTTP Requests
+### Test with MCP Inspector
 
 ```bash
-# List tools
-curl -X GET http://localhost:8000/tools/list
+# Start the server
+python toolvault.pyz serve-fastmcp --port 8000 &
 
-# Call tool
-curl -X POST http://localhost:8000/tools/call \
-  -H 'Content-Type: application/json' \
-  -d '{"name": "word_count", "arguments": {"text": "test"}}'
+# Connect MCP Inspector
+npx @modelcontextprotocol/inspector http://localhost:8000/mcp
 ```
+
+The Inspector provides a web UI to:
+- View all available tools
+- Test tool execution with parameters
+- See tool schemas and documentation
 
 ## Tool Testing Framework
 

@@ -1,15 +1,15 @@
 # Tool Vault Server Troubleshooting
 
-## Problem: Getting "Cannot GET /tools/list" or health returns "OK" instead of JSON
+## Problem: Getting connection errors or server not responding
 
 ### Symptoms
-- Health endpoint returns plain text `"OK"` instead of JSON
-- Tool list returns HTML error `"Cannot GET /tools/list"`
-- Tool execution returns `"Cannot POST /tools/call"`
+- Cannot connect to MCP endpoint
+- Server not starting
+- Wrong server running on port
 
 ### Cause
 You're hitting the **wrong server**. Either:
-1. Running the old `server.py` instead of `server_fastmcp_simple.py`
+1. Running the old `server.py` instead of `server_fastmcp.py`
 2. Another process is using port 8000
 3. You started a different server command
 
@@ -36,14 +36,14 @@ kill <PID>
 ```bash
 cd libs/tool-vault-packager
 
-# This is the correct command:
-python cli.py serve-hybrid --port 8000
+# This is the correct command (pure FastMCP):
+python cli.py serve-fastmcp --port 8000
 ```
 
 You should see this output:
 ```
 ======================================================================
-ToolVault Simple FastMCP Server
+ ToolVault FastMCP Server (Trial Implementation)
 ======================================================================
 
 Discovering tools...
@@ -55,40 +55,29 @@ Registering tools with FastMCP...
 
 Server starting on http://127.0.0.1:8000
 
-Endpoints:
-  - MCP Protocol:  POST http://127.0.0.1:8000/mcp
-  - Health Check:  GET  http://127.0.0.1:8000/health
-  - List Tools:    GET  http://127.0.0.1:8000/tools/list
-  - Execute Tool:  POST http://127.0.0.1:8000/tools/call
+Pure FastMCP Protocol Server:
+  - MCP Endpoint:  http://127.0.0.1:8000/mcp (SSE transport)
+
+This is a PURE FastMCP implementation - no REST endpoints.
+Use MCP clients (like Claude Desktop, MCP Inspector) to interact with tools.
 ```
 
 **Step 3: Verify it's working**
 
-In a NEW terminal:
-```bash
-# Health should return JSON
-curl http://localhost:8000/health
-# Expected: {"status":"healthy","tools":9,"mcp_enabled":true}
+The pure FastMCP server only provides the MCP protocol endpoint. You need an MCP client to interact with it:
 
-# Should NOT return: "OK"
-```
+1. **MCP Inspector** (recommended for testing):
+   ```bash
+   npx @modelcontextprotocol/inspector http://localhost:8000/mcp
+   ```
 
-**Step 4: Run test script**
+2. **Claude Desktop**: Configure in your Claude Desktop MCP settings
 
-```bash
-cd libs/tool-vault-packager
-./test-tools.sh
-```
-
----
-
-## Problem: test-tools.sh shows jq parse errors
-
-### Cause
-Server isn't running
-
-### Solution
-See Step 2 above - start the server first, THEN run the test script in a different terminal.
+3. **Manual SSE test** (low-level):
+   ```bash
+   # This will show SSE stream from MCP endpoint
+   curl -N http://localhost:8000/mcp
+   ```
 
 ---
 
@@ -100,19 +89,16 @@ If you want to test without two terminals:
 cd libs/tool-vault-packager
 
 # Start server in background
-python cli.py serve-hybrid --port 8000 &
+python cli.py serve-fastmcp --port 8000 &
 
 # Wait for it to start
 sleep 5
 
-# Test it
-curl http://localhost:8000/health
-
-# Run full tests
-./test-tools.sh
+# Test with MCP Inspector
+npx @modelcontextprotocol/inspector http://localhost:8000/mcp
 
 # Stop server when done
-pkill -f "cli.py serve-hybrid"
+pkill -f "cli.py serve-fastmcp"
 ```
 
 ---
@@ -121,40 +107,51 @@ pkill -f "cli.py serve-hybrid"
 
 ❌ **WRONG**:
 - `python server.py` (old implementation)
-- `python cli.py serve` (different server)
-- `python cli.py serve-dev` (dev mode with Inspector issues)
+- `python cli.py serve` (old REST API server)
+- `python cli.py serve-hybrid` (hybrid server with REST endpoints)
+- `python cli.py serve-dev` (dev mode)
 
-✅ **CORRECT**:
-- `python cli.py serve-hybrid --port 8000`
+✅ **CORRECT for this trial branch**:
+- `python cli.py serve-fastmcp --port 8000`
 
 ---
 
-## Expected vs Actual Responses
+## About Pure FastMCP
 
-### Health Endpoint
+This trial branch uses **pure FastMCP** which means:
 
-✅ **CORRECT** (serve-hybrid):
-```json
-{"status":"healthy","tools":9,"mcp_enabled":true}
+✅ **What it provides**:
+- Standard MCP protocol endpoint at `/mcp`
+- SSE (Server-Sent Events) transport
+- Full MCP tool discovery and execution
+- Compatible with all MCP clients
+
+❌ **What it does NOT provide**:
+- REST endpoints like `/tools/list` or `/tools/call`
+- Direct HTTP tool execution
+- Health check JSON endpoints
+
+**Why pure FastMCP?**
+This is a trial to evaluate the FastMCP framework for simplifying the codebase by removing custom REST API implementations and relying entirely on the MCP protocol standard.
+
+---
+
+## MCP Inspector Setup
+
+To test tools with MCP Inspector:
+
+```bash
+# Install MCP Inspector globally
+npm install -g @modelcontextprotocol/inspector
+
+# Start your server
+python cli.py serve-fastmcp --port 8000
+
+# In another terminal, connect Inspector
+npx @modelcontextprotocol/inspector http://localhost:8000/mcp
 ```
 
-❌ **WRONG** (old server):
-```
-OK
-```
-
-### Tool List Endpoint
-
-✅ **CORRECT** (serve-hybrid):
-```json
-{"root":[{"type":"category","name":"feature-management","children":[...]}, ...]}
-```
-
-❌ **WRONG** (old server):
-```html
-<!DOCTYPE html>
-<html lang="en">
-<head><title>Error</title></head>
-<body><pre>Cannot GET /tools/list</pre></body>
-</html>
-```
+The Inspector will open a web UI where you can:
+- View all available tools
+- Test tool execution with parameters
+- See tool schemas and documentation

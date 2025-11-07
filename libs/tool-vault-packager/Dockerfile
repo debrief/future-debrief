@@ -27,8 +27,8 @@ RUN if [ -f "toolvault.pyz" ]; then \
         python packager.py tools --output toolvault.pyz; \
     fi
 
-# Expose FastAPI port 5000
+# Expose FastMCP port 5000
 EXPOSE 5000
 
-# Configure CMD to run the .pyz artifact directly
-CMD ["python", "toolvault.pyz", "serve", "--host", "0.0.0.0", "--port", "5000"]
+# Configure CMD to run pure FastMCP server (trial branch)
+CMD ["python", "toolvault.pyz", "serve-fastmcp", "--host", "0.0.0.0", "--port", "5000"]
