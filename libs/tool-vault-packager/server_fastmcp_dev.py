@@ -9,6 +9,7 @@ Usage:
     fastmcp dev server_fastmcp_dev.py --ui-port 6274
 """
 import os
+
 from server_fastmcp_simple import SimpleToolVaultServer
 
 # Get configuration from environment variables or use defaults
