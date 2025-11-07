@@ -147,7 +147,13 @@ cd /home/user/future-debrief/libs/tool-vault-packager
 python cli.py serve-hybrid --port 8000 --host 127.0.0.1
 ```
 
-### Start Server with Web UI (Development)
+### Start Server with Web UI (Development) ⚠️
+
+**Note**: The MCP Inspector (`serve-dev` mode) currently has connection issues and is not recommended. Use production mode with manual testing instead (see "Test Endpoints" section below).
+
+<details>
+<summary>MCP Inspector Mode (Known Issues - Click to expand)</summary>
+
 ```bash
 cd /home/user/future-debrief/libs/tool-vault-packager
 
@@ -158,36 +164,40 @@ pip install 'fastmcp[dev]'
 python cli.py serve-dev
 ```
 
-**Important**: The MCP Inspector should **automatically connect** to your server when it starts. You should see:
-1. Console output showing "MCP Inspector is running at http://127.0.0.1:6274"
-2. Browser opens automatically to the Inspector
-3. Tools appear in the Inspector immediately (no manual connection needed)
+**Known Issue**: The Inspector may not auto-connect to the server. If you see a manual connection dialog or connection errors (ECONNREFUSED), this is a known issue with the FastMCP dev tooling integration. The auto-connection mechanism is not working as expected.
 
-**If you see a manual connection dialog**:
-- ❌ Don't manually enter a URL - this means something went wrong
-- ✅ Check the console for error messages
-- ✅ Verify you have `fastmcp[dev]` installed: `pip install 'fastmcp[dev]'`
-- ✅ Check that tools are discovered: Should see "Discovered X tools" in console
+**Workaround**: Use production mode with manual testing (see below) which provides full functionality without the Inspector UI.
+</details>
 
-The **MCP Inspector** provides an interactive web interface for:
-- 🧪 Testing tools with custom parameters
-- 📊 Inspecting requests and responses
-- ✅ Validating schemas
-- 🐛 Real-time debugging
+### ✅ Recommended: Production Mode Testing
 
-### Test Endpoints
+Production mode is **fully functional** and tested. Use this for development and testing:
+```bash
+# Start production server
+python cli.py serve-hybrid --port 8000
+
+# Server provides both custom REST endpoints and MCP protocol
+```
+
+### Test Tools via REST API
+
 ```bash
 # Health check
 curl http://localhost:8000/health | jq .
 
-# List tools
+# List all tools
 curl http://localhost:8000/tools/list | jq '.root[].name'
 
 # Execute word_count tool
 curl -X POST http://localhost:8000/tools/call \
   -H "Content-Type: application/json" \
-  -d '{"name":"word_count","arguments":{"text":"test this"}}'
+  -d '{"name":"word_count","arguments":{"text":"Hello FastMCP world"}}'
+
+# Expected response:
+# {"result":{"command":"showText","payload":"Word count: 3"},"isError":false}
 ```
+
+**All 9 tools are fully functional via REST API** ✅
 
 ### Use MCP Protocol (for AI clients like Claude Desktop)
 ```json
