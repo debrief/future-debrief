@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -e  # Exit immediately on any error
 
 echo "⚡ Phase 1: Fast checks (typecheck, lint, artifacts)..."
@@ -10,15 +10,15 @@ MAKEFILE_DIRS=$(find . -path "*/*/Makefile" -not -path "*/node_modules/*" -exec 
 
 # Launch parallel verification tasks
 FAILED=0
-PIDS=()
+PIDS=""
 
 for dir in $MAKEFILE_DIRS; do
   make -C "$dir" verify-artifacts verify-typecheck >/dev/null 2>&1 &
-  PIDS+=($!)
+  PIDS="$PIDS $!"
 done
 
 # Wait for all parallel tasks to complete
-for pid in "${PIDS[@]}"; do
+for pid in $PIDS; do
   wait $pid || FAILED=1
 done
 

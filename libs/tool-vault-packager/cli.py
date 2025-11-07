@@ -195,6 +195,129 @@ def serve_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
         sys.exit(1)
 
 
+def serve_fastmcp_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
+    """Start the ToolVault server using FastMCP framework (trial implementation)."""
+    try:
+        from server_fastmcp import start_server
+    except ImportError:
+        print(
+            "Error: server_fastmcp module not found.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    try:
+        print("\n" + "=" * 70)
+        print("FASTMCP TRIAL IMPLEMENTATION")
+        print("=" * 70)
+        print("\nThis is a trial implementation using the FastMCP framework.")
+        print("It provides the same functionality as the standard server but with:")
+        print("  - Automatic schema generation from type hints")
+        print("  - Decorator-based tool registration")
+        print("  - Built-in MCP protocol compliance")
+        print("  - Native SSE transport support")
+        print("\n" + "=" * 70 + "\n")
+
+        # Start the FastMCP server
+        start_server(
+            host=host,
+            port=port,
+            tools_path=tools_path,
+            with_sse=True
+        )
+
+    except Exception as e:
+        print(f"Error starting FastMCP server: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+
+def serve_hybrid_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
+    """Start the ToolVault server using Simple FastMCP (recommended)."""
+    try:
+        from server_fastmcp_simple import start_server
+    except ImportError:
+        print(
+            "Error: server_fastmcp_simple module not found.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    try:
+        # Start the simple FastMCP server
+        start_server(
+            host=host,
+            port=port,
+            tools_path=tools_path
+        )
+
+    except Exception as e:
+        print(f"Error starting FastMCP server: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
+
+def serve_dev_command(tools_path: str, port: int = 8000, host: str = "127.0.0.1"):
+    """Start the ToolVault server with MCP Inspector web UI for debugging.
+
+    Note: fastmcp dev runs its own proxy server architecture:
+    - MCP Inspector UI runs on --ui-port (default: 6274)
+    - MCP Proxy server runs on --server-port (default: random)
+    - The original 'port' parameter is not directly used by fastmcp dev
+    """
+    import os
+    import subprocess
+
+    ui_port = 6274  # Default MCP Inspector UI port
+
+    print("\n" + "=" * 70)
+    print("STARTING TOOL VAULT WITH MCP INSPECTOR")
+    print("=" * 70)
+    print("\nThe MCP Inspector provides a web UI for testing and debugging tools.")
+    print(f"Inspector UI will be available at: http://127.0.0.1:{ui_port}")
+    print("Note: fastmcp dev uses its own proxy server architecture")
+    print("\n" + "=" * 70 + "\n")
+
+    # Set environment variables for the server
+    env = os.environ.copy()
+    env["TOOLS_PATH"] = tools_path
+
+    # Create entry point for fastmcp dev
+    entry_point = Path(__file__).parent / "server_fastmcp_dev.py"
+    if not entry_point.exists():
+        print(f"Creating entry point: {entry_point}")
+        with open(entry_point, "w") as f:
+            f.write('''"""Entry point for fastmcp dev command."""
+import os
+from server_fastmcp_simple import SimpleToolVaultServer
+
+# Get configuration from environment variables
+tools_path = os.environ.get("TOOLS_PATH", "tools")
+
+# Create the server instance (this exports the 'mcp' object that fastmcp dev needs)
+server = SimpleToolVaultServer(tools_path)
+mcp = server.mcp
+''')
+
+    try:
+        # Run fastmcp dev with correct options
+        cmd = ["fastmcp", "dev", str(entry_point), "--ui-port", str(ui_port)]
+        print(f"Running: {' '.join(cmd)}\n")
+        subprocess.run(cmd, env=env, check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"\nError running fastmcp dev: {e}", file=sys.stderr)
+        print("\nMake sure fastmcp is installed with dev extras:", file=sys.stderr)
+        print("  pip install 'fastmcp[dev]'", file=sys.stderr)
+        sys.exit(1)
+    except FileNotFoundError:
+        print("\nError: 'fastmcp' command not found", file=sys.stderr)
+        print("\nMake sure fastmcp is installed with dev extras:", file=sys.stderr)
+        print("  pip install 'fastmcp[dev]'", file=sys.stderr)
+        sys.exit(1)
+
+
 def main():
     """Main CLI entry point."""
     parser = argparse.ArgumentParser(
@@ -238,6 +361,36 @@ Examples:
         "--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)"
     )
 
+    # Serve FastMCP command (trial implementation)
+    serve_fastmcp_parser = subparsers.add_parser(
+        "serve-fastmcp",
+        help="Start the ToolVault server using FastMCP framework (trial implementation)"
+    )
+    serve_fastmcp_parser.add_argument("--port", type=int, default=8000, help="Server port (default: 8000)")
+    serve_fastmcp_parser.add_argument(
+        "--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)"
+    )
+
+    # Serve Hybrid command (recommended trial implementation)
+    serve_hybrid_parser = subparsers.add_parser(
+        "serve-hybrid",
+        help="Start ToolVault with Hybrid FastMCP + Custom Routes (recommended trial)"
+    )
+    serve_hybrid_parser.add_argument("--port", type=int, default=8000, help="Server port (default: 8000)")
+    serve_hybrid_parser.add_argument(
+        "--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)"
+    )
+
+    # Serve Dev command (with MCP Inspector web UI)
+    serve_dev_parser = subparsers.add_parser(
+        "serve-dev",
+        help="Start ToolVault with MCP Inspector web UI for debugging (requires fastmcp[dev])"
+    )
+    serve_dev_parser.add_argument("--port", type=int, default=8000, help="Server port (default: 8000)")
+    serve_dev_parser.add_argument(
+        "--host", default="127.0.0.1", help="Server host (default: 127.0.0.1)"
+    )
+
     # Show details command
     subparsers.add_parser(
         "show-details", help="Show detailed tool information including source code and git history"
@@ -272,6 +425,12 @@ Examples:
         call_tool_command(tools_path_str, args.tool_name, arguments)
     elif args.command == "serve":
         serve_command(tools_path_str, args.port, args.host)
+    elif args.command == "serve-fastmcp":
+        serve_fastmcp_command(tools_path_str, args.port, args.host)
+    elif args.command == "serve-hybrid":
+        serve_hybrid_command(tools_path_str, args.port, args.host)
+    elif args.command == "serve-dev":
+        serve_dev_command(tools_path_str, args.port, args.host)
     elif args.command == "show-details":
         output_tool_details(tools_path_str)
 
