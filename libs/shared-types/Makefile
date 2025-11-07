@@ -78,7 +78,8 @@ help: ## Show this help message
 
 clean: ## Clean all generated files
 	@echo "$(YELLOW)Cleaning generated files...$(RESET)"
-	@rm -rf derived/ dist/ src/types/ src/zod/ || true
+	@rm -rf derived/ dist/ src/types/ || true
+	@find src/zod -type f -name "*.ts" ! -name "index.ts" -delete 2>/dev/null || true
 	@rm -f $(PYTHON_DEPS_STAMP)
 	@echo "$(GREEN)✓ Clean complete$(RESET)"
 
