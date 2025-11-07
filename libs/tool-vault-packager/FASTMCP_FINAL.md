@@ -155,8 +155,19 @@ cd /home/user/future-debrief/libs/tool-vault-packager
 pip install 'fastmcp[dev]'
 
 # Start server with MCP Inspector web UI at http://127.0.0.1:6274
-python cli.py serve-dev --port 8000 --host 127.0.0.1
+python cli.py serve-dev
 ```
+
+**Important**: The MCP Inspector should **automatically connect** to your server when it starts. You should see:
+1. Console output showing "MCP Inspector is running at http://127.0.0.1:6274"
+2. Browser opens automatically to the Inspector
+3. Tools appear in the Inspector immediately (no manual connection needed)
+
+**If you see a manual connection dialog**:
+- ❌ Don't manually enter a URL - this means something went wrong
+- ✅ Check the console for error messages
+- ✅ Verify you have `fastmcp[dev]` installed: `pip install 'fastmcp[dev]'`
+- ✅ Check that tools are discovered: Should see "Discovered X tools" in console
 
 The **MCP Inspector** provides an interactive web interface for:
 - 🧪 Testing tools with custom parameters
