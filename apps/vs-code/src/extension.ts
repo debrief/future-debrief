@@ -16,6 +16,7 @@ import { DebriefMcpServer } from './services/debriefMcpServer';
 import { PythonWheelInstaller } from './services/pythonWheelInstaller';
 import { ToolVaultServerService } from './services/toolVaultServer';
 import { ToolVaultConfigService } from './services/toolVaultConfig';
+import { ToolsMcpClient } from './services/toolsMcpClient';
 
 // Server status indicators
 import { ServerStatusBarIndicator } from './components/ServerStatusBarIndicator';
@@ -27,6 +28,7 @@ let activationHandler: EditorActivationHandler | null = null;
 let statePersistence: StatePersistence | null = null;
 let historyManager: HistoryManager | null = null;
 let toolVaultServer: ToolVaultServerService | null = null;
+let toolsMcpClient: ToolsMcpClient | null = null;
 
 // Store reference to the consolidated Debrief activity panel provider
 let debriefActivityProvider: DebriefActivityProvider | null = null;
@@ -226,7 +228,7 @@ export function activate(context: vscode.ExtensionContext) {
     globalController = GlobalController.getInstance();
     context.subscriptions.push(globalController);
 
-    // Initialize Tool Vault Server integration in GlobalController
+    // Initialize Tool Vault Server integration in GlobalController (legacy)
     if (toolVaultServer) {
         globalController.initializeToolVaultServer(toolVaultServer);
 
@@ -240,6 +242,29 @@ export function activate(context: vscode.ExtensionContext) {
                 console.error('[Extension] GlobalController is null when server ready callback triggered');
             }
         });
+    }
+
+    // Initialize Tools MCP Client integration (modern)
+    // Check if MCP server URL is configured
+    const mcpServerUrl = vscode.workspace.getConfiguration('debrief').get<string>('toolsMcp.serverUrl');
+    if (mcpServerUrl) {
+        console.warn('[Extension] Initializing Tools MCP client with URL:', mcpServerUrl);
+        toolsMcpClient = ToolsMcpClient.getInstance();
+
+        // Connect to MCP server asynchronously
+        toolsMcpClient.connect(mcpServerUrl).then(() => {
+            console.warn('[Extension] Tools MCP client connected successfully');
+            if (globalController && toolsMcpClient) {
+                globalController.initializeToolsMcpClient(toolsMcpClient);
+                // Notify that tools are ready (reuse same event as ToolVault)
+                globalController.notifyToolVaultReady();
+            }
+        }).catch((error: unknown) => {
+            console.error('[Extension] Failed to connect Tools MCP client:', error);
+            // Non-fatal - extension continues with ToolVault fallback
+        });
+    } else {
+        console.warn('[Extension] No Tools MCP server URL configured - using ToolVault fallback');
     }
     
     // Initialize Editor Activation Handler

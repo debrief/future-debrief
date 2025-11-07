@@ -158,6 +158,11 @@
           "description": "Host address for the Tool Vault server",
           "scope": "resource"
         },
+        "debrief.toolsMcp.serverUrl": {
+          "type": "string",
+          "description": "URL for the Tools MCP server (e.g., http://localhost:8000). If set, this will be used instead of the legacy Tool Vault server.",
+          "scope": "resource"
+        },
         "debrief.development.mode": {
           "type": "boolean",
           "default": false,
