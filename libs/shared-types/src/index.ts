@@ -79,7 +79,7 @@ export {
   DebriefFeatureCollectionSchema,
   BuoyfieldFeatureSchema,
   BackdropFeatureSchema
-} from './zod/features/index.js';
+} from './zod/features/index';
 
 export {
   TimeStateSchema,
@@ -87,6 +87,6 @@ export {
   SelectionStateSchema,
   EditorStateSchema,
   CurrentStateSchema
-} from './zod/states/index.js';
+} from './zod/states/index';
 
 // Note: Input.ts and Output.ts export specific interfaces, not generic Input/Output types
