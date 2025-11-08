@@ -1,7 +1,6 @@
 
 import * as vscode from 'vscode';
 import { TimeState, ViewportState, SelectionState, DebriefFeatureCollection, EditorState, DebriefFeature } from '@debrief/shared-types';
-import { ToolVaultServerService } from '../services/toolVaultServer';
 import { ToolsMcpClient } from '../services/toolsMcpClient';
 import {
   ToolParameterService,
@@ -16,7 +15,7 @@ export { EditorState };
 
 
 // Event types for the GlobalController
-export type StateEventType = 'fcChanged' | 'timeChanged' | 'viewportChanged' | 'selectionChanged' | 'activeEditorChanged' | 'toolVaultReady';
+export type StateEventType = 'fcChanged' | 'timeChanged' | 'viewportChanged' | 'selectionChanged' | 'activeEditorChanged' | 'toolsReady';
 
 export type StateSliceType = 'featureCollection' | 'timeState' | 'viewportState' | 'selectionState';
 
@@ -57,10 +56,7 @@ export class GlobalController implements StateProvider {
     private _onDidChangeState = new vscode.EventEmitter<{ editorId: string; eventType: StateEventType; state: EditorState }>();
     public readonly onDidChangeState = this._onDidChangeState.event;
 
-    // Tool Vault Server integration (legacy)
-    private toolVaultServer?: ToolVaultServerService;
-
-    // Tools MCP Client integration (modern)
+    // Tools MCP Client integration
     private toolsMcpClient?: ToolsMcpClient;
 
     // Tool Parameter Service for automatic parameter injection
@@ -89,7 +85,7 @@ export class GlobalController implements StateProvider {
      * Initialize event handler storage
      */
     private initializeEventHandlers(): void {
-        const eventTypes: StateEventType[] = ['fcChanged', 'timeChanged', 'viewportChanged', 'selectionChanged', 'activeEditorChanged', 'toolVaultReady'];
+        const eventTypes: StateEventType[] = ['fcChanged', 'timeChanged', 'viewportChanged', 'selectionChanged', 'activeEditorChanged', 'toolsReady'];
         eventTypes.forEach(eventType => {
             this.eventHandlers.set(eventType, new Set<StateEventHandler | ActiveEditorChangedHandler>());
         });
@@ -335,16 +331,7 @@ export class GlobalController implements StateProvider {
     }
     
     /**
-     * Initialize Tool Vault Server integration (legacy)
-     */
-    public initializeToolVaultServer(toolVaultServer: ToolVaultServerService): void {
-        console.warn('[GlobalController] Initializing Tool Vault server:', !!toolVaultServer);
-        this.toolVaultServer = toolVaultServer;
-        console.warn('[GlobalController] Tool Vault server initialized successfully');
-    }
-
-    /**
-     * Initialize Tools MCP Client integration (modern)
+     * Initialize Tools MCP Client integration
      */
     public initializeToolsMcpClient(toolsMcpClient: ToolsMcpClient): void {
         console.warn('[GlobalController] Initializing Tools MCP client:', !!toolsMcpClient);
@@ -353,89 +340,56 @@ export class GlobalController implements StateProvider {
     }
 
     /**
-     * Notify that the Tool Vault server is ready and available
+     * Notify that the tools are ready and available
      */
-    public notifyToolVaultReady(): void {
-        console.warn('[GlobalController] Tool Vault server ready - notifying subscribers');
-        const handlers = this.eventHandlers.get('toolVaultReady');
-        console.warn('[GlobalController] Found', handlers?.size || 0, 'toolVaultReady handlers');
+    public notifyToolsReady(): void {
+        console.warn('[GlobalController] Tools ready - notifying subscribers');
+        const handlers = this.eventHandlers.get('toolsReady');
+        console.warn('[GlobalController] Found', handlers?.size || 0, 'toolsReady handlers');
         if (handlers) {
             handlers.forEach(handler => {
                 try {
-                    console.warn('[GlobalController] Calling toolVaultReady handler');
+                    console.warn('[GlobalController] Calling toolsReady handler');
                     (handler as () => void)();
                 } catch (error) {
-                    console.error('[GlobalController] Error in toolVaultReady handler:', error);
+                    console.error('[GlobalController] Error in toolsReady handler:', error);
                 }
             });
         }
     }
 
     /**
-     * Get the tool index from either MCP client or Tool Vault Server
-     * Prefers MCP client if available
+     * Get the tool index from Tools MCP Client
      */
     public async getToolIndex(): Promise<unknown> {
-        console.warn('[GlobalController] getToolIndex called - MCP client:', !!this.toolsMcpClient, 'ToolVault:', !!this.toolVaultServer);
+        console.warn('[GlobalController] getToolIndex called - MCP client:', !!this.toolsMcpClient);
 
-        // Prefer MCP client if available
-        if (this.toolsMcpClient && this.toolsMcpClient.isRunning()) {
-            console.warn('[GlobalController] Using Tools MCP client for tool index');
-            try {
-                const mcpTools = await this.toolsMcpClient.getToolList();
-                return this.toolsMcpClient.convertToToolIndex(mcpTools);
-            } catch (error) {
-                console.error('[GlobalController] MCP client failed, falling back to ToolVault:', error);
-                // Fall through to ToolVault
-            }
+        if (!this.toolsMcpClient || !this.toolsMcpClient.isRunning()) {
+            console.error('[GlobalController] Tools MCP client is not initialized or not running');
+            throw new Error('Tools MCP client is not available. Please configure debrief.toolsMcp.serverUrl in settings.');
         }
 
-        // Fall back to legacy ToolVault server
-        if (!this.toolVaultServer) {
-            console.error('[GlobalController] Neither MCP client nor Tool Vault server is initialized');
-            throw new Error('No tool server is available');
-        }
-
-        console.warn('[GlobalController] Using ToolVault server for tool index');
-        return this.toolVaultServer.getToolIndex();
+        console.warn('[GlobalController] Using Tools MCP client for tool index');
+        const mcpTools = await this.toolsMcpClient.getToolList();
+        return this.toolsMcpClient.convertToToolIndex(mcpTools);
     }
 
     /**
      * Execute a tool command with the given parameters
-     * Prefers MCP client if available
      */
     public async executeTool(toolName: string, parameters: Record<string, unknown>): Promise<{ success: boolean; result?: unknown; error?: string }> {
-        console.warn('[GlobalController] executeTool called for:', toolName, '- MCP client:', !!this.toolsMcpClient, 'ToolVault:', !!this.toolVaultServer);
+        console.warn('[GlobalController] executeTool called for:', toolName, '- MCP client:', !!this.toolsMcpClient);
 
-        // Prefer MCP client if available
-        if (this.toolsMcpClient && this.toolsMcpClient.isRunning()) {
-            console.warn('[GlobalController] Using Tools MCP client for execution');
-            try {
-                const result = await this.toolsMcpClient.executeTool(toolName, parameters);
-
-                // If the tool returned DebriefCommands, process them
-                if (result.success && result.result) {
-                    await this.processDebriefCommands(result.result);
-                }
-
-                return result;
-            } catch (error) {
-                console.error('[GlobalController] MCP client execution failed, falling back to ToolVault:', error);
-                // Fall through to ToolVault
-            }
-        }
-
-        // Fall back to legacy ToolVault server
-        if (!this.toolVaultServer) {
-            console.error('[GlobalController] Neither MCP client nor Tool Vault server is initialized in executeTool');
+        if (!this.toolsMcpClient || !this.toolsMcpClient.isRunning()) {
+            console.error('[GlobalController] Tools MCP client is not initialized or not running');
             return {
                 success: false,
-                error: 'No tool server is available'
+                error: 'Tools MCP client is not available. Please configure debrief.toolsMcp.serverUrl in settings.'
             };
         }
 
-        console.warn('[GlobalController] Using ToolVault server for execution');
-        const result = await this.toolVaultServer.executeToolCommand(toolName, parameters);
+        console.warn('[GlobalController] Using Tools MCP client for execution');
+        const result = await this.toolsMcpClient.executeTool(toolName, parameters);
 
         // If the tool returned DebriefCommands, process them
         if (result.success && result.result) {
@@ -829,6 +783,5 @@ ${error}`;
         this.eventHandlers.clear();
         this.editorStates.clear();
         this._activeEditorId = undefined;
-        this.toolVaultServer = undefined;
     }
 }

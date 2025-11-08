@@ -14,20 +14,17 @@ import { DebriefActivityProvider } from './providers/panels/debriefActivityProvi
 // External services
 import { DebriefMcpServer } from './services/debriefMcpServer';
 import { PythonWheelInstaller } from './services/pythonWheelInstaller';
-import { ToolVaultServerService } from './services/toolVaultServer';
-import { ToolVaultConfigService } from './services/toolVaultConfig';
 import { ToolsMcpClient } from './services/toolsMcpClient';
 
 // Server status indicators
 import { ServerStatusBarIndicator } from './components/ServerStatusBarIndicator';
-import { createDebriefHttpConfig, createToolVaultConfig } from './config/serverIndicatorConfigs';
+import { createDebriefHttpConfig } from './config/serverIndicatorConfigs';
 
 let mcpServer: DebriefMcpServer | null = null;
 let globalController: GlobalController | null = null;
 let activationHandler: EditorActivationHandler | null = null;
 let statePersistence: StatePersistence | null = null;
 let historyManager: HistoryManager | null = null;
-let toolVaultServer: ToolVaultServerService | null = null;
 let toolsMcpClient: ToolsMcpClient | null = null;
 
 // Store reference to the consolidated Debrief activity panel provider
@@ -47,11 +44,8 @@ export function activate(context: vscode.ExtensionContext) {
         // This is expected if Python environment is not yet set up
     });
 
-    // Initialize Tool Vault server
-    toolVaultServer = ToolVaultServerService.getInstance();
-
-    // Create server status bar indicators
-    console.warn('[Extension] Creating server status bar indicators...');
+    // Create server status bar indicator for Debrief HTTP server
+    console.warn('[Extension] Creating server status bar indicator...');
     try {
         const debriefHttpConfig = createDebriefHttpConfig(
             () => mcpServer,
@@ -59,17 +53,11 @@ export function activate(context: vscode.ExtensionContext) {
         );
         console.warn('[Extension] Debrief HTTP config created');
 
-        const toolVaultConfig = createToolVaultConfig();
-        console.warn('[Extension] Tool Vault config created');
-
         const debriefIndicator = new ServerStatusBarIndicator(debriefHttpConfig, 100);
         console.warn('[Extension] Debrief HTTP indicator created');
 
-        const toolVaultIndicator = new ServerStatusBarIndicator(toolVaultConfig, 99);
-        console.warn('[Extension] Tool Vault indicator created');
-
-        context.subscriptions.push(debriefIndicator, toolVaultIndicator);
-        console.warn('[Extension] Status bar indicators registered successfully');
+        context.subscriptions.push(debriefIndicator);
+        console.warn('[Extension] Status bar indicator registered successfully');
 
         // Auto-start Debrief HTTP Server (silently, no notification)
         // Status bar indicator will show the state
@@ -78,19 +66,8 @@ export function activate(context: vscode.ExtensionContext) {
             console.error('[Extension] Failed to auto-start Debrief HTTP Server:', error);
             // Error is already shown via status bar indicator error handling
         });
-
-        // Auto-start Tool Vault Server if configured (silently, no notification)
-        const configService = ToolVaultConfigService.getInstance();
-        const tvConfig = configService.getConfiguration();
-        if (tvConfig && tvConfig.autoStart && tvConfig.serverPath) {
-            console.warn('[Extension] Auto-starting Tool Vault Server...');
-            toolVaultIndicator.start().catch((error: unknown) => {
-                console.error('[Extension] Failed to auto-start Tool Vault Server:', error);
-                // Error is already shown via status bar indicator error handling
-            });
-        }
     } catch (error) {
-        console.error('[Extension] Failed to create status bar indicators:', error);
+        console.error('[Extension] Failed to create status bar indicator:', error);
     }
 
     // Add cleanup to subscriptions
@@ -99,11 +76,6 @@ export function activate(context: vscode.ExtensionContext) {
             if (mcpServer) {
                 mcpServer.stop().catch((error: unknown) => {
                     console.error('Error stopping MCP server during cleanup:', error);
-                });
-            }
-            if (toolVaultServer) {
-                toolVaultServer.stopServer().catch((error: unknown) => {
-                    console.error('Error stopping Tool Vault server during cleanup:', error);
                 });
             }
         }
@@ -123,30 +95,6 @@ export function activate(context: vscode.ExtensionContext) {
             }
         })
     );
-
-    // Register Tool Vault server restart command
-    const restartToolVaultCommand = vscode.commands.registerCommand(
-        'debrief.restartToolVault',
-        async () => {
-            try {
-                if (toolVaultServer) {
-                    await toolVaultServer.restartServer();
-                    const toolIndex = await toolVaultServer.getToolIndex();
-                    const toolCount = (toolIndex as {tools?: unknown[]})?.tools?.length ?? 'unknown number of';
-                    vscode.window.showInformationMessage(
-                        `Tool Vault server restarted successfully with ${toolCount} tools available.`
-                    );
-                } else {
-                    vscode.window.showErrorMessage('Tool Vault server service is not initialized.');
-                }
-            } catch (error) {
-                const errorMessage = `Failed to restart Tool Vault server: ${error instanceof Error ? error.message : String(error)}`;
-                console.error(errorMessage);
-                vscode.window.showErrorMessage(errorMessage);
-            }
-        }
-    );
-    context.subscriptions.push(restartToolVaultCommand);
 
     // Register development mode toggle command
     const toggleDevelopmentModeCommand = vscode.commands.registerCommand(
@@ -170,81 +118,13 @@ export function activate(context: vscode.ExtensionContext) {
     );
     context.subscriptions.push(toggleDevelopmentModeCommand);
 
-    // Register Tool Vault status command
-    const toolVaultStatusCommand = vscode.commands.registerCommand(
-        'debrief.toolVaultStatus',
-        async () => {
-            try {
-                if (!toolVaultServer) {
-                    vscode.window.showWarningMessage('Tool Vault server service is not initialized.');
-                    return;
-                }
-
-                const isRunning = toolVaultServer.isRunning();
-                const config = ToolVaultConfigService.getInstance().getConfiguration();
-
-                let statusMessage = `**Tool Vault Server Status**\n\n`;
-                statusMessage += `• **Running**: ${isRunning ? '✅ Yes' : '❌ No'}\n`;
-                statusMessage += `• **Auto-start**: ${config.autoStart ? '✅ Enabled' : '❌ Disabled'}\n`;
-                statusMessage += `• **Server Path**: ${config.serverPath || '❌ Not configured'}\n`;
-                statusMessage += `• **Host**: ${config.host}\n`;
-                statusMessage += `• **Port**: ${config.port}\n`;
-
-                if (isRunning) {
-                    try {
-                        const healthCheck = await toolVaultServer.healthCheck();
-                        statusMessage += `• **Health Check**: ${healthCheck ? '✅ Healthy' : '❌ Unhealthy'}\n`;
-
-                        if (healthCheck) {
-                            const toolIndex = await toolVaultServer.getToolIndex();
-                            const toolCount = (toolIndex as {tools?: unknown[]})?.tools?.length ?? 0;
-                            statusMessage += `• **Tools Available**: ${toolCount}\n`;
-                        }
-                    } catch (error) {
-                        statusMessage += `• **Health Check**: ❌ Failed (${error instanceof Error ? error.message : String(error)})\n`;
-                    }
-                }
-
-                // Show detailed status in a modal
-                vscode.window.showInformationMessage(statusMessage, { modal: true }, 'Restart Server', 'Configure Settings').then(selection => {
-                    if (selection === 'Restart Server') {
-                        vscode.commands.executeCommand('debrief.restartToolVault');
-                    } else if (selection === 'Configure Settings') {
-                        vscode.commands.executeCommand('workbench.action.openSettings', 'debrief.toolVault');
-                    }
-                });
-            } catch (error) {
-                const errorMessage = `Failed to get Tool Vault server status: ${error instanceof Error ? error.message : String(error)}`;
-                console.error(errorMessage);
-                vscode.window.showErrorMessage(errorMessage);
-            }
-        }
-    );
-    context.subscriptions.push(toolVaultStatusCommand);
-
     // Multi-select is now handled internally by the OutlineView webview component
 
     // Initialize Global Controller (new centralized state management)
     globalController = GlobalController.getInstance();
     context.subscriptions.push(globalController);
 
-    // Initialize Tool Vault Server integration in GlobalController (legacy)
-    if (toolVaultServer) {
-        globalController.initializeToolVaultServer(toolVaultServer);
-
-        // Set up callback to notify GlobalController when server is ready
-        toolVaultServer.setOnServerReadyCallback(() => {
-            console.warn('[Extension] Tool Vault server ready callback triggered');
-            if (globalController) {
-                console.warn('[Extension] Calling globalController.notifyToolVaultReady()');
-                globalController.notifyToolVaultReady();
-            } else {
-                console.error('[Extension] GlobalController is null when server ready callback triggered');
-            }
-        });
-    }
-
-    // Initialize Tools MCP Client integration (modern)
+    // Initialize Tools MCP Client integration
     // Check if MCP server URL is configured
     const mcpServerUrl = vscode.workspace.getConfiguration('debrief').get<string>('toolsMcp.serverUrl');
     if (mcpServerUrl) {
@@ -256,15 +136,16 @@ export function activate(context: vscode.ExtensionContext) {
             console.warn('[Extension] Tools MCP client connected successfully');
             if (globalController && toolsMcpClient) {
                 globalController.initializeToolsMcpClient(toolsMcpClient);
-                // Notify that tools are ready (reuse same event as ToolVault)
-                globalController.notifyToolVaultReady();
+                // Notify that tools are ready
+                globalController.notifyToolsReady();
             }
         }).catch((error: unknown) => {
             console.error('[Extension] Failed to connect Tools MCP client:', error);
-            // Non-fatal - extension continues with ToolVault fallback
+            vscode.window.showErrorMessage(`Failed to connect to Tools MCP server: ${error instanceof Error ? error.message : String(error)}`);
         });
     } else {
-        console.warn('[Extension] No Tools MCP server URL configured - using ToolVault fallback');
+        console.warn('[Extension] No Tools MCP server URL configured');
+        vscode.window.showWarningMessage('Tools MCP server URL is not configured. Tools will not be available. Configure debrief.toolsMcp.serverUrl in settings.');
     }
     
     // Initialize Editor Activation Handler
@@ -327,17 +208,6 @@ export function activate(context: vscode.ExtensionContext) {
 export async function deactivate() {
     console.warn('Debrief Extension is now deactivating...');
 
-    // Stop Tool Vault server first (more critical to clean up)
-    if (toolVaultServer) {
-        try {
-            await toolVaultServer.stopServer();
-            console.log('✅ Tool Vault server stopped');
-        } catch (error) {
-            console.error('Error stopping Tool Vault server:', error);
-        }
-        toolVaultServer = null;
-    }
-
     // Stop MCP server and wait for it to fully shut down
     if (mcpServer) {
         try {
@@ -378,9 +248,6 @@ export async function deactivate() {
 
     // Clear editor ID manager
     EditorIdManager.clear();
-
-    // Clear tool vault server reference
-    toolVaultServer = null;
 
     console.warn('Debrief Extension deactivation complete');
 }

@@ -1,7 +1,6 @@
 import * as vscode from 'vscode';
 import { ServerIndicatorConfig } from '../types/ServerIndicatorConfig';
 import { DebriefMcpServer } from '../services/debriefMcpServer';
-import { ToolVaultServerService } from '../services/toolVaultServer';
 
 /**
  * Creates configuration for Debrief MCP Server status indicator.
@@ -47,52 +46,6 @@ export function createDebriefHttpConfig(
     // No onRestart - will use default stop-then-start
     // No onOpenWebUI - Debrief MCP has no web interface
     // No onShowDetails - could add output channel in future
-  };
-}
-
-/**
- * Creates configuration for Tool Vault Server status indicator.
- *
- * The Tool Vault server provides MCP-compatible REST API for Python tools
- * on port 60124. It runs as a Python subprocess managed by ToolVaultServerService.
- *
- * @returns ServerIndicatorConfig for Tool Vault server
- *
- * @example
- * ```typescript
- * const config = createToolVaultConfig();
- * ```
- */
-export function createToolVaultConfig(): ServerIndicatorConfig {
-  return {
-    name: 'Tool Vault',
-    healthCheckUrl: 'http://localhost:60124/health',
-    pollInterval: 5000,
-
-    onStart: async () => {
-      const service = ToolVaultServerService.getInstance();
-      await service.startServer();
-    },
-
-    onStop: async () => {
-      const service = ToolVaultServerService.getInstance();
-      await service.stopServer();
-    },
-
-    onRestart: async () => {
-      const service = ToolVaultServerService.getInstance();
-      await service.restartServer();
-    },
-
-    onOpenWebUI: () => {
-      // Open Tool Vault web interface in external browser
-      vscode.env.openExternal(vscode.Uri.parse('http://localhost:60124/ui'));
-    },
-
-    onShowDetails: () => {
-      // Show existing Tool Vault status command
-      vscode.commands.executeCommand('debrief.toolVaultStatus');
-    }
   };
 }
 
