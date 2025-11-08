@@ -9,19 +9,18 @@
     "url": "https://github.com/debrief/future-debrief/apps/vs-code.git"
   },
   "scripts": {
-    "clean": "rm -rf dist/* media/web-components.js media/web-components.css python/ schemas/ tool-vault/",
+    "clean": "rm -rf dist/* media/web-components.js media/web-components.css python/ schemas/",
     "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:@valibot/to-json-schema --external:sury --external:effect --format=cjs --platform=node --define:import.meta.url='__import_meta_url__' --banner:js=\"const __import_meta_url__ = (function() { try { if (typeof __filename !== 'undefined') { return require('url').pathToFileURL(__filename).href; } } catch (e) { console.error('[Polyfill Error]', e); } return 'file:///extension.js'; })();\"",
     "generate-mcp-tools": "node scripts/generate-mcp-tools.js",
     "copy-webcomponents": "cp ../../libs/web-components/dist/vanilla/index.js media/web-components.js && cp ../../libs/web-components/dist/vanilla/index.css media/web-components.css",
     "copy-schemas": "mkdir -p schemas && cp -r ../../libs/shared-types/derived/json-schema/* schemas/",
     "bundle-python-wheel": "mkdir -p python && cp ../../libs/shared-types/dist/python/*.whl python/ 2>/dev/null || echo 'No Python wheel found - run pnpm build:shared-types first'",
-    "copy-toolvault": "mkdir -p tool-vault && cp ../../libs/tool-vault-packager/dist/toolvault.pyz tool-vault/toolvault.pyz 2>/dev/null || echo 'No toolvault.pyz found - run: cd libs/tool-vault-packager && npm run build'",
-    "compile": "pnpm generate-mcp-tools && pnpm esbuild-base --sourcemap && pnpm copy-webcomponents && pnpm copy-schemas && pnpm bundle-python-wheel && pnpm copy-toolvault",
+    "compile": "pnpm generate-mcp-tools && pnpm esbuild-base --sourcemap && pnpm copy-webcomponents && pnpm copy-schemas && pnpm bundle-python-wheel",
     "build": "pnpm vscode:prepublish && vsce package --no-dependencies",
     "build:docker": "pnpm build && cp vs-code-0.0.1.vsix ../../",
     "watch": "pnpm esbuild-base --sourcemap --watch",
     "dev": "pnpm copy-webcomponents && pnpm watch",
-    "vscode:prepublish": "pnpm generate-mcp-tools && pnpm esbuild-base --minify && pnpm copy-webcomponents && pnpm copy-schemas && pnpm bundle-python-wheel && pnpm copy-toolvault",
+    "vscode:prepublish": "pnpm generate-mcp-tools && pnpm esbuild-base --minify && pnpm copy-webcomponents && pnpm copy-schemas && pnpm bundle-python-wheel",
     "docker:build": "docker build -t debrief-vscode-local --build-arg GITHUB_SHA=local --build-arg PR_NUMBER=dev -f Dockerfile ../..",
     "docker:run": "docker run -p 8080:8080 -p 60123:60123 -p 60124:60124 debrief-vscode-local",
     "docker:stop": "docker stop debrief-vscode-local && docker rm debrief-vscode-local",
@@ -75,16 +74,8 @@
         "title": "Debrief: Redo"
       },
       {
-        "command": "debrief.restartToolVault",
-        "title": "Restart Tool Vault Server"
-      },
-      {
         "command": "debrief.toggleDevelopmentMode",
         "title": "Debrief: Toggle Development Mode"
-      },
-      {
-        "command": "debrief.toolVaultStatus",
-        "title": "Debrief: Tool Vault Server Status"
       },
       {
         "command": "debrief.viewLastToolResult",
@@ -135,27 +126,9 @@
     "configuration": {
       "title": "Debrief",
       "properties": {
-        "debrief.toolVault.serverPath": {
+        "debrief.toolsMcp.serverUrl": {
           "type": "string",
-          "description": "Path to the Tool Vault .pyz file",
-          "scope": "resource"
-        },
-        "debrief.toolVault.autoStart": {
-          "type": "boolean",
-          "default": true,
-          "description": "Automatically start the Tool Vault server on extension activation",
-          "scope": "resource"
-        },
-        "debrief.toolVault.port": {
-          "type": "number",
-          "default": 60124,
-          "description": "Port for the Tool Vault server",
-          "scope": "resource"
-        },
-        "debrief.toolVault.host": {
-          "type": "string",
-          "default": "127.0.0.1",
-          "description": "Host address for the Tool Vault server",
+          "description": "URL for the Tools MCP server (e.g., http://localhost:8000). Required for tool functionality.",
           "scope": "resource"
         },
         "debrief.development.mode": {

@@ -209,15 +209,15 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
         });
         this._disposables.push(activeEditorSubscription);
 
-        // Subscribe to Tool Vault server ready events
-        const toolVaultReadySubscription = this._globalController.on('toolVaultReady', async () => {
-            console.warn('[DebriefActivityProvider] Tool Vault server ready - resetting failure flag and refreshing activity panel');
+        // Subscribe to tools ready events
+        const toolsReadySubscription = this._globalController.on('toolsReady', async () => {
+            console.warn('[DebriefActivityProvider] Tools ready - resetting failure flag and refreshing activity panel');
             // Reset failure flag and cache to allow fresh fetch
             this._toolListFailed = false;
             this._cachedToolList = null;
             await this._updateView();
         });
-        this._disposables.push(toolVaultReadySubscription);
+        this._disposables.push(toolsReadySubscription);
     }
 
     /**
@@ -287,16 +287,16 @@ export class DebriefActivityProvider implements vscode.WebviewViewProvider {
             ? selectionState.selectedIds.map(id => String(id))
             : [];
 
-        // Get tool list (stop trying after first failure until Tool Vault becomes ready)
+        // Get tool list (stop trying after first failure until tools become ready)
         let toolList: unknown = null;
         if (this._toolListFailed) {
-            // Tool Vault server failed to load - use cached value (null) until toolVaultReady event
+            // Tools MCP server failed to load - use cached value (null) until toolsReady event
             toolList = this._cachedToolList;
         } else if (this._cachedToolList !== null) {
             // We have a successful cached value
             toolList = this._cachedToolList;
         } else {
-            // First attempt or retry after toolVaultReady
+            // First attempt or retry after toolsReady
             try {
                 toolList = await this._globalController.getToolIndex();
                 if (!toolList || typeof toolList !== 'object') {

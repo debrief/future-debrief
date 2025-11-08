@@ -1,0 +1,7 @@
+{
+  "input": {
+    "features": []
+  },
+  "expectedOutput": null,
+  "baseline_error": "Object of type DeleteFeaturesCommand is not JSON serializable"
+}

@@ -1,0 +1,44 @@
+{
+  "input": {
+    "features": [
+      {
+        "type": "Feature",
+        "id": "track-001",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              1
+            ]
+          ]
+        },
+        "properties": {
+          "dataType": "track",
+          "name": "Track 1"
+        }
+      },
+      {
+        "type": "Feature",
+        "id": "point-001",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            0.5,
+            0.5
+          ]
+        },
+        "properties": {
+          "dataType": "reference-point",
+          "name": "Point 1"
+        }
+      }
+    ]
+  },
+  "expectedOutput": null,
+  "baseline_error": "Object of type DeleteFeaturesCommand is not JSON serializable"
+}
